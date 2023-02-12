@@ -1,9 +1,9 @@
-# Logseq Copliot 🚀
+# Logseq Copilot 🚀
 
 **The project is in the early stage of development, and the current version is only a prototype.**
 
 
-Logseq Copliot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copliot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
+Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
 
 ## Features
 
@@ -11,7 +11,7 @@ Logseq Copliot is a Chrome extension that allows you to access your Logseq using
 
 ## Usage
 
-- To use Logseq Copliot, you need to connect it with your Logseq graph first. You can do this by clicking on the extension icon and choosing one of the following options: ⚙️
+- To use Logseq Copilot, you need to connect it with your Logseq graph first. You can do this by clicking on the extension icon and choosing one of the following options: ⚙️
 - enable your logseq api server.
 - After connecting your Logseq graph with the extension, you can start searching on Google and see your Logseq blocks on the search page. You can also change the settings of the extension by clicking on the extension icon and going to the `Settings` tab. You can adjust the following settings: 🛠️
   - Number of blocks: The maximum number of blocks to display on the search page. 🔢
@@ -31,7 +31,7 @@ Logseq Copliot is a Chrome extension that allows you to access your Logseq using
 
 ## Contributing
 
-Logseq Copliot is an open-source project and welcomes contributions from anyone who is interested in improving it. If you want to contribute, please follow these steps: 🙌
+Logseq Copilot is an open-source project and welcomes contributions from anyone who is interested in improving it. If you want to contribute, please follow these steps: 🙌
 
 - Fork this repository and clone it to your local machine. 🍴
 - Create a new branch for your feature or bug fix. 🌿
