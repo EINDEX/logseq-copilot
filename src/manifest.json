@@ -13,7 +13,7 @@
   // },
   "chrome_url_overrides": {},
   "icons": {
-    "192": "assets/img/icon.png"
+    "192": "assets/img/logo.png"
   },
   "content_scripts": [
     {
