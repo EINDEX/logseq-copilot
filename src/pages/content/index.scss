@@ -1,0 +1,51 @@
+@tailwind base;
+
+.copilot {
+  @apply flex flex-col w-full max-w-full gap-2;
+
+  .blocks {
+    @apply flex flex-col divide-dashed divide-y divide-x-0 rounded-lg shadow-lg;
+
+    @media (prefers-color-scheme: light) {
+      @apply bg-gray-50;
+    }
+    @media (prefers-color-scheme: dark) {
+      @apply bg-slate-700;
+    }
+
+    .block {
+      @apply flex flex-col px-2 py-2 prose-sm whitespace-pre-wrap;
+
+      // @media (prefers-color-scheme: light) {
+      //     @apply bg-gray-50
+      // }
+      // @media (prefers-color-scheme: dark) {
+      //     @apply bg-slate-700
+      // }
+
+      .logseq-page-link::before {
+        content: '[[';
+      }
+
+      .logseq-page-link::after {
+        content: ']]';
+      }
+
+      .page-tag {
+        @apply w-fit self-end;
+      }
+
+      p {
+        @apply my-1;
+      }
+
+      * {
+        @apply max-w-full break-all;
+      }
+    }
+  }
+
+  .power-by {
+    @apply text-xs self-end text-gray-400 pr-2;
+  }
+}
