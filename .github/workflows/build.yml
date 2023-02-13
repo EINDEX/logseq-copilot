@@ -19,7 +19,6 @@ jobs:
         name: Use Node.js
         with:
           node-version: 18.x
-          cache: 'npm'
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
