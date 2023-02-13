@@ -2,8 +2,6 @@ import { LogseqBlockType } from '../../../types/logseq-block';
 import { marked } from 'marked';
 import { getLogseqCopliotConfig } from '../../../config';
 
-
-
 type Graph = {
   name: string;
   path: string;
@@ -16,7 +14,7 @@ export type LogseqSearchResponse = {
 
 export default class LogseqClient {
   baseFetch = async (method: string, args: string[]) => {
-    const config = await getLogseqCopliotConfig()
+    const config = await getLogseqCopliotConfig();
     const resp = await fetch(`${config.logseqHost}/api`, {
       method: 'POST',
       headers: {
@@ -28,9 +26,9 @@ export default class LogseqClient {
         args: args,
       }),
     });
-    
+
     return resp;
-  }
+  };
 
   baseJson = async (method: string, args: string[]) => {
     const resp = await this.baseFetch(method, args);
@@ -38,13 +36,11 @@ export default class LogseqClient {
     return data;
   };
 
-  
-
   format = (block: LogseqBlockType, graphName: string) => {
     block.html = marked.parse(block.content.trim());
     block.html = block.html.replace(
       /\[\[(.*?)\]\]/g,
-      `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1">$1</a>`
+      `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1">$1</a>`,
     );
     return block;
   };
@@ -67,7 +63,7 @@ export default class LogseqClient {
     return {
       graph: graphName,
       blocks: resp.map((block: LogseqBlockType) =>
-        this.format(block, graphName)
+        this.format(block, graphName),
       ),
     };
   };

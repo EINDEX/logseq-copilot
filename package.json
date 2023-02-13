@@ -1,6 +1,6 @@
 {
   "name": "chrome-extension-boilerplate-react",
-  "version": "5.0.4",
+  "version": "0.0.0-development",
   "description": "A chrome extension boilerplate built with React 18, Webpack 5, and Webpack Dev Server 4",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,8 @@
   "scripts": {
     "build": "node build.mjs",
     "start": "chokidar src -c 'npm run build'",
-    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
+    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
+    "semantic-release": "semantic-release"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.4.9",
@@ -51,6 +52,7 @@
     "react-refresh-typescript": "^2.0.7",
     "sass": "^1.57.1",
     "sass-loader": "^13.2.0",
+    "semantic-release": "^20.1.0",
     "source-map-loader": "^3.0.1",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.2.6",

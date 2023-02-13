@@ -14,7 +14,7 @@ export const getLogseqCopliotConfig =
   };
 
 export const saveLogseqCopliotConfig = async (
-  updates: Partial<logseqCopliotConfig>
+  updates: Partial<logseqCopliotConfig>,
 ) => {
   console.log('saveLogseqCopliotConfig', updates);
   await chrome.storage.local.set(updates);

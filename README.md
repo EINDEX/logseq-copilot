@@ -27,7 +27,7 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 - Query enhance to recall more blocks: Implement a more flexible and powerful query system for retrieving the blocks from the Logseq graph, such as using natural language or advanced operators. 🗣️
 - Browser new tab page queries: Add an option to show Logseq blocks on the browser's new tab page based on predefined or random queries. 🆕
 
-*Welcoming more ideas.*
+_Welcoming more ideas._
 
 ## Contributing
 
@@ -38,4 +38,8 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 - Make your changes and commit them with a clear and concise message.
 
 ## License
+<<<<<<< HEAD
+=======
+
+>>>>>>> c5748b2 (ci: init pipeline)
 GPLv3

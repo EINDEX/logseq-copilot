@@ -1,45 +1,28 @@
 {
-  "version": "1.1.1",
+  "version": "0.0.1",
   "manifest_version": 3,
-  "name": "Chrome Extension with React & Webpack",
-  "description": "A chrome extension boilerplate built with React 17, Webpack 5, and Webpack Dev Server 4",
+  "name": "Logseq Copilot",
+  "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",
   "options_page": "options.html",
   "background": {
     "service_worker": "background.js"
   },
-  // "action": {
-  //   "default_popup": "popup.html",
-  //   "default_icon": "assets/img/icon-34.png"
-  // },
   "chrome_url_overrides": {},
   "icons": {
     "192": "assets/img/logo.png"
   },
   "content_scripts": [
     {
-      "matches": [
-        "http://*/*",
-        "https://*/*",
-        "<all_urls>"
-      ],
-      "js": [
-        "content-script.js"
-      ],
-      "css": [
-        "content-script.css"
-      ]
+      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "js": ["content-script.js"],
+      "css": ["content-script.css"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "content-script.css",
-        "assets/img/logo.png"
-      ],
+      "resources": ["content-script.css", "assets/img/logo.png"],
       "matches": []
     }
   ],
-  "permissions": [
-    "storage"
-  ]
+  "permissions": ["storage"]
 }
