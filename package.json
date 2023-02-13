@@ -1,11 +1,11 @@
 {
-  "name": "chrome-extension-boilerplate-react",
-  "version": "0.0.0-development",
-  "description": "A chrome extension boilerplate built with React 18, Webpack 5, and Webpack Dev Server 4",
+  "name": "logseq-copliot",
+  "version": "0.0.1",
+  "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eindex/logseq-copilot.git"
+    "url": "https://github.com/eindex/logseq-copliot.git"
   },
   "scripts": {
     "build": "node build.mjs",
