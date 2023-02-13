@@ -46,7 +46,7 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-memos-sync&type=Date)](https://star-history.com/#eindex/logseq-memos-sync&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-copilot&type=Date)](https://star-history.com/#eindex/logseq-copilot&Date)
 
 
 ## License
