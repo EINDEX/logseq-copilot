@@ -43,6 +43,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+      
+      - name: Build application
+        run: pnpm build
 
       - name: Release
         run: pnpx semantic-release

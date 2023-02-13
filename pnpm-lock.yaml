@@ -4,6 +4,10 @@ specifiers:
   '@chakra-ui/react': ^2.4.9
   '@emotion/react': ^11.10.5
   '@emotion/styled': ^11.10.5
+  '@semantic-release/changelog': ^6.0.2
+  '@semantic-release/github': ^8.0.7
+  '@semantic-release/npm': ^9.0.2
+  '@semantic-release/release-notes-generator': ^10.0.3
   '@tailwindcss/typography': ^0.5.9
   '@types/chrome': ^0.0.202
   '@types/marked': ^4.0.8
@@ -59,6 +63,10 @@ dependencies:
   react-dom: 18.2.0_react@18.2.0
 
 devDependencies:
+  '@semantic-release/changelog': 6.0.2_semantic-release@20.1.0
+  '@semantic-release/github': 8.0.7_semantic-release@20.1.0
+  '@semantic-release/npm': 9.0.2_semantic-release@20.1.0
+  '@semantic-release/release-notes-generator': 10.0.3_semantic-release@20.1.0
   '@types/chrome': 0.0.202
   '@types/react': 18.0.27
   '@types/react-dom': 18.0.10
@@ -3123,6 +3131,19 @@ packages:
 
   /@rushstack/eslint-patch/1.2.0:
     resolution: {integrity: sha512-sXo/qW2/pAcmT43VoRKOJbDOfV3cYpq3szSVfIThQXNt+E4DfKj361vaAt3c88U5tPUxzEswam7GW48PJqtKAg==}
+    dev: true
+
+  /@semantic-release/changelog/6.0.2_semantic-release@20.1.0:
+    resolution: {integrity: sha512-jHqfTkoPbDEOAgAP18mGP53IxeMwxTISN+GwTRy9uLu58UjARoZU8ScCgWGeO2WPkEsm57H8AkyY02W2ntIlIw==}
+    engines: {node: '>=14.17'}
+    peerDependencies:
+      semantic-release: '>=18.0.0'
+    dependencies:
+      '@semantic-release/error': 3.0.0
+      aggregate-error: 3.1.0
+      fs-extra: 11.1.0
+      lodash: 4.17.21
+      semantic-release: 20.1.0
     dev: true
 
   /@semantic-release/commit-analyzer/9.0.2_semantic-release@20.1.0:
