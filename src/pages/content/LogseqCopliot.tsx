@@ -24,7 +24,7 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
         {blocks.map((block) => {
           return (
             <>
-              <LogseqBlock key={block.uuid} block={block} graph={graphName} />
+              <LogseqBlock key={block['block/uuid']} block={block} graph={graphName} />
             </>
           );
         })}

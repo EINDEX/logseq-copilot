@@ -11,7 +11,6 @@ export type LogseqSearchResponse = {
   graph: string;
   blocks: LogseqBlockType[];
 };
-
 export default class LogseqClient {
   baseFetch = async (method: string, args: string[]) => {
     const config = await getLogseqCopliotConfig();
@@ -37,7 +36,7 @@ export default class LogseqClient {
   };
 
   format = (block: LogseqBlockType, graphName: string) => {
-    block.html = marked.parse(block.content.trim());
+    block.html = marked.parse(block['block/content'].trim());
     block.html = block.html.replace(
       /\[\[(.*?)\]\]/g,
       `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1">$1</a>`,
@@ -57,12 +56,10 @@ export default class LogseqClient {
 
   search = async (query: string): Promise<LogseqSearchResponse> => {
     const graphName = await this.getCurrentGraph();
-    const resp = await this.baseJson('logseq.DB.q', [`"${query}"`]);
-    console.log(resp);
-    console.log(graphName);
+    const resp: LogseqSearchResponse = await this.baseJson('logseq.App.search', [`"${query}"`]);
     return {
       graph: graphName,
-      blocks: resp.map((block: LogseqBlockType) =>
+      blocks: resp.blocks.map((block: LogseqBlockType) =>
         this.format(block, graphName),
       ),
     };

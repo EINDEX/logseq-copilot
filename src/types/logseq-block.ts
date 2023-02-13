@@ -1,8 +1,8 @@
 export type LogseqBlockType = {
-  uuid: string;
-  content: string;
+  "block/uuid": string;
+  "block/content": string;
   html: string;
-  page: {
-    name: string;
-  };
+  // page: {
+  //   name: string;
+  // };
 };

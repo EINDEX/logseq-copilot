@@ -10,10 +10,10 @@ export const LogseqBlock = ({ graph, block }: LogseqBlockProps) => {
     <div className="block">
       <div dangerouslySetInnerHTML={{ __html: block.html }}></div>
       <a
-        className="page-tag logseq-page-link"
-        href={`logseq://graph/${graph}?page=${block.page.name}`}
+        className="page-tag"
+        href={`logseq://graph/${graph}?block-id=${block['block/uuid']}`}
       >
-        {block.page.name}
+        To Block
       </a>
     </div>
   );
