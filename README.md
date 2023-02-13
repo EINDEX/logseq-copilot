@@ -2,12 +2,15 @@
 
 **The project is in the early stage of development, and the current version is only a prototype.**
 
-
 Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
 
 ## Features
 
 - Show Logseq blocks when you search on Google via your keywords.🔍
+
+## Screenshot
+
+![](docs/screenshots/screenshot.png)
 
 ## Usage
 
@@ -37,9 +40,14 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 - Create a new branch for your feature or bug fix. 🌿
 - Make your changes and commit them with a clear and concise message.
 
-## License
-<<<<<<< HEAD
-=======
+## Support
 
->>>>>>> c5748b2 (ci: init pipeline)
+<a href="https://www.buymeacoffee.com/eindex"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=eindex&button_colour=40DCA5&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-memos-sync&type=Date)](https://star-history.com/#eindex/logseq-memos-sync&Date)
+
+
+## License
 GPLv3
