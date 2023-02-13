@@ -17,12 +17,27 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 ## Usage
 
-- To use Logseq Copilot, you need to connect it with your Logseq graph first. You can do this by clicking on the extension icon and choosing one of the following options: ⚙️
-- enable your logseq api server.
-- After connecting your Logseq graph with the extension, you can start searching on Google and see your Logseq blocks on the search page. You can also change the settings of the extension by clicking on the extension icon and going to the `Settings` tab. You can adjust the following settings: 🛠️
-  - Number of blocks: The maximum number of blocks to display on the search page. 🔢
-  - Position: The position of the extension on the search page. You can choose to show it on the left, right, or bottom of the page. 📐
-  - Theme: The color theme of the extension. You can choose between light and dark themes. 🎨
+How to use this extension, Please follow below steps:
+
+1. Enable the `Developer mode` in Logseq:
+   1. Open `Logseq`.
+   2. Settings -> Advanced -> Enable `Developer mode`
+  ![](docs/screenshots/enable-developer-mode.png)
+
+2. Setup your Logeq API server:
+    1. Start server
+      ![](docs/screenshots/start-api-server.png)
+    2. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
+      ![](docs/screenshots/setting-auth-token.png)
+    3. (Optional) Enable auto start server when Logseq lunched.
+        ![](docs/screenshots/enable-auto-start.png)
+
+3. Install this extension. Now this extenstion is under review by chrome extenstions store and edge add-ons. So you can go to [release page](https://github.com/EINDEX/logseq-copilot/releases) download it.
+
+4. Go to Options page to setting the connection.
+  If you setting correct, you will see a message show on your Logseq and options page will show connected.
+
+5. You can use Logseq Copilot now!!
 
 ## Roadmap
 

@@ -1,4 +1,4 @@
-name: Build Chrome Extension
+name: Build
 
 on:
   push:
