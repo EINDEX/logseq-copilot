@@ -11,7 +11,7 @@ const mount = async (query: string) => {
   const hasAside = !!asideElement;
 
   if (hasAside) {
-    asideElement.appendChild(container);
+    asideElement.insertBefore(container, asideElement.firstChild);
   } else {
     const noAsideElement = document.getElementById('rcnt');
     noAsideElement!.appendChild(container);

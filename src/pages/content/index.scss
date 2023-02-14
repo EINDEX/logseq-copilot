@@ -16,19 +16,8 @@
     .block {
       @apply flex flex-col px-2 py-2 prose-sm whitespace-pre-wrap;
 
-      // @media (prefers-color-scheme: light) {
-      //     @apply bg-gray-50
-      // }
-      // @media (prefers-color-scheme: dark) {
-      //     @apply bg-slate-700
-      // }
-
-      .logseq-page-link::before {
-        content: '[[';
-      }
-
-      .logseq-page-link::after {
-        content: ']]';
+      .block-footer {
+        @apply justify-between flex flex-row;
       }
 
       .page-tag {
@@ -43,6 +32,22 @@
         @apply max-w-full break-all;
       }
     }
+  }
+
+  ul, ol {
+    @apply flex flex-col gap-1;
+
+    li {
+      @apply max-h-fit leading-4;
+    }
+  }
+
+  .logseq-page-link::before {
+    content: '[[';
+  }
+
+  .logseq-page-link::after {
+    content: ']]';
   }
 
   .power-by {

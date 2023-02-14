@@ -5,7 +5,7 @@ export interface logseqCopliotConfig {
 
 export const getLogseqCopliotConfig =
   async (): Promise<logseqCopliotConfig> => {
-    const { logseqHost = 'http://localhost:12315', logseqAuthToken } =
+    const { logseqHost = 'http://localhost:12315', logseqAuthToken = 'token' } =
       await chrome.storage.local.get();
     return {
       logseqHost,

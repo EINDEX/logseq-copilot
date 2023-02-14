@@ -4,9 +4,8 @@ const logseqClient = new LogseqClient();
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
-    console.log(msg);
     const promise = new Promise(async () => {
-      const searchRes = await logseqClient.search(msg.query);
+      const searchRes = await logseqClient.searchLogseq(msg.query);
       port.postMessage(searchRes);
     });
 

@@ -1,8 +1,24 @@
+export type LogseqPageIdenity = {
+  name: string;
+  id: number;
+  uuid: string;
+};
+
 export type LogseqBlockType = {
-  "block/uuid": string;
-  "block/content": string;
+  uuid: string;
   html: string;
-  // page: {
-  //   name: string;
-  // };
+  page: LogseqPageIdenity;
+};
+
+export type LogseqPageContent = {
+  uuid: string;
+  html: string;
+  page: LogseqPageIdenity;
+};
+
+export type LogseqSearchResult = {
+  blocks: LogseqBlockType[];
+  pages: LogseqPageIdenity[];
+  pageContents: LogseqPageContent[];
+  graph: string;
 };

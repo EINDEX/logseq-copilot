@@ -2,7 +2,6 @@
 
 [![Build](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml/badge.svg)](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml) ![Visitors](https://visitor-badge.glitch.me/badge?page_id=eindex.logseq-copliot&left_color=green&right_color=red) ![License](https://img.shields.io/github/license/eindex/logseq-copilot)
 
-
 **The project is in the early stage of development, and the current version is only a prototype.**
 
 Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
@@ -20,28 +19,31 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 How to use this extension, Please follow below steps:
 
 1. Enable the `Developer mode` in Logseq:
+
    1. Open `Logseq`.
    2. Settings -> Advanced -> Enable `Developer mode`
-  ![](docs/screenshots/enable-developer-mode.png)
+      ![](docs/screenshots/enable-developer-mode.png)
 
 2. Setup your Logeq API server:
-    1. Start server
+
+   1. Start server
       ![](docs/screenshots/start-api-server.png)
-    2. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
+   2. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
       ![](docs/screenshots/setting-auth-token.png)
-    3. (Optional) Enable auto start server when Logseq lunched.
-        ![](docs/screenshots/enable-auto-start.png)
+   3. (Optional) Enable auto start server when Logseq lunched.
+      ![](docs/screenshots/enable-auto-start.png)
 
 3. Install this extension. Now this extenstion is under review by chrome extenstions store and edge add-ons. So you can go to [release page](https://github.com/EINDEX/logseq-copilot/releases) download it.
 
 4. Go to Options page to setting the connection.
-  If you setting correct, you will see a message show on your Logseq and options page will show connected.
+   If you setting correct, you will see a message show on your Logseq and options page will show connected.
 
 5. You can use Logseq Copilot now!!
 
 ## Roadmap
 
-- CI/CD: Set up a continuous integration and delivery pipeline for the extension development and deployment. 🚦
+-[x] CI/CD: Set up a continuous integration and delivery pipeline for the extension development and deployment. 🚦
+
 - Support other search engines: Extend the functionality of the extension to other popular search engines, such as Bing, DuckDuckGo, and Baidu. 🌎
 - Style enhancement: Improve the appearance and usability of the extension interface and the blocks display. 💅
 - Enhance search ranking for better blocks: Implement a more sophisticated algorithm for ranking the blocks based on their relevance to the search query and the user preferences. 📊
@@ -66,6 +68,6 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 
 [![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-copilot&type=Date)](https://star-history.com/#eindex/logseq-copilot&Date)
 
-
 ## License
+
 GPLv3
