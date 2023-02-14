@@ -18,6 +18,8 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 How to use this extension, Please follow below steps:
 
+**Making sure your using Logseq which version above 0.8.17**
+
 1. Enable the `Developer mode` in Logseq:
 
    1. Open `Logseq`.
