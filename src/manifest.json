@@ -1,5 +1,5 @@
 {
-  "version": "0.0.2",
+  "version": "0.0.3",
   "manifest_version": 3,
   "name": "Logseq Copilot",
   "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",

@@ -1,6 +1,7 @@
 import React from 'react';
-import { LogseqBlockType, LogseqSearchResult } from '../../types/logseq-block';
+import { LogseqSearchResult } from '../../types/logseq-block';
 import { LogseqBlock } from './LogseqBlock';
+import { LogseqPageContent } from './LogseqPageContent';
 
 type LogseqCopliotProps = {
   connect: chrome.runtime.Port;
@@ -13,26 +14,26 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
     React.useState<LogseqSearchResult>();
 
   connect.onMessage.addListener((resp: LogseqSearchResult) => {
-    console.log(resp);
     setLogseqSearchResult(resp);
     setLoading(false);
   });
 
   return (
     <div id={!hasAside ? 'rhs' : ''} className="copilot">
+      <div className='content'>
       {loading ? (
         <div className="loading">Loading...</div>
       ) : (
         <>
           {logseqSearchResult && logseqSearchResult!.pages.length > 0 ? (
             <>
-              <h1>Pages</h1>
+              {/* <h1>Pages</h1> */}
               <div className="pages">
                 <ul>
                   {logseqSearchResult?.pages.map((page) => {
                     return (
                       <li key={page.uuid}>
-                        <a className='logseq-page-link' href={page.name}>{page.name}</a>
+                        <a className='logseq-page-link' href={`logseq://graph/${logseqSearchResult.graph}?page=${page.name}`}>{page.name}</a>
                       </li>
                     );
                   })}
@@ -42,10 +43,9 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
           ) : (
             <></>
           )}
-        
           {logseqSearchResult && logseqSearchResult!.blocks.length > 0 ? (
             <>
-              <h1>Blocks</h1>
+              {/* <h1>Blocks</h1> */}
               <div className="blocks">
                 {logseqSearchResult?.blocks.map((block) => {
                   return (
@@ -61,15 +61,15 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
           ) : (
             <></>
           )}
-                  {logseqSearchResult && logseqSearchResult!.pageContents.length > 0 ? (
+            {logseqSearchResult && logseqSearchResult!.pageContents.length > 0 ? (
             <>
-              <h1>Page Content</h1>
+              {/* <h1>Page Content</h1> */}
               <div className="blocks">
                 {logseqSearchResult?.pageContents.map((pageContent) => {
                   return (
-                    <LogseqBlock
+                    <LogseqPageContent
                       key={pageContent.uuid}
-                      block={pageContent}
+                      pageContent={pageContent}
                       graph={logseqSearchResult.graph}
                     />
                   );
@@ -81,6 +81,7 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
           )}
         </>
       )}
+      </div>
       <span className="power-by">power by Logseq Copliot</span>
     </div>
   );

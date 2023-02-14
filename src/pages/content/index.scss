@@ -3,18 +3,20 @@
 .copilot {
   @apply flex flex-col w-full max-w-full gap-2;
 
-  .blocks {
-    @apply flex flex-col divide-dashed divide-y divide-x-0 rounded-lg shadow-lg;
+  .content {
+    @apply flex flex-col gap-2 rounded-lg border border-gray-300 border-solid px-4 py-4 divide-y divide-x-0 divide-solid;
+  }
 
-    @media (prefers-color-scheme: light) {
-      @apply bg-gray-50;
-    }
-    @media (prefers-color-scheme: dark) {
-      @apply bg-slate-700;
-    }
+  .pages {
+    @apply list-inside
+  }
+
+  .blocks {
+    @apply flex flex-col divide-dashed divide-y divide-x-0 gap-2;
+
 
     .block {
-      @apply flex flex-col px-2 py-2 prose-sm whitespace-pre-wrap;
+      @apply flex flex-col prose-sm whitespace-pre-wrap;
 
       .block-footer {
         @apply justify-between flex flex-row;

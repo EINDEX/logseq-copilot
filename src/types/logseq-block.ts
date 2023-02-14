@@ -10,15 +10,15 @@ export type LogseqBlockType = {
   page: LogseqPageIdenity;
 };
 
-export type LogseqPageContent = {
+export type LogseqPageContentType = {
   uuid: string;
-  html: string;
+  content: string;
   page: LogseqPageIdenity;
 };
 
 export type LogseqSearchResult = {
   blocks: LogseqBlockType[];
   pages: LogseqPageIdenity[];
-  pageContents: LogseqPageContent[];
+  pageContents: LogseqPageContentType[];
   graph: string;
 };

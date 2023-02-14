@@ -2,7 +2,7 @@ import {
   LogseqBlockType,
   LogseqSearchResult,
   LogseqPageIdenity,
-  LogseqPageContent,
+  LogseqPageContentType,
 } from '../../../types/logseq-block';
 import { marked } from 'marked';
 import { getLogseqCopliotConfig } from '../../../config';
@@ -59,20 +59,23 @@ export default class LogseqClient {
     return data;
   };
 
+  private tirmContent = (content: string): string => {
+    return content
+    .replaceAll(/!\[.*?\]\(\.\.\/assets.*?\)/gm, "")
+    .replaceAll(/^[\w-]+::.*?$/gm, "")  // clean properties
+    .replaceAll(/{{renderer .*?}}/gm, "") // clean renderer
+    .replaceAll(/^:logbook:[\S\s]*?:end:$/gm, "") // clean logbook
+    .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gm, "$1") // clean highlight
+    .replaceAll(/^\s*?-\s*?$/gm, "")
+    .trim()
+  }
+
   private format = (content: string, graphName: string, graphPath: string) => {
-    let html = marked.parse(
-      content
-        .replaceAll(/!\[.*?\]\(\.\.\/assets.*?\)/gm, "")
-        .replaceAll(/^[\w-]+::.*?$/gm, "")
-        .replaceAll(/{{renderer .*?}}/gm, "")
-        .replaceAll(/^\s*?-\s*?$/gm, "")
-        .trim()
-    );
-    html = html.replaceAll(
+    const html = marked.parse(this.tirmContent(content));
+    return html.replaceAll(
       /\[\[(.*?)\]\]/g,
       `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1">$1</a>`,
     );
-    return html;
   };
 
   public showMsg = async (message: string) => {
@@ -132,7 +135,7 @@ export default class LogseqClient {
       pageContents: await Promise.all(
         pageContents.map(async (pageContent) => {
           return {
-            html: this.format(pageContent['block/snippet'], graphName, graphPath),
+            content: this.tirmContent(pageContent['block/snippet']).replaceAll(/\n+/g," "),
             uuid: pageContent['block/uuid'],
             page: await this.getPage({
               uuid: pageContent['block/uuid'],
