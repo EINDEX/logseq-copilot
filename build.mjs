@@ -6,10 +6,13 @@ import postcssPlugin from 'esbuild-style-plugin'
 import fs from 'fs-extra'
 import process from 'node:process'
 import tailwindcss from 'tailwindcss'
+import  getManifest  from "./src/manifest.json.cjs"
 
 dotenv.config()
 
 const outdir = 'build'
+
+const env = JSON.stringify(process.env.NODE_ENV || 'production');
 
 async function deleteOldDir() {
   await fs.remove(outdir)
@@ -25,10 +28,10 @@ async function runEsbuild() {
     bundle: true,
     outdir: outdir,
     treeShaking: true,
-    minify: false,
+    minify: env === 'production'? true: false,
     legalComments: 'none',
     define: {
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+      'process.env.NODE_ENV': env,
       'process.env.AXIOM_TOKEN': JSON.stringify(process.env.AXIOM_TOKEN || 'UNDEFINED'),
     },
     jsxFragment: 'Fragment',
@@ -81,11 +84,19 @@ async function build() {
 
   // chromium
   await copyFiles(
-    [...commonFiles, { src: 'src/manifest.json', dst: 'manifest.json' }],
-    `./${outdir}/chromium`,
-  )
+    [...commonFiles],
+    `./${outdir}/chrome`,
+    )
+  await fs.writeFile(`./${outdir}/chrome/manifest.json`, JSON.stringify(getManifest('chrome')))
+  await zipFolder(`./${outdir}/chrome`)
 
-  await zipFolder(`./${outdir}/chromium`)
+  // edge
+  await copyFiles(
+    [...commonFiles],
+    `./${outdir}/edge`,
+    )
+  await fs.writeFile(`./${outdir}/edge/manifest.json`, JSON.stringify(getManifest('edge')))
+  await zipFolder(`./${outdir}/edge`)
 
   console.log('Build success.')
 }
