@@ -1,6 +1,6 @@
 import './index.scss';
 import { createRoot } from 'react-dom/client';
-import { LogseqCopliot } from './LogseqCopliot';
+import { LogseqCopliot } from './components/LogseqCopliot';
 
 const connect = chrome.runtime.connect();
 
@@ -25,15 +25,15 @@ const mount = async (query: string) => {
 };
 
 async function run() {
-  console.debug('Logseq copliot', location.hostname);
+  console.debug('Logseq copliot', window.location.hostname);
 
-  const searchURL = new URL(location.href);
+  const searchURL = new URL(window.location.href);
   const query = searchURL.searchParams.get('q');
   if (!query) {
     return;
   }
 
-  if (location.hostname === 'www.google.com') {
+  if (window.location.hostname === 'www.google.com') {
     await mount(query);
   }
 }

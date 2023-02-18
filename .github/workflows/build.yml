@@ -45,6 +45,8 @@ jobs:
         run: pnpm install
       
       - name: Build application
+        env:
+          NODE_ENV: production
         run: pnpm build
 
       - name: Release

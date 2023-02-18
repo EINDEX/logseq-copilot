@@ -1,22 +1,13 @@
 @tailwind base;
 
 .copilot {
-  @apply flex flex-col w-full max-w-full gap-2;
+  @apply flex flex-col w-full max-w-full gap-2 pb-4;
 
   .content {
-    @apply flex flex-col gap-2 rounded-lg border border-gray-300 border-solid px-4 py-4 divide-y divide-x-0 divide-solid;
-  }
-
-  .pages {
-    @apply list-inside
-  }
-
-  .blocks {
-    @apply flex flex-col divide-dashed divide-y divide-x-0 gap-2;
-
-
-    .block {
-      @apply flex flex-col prose-sm whitespace-pre-wrap;
+    @apply flex flex-col gap-2 rounded-lg border border-gray-300 border-solid px-4 py-4  prose-sm whitespace-pre-wrap;
+     * {
+        @apply max-w-full break-all;
+      }
 
       .block-footer {
         @apply justify-between flex flex-row;
@@ -26,15 +17,16 @@
         @apply w-fit self-end;
       }
 
-      p {
-        @apply my-1;
+      .config-it {
+        @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0
       }
-
-      * {
-        @apply max-w-full break-all;
-      }
-    }
+    
   }
+
+  .divide {
+    @apply divide-y divide-x-0 divide-dashed
+  }
+  
 
   ul, ol {
     @apply flex flex-col gap-1;
@@ -51,8 +43,11 @@
   .logseq-page-link::after {
     content: ']]';
   }
-
-  .power-by {
-    @apply text-xs self-end text-gray-400 pr-2;
+  .footer {
+    @apply flex flex-row text-xs justify-between text-gray-500 px-2;
+    
+    a {
+      @apply text-gray-500 no-underline;
+    }
   }
 }

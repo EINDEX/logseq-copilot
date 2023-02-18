@@ -1,15 +1,35 @@
 import React, { useEffect } from 'react';
-import { getLogseqCopliotConfig, saveLogseqCopliotConfig } from '../../config';
+import {
+  getLogseqCopliotConfig,
+  saveLogseqCopliotConfig,
+  LogseqCopliotConfig,
+} from '../../config';
 import './Options.scss';
-import { Input, Button, Alert } from '@chakra-ui/react';
-import LogseqClient from '../background/client/logseq';
+import {
+  Input,
+  Button,
+  Flex,
+  Container,
+  Heading,
+  Text,
+  Link,
+  InputGroup,
+  InputRightElement,
+} from '@chakra-ui/react';
+import LogseqClient from '../logseq/client';
 
 const client = new LogseqClient();
 
 const Options: React.FC = () => {
   const [init, setInit] = React.useState(false);
-  const [logseqConfig, setLogseqConfig] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>({
+    logseqAuthToken: '',
+    logseqHost: '',
+  });
   const [connected, setConnected] = React.useState(false);
+  const [buttonMessage, setButtonMessage] = React.useState('Connect');
+  const [showToken, setShowToken] = React.useState(false);
 
   useEffect(() => {
     if (!init) {
@@ -17,53 +37,117 @@ const Options: React.FC = () => {
         console.log('inti');
         setLogseqConfig(config);
         setInit(true);
+        if (config.logseqAuthToken === '') {
+          setLoading(false);
+          return;
+        }
         const promise = new Promise(async () => {
-          const resp = await client.showMsg('Logseq Copliot Connect!');
-          if (resp.status == 200) {
-            setConnected(true);
-          }
+          await checkConnection();
         });
-        promise.then(console.log);
+        promise.then(console.log).catch(console.error);
       });
     }
   });
 
+  const triggerShowToken = () => setShowToken(!showToken);
+
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLogseqConfig({
-      ...logseqConfig,
-      [e.target.name]: e.target.value,
-    });
+    if (e.target.name === 'logseqAuthToken') {
+      setLogseqConfig({
+        logseqHost: logseqConfig!.logseqHost,
+        logseqAuthToken: e.target.value,
+      });
+    } else {
+      setLogseqConfig({
+        logseqHost: e.target.value,
+        logseqAuthToken: logseqConfig!.logseqAuthToken,
+      });
+    }
+  };
+
+  const checkConnection = async () => {
+    setLoading(true);
+    const resp = await client.showMsg('Logseq Copliot Connect!');
+    console.log(resp);
+    const connectStatus = resp.msg === 'success';
+    setConnected(connectStatus);
+    if (connectStatus) {
+      const version = await (await client.getVersion()).response;
+      setButtonMessage(`Connected to Logseq v${version}!`);
+    } else {
+      setConnected(false);
+      setButtonMessage(resp.msg);
+    }
+    setLoading(false);
   };
 
   const save = () => {
-    console.log(logseqConfig);
     const promise = new Promise(async () => {
-      await saveLogseqCopliotConfig(logseqConfig);
-      const resp = await client.showMsg('Logseq Copliot Connect!');
-      setConnected(resp.status == 200);
+      await saveLogseqCopliotConfig(logseqConfig!);
+      await checkConnection();
     });
-    promise.then(console.log);
+    promise.then(console.log).catch(console.error);
   };
 
   return (
     <div className="options">
-      <h1>Logseq Copilot</h1>
-      <Input
-        name="logseqHost"
-        placeholder="Logseq Host"
-        onChange={onChange}
-        value={logseqConfig?.logseqHost}
-      />
-      <Input
-        name="logseqAuthToken"
-        onChange={onChange}
-        value={logseqConfig?.logseqAuthToken}
-        placeholder="Logseq Authorization Token"
-      />
-      <Button onClick={save}>Save</Button>
-      <Alert display={!connected ? 'none' : 'flex'} status="success">
-        Connected
-      </Alert>
+      <Container maxW={'56rem'} mt={'1rem'}>
+        <Flex direction={'row'}>
+          <Flex direction={'column'} w={'16rem'}>
+            <Heading>Logseq Copilot</Heading>
+          </Flex>
+          <Flex direction={'column'} w={'40rem'} gap={2}>
+            <Heading size={'lg'}>Basic Config</Heading>
+            <Flex direction={'row'}>
+              <Text fontSize="md" w={'40%'}>
+                Logseq Host
+              </Text>
+              <Input
+                name="logseqHost"
+                placeholder="Logseq Host"
+                onChange={onChange}
+                value={logseqConfig?.logseqHost}
+              />
+            </Flex>
+            <Flex direction={'row'}>
+              <Text fontSize="md" w={'40%'}>
+                Logseq Authorization Token
+              </Text>
+              <InputGroup>
+                <Input
+                  name="logseqAuthToken"
+                  type={showToken ? 'text' : 'password'}
+                  onChange={onChange}
+                  value={logseqConfig?.logseqAuthToken}
+                  placeholder="Logseq Authorization Token"
+                />
+                <InputRightElement width="4.5rem">
+                  <Button h="1.75rem" size="sm" onClick={triggerShowToken}>
+                    {showToken ? 'Hide' : 'Show'}
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
+            </Flex>
+            <Button
+              onClick={save}
+              variant="outline"
+              colorScheme={!connected ? 'red' : 'green'}
+              isLoading={loading}
+            >
+              {buttonMessage}
+            </Button>
+
+            <Text>
+              <Link
+                color={!connected ? 'red' : undefined}
+                href="https://github.com/eindex/logseq-copilot#usage"
+              >
+                Guide to Connection
+              </Link>
+            </Text>
+          </Flex>
+        </Flex>
+      </Container>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 {
   "name": "logseq-copliot",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",
   "license": "MIT",
   "repository": {
@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.4.9",
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
+    "@emotion/react": "^11.10.6",
+    "@emotion/styled": "^11.10.6",
     "@tailwindcss/typography": "^0.5.9",
     "@types/marked": "^4.0.8",
     "axios": "^1.3.2",

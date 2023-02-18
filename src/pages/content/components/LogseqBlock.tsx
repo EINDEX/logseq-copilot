@@ -1,4 +1,5 @@
-import { LogseqBlockType } from '../../types/logseq-block';
+import { LogseqBlockType } from '../../../types/logseq-block';
+import LogseqPageLink from './LogseqPage';
 
 type LogseqBlockProps = {
   graph: string;
@@ -17,16 +18,10 @@ export const LogseqBlock = ({ graph, block }: LogseqBlockProps) => {
           >
             To block
           </a>
-          <a
-            className="page-tag logseq-page-link"
-            href={`logseq://graph/${graph}?page=${block.page?.name}`}
-          >
-            {block.page?.name}
-          </a>
+          <LogseqPageLink graph={graph} page={block.page}></LogseqPageLink>
         </span>
       </div>
     );
   }
   return <></>;
-  
 };
