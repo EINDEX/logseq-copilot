@@ -1,41 +1,44 @@
 import './index.scss';
 import { createRoot } from 'react-dom/client';
 import { LogseqCopliot } from './components/LogseqCopliot';
+import searchEngins from './searchingEngines/searchingEngines';
+import { Container } from '@chakra-ui/react';
 
 const connect = chrome.runtime.connect();
 
-const mount = async (query: string) => {
-  const container = document.createElement('div');
-  const asideElement = document.getElementById('rhs');
-
-  const hasAside = !!asideElement;
-
-  if (hasAside) {
-    asideElement.insertBefore(container, asideElement.firstChild);
-  } else {
-    const noAsideElement = document.getElementById('rcnt');
-    noAsideElement!.appendChild(container);
-  }
-
+const mount = async (container: Element, query: string) => {
   const root = createRoot(container);
 
   connect.postMessage({ type: 'query', query: query });
 
-  root.render(<LogseqCopliot connect={connect} hasAside={hasAside} />);
+  root.render(<LogseqCopliot connect={connect} />);
 };
 
-async function run() {
+async function run(searchEngine) {
   console.debug('Logseq copliot', window.location.hostname);
 
-  const searchURL = new URL(window.location.href);
-  const query = searchURL.searchParams.get('q');
-  if (!query) {
-    return;
-  }
-
-  if (window.location.hostname === 'www.google.com') {
-    await mount(query);
+  if (searchEngine.isMatch()) {
+    const query = searchEngine.getQuery();
+    if (query) {
+      console.log(`match ${typeof searchEngine}, query ${query}`);
+      const container = await searchEngine.gotElement();
+      await mount(container, query);
+    }
   }
 }
 
-run();
+function getEngine() {
+  for (const engine of searchEngins) {
+    if (engine.isMatch()) {
+      return engine;
+    }
+  }
+}
+
+const searchEngine = getEngine();
+
+run(searchEngine);
+
+if (searchEngine.reload) {
+  searchEngine.reload(() => run(searchEngine));
+}

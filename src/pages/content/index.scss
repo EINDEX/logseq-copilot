@@ -1,12 +1,16 @@
 @tailwind base;
 
 .copilot {
-  @apply flex flex-col w-full max-w-full gap-2 pb-4;
+  @apply flex flex-col w-full max-w-sm gap-2 pb-4;
 
   .content {
-    @apply flex flex-col gap-2 rounded-lg border border-gray-300 border-solid px-4 py-4  prose-sm whitespace-pre-wrap;
+    @apply flex flex-col gap-2 rounded-lg border border-gray-300 border-solid px-4 py-4  prose-sm whitespace-pre-wrap text-sm;
      * {
-        @apply max-w-full break-all;
+        @apply break-all text-sm;
+      }
+
+      pre {
+        @apply overflow-x-auto;
       }
 
       .block-footer {
@@ -43,7 +47,7 @@
   .logseq-page-link::after {
     content: ']]';
   }
-  .footer {
+  .copilot-footer {
     @apply flex flex-row text-xs justify-between text-gray-500 px-2;
     
     a {

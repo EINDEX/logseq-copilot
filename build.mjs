@@ -7,6 +7,7 @@ import fs from 'fs-extra';
 import process from 'node:process';
 import tailwindcss from 'tailwindcss';
 import getManifest from './src/manifest.json.cjs';
+import remToPx from 'postcss-rem-to-pixel';
 
 dotenv.config();
 
@@ -44,7 +45,7 @@ async function runEsbuild() {
     plugins: [
       postcssPlugin({
         postcss: {
-          plugins: [tailwindcss, autoprefixer],
+          plugins: [tailwindcss, autoprefixer, remToPx],
         },
       }),
     ],

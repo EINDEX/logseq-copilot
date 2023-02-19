@@ -1,16 +1,14 @@
 import React from 'react';
 import { LogseqSearchResult } from '../../../types/logseq-block';
 import { LogseqResponseType } from '../../logseq/client';
-import { ListRender } from './List';
 import { LogseqBlock } from './LogseqBlock';
 import { LogseqPageContent } from './LogseqPageContent';
 
 type LogseqCopliotProps = {
   connect: chrome.runtime.Port;
-  hasAside: boolean;
 };
 
-export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
+export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   const [msg, setMsg] = React.useState('Loading...');
   const [logseqSearchResult, setLogseqSearchResult] =
     React.useState<LogseqSearchResult>();
@@ -108,7 +106,10 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
     ) {
       return (
         <>
-          <span>Nothing here, Do some research with Logseq!</span>
+          <span>
+            Nothing here, Do some research with Logseq!{' '}
+            <a href={`logseq://graph/${logseqSearchResult!.graph}`}>Go</a>
+          </span>
         </>
       );
     }
@@ -116,7 +117,7 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
   };
 
   return (
-    <div id={!hasAside ? 'rhs' : ''} className="copilot">
+    <div className="copilot">
       <div className={msg !== 'success' ? 'content' : 'content divide'}>
         {msg !== 'success' ? (
           <>{statusShower()}</>
@@ -130,7 +131,7 @@ export const LogseqCopliot = ({ connect, hasAside }: LogseqCopliotProps) => {
         )}
       </div>
 
-      <div className="footer">
+      <div className="copilot-footer">
         <span>
           <a href="https://github.com/EINDEX/logseq-copilot/issues/new">
             Feedback
