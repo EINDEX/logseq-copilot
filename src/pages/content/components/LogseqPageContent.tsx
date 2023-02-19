@@ -1,4 +1,4 @@
-import { LogseqPageContentType } from '../../types/logseq-block';
+import { LogseqPageContentType } from '../../../types/logseq-block';
 import LogseqPageLink from './LogseqPage';
 
 type LogseqPageContentProps = {

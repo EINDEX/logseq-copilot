@@ -101,6 +101,14 @@ async function build() {
   );
   await zipFolder(`./${outdir}/edge`);
 
+  // firefox
+  await copyFiles([...commonFiles], `./${outdir}/firefox`);
+  await fs.writeFile(
+    `./${outdir}/firefox/manifest.json`,
+    JSON.stringify(getManifest('firefox')),
+  );
+  await zipFolder(`./${outdir}/firefox`);
+
   console.log('Build success.');
 }
 

@@ -4,7 +4,7 @@ import {
 } from '../../types/logseq-block';
 import { marked } from 'marked';
 import { getLogseqCopliotConfig } from '../../config';
-import axios, { AxiosResponse } from 'axios';
+
 import {
   CannotConnectWithLogseq,
   LogseqVersionIsLower,
@@ -52,7 +52,9 @@ export default class LogseqClient {
     const config = await getLogseqCopliotConfig();
     const apiUrl = new URL(`${config.logseqHost}/api`);
     const resp = await fetch(apiUrl, {
+      mode: 'cors',
       method: 'POST',
+      credentials: 'include',
       headers: {
         Authorization: `Bearer ${config.logseqAuthToken}`,
         'Content-Type': 'application/json; charset=utf-8',

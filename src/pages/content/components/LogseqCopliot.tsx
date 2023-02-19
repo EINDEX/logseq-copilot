@@ -3,9 +3,10 @@ import { LogseqSearchResult } from '../../../types/logseq-block';
 import { LogseqResponseType } from '../../logseq/client';
 import { LogseqBlock } from './LogseqBlock';
 import { LogseqPageContent } from './LogseqPageContent';
+import Browser from 'webextension-polyfill'
 
 type LogseqCopliotProps = {
-  connect: chrome.runtime.Port;
+  connect: Browser.Runtime.Port;
 };
 
 export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {

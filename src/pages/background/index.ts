@@ -1,8 +1,9 @@
 import LogseqClient from '../logseq/client';
+import Browser from 'webextension-polyfill'
 
 const logseqClient = new LogseqClient();
 
-chrome.runtime.onConnect.addListener((port) => {
+Browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
     if (msg.type === 'query') {
       const promise = new Promise(async () => {
@@ -12,7 +13,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
-      chrome.runtime.openOptionsPage();
+      Browser.runtime.openOptionsPage();
     }
   });
 });

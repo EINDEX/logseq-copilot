@@ -1,10 +1,10 @@
 import './index.scss';
 import { createRoot } from 'react-dom/client';
+import Browser from 'webextension-polyfill';
 import { LogseqCopliot } from './components/LogseqCopliot';
-import searchEngins from './searchingEngines/searchingEngines';
-import { Container } from '@chakra-ui/react';
+import searchEngines from './searchingEngines/searchingEngines';
 
-const connect = chrome.runtime.connect();
+const connect = Browser.runtime.connect();
 
 const mount = async (container: Element, query: string) => {
   const root = createRoot(container);
@@ -28,7 +28,7 @@ async function run(searchEngine) {
 }
 
 function getEngine() {
-  for (const engine of searchEngins) {
+  for (const engine of searchEngines) {
     if (engine.isMatch()) {
       return engine;
     }

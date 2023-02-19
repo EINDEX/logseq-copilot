@@ -11,10 +11,10 @@ specifiers:
   '@semantic-release/release-notes-generator': ^10.0.3
   '@tailwindcss/typography': ^0.5.9
   '@thedutchcoder/postcss-rem-to-px': ^0.0.2
-  '@types/chrome': ^0.0.202
   '@types/marked': ^4.0.8
   '@types/react': ^18.0.26
   '@types/react-dom': ^18.0.10
+  '@types/webextension-polyfill': ^0.10.0
   archiver: ^5.3.1
   autoprefixer: ^10.4.13
   axios: ^1.3.2
@@ -53,6 +53,7 @@ specifiers:
   ts-loader: ^9.4.2
   type-fest: ^3.5.2
   typescript: ^4.9.4
+  webextension-polyfill: ^0.10.0
 
 dependencies:
   '@chakra-ui/react': 2.4.9_rqby5mfyuwc77n5ofx24l35yfu
@@ -75,9 +76,9 @@ devDependencies:
   '@semantic-release/github': 8.0.7_semantic-release@20.1.0
   '@semantic-release/npm': 9.0.2_semantic-release@20.1.0
   '@semantic-release/release-notes-generator': 10.0.3_semantic-release@20.1.0
-  '@types/chrome': 0.0.202
   '@types/react': 18.0.27
   '@types/react-dom': 18.0.10
+  '@types/webextension-polyfill': 0.10.0
   archiver: 5.3.1
   autoprefixer: 10.4.13
   chokidar-cli: 3.0.0
@@ -109,6 +110,7 @@ devDependencies:
   ts-loader: 9.4.2_typescript@4.9.5
   type-fest: 3.5.5
   typescript: 4.9.5
+  webextension-polyfill: 0.10.0
 
 packages:
 
@@ -3278,27 +3280,6 @@ packages:
       '@types/responselike': 1.0.0
     dev: true
 
-  /@types/chrome/0.0.202:
-    resolution: {integrity: sha512-Oc4daL9sFS+9MToVZPLMBxR7PxsEdod0b8wOY11lRr06GJp43MORvHeDyMD8QzeRGT6HI13oaYAe2PBgvALc4w==}
-    dependencies:
-      '@types/filesystem': 0.0.32
-      '@types/har-format': 1.2.10
-    dev: true
-
-  /@types/filesystem/0.0.32:
-    resolution: {integrity: sha512-Yuf4jR5YYMR2DVgwuCiP11s0xuVRyPKmz8vo6HBY3CGdeMj8af93CFZX+T82+VD1+UqHOxTq31lO7MI7lepBtQ==}
-    dependencies:
-      '@types/filewriter': 0.0.29
-    dev: true
-
-  /@types/filewriter/0.0.29:
-    resolution: {integrity: sha512-BsPXH/irW0ht0Ji6iw/jJaK8Lj3FJemon2gvEqHKpCdDCeemHa+rI3WBGq5z7cDMZgoLjY40oninGxqk+8NzNQ==}
-    dev: true
-
-  /@types/har-format/1.2.10:
-    resolution: {integrity: sha512-o0J30wqycjF5miWDKYKKzzOU1ZTLuA42HZ4HE7/zqTOc/jTLdQ5NhYWvsRQo45Nfi1KHoRdNhteSI4BAxTF1Pg==}
-    dev: true
-
   /@types/http-cache-semantics/4.0.1:
     resolution: {integrity: sha512-SZs7ekbP8CN0txVG2xVRH6EgKmEm31BOxA07vkFaETzZz1xh+cbt8BcI0slpymvwhx5dlFnQG2rTlPVQn+iRPQ==}
     dev: true
@@ -3393,6 +3374,10 @@ packages:
     resolution: {integrity: sha512-B5otJekvD6XM8iTrnO6e2twoTY2tKL9VkL/57/2Lo4tv3EatbCaufdi68VVtn/h4yjO+HVvYEyrNQd0Lzj6riw==}
     dependencies:
       '@types/node': 18.11.19
+    dev: true
+
+  /@types/webextension-polyfill/0.10.0:
+    resolution: {integrity: sha512-If4EcaHzYTqcbNMp/FdReVdRmLL/Te42ivnJII551bYjhX19bWem5m14FERCqdJA732OloGuxCRvLBvcMGsn4A==}
     dev: true
 
   /@typescript-eslint/eslint-plugin/5.50.0_go4drrxstycfikanvu45pi4vgq:
@@ -8421,6 +8406,10 @@ packages:
     dependencies:
       spdx-correct: 3.1.1
       spdx-expression-parse: 3.0.1
+    dev: true
+
+  /webextension-polyfill/0.10.0:
+    resolution: {integrity: sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==}
     dev: true
 
   /webidl-conversions/3.0.1:
