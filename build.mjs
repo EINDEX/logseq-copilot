@@ -14,7 +14,7 @@ dotenv.config();
 const outdir = 'build';
 
 const nodeEnv = JSON.stringify(process.env.NODE_ENV || 'production');
-const VERSION = process.env.NODE_ENV || '999.999.999'
+const VERSION = `${process.env.VERSION}` || '999.999.999';
 
 async function deleteOldDir() {
   await fs.remove(outdir);
@@ -34,9 +34,7 @@ async function runEsbuild() {
     legalComments: 'none',
     define: {
       'process.env.NODE_ENV': nodeEnv,
-      'process.env.VERSION': JSON.stringify(
-        process.env.AXIOM_TOKEN || 'UNDEFINED',
-      ),
+      'process.env.VERSION': JSON.stringify(VERSION),
     },
     jsxFragment: 'Fragment',
     jsx: 'automatic',
@@ -53,8 +51,8 @@ async function runEsbuild() {
   });
 }
 
-async function zipFolder(dir) {
-  const output = fs.createWriteStream(`${dir}.zip`);
+async function zipFolder(dir, version) {
+  const output = fs.createWriteStream(`${dir}-${version}.zip`);
   const archive = archiver('zip', {
     zlib: { level: 9 },
   });
@@ -92,7 +90,7 @@ async function build() {
     `./${outdir}/chrome/manifest.json`,
     JSON.stringify(getManifest('chrome')),
   );
-  await zipFolder(`./${outdir}/chrome`);
+  await zipFolder(`./${outdir}/chrome`, VERSION);
 
   // edge
   await copyFiles([...commonFiles], `./${outdir}/edge`);
@@ -100,7 +98,7 @@ async function build() {
     `./${outdir}/edge/manifest.json`,
     JSON.stringify(getManifest('edge')),
   );
-  await zipFolder(`./${outdir}/edge`);
+  await zipFolder(`./${outdir}/edge`, VERSION);
 
   // firefox
   await copyFiles([...commonFiles], `./${outdir}/firefox`);
@@ -108,7 +106,7 @@ async function build() {
     `./${outdir}/firefox/manifest.json`,
     JSON.stringify(getManifest('firefox')),
   );
-  await zipFolder(`./${outdir}/firefox`);
+  await zipFolder(`./${outdir}/firefox`, VERSION);
 
   console.log('Build success.');
 }
