@@ -10,42 +10,44 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 [Add to Edge](https://chrome.google.com/webstore/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
 
+[Add to Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
+
 ## Features
 
 - 🔍 Show Logseq content when you search on popular searching engines via your keywords. Now support Google, Bing, Baidu, Yandex, DuckDuckGo, SearX.
 
-
 ## Screenshot
 
 ![](docs/screenshots/screenshot.png)
-
 ## Usage
 
 How to use this extension, Please follow below steps:
 
-**Making sure your using Logseq which version above 0.8.17**
+**Making sure your using Logseq which version above 0.8.18**
+
 
 1. Enable the `Developer mode` in Logseq:
 
    1. Open `Logseq`.
    2. Settings -> Advanced -> Enable `Developer mode`
-      ![](docs/screenshots/enable-developer-mode.png)
+      ![Enable Developer Mode](docs/screenshots/enable-developer-mode.png)
 
 2. Setup your Logeq API server:
+   1. Settings -> Advanced -> Enable `HTTP APIs Server`
+      ![Enable http APIs Server Feature](docs/screenshots/http-apis-server.png)
+   2. Start server
+      ![Starting Logseq API Server](docs/screenshots/start-api-server.png)
+   3. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
+      ![Setting up Authorization Token](docs/screenshots/setting-auth-token.png)
+   4. (Optional) Enable auto start server when Logseq lunched.
+      ![Enable Auto Start](docs/screenshots/enable-auto-start.png)
 
-   1. Start server
-      ![](docs/screenshots/start-api-server.png)
-   2. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
-      ![](docs/screenshots/setting-auth-token.png)
-   3. (Optional) Enable auto start server when Logseq lunched.
-      ![](docs/screenshots/enable-auto-start.png)
-
-3. Install this extension. 
-   - Store version(Recommend): [Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl), [Edge](https://chrome.google.com/webstore/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
-   - Newest Version [release page](https://github.com/EINDEX/logseq-copilot/releases) download it.
+3. Install extension. 
+   - Store version(**Recommend**): [Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl), [Edge](https://chrome.google.com/webstore/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi), [Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
+   - Newest Version [release page](https://github.com/EINDEX/logseq-copilot/releases) download it and load as unpacked.
 
 4. Go to Options page to setting the connection.
-   If you setting correct, you will see a message show on your Logseq and options page will show connected.
+   If you're setting correct, you will see a message show on your Logseq and options page will show connected.
 
 5. You can use Logseq Copilot now!!
 

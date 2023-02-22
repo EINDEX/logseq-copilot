@@ -1,4 +1,4 @@
-import Browser from 'webextension-polyfill'
+import Browser from 'webextension-polyfill';
 
 export type LogseqCopliotConfig = {
   logseqHost: string;

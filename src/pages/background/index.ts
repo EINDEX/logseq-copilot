@@ -1,5 +1,6 @@
 import LogseqClient from '../logseq/client';
-import Browser from 'webextension-polyfill'
+import Browser from 'webextension-polyfill';
+import { getLogseqCopliotConfig } from '../../config';
 
 const logseqClient = new LogseqClient();
 
@@ -16,4 +17,12 @@ Browser.runtime.onConnect.addListener((port) => {
       Browser.runtime.openOptionsPage();
     }
   });
+});
+
+Browser.runtime.onInstalled.addListener(() => {
+  const promise = new Promise(async () => {
+    const { logseqAuthToken } = await getLogseqCopliotConfig();
+    if (logseqAuthToken === '') Browser.runtime.openOptionsPage();
+  });
+  promise.catch((err) => console.error(err));
 });
