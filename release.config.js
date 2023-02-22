@@ -26,9 +26,9 @@ module.exports = {
       '@semantic-release/github',
       {
         assets: [
-          {path: 'build/chrome-${nextRelease.version}.zip', label: "Chrome version"}, 
-          {path:'build/edge-${nextRelease.version}.zip', label: "Edge version"},
-          {path:'build/firefox-${nextRelease.version}.zip', label: "Firefox version"}
+          {path:'build/chrome-*.zip', label: "Chrome version"}, 
+          {path:'build/edge-*.zip', label: "Edge version"},
+          {path:'build/firefox-*.zip', label: "Firefox version"}
       ],
       },
     ],
