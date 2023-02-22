@@ -18,6 +18,8 @@ jobs:
           node-version: 18.x
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
+          
+      - run: npm install --save
 
       - name: Release
         run: npx semantic-release
