@@ -30,16 +30,24 @@ How to use this extension, Please follow below steps:
 
    1. Open `Logseq`.
    2. Settings -> Advanced -> Enable `Developer mode`
+
       ![Enable Developer Mode](docs/screenshots/enable-developer-mode.png)
 
 2. Setup your Logeq API server:
    1. Settings -> Advanced -> Enable `HTTP APIs Server`
-      ![Enable http APIs Server Feature](docs/screenshots/http-apis-server.png)
+
+      ![Enable http APIs Server Feature](docs/screenshots/enable-http-apis-server.png)
+
    2. Start server
+
       ![Starting Logseq API Server](docs/screenshots/start-api-server.png)
+
    3. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
+
       ![Setting up Authorization Token](docs/screenshots/setting-auth-token.png)
+
    4. (Optional) Enable auto start server when Logseq lunched.
+
       ![Enable Auto Start](docs/screenshots/enable-auto-start.png)
 
 3. Install extension. 
@@ -57,7 +65,7 @@ How to use this extension, Please follow below steps:
 
 - [x] 🔍 Support other search engines: Extend the functionality of the extension to other popular search engines, such as Bing, DuckDuckGo, and Baidu. 
 - [x] 💅 Style enhancement: Improve the appearance and usability of the extension interface and the blocks display.
-- [ ] 🌐 Support Firefox.
+- [x] 🌐 Support Firefox.
 - [ ] 🆕 Browser new tab page queries: Add an option to show Logseq blocks on the browser's new tab page based on predefined or random queries. 
 - [ ] QuickCapture & advance quick capture, easy and fast making note in Logseq.
 
