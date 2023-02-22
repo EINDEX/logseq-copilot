@@ -54,7 +54,6 @@ export default class LogseqClient {
     const resp = await fetch(apiUrl, {
       mode: 'cors',
       method: 'POST',
-      credentials: 'include',
       headers: {
         Authorization: `Bearer ${config.logseqAuthToken}`,
         'Content-Type': 'application/json; charset=utf-8',
