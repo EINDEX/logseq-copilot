@@ -9,15 +9,27 @@ module.exports = {
     '@semantic-release/release-notes-generator',
     '@semantic-release/changelog',
     [
-      '@semantic-release/npm',
+      "@semantic-release/exec",
       {
-        npmPublish: false,
-      },
+        "prepareCmd": "VERSION=${nextRelease.version} npm run build"
+      }
+    ],
+    [
+      "semantic-release-chrome",
+      {
+        "extensionId": "hihgfcgbmnbomabfdbajlbpnacndeihl",
+        "distFolder": "build/chrome",
+        "asset": "build/chrome-${nextRelease.version}.zip"
+      }
     ],
     [
       '@semantic-release/github',
       {
-        assets: [{path: 'build/chrome.zip', label: "Chrome version"}, {path:'build/edge.zip', label: "Edge version"}],
+        assets: [
+          {path: 'build/chrome-${nextRelease.version}.zip', label: "Chrome version"}, 
+          {path:'build/edge-${nextRelease.version}.zip', label: "Edge version"},
+          {path:'build/firefox-${nextRelease.version}.zip', label: "Firefox version"}
+      ],
       },
     ],
   ],
