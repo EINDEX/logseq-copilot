@@ -13,7 +13,8 @@ dotenv.config();
 
 const outdir = 'build';
 
-const env = JSON.stringify(process.env.NODE_ENV || 'production');
+const nodeEnv = JSON.stringify(process.env.NODE_ENV || 'production');
+const VERSION = process.env.NODE_ENV || '999.999.999'
 
 async function deleteOldDir() {
   await fs.remove(outdir);
@@ -29,11 +30,11 @@ async function runEsbuild() {
     bundle: true,
     outdir: outdir,
     treeShaking: true,
-    minify: env === 'production' ? true : false,
+    minify: nodeEnv === 'production' ? true : false,
     legalComments: 'none',
     define: {
-      'process.env.NODE_ENV': env,
-      'process.env.AXIOM_TOKEN': JSON.stringify(
+      'process.env.NODE_ENV': nodeEnv,
+      'process.env.VERSION': JSON.stringify(
         process.env.AXIOM_TOKEN || 'UNDEFINED',
       ),
     },

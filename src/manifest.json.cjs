@@ -36,7 +36,7 @@ const ReleaseFor = {
 
 const build = (releaseFor) => {
   return {
-    version: '0.1.0',
+    version: '1.14.0',
     author: 'eindex.lee@gmail.com',
     name: 'Logseq Copilot',
     description:
