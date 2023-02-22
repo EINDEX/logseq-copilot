@@ -14,14 +14,14 @@ module.exports = {
         "prepareCmd": "VERSION=${nextRelease.version} npm run build"
       }
     ],
-    [
-      "semantic-release-chrome",
-      {
-        "extensionId": "hihgfcgbmnbomabfdbajlbpnacndeihl",
-        "distFolder": "build/chrome",
-        "asset": "build/chrome-${nextRelease.version}.zip"
-      }
-    ],
+    // [
+    //   "semantic-release-chrome",
+    //   {
+    //     "extensionId": "hihgfcgbmnbomabfdbajlbpnacndeihl",
+    //     "distFolder": "build/chrome",
+    //     "asset": "build/chrome-${nextRelease.version}.zip"
+    //   }
+    // ],
     [
       '@semantic-release/github',
       {
