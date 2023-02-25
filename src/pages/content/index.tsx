@@ -37,8 +37,9 @@ function getEngine() {
 
 const searchEngine = getEngine();
 
-run(searchEngine);
-
-if (searchEngine.reload) {
-  searchEngine.reload(() => run(searchEngine));
+if (searchEngine) {
+  run(searchEngine);
+  if (searchEngine.reload) {
+    searchEngine.reload(() => run(searchEngine));
+  }
 }
