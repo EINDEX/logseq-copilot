@@ -8,6 +8,8 @@
 
 # production
 /build
+/dist
+/src/env.d.ts
 
 # zip
 /zip
