@@ -11,6 +11,10 @@ const ReleaseFor = {
         matches: [],
       },
     ],
+    action: {
+      default_popup: 'popup.html',
+      default_title: 'Logseq Copilot',
+    },
   },
   edge: {
     manifest_version: 3,
@@ -23,14 +27,21 @@ const ReleaseFor = {
         matches: [],
       },
     ],
+    action: {
+      default_popup: 'popup.html',
+      default_title: 'Logseq Copilot',
+    },
   },
   firefox: {
     manifest_version: 2,
     background: {
       scripts: ['background.js'],
     },
-    persistent: true,
     web_accessible_resources: ['content-script.css', 'assets/img/logo.png'],
+    browser_action: {
+      default_popup: 'popup.html',
+      default_title: 'Logseq Copilot',
+    },
   },
 };
 
@@ -53,10 +64,6 @@ const build = (releaseFor) => {
       },
     ],
     permissions: ['storage', 'tabs'],
-    action: {
-      default_popup: 'popup.html',
-      default_title: 'Logseq Copilot',
-    },
     options_ui: {
       page: 'options.html',
       browser_style: false,
