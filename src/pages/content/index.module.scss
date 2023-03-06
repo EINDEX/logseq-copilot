@@ -1,0 +1,42 @@
+@import url(../../icon.css);
+@tailwind base;
+
+.copilot {
+  @apply flex flex-col w-full max-w-sm gap-2 pb-4;
+
+  ul,
+  ol {
+    @apply flex flex-col gap-1;
+
+    li {
+      @apply max-h-fit leading-4;
+    }
+  }
+}
+
+.configIt {
+  @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
+}
+
+.content {
+  @apply flex flex-col rounded-lg border border-gray-300/70 border-solid px-4 py-2 prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm;
+  * {
+    @apply break-all text-sm;
+  }
+
+  pre {
+    @apply overflow-x-auto;
+  }
+}
+
+.divide {
+  @apply divide-y divide-x-0 divide-dashed;
+}
+
+.copilotFooter {
+  @apply flex flex-row text-xs justify-between text-gray-500 px-2;
+
+  a {
+    @apply text-gray-500 no-underline hover:underline;
+  }
+}

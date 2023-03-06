@@ -1,0 +1,42 @@
+.blockFooter {
+  @apply w-full justify-between flex flex-row;
+}
+
+.blockContent {
+  @apply flex flex-col dark:prose-invert prose-sm whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
+  * {
+    @apply break-all text-sm;
+  }
+
+  a {
+    @apply no-underline hover:underline;
+  }
+
+  img {
+    @apply max-w-full max-h-96 my-0.5;
+  }
+
+  pre {
+    @apply overflow-x-auto whitespace-pre-wrap;
+  }
+}
+
+.pageContent {
+  @apply flex flex-col gap-2  prose-sm whitespace-pre-wrap text-sm;
+}
+
+.pageContentFooter {
+  @apply flex flex-row justify-end;
+}
+
+.block {
+  @apply py-2;
+}
+
+.toBlock {
+  @apply no-underline hover:underline;
+}
+
+.logseqPageLink {
+  @apply no-underline hover:underline;
+}

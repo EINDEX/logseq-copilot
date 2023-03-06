@@ -1,8 +1,15 @@
-import './index.scss';
 import { createRoot } from 'react-dom/client';
 import Browser from 'webextension-polyfill';
-import { LogseqCopliot } from './components/LogseqCopliot';
-import searchEngines from './searchingEngines/searchingEngines';
+import { LogseqCopliot } from './LogseqCopliot';
+import searchEngines, {
+  Baidu,
+  Bing,
+  DuckDuckGo,
+  Google,
+  SearX,
+  Yandex,
+} from './searchingEngines/searchingEngines';
+import _ from 'lodash';
 
 const connect = Browser.runtime.connect();
 
@@ -14,7 +21,9 @@ const mount = async (container: Element, query: string) => {
   root.render(<LogseqCopliot connect={connect} />);
 };
 
-async function run(searchEngine) {
+async function run(
+  searchEngine: Google | Bing | DuckDuckGo | Yandex | SearX | Baidu,
+) {
   console.debug('Logseq copliot', window.location.hostname);
 
   if (searchEngine.isMatch()) {

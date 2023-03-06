@@ -14,7 +14,7 @@ dotenv.config();
 const outdir = 'build';
 
 const nodeEnv = JSON.stringify(process.env.NODE_ENV || 'production');
-const VERSION = `${process.env.VERSION}` || '999.999.999';
+const VERSION = `${process.env.VERSION}` || '0.0.0';
 
 async function deleteOldDir() {
   await fs.remove(outdir);
@@ -26,6 +26,7 @@ async function runEsbuild() {
       'src/pages/content/index.tsx',
       'src/pages/background/index.ts',
       'src/pages/options/index.tsx',
+      'src/pages/popup/index.tsx',
     ],
     bundle: true,
     outdir: outdir,
@@ -40,6 +41,7 @@ async function runEsbuild() {
     jsx: 'automatic',
     loader: {
       '.png': 'dataurl',
+      '.woff2': 'dataurl',
     },
     plugins: [
       postcssPlugin({
@@ -80,7 +82,10 @@ async function build() {
     { src: 'build/background/index.js', dst: 'background.js' },
     { src: 'build/options/index.js', dst: 'options.js' },
     { src: 'build/options/index.css', dst: 'options.css' },
+    { src: 'build/popup/index.js', dst: 'popup.js' },
+    { src: 'build/popup/index.css', dst: 'popup.css' },
     { src: 'src/pages/options/index.html', dst: 'options.html' },
+    { src: 'src/pages/popup/index.html', dst: 'popup.html' },
     { src: 'src/assets', dst: 'assets' },
   ];
 

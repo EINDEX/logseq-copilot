@@ -95,7 +95,13 @@ const Options: React.FC = () => {
         <Flex direction={'row'}>
           <Flex direction={'column'} w={'16rem'}>
             <Heading>Logseq Copilot</Heading>
-            <Text><Link href={`https://github.com/EINDEX/logseq-copilot/releases/tag/v${process.env.VERSION}`}>v{process.env.VERSION}</Link></Text>
+            <Text>
+              <Link
+                href={`https://github.com/EINDEX/logseq-copilot/releases/tag/v${process.env.VERSION}`}
+              >
+                v{process.env.VERSION}
+              </Link>
+            </Text>
           </Flex>
           <Flex direction={'column'} w={'40rem'} gap={2}>
             <Heading size={'lg'}>Basic Config</Heading>

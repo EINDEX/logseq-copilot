@@ -1,0 +1,10 @@
+@tailwind base;
+@import url(../../icon.css);
+
+body {
+  @apply w-80 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white overflow-y-scroll;
+
+  a {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+}

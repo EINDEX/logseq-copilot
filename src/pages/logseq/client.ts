@@ -1,7 +1,8 @@
 import {
   LogseqSearchResult,
   LogseqPageIdenity,
-} from '../../types/logseq-block';
+  LogseqBlockType,
+} from '../../types/logseqBlock';
 import { marked } from 'marked';
 import { getLogseqCopliotConfig } from '../../config';
 
@@ -35,6 +36,17 @@ type LogseqSearchResponse = {
   pages: string[];
 };
 
+type LogseqQueryResponse = {
+  id: number;
+  uuid: string;
+  content: string;
+  page: {
+    name: string;
+    id: number;
+    originalName: string;
+  };
+}[];
+
 export type LogseqPageResponse = {
   name: string;
   uuid: string;
@@ -45,6 +57,7 @@ export type LogseqResponseType<T> = {
   status: number;
   msg: string;
   response: T;
+  count?: number;
 };
 
 export default class LogseqClient {
@@ -84,7 +97,7 @@ export default class LogseqClient {
       .replaceAll(/^[\w-]+::.*?$/gm, '') // clean properties
       .replaceAll(/{{renderer .*?}}/gm, '') // clean renderer
       .replaceAll(/^:logbook:[\S\s]*?:end:$/gm, '') // clean logbook
-      .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gm, '$1') // clean highlight
+      .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gm, '<em>$1</em>') // clean highlight
       .replaceAll(/^\s*?-\s*?$/gm, '')
       .trim();
   };
@@ -93,7 +106,7 @@ export default class LogseqClient {
     const html = marked.parse(this.tirmContent(content));
     return html.replaceAll(
       /\[\[(.*?)\]\]/g,
-      `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1">$1</a>`,
+      `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1"><span class="tie tie-page"></span>$1</a>`,
     );
   };
 
@@ -165,15 +178,46 @@ export default class LogseqClient {
     };
   };
 
+  private find = async (query: string) => {
+    const data = await this.baseJson('logseq.DB.q', [
+      `"${query.replaceAll('"', '"')}"`,
+    ]);
+    return data;
+  };
+
+  private findLogseqInternal = async (
+    query: string,
+  ): Promise<LogseqResponseType<LogseqSearchResult>> => {
+    const { name: graphName, path: graphPath } = await this.getCurrentGraph();
+    const res = await this.find(query);
+    const blocks = await Promise.all(
+      res.map(async (item) => {
+        return {
+          html: this.format(item.content, graphName, graphPath),
+          uuid: item.uuid,
+          page: await this.getPage({
+            id: item.page.id,
+          } as LogseqPageIdenity),
+        } as LogseqBlockType;
+      }),
+    );
+    return {
+      status: 200,
+      msg: 'success',
+      response: {
+        blocks: blocks,
+        pages: [],
+        graph: graphName,
+      },
+      count: blocks.length,
+    };
+  };
+
   private searchLogseqInternal = async (
     query: string,
   ): Promise<LogseqResponseType<LogseqSearchResult>> => {
     const { name: graphName, path: graphPath } = await this.getCurrentGraph();
-    const {
-      blocks,
-      'pages-content': pageContents,
-      pages,
-    }: LogseqSearchResponse = await this.search(query);
+    const { blocks, pages }: LogseqSearchResponse = await this.search(query);
 
     const result: LogseqSearchResult = {
       pages: await Promise.all(
@@ -193,20 +237,6 @@ export default class LogseqClient {
           };
         }),
       ),
-      pageContents: await Promise.all(
-        pageContents.map(async (pageContent) => {
-          return {
-            content: this.tirmContent(pageContent['block/snippet']).replaceAll(
-              /\n+/g,
-              ' ',
-            ),
-            uuid: pageContent['block/uuid'],
-            page: await this.getPage({
-              uuid: pageContent['block/uuid'],
-            } as LogseqPageIdenity),
-          };
-        }),
-      ),
       graph: graphName,
     };
 
@@ -215,6 +245,7 @@ export default class LogseqClient {
       msg: 'success',
       status: 200,
       response: result,
+      count: result.blocks.length + result.pages.length,
     };
   };
 
@@ -235,6 +266,14 @@ export default class LogseqClient {
   ): Promise<LogseqResponseType<LogseqSearchResult | null>> => {
     return await this.catchIssues(async () => {
       return await this.searchLogseqInternal(query);
+    });
+  };
+
+  public blockSearch = async (
+    query: string,
+  ): Promise<LogseqResponseType<LogseqSearchResult | null>> => {
+    return await this.catchIssues(async () => {
+      return this.findLogseqInternal(query);
     });
   };
 }

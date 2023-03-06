@@ -52,7 +52,11 @@ const build = (releaseFor) => {
         css: ['content-script.css'],
       },
     ],
-    permissions: ['storage'],
+    permissions: ['storage', 'tabs'],
+    action: {
+      default_popup: 'popup.html',
+      default_title: 'Logseq Copilot',
+    },
     options_ui: {
       page: 'options.html',
       browser_style: false,

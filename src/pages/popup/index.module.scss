@@ -1,0 +1,80 @@
+@tailwind base;
+
+body {
+  @apply w-80 rounded-lg;
+}
+
+.copilot {
+  @apply flex flex-col w-full max-w-sm gap-2 pb-4;
+
+  .content {
+    @apply flex flex-col gap-2  prose-sm whitespace-pre-wrap text-sm;
+    * {
+      @apply break-all text-sm;
+    }
+
+    pre {
+      @apply overflow-x-auto;
+    }
+
+    .block-footer {
+      @apply justify-between flex flex-row;
+    }
+
+    .page-tag {
+      @apply w-fit self-end;
+    }
+
+    .config-it {
+      @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
+    }
+  }
+
+  .divide {
+    @apply divide-y divide-x-0 divide-dashed;
+  }
+
+  ul,
+  ol {
+    @apply flex flex-col gap-1;
+
+    li {
+      @apply max-h-fit leading-4;
+    }
+  }
+
+  .copilot-footer {
+    @apply flex flex-row text-xs justify-between text-gray-500 px-2;
+
+    a {
+      @apply text-gray-500 no-underline;
+    }
+  }
+}
+
+.content {
+  @apply flex flex-col prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm;
+  * {
+    @apply break-all text-sm;
+  }
+
+  pre {
+    @apply overflow-x-auto;
+  }
+
+  .block-footer {
+    @apply justify-between flex flex-row;
+  }
+
+  .page-tag {
+    @apply w-fit self-end;
+  }
+
+  .config-it {
+    @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
+  }
+}
+
+.divide {
+  @apply divide-y divide-x-0 divide-dashed;
+}

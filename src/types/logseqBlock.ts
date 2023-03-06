@@ -19,6 +19,6 @@ export type LogseqPageContentType = {
 export type LogseqSearchResult = {
   blocks: LogseqBlockType[];
   pages: LogseqPageIdenity[];
-  pageContents: LogseqPageContentType[];
+  // pageContents: LogseqPageContentType[];
   graph: string;
 };

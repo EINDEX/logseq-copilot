@@ -1,9 +1,11 @@
 import React from 'react';
-import { LogseqSearchResult } from '../../../types/logseq-block';
-import { LogseqResponseType } from '../../logseq/client';
-import { LogseqBlock } from './LogseqBlock';
-import { LogseqPageContent } from './LogseqPageContent';
-import Browser from 'webextension-polyfill'
+import { LogseqSearchResult } from '@/types/logseqBlock';
+import { LogseqResponseType } from '../logseq/client';
+import { LogseqBlock } from '@components/LogseqBlock';
+import { LogseqPageContent } from '@components/LogseqPageContent';
+import LogseqPageLink from '@components/LogseqPage';
+import Browser from 'webextension-polyfill';
+import styles from './index.module.scss';
 
 type LogseqCopliotProps = {
   connect: Browser.Runtime.Port;
@@ -13,11 +15,13 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   const [msg, setMsg] = React.useState('Loading...');
   const [logseqSearchResult, setLogseqSearchResult] =
     React.useState<LogseqSearchResult>();
+  const [count, setCount] = React.useState(0);
 
   connect.onMessage.addListener(
     (resp: LogseqResponseType<LogseqSearchResult>) => {
       setMsg(resp.msg);
       setLogseqSearchResult(resp.response);
+      setCount(resp.count!);
     },
   );
 
@@ -30,7 +34,7 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
       <>
         <span>{msg}</span>
         {msg !== 'Loading...' ? (
-          <button className="config-it" onClick={goOptionPage}>
+          <button className={styles.configIt} onClick={goOptionPage}>
             Config it
           </button>
         ) : (
@@ -56,21 +60,21 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
     );
   };
 
-  const pageContents = () => {
-    return (
-      <>
-        {logseqSearchResult?.pageContents.map((pageContent) => {
-          return (
-            <LogseqPageContent
-              key={pageContent.uuid}
-              pageContent={pageContent}
-              graph={logseqSearchResult.graph}
-            />
-          );
-        })}
-      </>
-    );
-  };
+  // const pageContents = () => {
+  //   return (
+  //     <>
+  //       {logseqSearchResult?.pageContents.map((pageContent) => {
+  //         return (
+  //           <LogseqPageContent
+  //             key={pageContent.uuid}
+  //             pageContent={pageContent}
+  //             graph={logseqSearchResult.graph}
+  //           />
+  //         );
+  //       })}
+  //     </>
+  //   );
+  // };
 
   const pages = () => {
     return (
@@ -79,15 +83,15 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
           <div className="pages">
             <ul>
               {logseqSearchResult?.pages.map((page) => {
+                if (!page) return <></>;
                 return (
-                  <li key={page.uuid}>
-                    <a
-                      className="logseq-page-link"
-                      href={`logseq://graph/${logseqSearchResult.graph}?page=${page.name}`}
-                    >
-                      {page.name}
-                    </a>
-                  </li>
+                  <p>
+                    <LogseqPageLink
+                      key={page.uuid}
+                      graph={logseqSearchResult.graph}
+                      page={page}
+                    ></LogseqPageLink>
+                  </p>
                 );
               })}
             </ul>
@@ -100,11 +104,7 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   };
 
   const noContent = () => {
-    if (
-      logseqSearchResult!.blocks.length === 0 &&
-      logseqSearchResult!.pages.length === 0 &&
-      logseqSearchResult?.pageContents.length === 0
-    ) {
+    if (count === 0) {
       return (
         <>
           <span>
@@ -118,21 +118,28 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   };
 
   return (
-    <div className="copilot">
-      <div className={msg !== 'success' ? 'content' : 'content divide'}>
+    <div className={styles.copilot}>
+      <div
+        className={
+          msg !== 'success'
+            ? styles.content
+            : `${styles.divide} ${styles.content}`
+        }
+      >
         {msg !== 'success' ? (
           <>{statusShower()}</>
         ) : (
           <>
+            <span>Graph: {logseqSearchResult?.graph}</span>
             {noContent()}
             {pages()}
             {blocks()}
-            {pageContents()}
+            {/* {pageContents()} */}
           </>
         )}
       </div>
 
-      <div className="copilot-footer">
+      <div className={styles.copilotFooter}>
         <span>
           <a href="https://github.com/EINDEX/logseq-copilot/issues/new">
             Feedback
