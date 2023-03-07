@@ -176,12 +176,36 @@ export class Baidu implements SearchingEngine {
   }
 }
 
+export class Kagi implements SearchingEngine {
+  
+  isMatch(): boolean {
+    const match = window.location.hostname.match(/kagi\.com$/g);
+    return !!match;
+  }
+
+  getQuery(): string | null {
+    const searchUrl = new URL(window.location.href);
+    const query = searchUrl.searchParams.get('q');
+
+    return query;
+  }
+
+  gotElement(): Element {
+    const container = document.createElement('div');
+    const asideElement = document.querySelector('div.right-content-box');
+
+    asideElement!.insertBefore(container, asideElement!.firstChild);
+    return container;
+  }
+}
+
 const searchEngins = [
   new Google(),
   new Bing(),
   new DuckDuckGo(),
   new Yandex(),
   new SearX(),
+  new Kagi(),
   new Baidu(),
 ];
 
