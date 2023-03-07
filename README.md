@@ -66,7 +66,7 @@ How to use this extension, Please follow below steps:
 - [x] 🔍 Support other search engines: Extend the functionality of the extension to other popular search engines, such as Bing, DuckDuckGo, and Baidu. 
 - [x] 💅 Style enhancement: Improve the appearance and usability of the extension interface and the blocks display.
 - [x] 🌐 Support Firefox.
-- [ ] 🆕 Browser new tab page queries: Add an option to show Logseq blocks on the browser's new tab page based on predefined or random queries. 
+- [x] 🆕 Browser new tab page queries: Add an option to show Logseq blocks on the browser's new tab page based on predefined or random queries. 
 - [ ] QuickCapture & advance quick capture, easy and fast making note in Logseq.
 
 - ~~Enhance search ranking for better blocks: Implement a more sophisticated algorithm for ranking the blocks based on their relevance to the search query and the user preferences. 📊~~ Now this feature depends on Logseq Searing API
