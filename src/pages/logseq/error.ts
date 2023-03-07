@@ -1,10 +1,6 @@
 import { LogseqResponseType } from './client';
 
 export type LogseqClientError = LogseqResponseType<null>;
-//   msg: string;
-//   status: number;
-//   response: null;
-// };
 
 export const TokenNotCurrect: LogseqClientError = {
   msg: 'Token not currect, Please checking your Logseq Authorization Setting.',

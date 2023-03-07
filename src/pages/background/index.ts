@@ -5,7 +5,6 @@ import { removeUrlHash } from '../../utils';
 import { setExtensionBadge } from './utils';
 
 const logseqClient = new LogseqClient();
-// const connect = Browser.runtime.connect();
 
 Browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {

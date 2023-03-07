@@ -46,7 +46,6 @@ export default function Popup() {
           />
         ))}
       </div>
-      <script>{`document.querySelectorAll(".logseq-page-link").forEach(a => a.addEventListener('click',()=> addTimeout(window.close(), )))`}</script>
     </div>
   );
 }
