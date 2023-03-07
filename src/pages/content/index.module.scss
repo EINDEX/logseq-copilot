@@ -40,3 +40,7 @@
     @apply text-gray-500 no-underline hover:underline;
   }
 }
+
+.popupButton {
+  @apply rounded-lg h-6 w-6;
+}

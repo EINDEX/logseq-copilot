@@ -5,6 +5,7 @@ import { removeUrlHash } from '../../utils';
 import { setExtensionBadge } from './utils';
 
 const logseqClient = new LogseqClient();
+// const connect = Browser.runtime.connect();
 
 Browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
@@ -17,9 +18,23 @@ Browser.runtime.onConnect.addListener((port) => {
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
       Browser.runtime.openOptionsPage();
+    } else if (msg.type === 'quick-capture') {
+      quickCapture(msg.data);
+    } else {
+      console.debug(msg);
     }
   });
 });
+
+const quickCapture = async (data: string) => {
+  const tab = await Browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  const activeTab = tab[0];
+  const url = `logseq://x-callback-url/quickCapture?title=${
+    activeTab.title
+  }&url=${encodeURIComponent(activeTab.url)}&content=${data}`;
+  Browser.tabs.update(activeTab.id, { url: url });
+};
 
 Browser.runtime.onInstalled.addListener(() => {
   const promise = new Promise(async () => {

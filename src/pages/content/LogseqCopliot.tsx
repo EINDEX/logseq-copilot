@@ -2,7 +2,6 @@ import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
 import { LogseqResponseType } from '../logseq/client';
 import { LogseqBlock } from '@components/LogseqBlock';
-import { LogseqPageContent } from '@components/LogseqPageContent';
 import LogseqPageLink from '@components/LogseqPage';
 import Browser from 'webextension-polyfill';
 import styles from './index.module.scss';

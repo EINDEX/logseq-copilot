@@ -3,15 +3,20 @@ import Browser from 'webextension-polyfill';
 export type LogseqCopliotConfig = {
   logseqHost: string;
   logseqAuthToken: string;
+  enableQuickCapture: boolean;
 };
 
 export const getLogseqCopliotConfig =
   async (): Promise<LogseqCopliotConfig> => {
-    const { logseqHost = 'http://localhost:12315', logseqAuthToken = '' } =
-      await Browser.storage.local.get();
+    const {
+      logseqHost = 'http://localhost:12315',
+      logseqAuthToken = '',
+      enableQuickCapture = true,
+    } = await Browser.storage.local.get();
     return {
       logseqHost,
       logseqAuthToken,
+      enableQuickCapture,
     };
   };
 

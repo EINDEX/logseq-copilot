@@ -15,6 +15,10 @@ import {
   Link,
   InputGroup,
   InputRightElement,
+  FormControl,
+  FormLabel,
+  Switch,
+  Divider,
 } from '@chakra-ui/react';
 import LogseqClient from '../logseq/client';
 
@@ -26,6 +30,7 @@ const Options: React.FC = () => {
   const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>({
     logseqAuthToken: '',
     logseqHost: '',
+    enableQuickCapture: false,
   });
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
@@ -52,17 +57,10 @@ const Options: React.FC = () => {
   const triggerShowToken = () => setShowToken(!showToken);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.name === 'logseqAuthToken') {
-      setLogseqConfig({
-        logseqHost: logseqConfig!.logseqHost,
-        logseqAuthToken: e.target.value,
-      });
-    } else {
-      setLogseqConfig({
-        logseqHost: e.target.value,
-        logseqAuthToken: logseqConfig!.logseqAuthToken,
-      });
-    }
+    setLogseqConfig({
+      ...logseqConfig,
+      [e.target.name]: e.target.value || e.target.checked,
+    });
   };
 
   const checkConnection = async () => {
@@ -152,6 +150,21 @@ const Options: React.FC = () => {
                 Guide to Connection
               </Link>
             </Text>
+            <Divider />
+            <Heading size={'lg'}>Features</Heading>
+            <FormControl display="flex" alignItems={'center'}>
+              <FormLabel htmlFor="quick-capture" mb="0">
+                QuickCapture(Beta)
+              </FormLabel>
+              <Switch
+                name="enableQuickCapture"
+                isChecked={logseqConfig?.enableQuickCapture}
+                onChange={onChange}
+              />
+            </FormControl>
+            <Button onClick={save} variant="outline">
+              Save
+            </Button>
           </Flex>
         </Flex>
       </Container>

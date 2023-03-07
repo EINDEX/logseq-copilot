@@ -16,6 +16,7 @@ import {
 
 marked.setOptions({
   gfm: true,
+  tables: true,
 });
 
 type Graph = {

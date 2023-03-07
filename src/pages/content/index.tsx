@@ -1,6 +1,8 @@
+import { getLogseqCopliotConfig } from '@/config';
 import { createRoot } from 'react-dom/client';
 import Browser from 'webextension-polyfill';
 import { LogseqCopliot } from './LogseqCopliot';
+import mountQuickCapture from './QuickCapture';
 import searchEngines, {
   Baidu,
   Bing,
@@ -9,7 +11,6 @@ import searchEngines, {
   SearX,
   Yandex,
 } from './searchingEngines/searchingEngines';
-import _ from 'lodash';
 
 const connect = Browser.runtime.connect();
 
@@ -52,3 +53,8 @@ if (searchEngine) {
     searchEngine.reload(() => run(searchEngine));
   }
 }
+
+getLogseqCopliotConfig().then(({ enableQuickCapture }) => {
+  if (!enableQuickCapture) return;
+  mountQuickCapture();
+});
