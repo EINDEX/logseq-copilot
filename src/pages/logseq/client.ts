@@ -37,17 +37,6 @@ type LogseqSearchResponse = {
   pages: string[];
 };
 
-type LogseqQueryResponse = {
-  id: number;
-  uuid: string;
-  content: string;
-  page: {
-    name: string;
-    id: number;
-    originalName: string;
-  };
-}[];
-
 export type LogseqPageResponse = {
   name: string;
   uuid: string;

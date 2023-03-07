@@ -4,7 +4,7 @@ import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { useEffect, useState } from 'react';
 import React from 'react';
-import { LogseqBlockType, LogseqSearchResult } from '@/types/logseqBlock';
+import { LogseqSearchResult } from '@/types/logseqBlock';
 
 import { LogseqBlock } from '@components/LogseqBlock';
 

@@ -59,21 +59,6 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
     );
   };
 
-  // const pageContents = () => {
-  //   return (
-  //     <>
-  //       {logseqSearchResult?.pageContents.map((pageContent) => {
-  //         return (
-  //           <LogseqPageContent
-  //             key={pageContent.uuid}
-  //             pageContent={pageContent}
-  //             graph={logseqSearchResult.graph}
-  //           />
-  //         );
-  //       })}
-  //     </>
-  //   );
-  // };
 
   const pages = () => {
     return (
@@ -140,13 +125,13 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
 
       <div className={styles.copilotFooter}>
         <span>
-          <a href="https://github.com/EINDEX/logseq-copilot/issues/new">
+          <a href="https://github.com/EINDEX/logseq-copilot/issues">
             Feedback
           </a>
         </span>
         <span>
           power by{' '}
-          <a href="https://github.com/eindex/logseq-copilot">Logseq Copliot</a>
+          <a href="https://logseq-copilot.eindex.me/">Logseq Copliot</a>
         </span>
       </div>
     </div>

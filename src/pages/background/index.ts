@@ -55,7 +55,7 @@ Browser.tabs.onActivated.addListener((activeInfo) => {
 Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active) {
     const promise = new Promise(async () => {
-      await badgeSearch(changeInfo.url, tabId);
+      await badgeSearch(tab.url, tabId);
     });
     promise.catch((err) => console.error(err));
   }
@@ -63,7 +63,6 @@ Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 const badgeSearch = async (url: string | undefined, tabId: number) => {
   if (!url) return;
-  console.debug(url);
   const cleanUrl = removeUrlHash(url);
   const searchRes = await logseqClient.blockSearch(cleanUrl);
   const resultCount = searchRes.count ? searchRes.count!.toString() : '';

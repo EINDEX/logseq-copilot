@@ -15,7 +15,7 @@ const ReleaseFor = {
       default_popup: 'popup.html',
       default_title: 'Logseq Copilot',
     },
-    "host_permissions" : ["*://*/*"]
+    host_permissions: ['*://*/*'],
   },
   edge: {
     manifest_version: 3,
@@ -64,7 +64,7 @@ const build = (releaseFor) => {
         css: ['content-script.css'],
       },
     ],
-    permissions: ['storage', 'tabs', 'scripting', 'activeTab'],
+    permissions: ['storage', 'activeTab'],
     options_ui: {
       page: 'options.html',
       browser_style: false,
