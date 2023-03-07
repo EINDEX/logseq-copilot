@@ -34,7 +34,7 @@ How to use this extension, Please follow below steps:
       ![Enable Developer Mode](docs/screenshots/enable-developer-mode.png)
 
 2. Setup your Logeq API server:
-   1. Settings -> Advanced -> Enable `HTTP APIs Server`
+   1. Settings -> Features -> Enable `HTTP APIs Server`
 
       ![Enable http APIs Server Feature](docs/screenshots/enable-http-apis-server.png)
 
