@@ -52,7 +52,7 @@ Browser.tabs.onActivated.addListener((activeInfo) => {
 });
 
 Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active) {
+  if (tab.active && changeInfo.status === "complete") {
     const promise = new Promise(async () => {
       await badgeSearch(tab.url, tabId);
     });
