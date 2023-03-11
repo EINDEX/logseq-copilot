@@ -11,6 +11,25 @@ export const zIndex = '2147483647';
 
 const connect = Browser.runtime.connect();
 
+const capture = () => {
+  const selection = getSelection();
+  const range = selection!.getRangeAt(0);
+  const clonedSelection = range.cloneContents();
+  const turndownService = new TurndownService();
+  selection?.removeAllRanges();
+  connect.postMessage({
+    type: 'quick-capture',
+    data: turndownService.turndown(clonedSelection),
+  });
+  console.log('quick-capture');
+};
+
+Browser.runtime.onMessage.addListener((request) => {
+  if (request.type === 'quick-capture-on-menu') {
+    capture();
+  }
+});
+
 const QuickCapture = () => {
   const [position, setPostion] = useState({
     x: 0,
@@ -34,29 +53,9 @@ const QuickCapture = () => {
     setShow(false);
   };
 
-  // const capture = async (data: string) => {
-  //   const tab = await Browser.tabs.query({ active: true, currentWindow: true });
-  //   if (!tab) return;
-  //   const activeTab = tab[0];
-  //   window.open(
-  //     `logseq://x-callback-url/quickCapture?title=${
-  //       activeTab.title
-  //     }&url=${encodeURIComponent(activeTab.url)}&content=${data}`,
-  //   );
-  // };
-
   const quickCapture = () => {
     setShow(false);
-    const selection = getSelection();
-    const range = selection!.getRangeAt(0);
-    const clonedSelection = range.cloneContents();
-    const turndownService = new TurndownService();
-    selection?.removeAllRanges();
-    connect.postMessage({
-      type: 'quick-capture',
-      data: turndownService.turndown(clonedSelection),
-    });
-    console.log('quick-capture');
+    capture();
   };
 
   useEffect(() => {

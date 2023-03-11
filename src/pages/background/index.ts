@@ -52,7 +52,7 @@ Browser.tabs.onActivated.addListener((activeInfo) => {
 });
 
 Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.status === "complete") {
+  if (tab.active && changeInfo.status === 'complete') {
     const promise = new Promise(async () => {
       await badgeSearch(tab.url, tabId);
     });
@@ -67,3 +67,16 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
   const resultCount = searchRes.count ? searchRes.count!.toString() : '';
   await setExtensionBadge(resultCount, tabId);
 };
+
+Browser.contextMenus.create({
+  id: 'quick-capture',
+  title: 'Quick Capture',
+  visible: true,
+  contexts: ['selection'],
+});
+
+Browser.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.selectionText) {
+    Browser.tabs.sendMessage(tab!.id, { type: 'quick-capture-on-menu' }, {});
+  }
+});

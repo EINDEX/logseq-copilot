@@ -64,7 +64,7 @@ const build = (releaseFor) => {
         css: ['content-script.css'],
       },
     ],
-    permissions: ['storage', 'activeTab'],
+    permissions: ['storage', 'activeTab', 'contextMenus'],
     options_ui: {
       page: 'options.html',
       browser_style: false,
