@@ -1,7 +1,7 @@
 import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
-import { removeUrlHash } from '../../utils';
+import { removeUrlHash } from '@/utils';
 import { setExtensionBadge } from './utils';
 
 const logseqClient = new LogseqClient();
@@ -31,7 +31,7 @@ const quickCapture = async (data: string) => {
   const activeTab = tab[0];
   const url = `logseq://x-callback-url/quickCapture?title=${
     activeTab.title
-  }&url=${encodeURIComponent(activeTab.url)}&content=${data}`;
+  }&url=${encodeURIComponent(activeTab.url!)}&content=${encodeURIComponent(data)}`;
   Browser.tabs.update(activeTab.id, { url: url });
 };
 

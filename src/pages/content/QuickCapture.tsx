@@ -1,7 +1,7 @@
+import { buildTurndownService } from '@/utils';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import TurndownService from 'turndown';
 import Browser from 'webextension-polyfill';
 import logo from '../../assets/img/logo.png';
 import scssStyles from './index.module.scss';
@@ -15,7 +15,7 @@ const capture = () => {
   const selection = getSelection();
   const range = selection!.getRangeAt(0);
   const clonedSelection = range.cloneContents();
-  const turndownService = new TurndownService();
+  const turndownService = buildTurndownService();
   selection?.removeAllRanges();
   connect.postMessage({
     type: 'quick-capture',

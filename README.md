@@ -86,6 +86,11 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 
 <a href="https://www.buymeacoffee.com/eindex"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=eindex&button_colour=40DCA5&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 
+## Credits
+
+- [Logseq](https://logseq.com)
+- [chatGPT4Google](https://github.com/wong2/chatgpt-google-extension)
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-copilot&type=Date)](https://star-history.com/#eindex/logseq-copilot&Date)
