@@ -54,7 +54,7 @@ if (searchEngine) {
   }
 }
 
-getLogseqCopliotConfig().then(({ enableQuickCapture }) => {
-  if (!enableQuickCapture) return;
+getLogseqCopliotConfig().then(({ enableClipNoteFloatButton }) => {
+  if (!enableClipNoteFloatButton) return;
   mountQuickCapture();
 });

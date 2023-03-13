@@ -30,7 +30,7 @@ const Options: React.FC = () => {
   const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>({
     logseqAuthToken: '',
     logseqHost: '',
-    enableQuickCapture: false,
+    enableClipNoteFloatButton: false,
   });
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
@@ -151,14 +151,14 @@ const Options: React.FC = () => {
               </Link>
             </Text>
             <Divider />
-            <Heading size={'lg'}>Features</Heading>
+            <Heading size={'lg'}>Clip Note(QuickCapture) Beta</Heading>
             <FormControl display="flex" alignItems={'center'}>
               <FormLabel htmlFor="quick-capture" mb="0">
-                QuickCapture(Beta)
+                Floating Button
               </FormLabel>
               <Switch
-                name="enableQuickCapture"
-                isChecked={logseqConfig?.enableQuickCapture}
+                name="enableClipNoteFloatButton"
+                isChecked={logseqConfig?.enableClipNoteFloatButton}
                 onChange={onChange}
               />
             </FormControl>

@@ -3,7 +3,7 @@ import Browser from 'webextension-polyfill';
 export type LogseqCopliotConfig = {
   logseqHost: string;
   logseqAuthToken: string;
-  enableQuickCapture: boolean;
+  enableClipNoteFloatButton: boolean;
 };
 
 export const getLogseqCopliotConfig =
@@ -11,12 +11,12 @@ export const getLogseqCopliotConfig =
     const {
       logseqHost = 'http://localhost:12315',
       logseqAuthToken = '',
-      enableQuickCapture = true,
+      enableClipNoteFloatButton = true,
     } = await Browser.storage.local.get();
     return {
       logseqHost,
       logseqAuthToken,
-      enableQuickCapture,
+      enableClipNoteFloatButton,
     };
   };
 
