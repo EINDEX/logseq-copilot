@@ -3,7 +3,7 @@ import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
 import { setExtensionBadge } from './utils';
-import { debounce } from 'lodash';
+import { debounce, delay } from 'lodash';
 
 const logseqClient = new LogseqClient();
 
@@ -20,11 +20,23 @@ Browser.runtime.onConnect.addListener((port) => {
       Browser.runtime.openOptionsPage();
     } else if (msg.type === 'quick-capture') {
       quickCapture(msg.data);
+    } else if (msg.type === 'open-page') {
+      openPage(msg.url);
     } else {
       console.debug(msg);
     }
   });
 });
+
+const openPage = async (url: string) => {
+  await delay(() => {}, 50); // delay 50 to back the active tab.
+
+  const tab = await Browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  const activeTab = tab[0];
+  if (activeTab.url !== url)
+    await Browser.tabs.update(activeTab.id, { url: url });
+};
 
 const quickCapture = async (data: string) => {
   const tab = await Browser.tabs.query({ active: true, currentWindow: true });

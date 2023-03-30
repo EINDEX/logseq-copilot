@@ -10,6 +10,8 @@ import { LogseqBlock } from '@components/LogseqBlock';
 
 import styles from './index.module.scss';
 
+const connect = Browser.runtime.connect();
+
 const client = new LogseqClient();
 
 export default function Popup() {
@@ -30,6 +32,17 @@ export default function Popup() {
       const result = await client.blockSearch(url);
       if (result.status !== 200) return;
       setLogseqSearchResult(result.response!);
+      setTimeout(() => {
+        document.querySelectorAll('a').forEach((e) => {
+          e.onclick = () => {
+            connect.postMessage({
+              type: 'open-page',
+              url: e.href,
+            });
+            window.close();
+          };
+        });
+      }, 100);
     });
   });
 

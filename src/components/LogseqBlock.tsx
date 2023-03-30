@@ -12,12 +12,7 @@ type LogseqBlockProps = {
 export const LogseqBlock = ({
   graph,
   block,
-  isPopUp = false,
 }: LogseqBlockProps) => {
-  const click = (e: any) => {
-    if (isPopUp) setTimeout(window.close, 10);
-  };
-
   if (block.html) {
     return (
       <div className={`${styles.block}`}>
@@ -29,13 +24,11 @@ export const LogseqBlock = ({
           <a
             className={styles.toBlock}
             href={`logseq://graph/${graph}?block-id=${block.uuid}`}
-            onClick={click}
           >
             <span className={'tie tie-block'}></span>
             To block
           </a>
           <LogseqPageLink
-            isPopUp={isPopUp}
             graph={graph}
             page={block.page}
           ></LogseqPageLink>
