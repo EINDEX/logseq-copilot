@@ -85,7 +85,7 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
   await setExtensionBadge(resultCount, tabId);
 };
 
-const debounceBadgeSearch = debounce(badgeSearch, 200);
+const debounceBadgeSearch = debounce(badgeSearch, 500);
 
 Browser.contextMenus.create({
   id: 'quick-capture',
