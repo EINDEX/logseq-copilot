@@ -23,6 +23,7 @@ jobs:
       - run: npm install --save
 
       - name: Release
+        if: github.ref == 'refs/heads/release'
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
