@@ -5,6 +5,7 @@ import { LogseqBlock } from '@components/LogseqBlock';
 import LogseqPageLink from '@components/LogseqPage';
 import Browser from 'webextension-polyfill';
 import styles from './index.module.scss';
+import { IconSettings } from '@tabler/icons-react';
 
 type LogseqCopliotProps = {
   connect: Browser.Runtime.Port;
@@ -58,7 +59,6 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
       </>
     );
   };
-
 
   const pages = () => {
     return (
@@ -114,7 +114,10 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
           <>{statusShower()}</>
         ) : (
           <>
-            <span>Graph: {logseqSearchResult?.graph}</span>
+            <div className={styles.copilotCardHeader}>
+              <span>Graph: {logseqSearchResult?.graph}</span>
+              <IconSettings onClick={goOptionPage} size={16} />
+            </div>
             {noContent()}
             {pages()}
             {blocks()}
@@ -125,9 +128,7 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
 
       <div className={styles.copilotFooter}>
         <span>
-          <a href="https://github.com/EINDEX/logseq-copilot/issues">
-            Feedback
-          </a>
+          <a href="https://github.com/EINDEX/logseq-copilot/issues">Feedback</a>
         </span>
         <span>
           power by{' '}

@@ -33,6 +33,14 @@
   @apply divide-y divide-x-0 divide-dashed;
 }
 
+.copilotCardHeader {
+  @apply flex flex-row justify-between items-center text-sm pb-2;
+
+  a {
+    @apply text-sm text-center object-center;
+  }
+}
+
 .copilotFooter {
   @apply flex flex-row text-xs justify-between text-gray-500 px-2;
 
