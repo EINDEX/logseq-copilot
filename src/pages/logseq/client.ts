@@ -239,7 +239,7 @@ export default class LogseqClient {
       blocks: await Promise.all(
         blocks.map(async (block) => {
           return {
-            html: this.format(block['block/content'], graphName, graphPath),
+            html: this.format(block['block/content'], graphName, graphPath).replaceAll(query, `<mark>${query}</mark>`),
             uuid: block['block/uuid'],
             page: await this.getPage({
               id: block['block/page'],
@@ -289,7 +289,7 @@ export default class LogseqClient {
     query: string,
   ): Promise<LogseqResponseType<LogseqSearchResult | null>> => {
     return await this.catchIssues(async () => {
-      return await this.searchLogseqInternal(query);
+      return await this.searchLogseqInternal(query.trim());
     });
   };
 
