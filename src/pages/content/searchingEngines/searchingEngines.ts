@@ -60,9 +60,9 @@ export class Bing extends SearchingEngine {
   gotElement(): Element {
     const container = document.createElement('li');
     const asideElement = document.querySelector('#b_context');
-    console.log(asideElement)
+    console.log(asideElement);
     container.className = 'b_ans';
-    
+
     asideElement!.insertBefore(container, asideElement!.firstChild);
     return container;
   }
@@ -91,7 +91,6 @@ export class DuckDuckGo extends SearchingEngine {
 
 export class Yandex extends SearchingEngine {
   isMatch(): boolean {
-
     const match = window.location.hostname.match(/yandex\.(com|ru)$/);
     return !!match;
   }
@@ -186,7 +185,6 @@ export class Baidu extends SearchingEngine {
     return null;
   }
 }
-
 export class Kagi extends SearchingEngine {
   isMatch(): boolean {
     const match = window.location.hostname.match(/kagi\.com$/g);
@@ -209,6 +207,29 @@ export class Kagi extends SearchingEngine {
   }
 }
 
+// todo try to support brave search but the CSP ban the inline sytle.
+// export class Brave extends SearchingEngine {
+//   isMatch(): boolean {
+//     const match = window.location.hostname.match(/search\.brave\.com$/g);
+//     return !!match;
+//   }
+
+//   getQuery(): string | null {
+//     const searchUrl = new URL(window.location.href);
+//     const query = searchUrl.searchParams.get('q');
+
+//     return query;
+//   }
+
+//   gotElement(): Element {
+//     const container = document.createElement('div');
+//     const asideElement = document.querySelector('#side-right');
+//     container.style.paddingTop = '20px';
+//     asideElement!.insertBefore(container, asideElement!.firstChild);
+//     return container;
+//   }
+// }
+
 const searchEngins = [
   new Google(),
   new Bing(),
@@ -216,6 +237,7 @@ const searchEngins = [
   new Yandex(),
   new SearX(),
   new Kagi(),
+  // new Brave(),
   new Baidu(),
 ];
 

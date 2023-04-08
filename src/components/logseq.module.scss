@@ -3,7 +3,7 @@
 }
 
 .blockContent {
-  @apply flex flex-col dark:prose-invert prose-sm whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
+  @apply flex flex-col  prose-sm dark:prose-invert whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
   * {
     @apply break-all text-sm;
   }
@@ -22,7 +22,7 @@
 }
 
 .pageContent {
-  @apply flex flex-col gap-2  prose-sm whitespace-pre-wrap text-sm;
+  @apply flex flex-col gap-2 prose-sm  dark:prose-invert whitespace-pre-wrap text-sm;
 }
 
 .pageContentFooter {

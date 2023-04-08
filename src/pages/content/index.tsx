@@ -27,13 +27,11 @@ async function run(
 ) {
   console.debug('Logseq copliot', window.location.hostname);
 
-  if (searchEngine.isMatch()) {
-    const query = searchEngine.getQuery();
-    if (query) {
-      console.log(`match ${typeof searchEngine}, query ${query}`);
-      const container = await searchEngine.gotElement();
-      await mount(container, query);
-    }
+  const query = searchEngine.getQuery();
+  if (query) {
+    console.log(`match ${typeof searchEngine}, query ${query}`);
+    const container = await searchEngine.gotElement();
+    await mount(container, query);
   }
 }
 
