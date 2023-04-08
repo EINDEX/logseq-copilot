@@ -108,6 +108,26 @@ export default class LogseqClient {
     return resp;
   };
 
+
+  public appendBlock = async (
+    page, content
+  ) => {
+    const resp = await this.baseJson("logseq.Editor.appendBlockInPage",
+      [page, content]
+    )
+    return resp
+  }
+
+  public getCurrentPage = async () => {
+    return await this.catchIssues(async () => {
+      return await this.baseJson("logseq.Editor.getCurrentPage", []);
+    });
+  }
+
+  private getAllPage = async () => {
+    return await this.baseJson('logseq.Editor.getAllPages', [])
+  }
+
   private getPage = async (
     pageIdenity: LogseqPageIdenity,
   ): Promise<LogseqPageIdenity> => {
@@ -239,12 +259,26 @@ export default class LogseqClient {
     };
   };
 
+  public getUserConfig = async() => {
+    return await this.catchIssues(
+      async() => await this.baseJson("logseq.App.getUserConfigs", []),
+    ); 
+  }
+
   public showMsg = async (
     message: string,
   ): Promise<LogseqResponseType<null>> => {
     return await this.catchIssues(
       async () => await this.showMsgInternal(message),
     );
+  };
+
+  public getAllPages = async(): Promise<string> => {
+    return await this.catchIssues(async () => await this.getAllPage())
+  }
+
+  public getGraph = async (): Promise<string> => {
+    return await this.catchIssues(async () => await this.getCurrentGraph());
   };
 
   public getVersion = async (): Promise<LogseqResponseType<string>> => {

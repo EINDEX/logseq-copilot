@@ -15,7 +15,7 @@ export const LogseqVersionIsLower: LogseqClientError = {
 };
 
 export const CannotConnectWithLogseq: LogseqClientError = {
-  msg: 'Cannot connect with Logseq, Please make sure your Logseq Host is correct.',
+  msg: 'Cannot connect to Logseq, Please open your Logseq and config well.',
   status: 500,
   response: null,
 };

@@ -1,0 +1,14 @@
+.options {
+  @apply container max-w-lg;
+
+  h1 {
+    @apply text-2xl font-bold;
+  }
+}
+
+.selection {
+  .react-select-container {
+    @apply w-full;
+  }
+  @apply w-full min-w-full;
+}

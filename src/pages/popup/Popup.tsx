@@ -5,6 +5,7 @@ import Browser from 'webextension-polyfill';
 import { useEffect, useState } from 'react';
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
+import { IconSettings } from '@tabler/icons-react';
 
 import { LogseqBlock } from '@components/LogseqBlock';
 
@@ -49,7 +50,10 @@ export default function Popup() {
   return (
     <div className="copilot">
       <div className={`${styles.content} + ${styles.divide}`}>
-        <span>Graph: {logseqSearchResult?.graph}</span>
+        <div className={styles.copilotCardHeader}>
+          <span>Graph: {logseqSearchResult?.graph}</span>
+          <IconSettings size={16} />
+        </div>
         {logseqSearchResult?.blocks.slice(0, 20).map((block) => (
           <LogseqBlock
             key={block.uuid}

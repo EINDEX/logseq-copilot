@@ -21,6 +21,8 @@
     "@tailwindcss/typography": "^0.5.9",
     "@thedutchcoder/postcss-rem-to-px": "^0.0.2",
     "@types/marked": "^4.0.8",
+    "chakra-react-select": "^4.6.0",
+    "date-fns": "^2.29.3",
     "lodash": "^4.17.21",
     "marked": "^4.2.12",
     "markit": "^0.2.0",

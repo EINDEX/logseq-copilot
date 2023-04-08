@@ -4,6 +4,7 @@ import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
 import { setExtensionBadge } from './utils';
 import { debounce, delay } from 'lodash';
+import { format } from 'date-fns';
 
 const logseqClient = new LogseqClient();
 
@@ -42,12 +43,31 @@ const quickCapture = async (data: string) => {
   const tab = await Browser.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
   const activeTab = tab[0];
-  const url = `logseq://x-callback-url/quickCapture?title=${
-    activeTab.title
-  }&url=${encodeURIComponent(activeTab.url!)}&content=${encodeURIComponent(
-    data,
-  )}`;
-  Browser.tabs.update(activeTab.id, { url: url });
+  const { clipNoteLocation, clipNoteCustomPage, clipNoteTemplate } =
+    await getLogseqCopliotConfig();
+  const now = new Date();
+  const resp = await logseqClient.getUserConfig();
+  const journalPage = format(now, resp["preferredDateFormat"]);
+  const render = clipNoteTemplate
+    .replaceAll('{{date}}', journalPage)
+    .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
+    .replaceAll('{{url}}', activeTab.url)
+    .replaceAll(
+      '{{time}}',
+      `${now.getHours()}:${
+        now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes()
+      }`,
+    )
+    .replaceAll('{{title}}', activeTab.title);
+
+  if (clipNoteLocation === 'customPage') {
+    await logseqClient.appendBlock(clipNoteCustomPage, render);
+  } else if (clipNoteLocation === 'currentPage') {
+    const {name: currentPage} = await logseqClient.getCurrentPage()
+    await logseqClient.appendBlock(currentPage, render);
+  } else {
+    await logseqClient.appendBlock(journalPage, render);
+  }
 
   debounceBadgeSearch(activeTab.url, activeTab.id);
 };

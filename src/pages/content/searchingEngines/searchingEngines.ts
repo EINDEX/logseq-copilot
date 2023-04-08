@@ -3,13 +3,13 @@ abstract class SearchingEngine {
     return false;
   }
   getQuery(): string | null {
-    return null
+    return null;
   }
   gotElement(): Element | null {
-    return null
+    return null;
   }
   reload(callback: Function): null {
-    return null
+    return null;
   }
 }
 
@@ -58,9 +58,11 @@ export class Bing extends SearchingEngine {
   }
 
   gotElement(): Element {
-    const container = document.createElement('div');
-    const asideElement = document.getElementById('b_context');
-
+    const container = document.createElement('li');
+    const asideElement = document.querySelector('#b_context');
+    console.log(asideElement)
+    container.className = 'b_ans';
+    
     asideElement!.insertBefore(container, asideElement!.firstChild);
     return container;
   }
@@ -89,7 +91,8 @@ export class DuckDuckGo extends SearchingEngine {
 
 export class Yandex extends SearchingEngine {
   isMatch(): boolean {
-    const match = window.location.hostname.match(/yandex\.[com|ru]$/g);
+
+    const match = window.location.hostname.match(/yandex\.(com|ru)$/);
     return !!match;
   }
 
@@ -101,9 +104,7 @@ export class Yandex extends SearchingEngine {
 
   gotElement(): Element {
     const container = document.createElement('div');
-    const asideElement = document.getElementsByClassName(
-      'serp-list_right_yes',
-    )[0];
+    const asideElement = document.querySelector('#search-result-aside');
 
     asideElement!.insertBefore(container, asideElement!.firstChild);
     return container;
@@ -167,7 +168,7 @@ export class Baidu extends SearchingEngine {
     return container;
   }
 
-  reload(callback: Function): null{
+  reload(callback: Function): null {
     const targetNode = document.getElementById('wrapper_wrapper')!;
     const observer = new MutationObserver(function (records) {
       for (const record of records) {
@@ -182,12 +183,11 @@ export class Baidu extends SearchingEngine {
       }
     });
     observer.observe(targetNode, { childList: true });
-    return null
+    return null;
   }
 }
 
 export class Kagi extends SearchingEngine {
-  
   isMatch(): boolean {
     const match = window.location.hostname.match(/kagi\.com$/g);
     return !!match;

@@ -55,7 +55,7 @@ const build = (releaseFor) => {
       'Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.',
     chrome_url_overrides: {},
     icons: {
-      192: 'assets/img/logo.png',
+      192: 'assets/img/logo-192.png',
     },
     content_scripts: [
       {

@@ -14,6 +14,10 @@
   }
 }
 
+.copilotBody {
+  @apply rounded-lg ring-1  ring-gray-500/30 -m-2 p-2;
+}
+
 .configIt {
   @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
 }
@@ -29,10 +33,6 @@
   }
 }
 
-.divide {
-  @apply divide-y divide-x-0 divide-dashed;
-}
-
 .copilotCardHeader {
   @apply flex flex-row justify-between items-center text-sm pb-2;
 
@@ -42,7 +42,7 @@
 }
 
 .copilotFooter {
-  @apply flex flex-row text-xs justify-between text-gray-500 px-2;
+  @apply flex flex-row text-xs justify-between text-gray-500 mt-2;
 
   a {
     @apply text-gray-500 no-underline hover:underline;
