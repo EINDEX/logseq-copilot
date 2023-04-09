@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         platform: [chrome, edge, firefox, github]
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -65,6 +66,7 @@ jobs:
         run: node pipeline/edge-addon-publish.mjs
         if: matrix.platform == 'edge'
         env:
+          VERSION: ${{ needs.version.outputs.version }}
           EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
           EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
           EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
