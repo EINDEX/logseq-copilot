@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: label version
         id: tag-version
-        run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+        run: echo "version=${GITHUB_REF#refs/v*/}" >> $GITHUB_OUTPUT
 
   publish:
     needs: 
