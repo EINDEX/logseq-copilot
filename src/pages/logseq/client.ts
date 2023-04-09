@@ -53,7 +53,8 @@ export type LogseqResponseType<T> = {
 export default class LogseqClient {
   private baseFetch = async (method: string, args: any[]) => {
     const config = await getLogseqCopliotConfig();
-    const apiUrl = new URL(`${config.logseqHost}/api`);
+    const endPoint = new URL(config.logseqHost);
+    const apiUrl = new URL(`${endPoint.origin}/api`);
     const resp = await fetch(apiUrl, {
       mode: 'cors',
       method: 'POST',

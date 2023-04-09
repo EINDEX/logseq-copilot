@@ -37,10 +37,19 @@ export const LogseqConnectOptions = () => {
   const triggerShowToken = () => setShowToken(!showToken);
 
   const save = () => {
+    try {
+      new URL(logseqConfig!.logseqHost)
+    } catch (error) {
+      setConnected(false)
+      setButtonMessage("Logseq Host is not a URL!")
+      return
+    }
+    
+    
     const promise = new Promise(async () => {
       await saveLogseqCopliotConfig({
-        logseqAuthToken: logseqConfig?.logseqAuthToken,
-        logseqHost: logseqConfig?.logseqHost,
+        logseqAuthToken: logseqConfig!.logseqAuthToken,
+        logseqHost: new URL(logseqConfig!.logseqHost).origin,
       });
       if (await checkConnection()) {
         const graph = await client.getGraph();
