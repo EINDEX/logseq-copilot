@@ -1,5 +1,4 @@
 import { EdgeAddonsAPI } from '@plasmohq/edge-addons-api';
-import process from 'node:process';
 
 const client = new EdgeAddonsAPI({
   productId: process.env.EDGE_PRODUCT_ID,
