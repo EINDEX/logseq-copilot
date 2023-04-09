@@ -11,17 +11,15 @@ module.exports = {
     [
       "@semantic-release/exec",
       {
+        "prepareCmd": "echo version=${nextRelease.version} > version.env"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
         "prepareCmd": "VERSION=${nextRelease.version} npm run build"
       }
     ],
-    // [
-    //   "semantic-release-chrome",
-    //   {
-    //     "extensionId": "hihgfcgbmnbomabfdbajlbpnacndeihl",
-    //     "distFolder": "build/chrome",
-    //     "asset": "build/chrome-${nextRelease.version}.zip"
-    //   }
-    // ],
     [
       '@semantic-release/github',
       {

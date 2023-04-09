@@ -3,11 +3,10 @@ name: Build
 on:
   push:
     branches:
-      - "main"
-      - "release"
+      - 'main'
 
 jobs:
-  build: 
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,14 +18,7 @@ jobs:
           node-version: 18.x
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
-          
+
       - run: npm install --save
 
-      - name: Release
-        if: github.ref == 'refs/heads/release'
-        run: npx semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      - run: npm run build

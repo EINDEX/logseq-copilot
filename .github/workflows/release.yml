@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - 'release'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        name: Use Node.js
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - run: npm install --save
+
+      - name: Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+      - name: next version
+        id: next-version
+        run: echo version.env > $GITHUB_OUTPUT
+
+  publish:
+    needs: release
+    strategy:
+      matrix:
+        platform: [chrome, edge, firefox]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        name: Use Node.js
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - run: npm install --save
+
+      - run: npm run build
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+
+      - name: Firefox Upload & release
+        run: web-ext sign -s build/firefox
+        if: matrix.platform == 'firefox'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.FIREFOX_WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.FIREFOX_WEB_EXT_API_SECRET }}
+      
+      - name: Chrome Upload & release
+        if: matrix.platform == 'chrome'
+        uses: mnao305/chrome-extension-upload@v4.0.1
+        with:
+          file-path: build/chrome-${{ needs.release.outputs.version }}.zip
+          extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
+          client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+
+      - name: Edge Upload & release
+        run: node pipeline/edge-addon-publish.mjs
+        if: matrix.platform == 'edge'
+        env:
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
+          EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
