@@ -54,7 +54,7 @@ async function runEsbuild() {
 }
 
 async function zipFolder(dir, version) {
-  const output = fs.createWriteStream(`${dir}-${version}.zip`);
+  const output = fs.createWriteStream(`${dir}-v${version}.zip`);
   const archive = archiver('zip', {
     zlib: { level: 9 },
   });
