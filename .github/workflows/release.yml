@@ -32,7 +32,9 @@ jobs:
 
       - name: next version
         id: next-version
-        run: echo version.env > $GITHUB_OUTPUT
+        run: |
+          cat version.env
+          cat version.env > $GITHUB_OUTPUT
 
   publish:
     needs: release
