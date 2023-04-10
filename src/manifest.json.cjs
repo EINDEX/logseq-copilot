@@ -15,7 +15,6 @@ const ReleaseFor = {
       default_popup: 'popup.html',
       default_title: 'Logseq Copilot',
     },
-    host_permissions: ['*://*/*'],
   },
   edge: {
     manifest_version: 3,
@@ -53,7 +52,7 @@ const ReleaseFor = {
 
 const build = (releaseFor) => {
   return {
-    version: process.env.VERSION,
+    version: process.env.VERSION.replace('v', ''),
     author: 'eindex.lee@gmail.com',
     name: 'Logseq Copilot',
     description:
