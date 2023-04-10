@@ -11,7 +11,7 @@ module.exports = {
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo ${nextRelease.version} > version.env"
+        "prepareCmd": "echo ${nextRelease.version} > version.env && echo \"version=${nextRelease.version}\" > $GITHUB_OUTPUT "
       }
     ],
     [

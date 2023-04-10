@@ -23,15 +23,16 @@ jobs:
       - run: npm install --save
 
       - name: Release
+        id: tag-version
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
 
-      - name: label version
-        id: tag-version
-        run: |
-          VERSION=$(cat version.env)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      # - name: label version
+      #   id: tag-version
+      #   run: |
+      #     VERSION=$(cat version.env)
+      #     echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   publish:
     needs:
