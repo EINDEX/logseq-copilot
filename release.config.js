@@ -31,5 +31,5 @@ module.exports = {
       },
     ],
   ],
-  branches: ['x.x.x'],
+  branches: ['x.x.x', 'vx.x.x', 'release'],
 };
