@@ -20,7 +20,7 @@ const Options = () => {
             <Link
               href={`https://github.com/EINDEX/logseq-copilot/releases/tag/v${process.env.VERSION}`}
             >
-              v{process.env.VERSION}
+              {process.env.VERSION}
             </Link>
           </Text>
         </Flex>

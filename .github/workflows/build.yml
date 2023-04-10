@@ -22,3 +22,5 @@ jobs:
       - run: npm install --save
 
       - run: npm run build
+        env:
+          VERSION: v0.0.0
