@@ -28,6 +28,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
 
+      - name: check version file exist or not
+        run: ls
+
       # - name: label version
       #   id: tag-version
       #   run: |
