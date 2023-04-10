@@ -8,8 +8,8 @@ const client = new EdgeAddonsAPI({
 });
 
 const operationID = await client.submit({
-  filePath: `./build/edge-${process.env.VERSION}.zip`,
-  notes: 'Developer notes',
+  filePath: `build/edge-${process.env.VERSION}.zip`,
+  notes: 'release note is here https://github.com/EINDEX/logseq-copilot/releases',
 });
 
 
