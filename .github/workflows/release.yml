@@ -40,6 +40,7 @@ jobs:
   publish:
     needs:
       - version
+    if: ${{ needs.version.outputs.version }}
     strategy:
       matrix:
         platform: [chrome, edge, firefox]
