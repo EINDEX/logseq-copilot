@@ -14,10 +14,47 @@ import {
   NoSearchingResult,
 } from './error';
 
-marked.setOptions({
-  gfm: true,
-  tables: true,
-});
+const logseqLinkExt = (graph, query) => {
+  return {
+    name: 'logseqLink',
+    level: 'inline',
+    tokenizer: function (src) {
+      const match = src.match(/^#?\[\[(.*?)\]\]/);
+      if (match) {
+        return {
+          type: 'logseqLink',
+          raw: match[0],
+          text: match[1],
+          href: match[1].trim(),
+          tokens: [],
+        };
+      }
+      return false;
+    },
+    renderer: function (token) {
+      const { text, href } = token;
+      const fillText = query
+        ? text.replaceAll(query, '<mark>' + query + '</mark>')
+        : text;
+      return `<a class="logseq-page-link" href="logseq://graph/${graph}?page=${href}"><span class="tie tie-page"></span>${fillText}</a>`;
+    },
+  };
+};
+
+const highlightTokens = (query) => {
+  return (token) => {
+    if (
+      token.type !== 'code' &&
+      token.type !== 'codespan' &&
+      token.type !== 'logseqLink' &&
+      token.text
+    ) {
+      token.text = query
+        ? token.text.replaceAll(query, '<mark>' + query + '</mark>')
+        : token.text;
+    }
+  };
+};
 
 type Graph = {
   name: string;
@@ -87,18 +124,23 @@ export default class LogseqClient {
       .replaceAll(/!\[.*?\]\(\.\.\/assets.*?\)/gm, '')
       .replaceAll(/^[\w-]+::.*?$/gm, '') // clean properties
       .replaceAll(/{{renderer .*?}}/gm, '') // clean renderer
+      .replaceAll(/^deadline: <.*?>$/gm, '') // clean deadline
+      .replaceAll(/^scheduled: <.*?>$/gm, '') // clean schedule
       .replaceAll(/^:logbook:[\S\s]*?:end:$/gm, '') // clean logbook
       .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gm, '<em>$1</em>') // clean highlight
       .replaceAll(/^\s*?-\s*?$/gm, '')
       .trim();
   };
 
-  private format = (content: string, graphName: string, graphPath: string) => {
+  private format = (content: string, graphName: string, query: string) => {
+    marked.use({
+      gfm: true,
+      tables: true,
+      walkTokens: highlightTokens(query),
+      extensions: [logseqLinkExt(graphName, query)],
+    });
     const html = marked.parse(this.tirmContent(content));
-    return html.replaceAll(
-      /\[\[(.*?)\]\]/g,
-      `<a class="logseq-page-link" href="logseq://graph/${graphName}?page=$1"><span class="tie tie-page"></span>$1</a>`,
-    );
+    return html;
   };
 
   private getCurrentGraph = async (): Promise<{
@@ -109,25 +151,23 @@ export default class LogseqClient {
     return resp;
   };
 
-
-  public appendBlock = async (
-    page, content
-  ) => {
-    const resp = await this.baseJson("logseq.Editor.appendBlockInPage",
-      [page, content]
-    )
-    return resp
-  }
+  public appendBlock = async (page, content) => {
+    const resp = await this.baseJson('logseq.Editor.appendBlockInPage', [
+      page,
+      content,
+    ]);
+    return resp;
+  };
 
   public getCurrentPage = async () => {
     return await this.catchIssues(async () => {
-      return await this.baseJson("logseq.Editor.getCurrentPage", []);
+      return await this.baseJson('logseq.Editor.getCurrentPage', []);
     });
-  }
+  };
 
   private getAllPage = async () => {
-    return await this.baseJson('logseq.Editor.getAllPages', [])
-  }
+    return await this.baseJson('logseq.Editor.getAllPages', []);
+  };
 
   private getPage = async (
     pageIdenity: LogseqPageIdenity,
@@ -199,12 +239,12 @@ export default class LogseqClient {
   private findLogseqInternal = async (
     query: string,
   ): Promise<LogseqResponseType<LogseqSearchResult>> => {
-    const { name: graphName, path: graphPath } = await this.getCurrentGraph();
+    const { name: graphName } = await this.getCurrentGraph();
     const res = await this.find(query);
     const blocks = await Promise.all(
       res.map(async (item) => {
         return {
-          html: this.format(item.content, graphName, graphPath),
+          html: this.format(item.content, graphName, query),
           uuid: item.uuid,
           page: await this.getPage({
             id: item.page.id,
@@ -227,7 +267,7 @@ export default class LogseqClient {
   private searchLogseqInternal = async (
     query: string,
   ): Promise<LogseqResponseType<LogseqSearchResult>> => {
-    const { name: graphName, path: graphPath } = await this.getCurrentGraph();
+    const { name: graphName } = await this.getCurrentGraph();
     const { blocks, pages }: LogseqSearchResponse = await this.search(query);
 
     const result: LogseqSearchResult = {
@@ -240,7 +280,7 @@ export default class LogseqClient {
       blocks: await Promise.all(
         blocks.map(async (block) => {
           return {
-            html: this.format(block['block/content'], graphName, graphPath).replaceAll(query, `<mark>${query}</mark>`),
+            html: this.format(block['block/content'], graphName, query),
             uuid: block['block/uuid'],
             page: await this.getPage({
               id: block['block/page'],
@@ -260,11 +300,11 @@ export default class LogseqClient {
     };
   };
 
-  public getUserConfig = async() => {
+  public getUserConfig = async () => {
     return await this.catchIssues(
-      async() => await this.baseJson("logseq.App.getUserConfigs", []),
-    ); 
-  }
+      async () => await this.baseJson('logseq.App.getUserConfigs', []),
+    );
+  };
 
   public showMsg = async (
     message: string,
@@ -274,9 +314,9 @@ export default class LogseqClient {
     );
   };
 
-  public getAllPages = async(): Promise<string> => {
-    return await this.catchIssues(async () => await this.getAllPage())
-  }
+  public getAllPages = async (): Promise<string> => {
+    return await this.catchIssues(async () => await this.getAllPage());
+  };
 
   public getGraph = async (): Promise<string> => {
     return await this.catchIssues(async () => await this.getCurrentGraph());
