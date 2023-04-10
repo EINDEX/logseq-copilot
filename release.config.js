@@ -11,7 +11,7 @@ module.exports = {
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo version=${nextRelease.version} > version.env"
+        "prepareCmd": "echo ${nextRelease.version} > version.env"
       }
     ],
     [
@@ -31,5 +31,5 @@ module.exports = {
       },
     ],
   ],
-  branches: ['x.x.x', 'vx.x.x', 'release'],
+  branches: ['main'],
 };
