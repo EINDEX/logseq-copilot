@@ -15,6 +15,7 @@ const ReleaseFor = {
       default_popup: 'popup.html',
       default_title: 'Logseq Copilot',
     },
+    host_permissions: ["<all_urls>"],
   },
   edge: {
     manifest_version: 3,
@@ -31,6 +32,7 @@ const ReleaseFor = {
       default_popup: 'popup.html',
       default_title: 'Logseq Copilot',
     },
+    host_permissions: ["<all_urls>"],
   },
   firefox: {
     manifest_version: 2,
@@ -47,6 +49,7 @@ const ReleaseFor = {
         id: '{dbe73d0a-f6b8-474a-ad39-0d46a07e4525}',
       },
     },
+    permissions: ['storage', 'activeTab', 'contextMenus', "<all_urls>"],
   },
 };
 
