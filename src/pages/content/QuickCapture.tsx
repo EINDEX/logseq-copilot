@@ -18,15 +18,22 @@ const capture = () => {
   const turndownService = buildTurndownService();
   selection?.removeAllRanges();
   connect.postMessage({
-    type: 'quick-capture',
+    type: 'clip-with-selection',
     data: turndownService.turndown(clonedSelection),
   });
-  console.log('quick-capture');
+};
+
+const clipPage = () => {
+  connect.postMessage({
+    type: 'clip-page'
+  });
 };
 
 Browser.runtime.onMessage.addListener((request) => {
-  if (request.type === 'quick-capture-on-menu') {
+  if (request.type === 'clip-with-selection') {
     capture();
+  } else if (request.type === 'clip-page') {
+    clipPage();
   }
 });
 
@@ -80,7 +87,7 @@ const QuickCapture = () => {
         className={scssStyles.popupButton}
         src={logo}
         onClick={quickCapture}
-        alt={'logseq-quickcapture-button'}
+        alt={'clip-button'}
       />
     </div>
   );

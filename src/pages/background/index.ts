@@ -19,8 +19,10 @@ Browser.runtime.onConnect.addListener((port) => {
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
       Browser.runtime.openOptionsPage();
-    } else if (msg.type === 'quick-capture') {
+    } else if (msg.type === 'clip-with-selection') {
       quickCapture(msg.data);
+    } else if (msg.type === 'clip-page') {
+      quickCapture('');
     } else if (msg.type === 'open-page') {
       openPage(msg.url);
     } else {
@@ -47,7 +49,7 @@ const quickCapture = async (data: string) => {
     await getLogseqCopliotConfig();
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
-  const journalPage = format(now, resp["preferredDateFormat"]);
+  const journalPage = format(now, resp['preferredDateFormat']);
   const render = clipNoteTemplate
     .replaceAll('{{date}}', journalPage)
     .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
@@ -58,12 +60,12 @@ const quickCapture = async (data: string) => {
         now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes()
       }`,
     )
-    .replaceAll('{{title}}', activeTab.title);
+    .replaceAll('{{title}}', activeTab.title).trim();
 
   if (clipNoteLocation === 'customPage') {
     await logseqClient.appendBlock(clipNoteCustomPage, render);
   } else if (clipNoteLocation === 'currentPage') {
-    const {name: currentPage} = await logseqClient.getCurrentPage()
+    const { name: currentPage } = await logseqClient.getCurrentPage();
     await logseqClient.appendBlock(currentPage, render);
   } else {
     await logseqClient.appendBlock(journalPage, render);
@@ -108,14 +110,19 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
 const debounceBadgeSearch = debounce(badgeSearch, 500);
 
 Browser.contextMenus.create({
-  id: 'quick-capture',
-  title: 'Quick Capture',
+  id: 'clip-with-selection',
+  title: 'Clip "%s"',
   visible: true,
   contexts: ['selection'],
 });
 
+Browser.contextMenus.create({
+  id: 'clip-page',
+  title: 'Clip page url',
+  visible: true,
+  contexts: ['page'],
+});
+
 Browser.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.selectionText) {
-    Browser.tabs.sendMessage(tab!.id, { type: 'quick-capture-on-menu' }, {});
-  }
+  Browser.tabs.sendMessage(tab!.id, { type: info.menuItemId }, {});
 });
