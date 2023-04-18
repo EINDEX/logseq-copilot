@@ -17,9 +17,7 @@ export const getLogseqCopliotConfig =
       enableClipNoteFloatButton = true,
       clipNoteLocation = "journal",
       clipNoteCustomPage = "",
-      clipNoteTemplate = `[[date]] **{{time}}**
-url:: [{{title}}]({{url}})
-tags:: [[Clip]]
+      clipNoteTemplate = `#[[Clip]] [{{title}}]({{url}})
 {{content}}`
     } = await Browser.storage.local.get();
     return {
