@@ -19,16 +19,16 @@ module.exports = {
         "prepareCmd": "VERSION=${nextRelease.version} npm run build"
       }
     ],
-    [
-      '@semantic-release/github',
-      {
-        assets: [
-          {path:'build/chrome-*.zip', label: "Chrome version"}, 
-          {path:'build/edge-*.zip', label: "Edge version"},
-          {path:'build/firefox-*.zip', label: "Firefox version"}
-      ],
-      },
-    ],
+    // [
+    //   '@semantic-release/github',
+    //   {
+    //     assets: [
+    //       {path:'build/chrome-*.zip', label: "Chrome version"}, 
+    //       {path:'build/edge-*.zip', label: "Edge version"},
+    //       {path:'build/firefox-*.zip', label: "Firefox version"}
+    //   ],
+    //   },
+    // ],
   ],
   branches: ['main'],
 };
