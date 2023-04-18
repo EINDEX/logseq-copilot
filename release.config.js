@@ -7,28 +7,8 @@ module.exports = {
       },
     ],
     '@semantic-release/release-notes-generator',
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "echo ${nextRelease.version} > version.env && echo \"version=${nextRelease.version}\" > $GITHUB_OUTPUT "
-      }
-    ],
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "VERSION=${nextRelease.version} npm run build"
-      }
-    ],
-    // [
-    //   '@semantic-release/github',
-    //   {
-    //     assets: [
-    //       {path:'build/chrome-*.zip', label: "Chrome version"}, 
-    //       {path:'build/edge-*.zip', label: "Edge version"},
-    //       {path:'build/firefox-*.zip', label: "Firefox version"}
-    //   ],
-    //   },
-    // ],
+    "@semantic-release/changelog",
+    "@semantic-release/git",
   ],
-  branches: ['main'],
+  branches: ['release'],
 };

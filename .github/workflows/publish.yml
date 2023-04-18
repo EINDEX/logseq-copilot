@@ -1,0 +1,66 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    strategy:
+      matrix:
+        platform: [chrome, edge, firefox, github]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    environment: 'publish'
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        name: Use Node.js
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - run: npm install --save
+
+      - run: npm run build
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Firefox Upload & release
+        run: npx web-ext sign -s build/firefox
+        if: matrix.platform == 'firefox'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.FIREFOX_WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.FIREFOX_WEB_EXT_API_SECRET }}
+
+      - name: Chrome Upload & release
+        if: matrix.platform == 'chrome'
+        uses: mnao305/chrome-extension-upload@v4.0.1
+        with:
+          file-path: build/chrome-${{ github.ref_name }}.zip
+          extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
+          client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+
+      - name: Edge Upload & release
+        run: node pipeline/edge-addon-publish.mjs
+        if: matrix.platform == 'edge'
+        env:
+          VERSION: ${{ github.ref_name }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
+          EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: matrix.platform == 'github'
+        with:
+          files: |
+            build/chrome-${{ github.ref_name }}.zip
+            build/edge-${{ github.ref_name }}.zip
+            build/firefox-${{ github.ref_name }}.zip
