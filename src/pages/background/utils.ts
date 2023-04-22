@@ -6,10 +6,12 @@ export const removeUrlHash = (url: string) => {
 };
 
 export const setExtensionBadge = async (text: string, tabId: number) => {
-  await Browser.action.setBadgeText({
+
+  const action = Browser.runtime.getManifest().manifest_version === 2? Browser.browserAction : Browser.action; 
+  await action.setBadgeText({
     text: text,
     tabId: tabId,
   });
-  await Browser.action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
-  await Browser.action.setBadgeTextColor({ color: '#ffffff', tabId });
+  await action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
+  await action.setBadgeTextColor({ color: '#ffffff', tabId });
 };
