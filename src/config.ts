@@ -14,7 +14,7 @@ export const getLogseqCopliotConfig =
     const {
       logseqHost = 'http://localhost:12315',
       logseqAuthToken = '',
-      enableClipNoteFloatButton = true,
+      enableClipNoteFloatButton = false,
       clipNoteLocation = "journal",
       clipNoteCustomPage = "",
       clipNoteTemplate = `#[[Clip]] [{{title}}]({{url}})
