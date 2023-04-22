@@ -7,6 +7,8 @@ import {
   InputRightElement,
   Button,
   Link,
+  NumberInput,
+  NumberInputField,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 
@@ -30,7 +32,7 @@ export const LogseqConnectOptions = () => {
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLogseqConfig({
       ...logseqConfig,
-      [e.target.name]: e.target.value || e.target.checked,
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -38,18 +40,18 @@ export const LogseqConnectOptions = () => {
 
   const save = () => {
     try {
-      new URL(logseqConfig!.logseqHost)
+      // new URL(logseqConfig!.logseqHost);
     } catch (error) {
-      setConnected(false)
-      setButtonMessage("Logseq Host is not a URL!")
-      return
+      setConnected(false);
+      setButtonMessage('Logseq Host is not a URL!');
+      return;
     }
-    
-    
+
     const promise = new Promise(async () => {
       await saveLogseqCopliotConfig({
         logseqAuthToken: logseqConfig!.logseqAuthToken,
-        logseqHost: new URL(logseqConfig!.logseqHost).origin,
+        logseqHostName: logseqConfig?.logseqHostName,
+        logseqPort: logseqConfig?.logseqPort,
       });
       if (await checkConnection()) {
         const graph = await client.getGraph();
@@ -97,20 +99,34 @@ export const LogseqConnectOptions = () => {
     <>
       <Heading size={'lg'}>Logseq Connect</Heading>
       <Grid
-        gridTemplateColumns={'160px auto'}
+        gridTemplateColumns={'1fr 1fr 1fr'}
         alignItems={'center'}
         rowGap={2}
         columnGap={2}
       >
-        <Text fontSize="md">Logseq Host</Text>
+        <Text gridColumn={'1 / span 2'} fontSize="sm">
+          Host
+        </Text>
+        <Text fontSize="sm">Port (0 ~ 65536)</Text>
         <Input
-          name="logseqHost"
+          gridColumn={'1 / span 2'}
+          name="logseqHostName"
           placeholder="Logseq Host"
           onChange={onChange}
-          value={logseqConfig?.logseqHost}
+          value={logseqConfig?.logseqHostName}
         />
-        <Text fontSize="md">Authorization Token</Text>
-        <InputGroup>
+        <NumberInput
+          max={65535}
+          min={0}
+          name="logseqPort"
+          placeholder="Logseq Host"
+          onChange={onChange}
+          value={logseqConfig?.logseqPort}
+        >
+          <NumberInputField />
+        </NumberInput>
+        <Text fontSize="sm">Authorization Token</Text>
+        <InputGroup gridColumn={'1 / span 3'}>
           <Input
             name="logseqAuthToken"
             type={showToken ? 'text' : 'password'}

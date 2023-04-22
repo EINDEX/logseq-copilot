@@ -1,7 +1,10 @@
 import Browser from 'webextension-polyfill';
 
 export type LogseqCopliotConfig = {
+  version: string;
   logseqHost: string;
+  logseqHostName: string;
+  logseqPort: number;
   logseqAuthToken: string;
   enableClipNoteFloatButton: boolean;
   clipNoteLocation: string;
@@ -12,7 +15,10 @@ export type LogseqCopliotConfig = {
 export const getLogseqCopliotConfig =
   async (): Promise<LogseqCopliotConfig> => {
     const {
+      version = '',
       logseqHost = 'http://localhost:12315',
+      logseqHostName = 'localhost',
+      logseqPort = 12315,
       logseqAuthToken = '',
       enableClipNoteFloatButton = false,
       clipNoteLocation = "journal",
@@ -21,7 +27,10 @@ export const getLogseqCopliotConfig =
 {{content}}`
     } = await Browser.storage.local.get();
     return {
+      version,
       logseqHost,
+      logseqHostName,
+      logseqPort,
       logseqAuthToken,
       enableClipNoteFloatButton,
       clipNoteLocation,

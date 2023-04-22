@@ -2,9 +2,10 @@ import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
-import { setExtensionBadge } from './utils';
+import { setExtensionBadge, versionCompare } from './utils';
 import { debounce, delay } from 'lodash';
 import { format } from 'date-fns';
+import { changeOptionsHostToHostNameAndPort } from './upgrade';
 
 const logseqClient = new LogseqClient();
 
@@ -60,7 +61,8 @@ const quickCapture = async (data: string) => {
         now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes()
       }`,
     )
-    .replaceAll('{{title}}', activeTab.title).trim();
+    .replaceAll('{{title}}', activeTab.title)
+    .trim();
 
   if (clipNoteLocation === 'customPage') {
     await logseqClient.appendBlock(clipNoteCustomPage, render);
@@ -73,14 +75,6 @@ const quickCapture = async (data: string) => {
 
   debounceBadgeSearch(activeTab.url, activeTab.id);
 };
-
-Browser.runtime.onInstalled.addListener(() => {
-  const promise = new Promise(async () => {
-    const { logseqAuthToken } = await getLogseqCopliotConfig();
-    if (logseqAuthToken === '') Browser.runtime.openOptionsPage();
-  });
-  promise.catch((err) => console.error(err));
-});
 
 Browser.tabs.onActivated.addListener((activeInfo) => {
   const promise = new Promise(async () => {
@@ -124,5 +118,15 @@ Browser.contextMenus.create({
 });
 
 Browser.contextMenus.onClicked.addListener((info, tab) => {
-  Browser.tabs.sendMessage(tab!.id, { type: info.menuItemId }, {});
+  Browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
+});
+
+Browser.runtime.onInstalled.addListener((event) => {
+    if (event.reason === 'install') {
+      Browser.runtime.openOptionsPage();
+    } else if (event.reason === 'update') {
+      if (versionCompare(event.previousVersion!, '1.10.19') < 0) {
+        changeOptionsHostToHostNameAndPort()
+      }
+    }
 });
