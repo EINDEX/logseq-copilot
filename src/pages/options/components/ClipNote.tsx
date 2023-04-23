@@ -12,7 +12,6 @@ import {
   Stack,
   Radio,
   Textarea,
-  Kbd,
   Input,
 } from '@chakra-ui/react';
 import LogseqClient from '@pages/logseq/client';

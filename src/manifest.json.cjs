@@ -53,7 +53,7 @@ const build = (releaseFor) => {
     commands: {
       clip: {
         "suggested_key": {
-          "default": "Ctrl+Shift+L",
+          "default": "Ctrl+Shift+U",
         },
         "description": "Make Clip note"
       }
