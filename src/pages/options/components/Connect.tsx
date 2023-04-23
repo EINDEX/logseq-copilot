@@ -140,24 +140,24 @@ export const LogseqConnectOptions = () => {
             </Button>
           </InputRightElement>
         </InputGroup>
-      </Grid>
-      <Button
-        // todo bring up logseq when connection is success, to let user agree for bring up.
-        onClick={save}
-        variant="outline"
-        colorScheme={!connected ? 'red' : 'green'}
-        isLoading={loading}
-      >
-        {buttonMessage}
-      </Button>
-      <Text>
-        <Link
-          color={!connected ? 'red' : undefined}
-          href="https://github.com/eindex/logseq-copilot#usage"
+        <Button
+          gridColumn={'1 / span 3'}
+          onClick={save}
+          variant="outline"
+          colorScheme={!connected ? 'red' : 'green'}
+          isLoading={loading}
         >
-          Guide to Connection
-        </Link>
-      </Text>
+          {buttonMessage}
+        </Button>
+        <Text gridColumn={'1 / span 3'} justifySelf={'end'}>
+          <Link
+            color={!connected ? 'red' : undefined}
+            href="https://github.com/eindex/logseq-copilot#usage"
+          >
+            Guide to Connection
+          </Link>
+        </Text>
+      </Grid>
     </>
   );
 };
