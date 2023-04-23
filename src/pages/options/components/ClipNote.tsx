@@ -13,6 +13,7 @@ import {
   Radio,
   Textarea,
   Input,
+  Link,
 } from '@chakra-ui/react';
 import LogseqClient from '@pages/logseq/client';
 
@@ -85,7 +86,7 @@ export const ClipNoteOptions = () => {
   //   // window.location = 'chrome://extensions/shortcuts';
   //   // Browser.commands.getAll();
   //   // Browser.commands.update();
-    
+
   // };
 
   return (
@@ -111,7 +112,12 @@ export const ClipNoteOptions = () => {
         <Text fontSize={'md'} mb="0">
           Clip Shortcuts
         </Text>
-        <Input name="clip-shortcut" value={clipShortCut} readOnly={true}/>
+        <Input name="clip-shortcut" value={clipShortCut} readOnly={true} />
+        <Text gridColumn={'1 / span 2'} justifySelf={'end'} size={"sm"}>
+          <Link href="https://www.makeuseof.com/open-browser-extensions-keyboard-shortcut/">
+            Guide to change Shortcut for Extension/Add-ons
+          </Link>
+        </Text>
         <Text fontSize="md">Clip Location</Text>
         <RadioGroup
           defaultValue="journal"
@@ -148,9 +154,8 @@ export const ClipNoteOptions = () => {
         <Text
           gridColumn={'1 / span 2'}
           size={'sm'}
+          justifySelf={'end'}
         >{`Available params: {{date}} {{time}} {{title}} {{link}} {{content}}`}</Text>
-
-        
       </Grid>
     </>
   );
