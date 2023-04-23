@@ -13,14 +13,18 @@ const connect = Browser.runtime.connect();
 
 const capture = () => {
   const selection = getSelection();
-  const range = selection!.getRangeAt(0);
-  const clonedSelection = range.cloneContents();
-  const turndownService = buildTurndownService();
-  selection?.removeAllRanges();
-  connect.postMessage({
-    type: 'clip-with-selection',
-    data: turndownService.turndown(clonedSelection),
-  });
+  if (selection !== null) {
+    const range = selection!.getRangeAt(0);
+    const clonedSelection = range.cloneContents();
+    const turndownService = buildTurndownService();
+    selection?.removeAllRanges();
+    connect.postMessage({
+      type: 'clip-with-selection',
+      data: turndownService.turndown(clonedSelection),
+    });
+  } else {
+    clipPage();
+  }
 };
 
 const clipPage = () => {
@@ -30,7 +34,7 @@ const clipPage = () => {
 };
 
 Browser.runtime.onMessage.addListener((request) => {
-  if (request.type === 'clip-with-selection') {
+  if (request.type === 'clip-with-selection' || request.type === 'clip') {
     capture();
   } else if (request.type === 'clip-page') {
     clipPage();

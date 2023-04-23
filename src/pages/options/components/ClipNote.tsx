@@ -12,12 +12,15 @@ import {
   Stack,
   Radio,
   Textarea,
+  Kbd,
+  Input,
 } from '@chakra-ui/react';
 import LogseqClient from '@pages/logseq/client';
 
 import { Select } from 'chakra-react-select';
 import React, { useEffect } from 'react';
 import styles from '../Options.module.scss';
+import Browser from 'webextension-polyfill';
 
 const client = new LogseqClient();
 
@@ -26,6 +29,8 @@ export const ClipNoteOptions = () => {
 
   const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
   const [allPages, setAllPages] = React.useState([]);
+
+  const [clipShortCut, setClipShortCut] = React.useState();
 
   useEffect(() => {
     if (!init) {
@@ -44,6 +49,14 @@ export const ClipNoteOptions = () => {
           }),
         );
       });
+      Browser.commands
+        .getAll()
+        .then((commands) =>
+          commands.forEach(
+            (command) =>
+              command.name === 'clip' && setClipShortCut(command.shortcut),
+          ),
+        );
     }
   });
 
@@ -69,24 +82,37 @@ export const ClipNoteOptions = () => {
     updateConfig('clipNoteCustomPage', value.value);
   };
 
+  // const setShortCut = () => {
+  //   // window.location = 'chrome://extensions/shortcuts';
+  //   // Browser.commands.getAll();
+  //   // Browser.commands.update();
+    
+  // };
+
   return (
     <>
       <Heading size={'lg'}>Clip Note</Heading>
 
       <Grid
         width={'full'}
-        gridTemplateColumns={'160px 1fr'}
+        gridTemplateColumns={'200px 1fr'}
         alignItems={'center'}
         justifyItems={'left'}
         rowGap={2}
         columnGap={2}
       >
-        <Text fontSize="md" mb="0">Display Floating Button</Text>
+        <Text fontSize="md" mb="0">
+          Display Floating Button
+        </Text>
         <Switch
           name="enableClipNoteFloatButton"
           isChecked={logseqConfig?.enableClipNoteFloatButton}
           onChange={onChange}
         />
+        <Text fontSize={'md'} mb="0">
+          Clip Shortcuts
+        </Text>
+        <Input name="clip-shortcut" value={clipShortCut} readOnly={true}/>
         <Text fontSize="md">Clip Location</Text>
         <RadioGroup
           defaultValue="journal"
@@ -122,13 +148,10 @@ export const ClipNoteOptions = () => {
         />
         <Text
           gridColumn={'1 / span 2'}
-          size={"sm"}
+          size={'sm'}
         >{`Available params: {{date}} {{time}} {{title}} {{link}} {{content}}`}</Text>
 
-        {/* <Text fontSize={'sm'} mb="0">
-            Quick Capture Shortcuts
-          </Text>
-          <Kbd justifySelf={'end'}>⌘ + T</Kbd> */}
+        
       </Grid>
     </>
   );

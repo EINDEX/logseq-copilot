@@ -122,11 +122,17 @@ Browser.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 Browser.runtime.onInstalled.addListener((event) => {
-    if (event.reason === 'install') {
-      Browser.runtime.openOptionsPage();
-    } else if (event.reason === 'update') {
-      if (versionCompare(event.previousVersion!, '1.10.19') < 0) {
-        changeOptionsHostToHostNameAndPort()
-      }
+  if (event.reason === 'install') {
+    Browser.runtime.openOptionsPage();
+  } else if (event.reason === 'update') {
+    if (versionCompare(event.previousVersion!, '1.10.19') < 0) {
+      changeOptionsHostToHostNameAndPort();
     }
+  }
+});
+
+Browser.commands.onCommand.addListener((command, tab) => {
+  if (command === 'clip' && tab !== undefined) {
+    Browser.tabs.sendMessage(tab.id!, { type: 'clip' });
+  }
 });
