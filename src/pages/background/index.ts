@@ -3,7 +3,7 @@ import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
 import { setExtensionBadge, versionCompare } from './utils';
-import { debounce, delay } from 'lodash';
+import { delay, debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
 
@@ -33,7 +33,7 @@ Browser.runtime.onConnect.addListener((port) => {
 });
 
 const openPage = async (url: string) => {
-  await delay(() => {}, 50); // delay 50 to back the active tab.
+  await delay(50); // delay 50 to back the active tab.
 
   const tab = await Browser.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;

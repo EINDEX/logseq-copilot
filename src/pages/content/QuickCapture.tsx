@@ -1,5 +1,5 @@
 import { buildTurndownService } from '@/utils';
-import _ from 'lodash';
+import { debounce } from '@/utils';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Browser from 'webextension-polyfill';
@@ -66,8 +66,8 @@ const QuickCapture = () => {
   };
 
   useEffect(() => {
-    document.addEventListener('mouseup', _.debounce(clicked, 100));
-    document.addEventListener('mousedown', _.debounce(release, 100));
+    document.addEventListener('mouseup', debounce(clicked, 100));
+    document.addEventListener('mousedown', debounce(release, 100));
   });
 
   const styles = (): React.CSSProperties => {
