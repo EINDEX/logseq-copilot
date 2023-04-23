@@ -36,6 +36,16 @@ export const LogseqConnectOptions = () => {
     });
   };
 
+  const changeLogseqPort = (port: string) => {
+    if (port === '' || parseInt(port) < 0) {
+      port='0'
+    }
+    setLogseqConfig({
+      ...logseqConfig,
+      logseqPort: parseInt(port),
+    });
+  }
+
   const triggerShowToken = () => setShowToken(!showToken);
 
   const save = () => {
@@ -107,7 +117,7 @@ export const LogseqConnectOptions = () => {
         <Text gridColumn={'1 / span 2'} fontSize="sm">
           Host
         </Text>
-        <Text fontSize="sm">Port (0 ~ 65536)</Text>
+        <Text fontSize="sm">Port (1 ~ 65535)</Text>
         <Input
           gridColumn={'1 / span 2'}
           name="logseqHostName"
@@ -117,10 +127,10 @@ export const LogseqConnectOptions = () => {
         />
         <NumberInput
           max={65535}
-          min={0}
+          min={1}
           name="logseqPort"
           placeholder="Logseq Host"
-          onChange={onChange}
+          onChange={changeLogseqPort}
           value={logseqConfig?.logseqPort}
         >
           <NumberInputField />
