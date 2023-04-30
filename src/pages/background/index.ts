@@ -19,17 +19,17 @@ Browser.runtime.onConnect.addListener((port) => {
 
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
-      Browser.runtime.openOptionsPage();
-    } else if (msg.type === 'clip-with-selection') {
-      quickCapture(msg.data);
-    } else if (msg.type === 'clip-page') {
-      quickCapture('');
-    } else if (msg.type === 'open-page') {
-      openPage(msg.url);
+    Browser.runtime.openOptionsPage();
+  } else if (msg.type === 'clip-with-selection') {
+    quickCapture(msg.data);
+  } else if (msg.type === 'clip-page') {
+    quickCapture('');
+  } else if (msg.type === 'open-page') {
+    openPage(msg.url);
     } else {
       console.debug(msg);
-    }
-  });
+  }
+});
 });
 
 const openPage = async (url: string) => {
@@ -103,19 +103,27 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
 
 const debounceBadgeSearch = debounce(badgeSearch, 500);
 
-Browser.contextMenus.create({
-  id: 'clip-with-selection',
-  title: 'Clip "%s"',
-  visible: true,
-  contexts: ['selection'],
-});
+try {
+  Browser.contextMenus.create({
+    id: 'clip-with-selection',
+    title: 'Clip "%s"',
+    visible: true,
+    contexts: ['selection'],
+  });
+} catch (error) {
+  console.log(error);
+}
 
-Browser.contextMenus.create({
-  id: 'clip-page',
-  title: 'Clip page url',
-  visible: true,
-  contexts: ['page'],
-});
+try {
+  Browser.contextMenus.create({
+    id: 'clip-page',
+    title: 'Clip page url',
+    visible: true,
+    contexts: ['page'],
+  });
+} catch (error) {
+  console.log(error);
+}
 
 Browser.contextMenus.onClicked.addListener((info, tab) => {
   Browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
