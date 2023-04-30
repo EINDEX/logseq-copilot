@@ -9,8 +9,6 @@ import scssStyles from './index.module.scss';
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';
 
-const connect = Browser.runtime.connect();
-
 const capture = () => {
   const selection = getSelection();
   if (selection !== null) {
@@ -18,7 +16,7 @@ const capture = () => {
     const clonedSelection = range.cloneContents();
     const turndownService = buildTurndownService();
     selection?.removeAllRanges();
-    connect.postMessage({
+    Browser.runtime.sendMessage({
       type: 'clip-with-selection',
       data: turndownService.turndown(clonedSelection),
     });
@@ -28,9 +26,9 @@ const capture = () => {
 };
 
 const clipPage = () => {
-  connect.postMessage({
+  Browser.runtime.sendMessage({
     type: 'clip-page'
-  });
+  })
 };
 
 Browser.runtime.onMessage.addListener((request) => {

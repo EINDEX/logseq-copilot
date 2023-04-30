@@ -1,15 +1,12 @@
 import { IconSettings } from '@tabler/icons-react';
 import styles from './logseq.module.scss';
-import React from 'react';
 import Browser from 'webextension-polyfill';
 import { LogseqBlock } from './LogseqBlock';
 import LogseqPageLink from './LogseqPage';
 
-const connect = Browser.runtime.connect();
-
 const LogseqCopilot = ({ graph, pages, blocks }) => {
   const goOptionPage = () => {
-    connect.postMessage({ type: 'open-options' });
+    Browser.runtime.sendMessage({ type: 'open-options' });
   };
 
   const count = () => {

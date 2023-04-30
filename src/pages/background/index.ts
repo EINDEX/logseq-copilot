@@ -19,6 +19,15 @@ Browser.runtime.onConnect.addListener((port) => {
 
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
+      Browser.runtime.openOptionsPage();
+    } else {
+      console.debug(msg);
+    }
+  });
+});
+
+Browser.runtime.onMessage.addListener((msg, sender) => {
+  if (msg.type === 'open-options') {
     Browser.runtime.openOptionsPage();
   } else if (msg.type === 'clip-with-selection') {
     quickCapture(msg.data);
@@ -26,10 +35,7 @@ Browser.runtime.onConnect.addListener((port) => {
     quickCapture('');
   } else if (msg.type === 'open-page') {
     openPage(msg.url);
-    } else {
-      console.debug(msg);
   }
-});
 });
 
 const openPage = async (url: string) => {

@@ -47,12 +47,16 @@ export default function Popup() {
     });
   });
 
+  const openSettingsPage = () => {
+    Browser.runtime.sendMessage({ type: 'open-options' });
+  }
+
   return (
     <div className="copilot">
       <div className={`${styles.content} + ${styles.divide}`}>
         <div className={styles.copilotCardHeader}>
           <span>Graph: {logseqSearchResult?.graph}</span>
-          <IconSettings size={16} />
+          <IconSettings size={16} onClick={openSettingsPage} />
         </div>
         {logseqSearchResult?.blocks.slice(0, 20).map((block) => (
           <LogseqBlock
@@ -66,3 +70,5 @@ export default function Popup() {
     </div>
   );
 }
+
+
