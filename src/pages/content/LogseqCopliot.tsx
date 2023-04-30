@@ -21,7 +21,7 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   );
 
   const goOptionPage = () => {
-    connect.postMessage({ type: 'open-options' });
+    Browser.runtime.sendMessage({ type: 'open-options' });
   };
 
   const statusShower = () => {
