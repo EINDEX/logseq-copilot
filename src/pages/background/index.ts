@@ -123,7 +123,7 @@ try {
 try {
   Browser.contextMenus.create({
     id: 'clip-page',
-    title: 'Clip page url',
+    title: 'Clip page link',
     visible: true,
     contexts: ['page'],
   });
