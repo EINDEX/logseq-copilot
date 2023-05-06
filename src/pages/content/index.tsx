@@ -1,4 +1,5 @@
 import { getLogseqCopliotConfig } from '@/config';
+import { fixDuckDuckGoDark } from '@/utils';
 import { createRoot } from 'react-dom/client';
 import Browser from 'webextension-polyfill';
 import { LogseqCopliot } from './LogseqCopliot';
@@ -26,6 +27,10 @@ async function run(
   searchEngine: Google | Bing | DuckDuckGo | Yandex | SearX | Baidu,
 ) {
   console.debug('Logseq copliot', window.location.hostname);
+
+  if (searchEngine instanceof DuckDuckGo) {
+    fixDuckDuckGoDark()
+  }
 
   const query = searchEngine.getQuery();
   if (query) {
