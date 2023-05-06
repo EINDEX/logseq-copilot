@@ -2,7 +2,7 @@
 @tailwind base;
 
 .copilot {
-  @apply flex flex-col w-full max-w-sm gap-2 pb-4;
+  @apply flex flex-col w-full max-w-sm gap-2 pb-4 mx-2;
 
   ul,
   ol {

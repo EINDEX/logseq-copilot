@@ -3,13 +3,18 @@
 }
 
 .blockContent {
-  @apply flex flex-col  prose-sm dark:prose-invert whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
+  @apply flex flex-col  prose-sm dark:prose-invert prose-p:text-gray-800 dark:prose-p:text-gray-200 whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
   * {
-    @apply break-all text-sm;
+    @apply break-all text-sm text-gray-800 dark:text-gray-200;
+
+    mark {
+      @apply bg-yellow-200 dark:bg-yellow-800;
+    }
   }
 
   a {
-    @apply no-underline hover:underline;
+    @apply no-underline hover:underline text-[#1a0dab] dark:text-[#8ab4f8];
+    // color: #8ab4f8;
   }
 
   img {
@@ -19,10 +24,15 @@
   pre {
     @apply overflow-x-auto whitespace-pre-wrap;
   }
+
+  table {
+    @apply text-gray-800 dark:text-gray-200;
+  }
+
 }
 
 .pageContent {
-  @apply flex flex-col gap-2 prose-sm  dark:prose-invert whitespace-pre-wrap text-sm;
+  @apply flex flex-col gap-2 prose-sm prose-p:text-black dark:prose-p:text-white  dark:prose-invert whitespace-pre-wrap text-sm;
 }
 
 .pageContentFooter {
@@ -30,11 +40,15 @@
 }
 
 .copilotCardHeader {
-  @apply flex flex-row justify-between items-center text-sm pb-2;
+  @apply flex flex-row justify-between items-center text-sm pb-2 text-gray-800 dark:text-gray-200;
 
   a {
     @apply text-sm text-center object-center;
   }
+
+  // span, svg {
+  //   @apply text-gray-800 dark:text-gray-200;
+  // }
 }
 
 .divide {
@@ -46,9 +60,9 @@
 }
 
 .toBlock {
-  @apply no-underline hover:underline;
+  @apply no-underline hover:underline text-[#1a0dab] dark:text-[#8ab4f8];
 }
 
 .logseqPageLink {
-  @apply no-underline hover:underline;
+  @apply no-underline hover:underline text-[#1a0dab] dark:text-[#8ab4f8];
 }
