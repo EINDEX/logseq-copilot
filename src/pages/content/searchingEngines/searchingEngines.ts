@@ -84,6 +84,8 @@ export class DuckDuckGo extends SearchingEngine {
     const container = document.createElement('div');
     const asideElement = document.getElementsByClassName('results--sidebar')[0];
 
+    container.style.marginLeft = '8px';
+
     asideElement!.insertBefore(container, asideElement!.firstChild);
     return container;
   }
