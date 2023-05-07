@@ -83,3 +83,9 @@ export const buildTurndownService = () => {
 
   return turndownService;
 };
+
+export const fixDuckDuckGoDark = () => {
+  if (document.querySelector('.dark-bg')) {
+    document.body.style.color = 'var(--theme-col-txt-snippet)';
+  }
+}
