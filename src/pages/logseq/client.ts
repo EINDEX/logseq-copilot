@@ -139,7 +139,7 @@ export default class LogseqClient {
       walkTokens: highlightTokens(query),
       extensions: [logseqLinkExt(graphName, query)],
     });
-    const html = marked.parse(this.tirmContent(content));
+    const html = marked.parse(this.tirmContent(content)).trim();
     return html;
   };
 
@@ -241,17 +241,19 @@ export default class LogseqClient {
   ): Promise<LogseqResponseType<LogseqSearchResult>> => {
     const { name: graphName } = await this.getCurrentGraph();
     const res = await this.find(query);
-    const blocks = await Promise.all(
+    const blocks = (await Promise.all(
       res.map(async (item) => {
+        const content = this.format(item.content, graphName, query)
+        if(!content) return null;
         return {
-          html: this.format(item.content, graphName, query),
+          html: content,
           uuid: item.uuid,
           page: await this.getPage({
             id: item.page.id,
           } as LogseqPageIdenity),
         } as LogseqBlockType;
       }),
-    );
+    )).filter((b)=>b);
     return {
       status: 200,
       msg: 'success',
