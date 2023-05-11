@@ -11,14 +11,35 @@ import { LogseqBlock } from '@components/LogseqBlock';
 
 import styles from './index.module.scss';
 
-const connect = Browser.runtime.connect();
-
 const client = new LogseqClient();
 
 export default function Popup() {
   const [isLoading, setIsLoading] = useState(false);
   const [logseqSearchResult, setLogseqSearchResult] =
     React.useState<LogseqSearchResult>();
+
+  const mountOpenPageMethod = () => {
+    const innerFunction = () => {
+      if(isLoading) return;
+      document.querySelectorAll('a').forEach((e) => {
+        if (e.onclick === null) {
+          e.onclick = () => {
+            Browser.runtime
+              .sendMessage({
+                type: 'open-page',
+                url: e.href,
+              })
+              .then(() => window.close());
+          };
+        }
+        if (!isLoading) {
+            clearInterval(interval);
+
+        }
+      });
+    };
+    const interval = setInterval(innerFunction, 50);
+  };
 
   useEffect(() => {
     if (isLoading) return;
@@ -33,23 +54,13 @@ export default function Popup() {
       const result = await client.blockSearch(url);
       if (result.status !== 200) return;
       setLogseqSearchResult(result.response!);
-      setTimeout(() => {
-        document.querySelectorAll('a').forEach((e) => {
-          e.onclick = () => {
-            connect.postMessage({
-              type: 'open-page',
-              url: e.href,
-            });
-            window.close();
-          };
-        });
-      }, 100);
+      mountOpenPageMethod();
     });
   });
 
   const openSettingsPage = () => {
     Browser.runtime.sendMessage({ type: 'open-options' });
-  }
+  };
 
   return (
     <div className="copilot">
@@ -70,5 +81,3 @@ export default function Popup() {
     </div>
   );
 }
-
-

@@ -35,14 +35,18 @@ Browser.runtime.onMessage.addListener((msg, sender) => {
     quickCapture('');
   } else if (msg.type === 'open-page') {
     openPage(msg.url);
+  } else {
+    console.debug(msg)
   }
 });
 
 const openPage = async (url: string) => {
-  await delay(50); // delay 50 to back the active tab.
-
+  console.debug(url);
   const tab = await Browser.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
+  if (!tab) {
+    Browser.tabs.create({ url: url });
+    return;
+  }
   const activeTab = tab[0];
   if (activeTab.url !== url)
     await Browser.tabs.update(activeTab.id, { url: url });
