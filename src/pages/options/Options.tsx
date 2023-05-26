@@ -18,7 +18,7 @@ const Options = () => {
           <Heading>Logseq Copilot</Heading>
           <Text>
             <Link
-              href={`https://github.com/EINDEX/logseq-copilot/releases/tag/v${process.env.VERSION}`}
+              href={`https://github.com/EINDEX/logseq-copilot/releases/tag/${process.env.VERSION}`}
             >
               {process.env.VERSION}
             </Link>
