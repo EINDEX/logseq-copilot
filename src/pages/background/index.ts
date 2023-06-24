@@ -67,9 +67,7 @@ const quickCapture = async (data: string) => {
     .replaceAll('{{url}}', activeTab.url)
     .replaceAll(
       '{{time}}',
-      `${now.getHours()}:${
-        now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes()
-      }`,
+      `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
     )
     .replaceAll('{{title}}', activeTab.title)
     .trim();
