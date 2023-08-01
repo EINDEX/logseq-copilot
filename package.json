@@ -12,7 +12,8 @@
     "test:coverage": "npm test -- --coverage",
     "build": "node build.mjs",
     "start": "chokidar src -c 'npm run build'",
-    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
+    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.4.9",
@@ -56,6 +57,7 @@
     "file-loader": "^6.2.0",
     "fs-extra": "^11.1.0",
     "html-loader": "^4.2.0",
+    "husky": "^8.0.3",
     "jest": "^29.6.1",
     "jest-webextension-mock": "^3.8.9",
     "mockzilla": "^0.14.0",

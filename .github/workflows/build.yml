@@ -20,7 +20,7 @@ jobs:
           cache-dependency-path: 'package-lock.json'
 
       - run: npm install --save
-      - run: npm run test 
+      - run: npm run test -- --coverage --coverageDirectory coverage
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
