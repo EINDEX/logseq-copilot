@@ -2,10 +2,13 @@ import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
-import { setExtensionBadge, versionCompare } from './utils';
-import { delay, debounce } from '@/utils';
+import { setExtensionBadge, versionCompare, logseqTimeFormat } from './utils';
+import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
+import { Liquid } from 'liquidjs';
+
+const engine = new Liquid();
 
 const logseqClient = new LogseqClient();
 
@@ -61,16 +64,15 @@ const quickCapture = async (data: string) => {
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
   const journalPage = format(now, resp['preferredDateFormat']);
-  const render = clipNoteTemplate
-    .replaceAll('{{date}}', journalPage)
-    .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
-    .replaceAll('{{url}}', activeTab.url)
-    .replaceAll(
-      '{{time}}',
-      `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
-    )
-    .replaceAll('{{title}}', activeTab.title)
-    .trim();
+
+  const render =  engine.parseAndRenderSync(clipNoteTemplate, {
+    date: journalPage,
+    content: data.replaceAll(/([\{\}])/g, '\\$1'),
+    url: activeTab.url,
+    time: logseqTimeFormat(now),
+    dt: now,
+    title: activeTab.title,
+  }).trim();
 
   if (clipNoteLocation === 'customPage') {
     await logseqClient.appendBlock(clipNoteCustomPage, render);
