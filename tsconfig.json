@@ -22,8 +22,8 @@
       "@assets/*": ["src/assets/*"],
       "@/*": ["src/*"],
     },
-    "types": ["esbuild-style-plugin"]
+    "types": ["esbuild-style-plugin", "jest", "webextension-polyfill"]
   },
-  "include": ["src"],
+  "include": ["src", "__setups__"],
   "exclude": ["build", "node_modules"]
 }
