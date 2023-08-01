@@ -6,6 +6,9 @@ import { blockRending, setExtensionBadge, versionCompare } from './utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
+import { Liquid } from 'liquidjs';
+
+const engine = new Liquid();
 
 const logseqClient = new LogseqClient();
 
@@ -61,6 +64,7 @@ const quickCapture = async (data: string) => {
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
   const journalPage = format(now, resp['preferredDateFormat']);
+  
   const block = blockRending({
     url: activeTab.url,
     title: activeTab.title,

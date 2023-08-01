@@ -155,7 +155,13 @@ export const ClipNoteOptions = () => {
           gridColumn={'1 / span 2'}
           size={'sm'}
           justifySelf={'end'}
-        >{`Available params: {{date}} {{time}} {{title}} {{link}} {{content}}`}</Text>
+        >{`Available params: date, time, title, url, content, dt.`}</Text>
+        <Link
+          href="https://liquidjs.com/tutorials/intro-to-liquid.html"
+          gridColumn={'1 / span 2'}
+          size={'sm'}
+          justifySelf={'end'}
+        >{`The template language follow the LiquidJS.`}</Link>
       </Grid>
     </>
   );

@@ -1,9 +1,14 @@
 import { format } from 'date-fns';
+import Browser from 'webextension-polyfill';
 
 export const removeUrlHash = (url: string) => {
   const hashIndex = url.indexOf('#');
   return hashIndex > 0 ? url.substring(0, hashIndex) : url;
 };
+
+export const logseqTimeFormat = (date: Date): str => {
+  return format(date, 'HH:mm');
+}
 
 export const setExtensionBadge = async (text: string, tabId: number) => {
   const action =
@@ -54,13 +59,15 @@ export function blockRending({
   preferredDateFormat: string;
   time: Date;
 }): string {
-  const render = clipNoteTemplate
-    .replaceAll('{{date}}', format(time, preferredDateFormat))
-    .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
-    .replaceAll('{{url}}', url || '')
-    .replaceAll('{{time}}', format(time, 'HH:mm'))
-    .replaceAll('{{title}}', title || '')
-    .trim();
+  
+  const render = engine.parseAndRenderSync(clipNoteTemplate, {
+    date: format(time, preferredDateFormat),
+    content: data.replaceAll(/([\{\}])/g, '\\$1'),
+    url: url,
+    time: logseqTimeFormat(time),
+    dt: now,
+    title: title,
+  }).trim();
 
   return render;
 }
