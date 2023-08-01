@@ -1,4 +1,5 @@
-import { blockRending, logseqEscape } from './utils';
+import { browserAction } from 'webextension-polyfill';
+import { blockRending, logseqEscape, setExtensionBadge } from './utils';
 
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {
@@ -78,5 +79,23 @@ describe('test logseq_copliot', () => {
     let result = logseqEscape(str);
     let expected = '\\{\\{a}}';
     expect(result).toEqual(expected);
+  });
+});
+
+describe('setExtensionBadge', () => {
+  beforeEach(() => {
+    browser.browserAction.setBadgeText.mockClear();
+    browser.browserAction.setBadgeTextColor.mockClear();
+    browser.browserAction.setBadgeBackgroundColor.mockClear();
+  });
+
+  it('should set badge text', async () => {
+    const text = 'test';
+    await setExtensionBadge(text, 1);
+    
+    expect(browser.browserAction.setBadgeText).toHaveBeenCalledWith({ text, tabId: 1 });
+    expect(browser.browserAction.setBadgeBackgroundColor).toHaveBeenCalledWith({ color: "#4caf50", tabId: 1 });
+    expect(browser.browserAction.setBadgeTextColor).toHaveBeenCalledWith({ color: "#ffffff", tabId: 1 });
+
   });
 });

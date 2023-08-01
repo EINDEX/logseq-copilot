@@ -24,6 +24,6 @@
     },
     "types": ["esbuild-style-plugin", "jest", "webextension-polyfill"]
   },
-  "include": ["src"],
+  "include": ["src", "__setups__"],
   "exclude": ["build", "node_modules"]
 }

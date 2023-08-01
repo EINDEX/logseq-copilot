@@ -14,5 +14,6 @@ module.exports = {
   },
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.ts$',
   moduleFileExtensions: ['ts', 'js'],
-  setupFilesAfterEnv: ['./src/setupTests.ts'],
+  setupFiles: ['./__setups__/browser.js'],
+  coverageReporters: ['json-summary', 'text', 'lcov'],
 };

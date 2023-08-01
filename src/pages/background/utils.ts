@@ -12,18 +12,14 @@ export const logseqTimeFormat = (date: Date): string => {
   return format(date, 'HH:mm');
 };
 
-export const setExtensionBadge = async (text: string, tabId: number) => {
-  const action =
-    browser.runtime.getManifest().manifest_version === 2
-      ? browser.browserAction
-      : browser.action;
-  await action.setBadgeText({
+export async function setExtensionBadge(text: string, tabId: number) {
+  await browser.action.setBadgeText({
     text: text,
     tabId: tabId,
   });
-  await action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
-  await action.setBadgeTextColor({ color: '#ffffff', tabId });
-};
+  await browser.action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
+  await browser.action.setBadgeTextColor({ color: '#ffffff', tabId });
+}
 
 const mappingVersionToNumbers = (version: string): Array<number> => {
   return version

@@ -1,5 +1,4 @@
 import { getLogseqCopliotConfig, saveLogseqCopliotConfig } from "@/config";
-import Browser from "webextension-polyfill";
 
 export const changeOptionsHostToHostNameAndPort = async() => {
   const { logseqHost } = await getLogseqCopliotConfig();
@@ -9,7 +8,7 @@ export const changeOptionsHostToHostNameAndPort = async() => {
       logseqHostName: url.hostname,
       logseqPort: parseInt(url.port),
     });
-    Browser.storage.local.remove('logseqHost');
+    browser.storage.local.remove('logseqHost');
   }
 }
 

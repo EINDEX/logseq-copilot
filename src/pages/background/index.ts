@@ -1,18 +1,15 @@
 import LogseqClient from '../logseq/client';
-import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
 import { blockRending, setExtensionBadge, versionCompare } from './utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
-import { Liquid } from 'liquidjs';
 
-const engine = new Liquid();
 
 const logseqClient = new LogseqClient();
 
-Browser.runtime.onConnect.addListener((port) => {
+browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
     if (msg.type === 'query') {
       const promise = new Promise(async () => {
@@ -22,16 +19,16 @@ Browser.runtime.onConnect.addListener((port) => {
 
       promise.catch((err) => console.error(err));
     } else if (msg.type === 'open-options') {
-      Browser.runtime.openOptionsPage();
+      browser.runtime.openOptionsPage();
     } else {
       console.debug(msg);
     }
   });
 });
 
-Browser.runtime.onMessage.addListener((msg, sender) => {
+browser.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type === 'open-options') {
-    Browser.runtime.openOptionsPage();
+    browser.runtime.openOptionsPage();
   } else if (msg.type === 'clip-with-selection') {
     quickCapture(msg.data);
   } else if (msg.type === 'clip-page') {
@@ -45,18 +42,18 @@ Browser.runtime.onMessage.addListener((msg, sender) => {
 
 const openPage = async (url: string) => {
   console.debug(url);
-  const tab = await Browser.tabs.query({ active: true, currentWindow: true });
+  const tab = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab) {
-    Browser.tabs.create({ url: url });
+    browser.tabs.create({ url: url });
     return;
   }
   const activeTab = tab[0];
   if (activeTab.url !== url)
-    await Browser.tabs.update(activeTab.id, { url: url });
+    await browser.tabs.update(activeTab.id, { url: url });
 };
 
 const quickCapture = async (data: string) => {
-  const tab = await Browser.tabs.query({ active: true, currentWindow: true });
+  const tab = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
   const activeTab = tab[0];
   const { clipNoteLocation, clipNoteCustomPage, clipNoteTemplate } =
@@ -83,18 +80,18 @@ const quickCapture = async (data: string) => {
     await logseqClient.appendBlock(journalPage, block);
   }
 
-  debounceBadgeSearch(activeTab.url, activeTab.id);
+  debounceBadgeSearch(activeTab.url, activeTab.id!);
 };
 
-Browser.tabs.onActivated.addListener((activeInfo) => {
+browser.tabs.onActivated.addListener((activeInfo) => {
   const promise = new Promise(async () => {
-    const tab = await Browser.tabs.get(activeInfo.tabId);
+    const tab = await browser.tabs.get(activeInfo.tabId);
     await debounceBadgeSearch(tab.url, activeInfo.tabId);
   });
   promise.catch((err) => console.error(err));
 });
 
-Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && changeInfo.status === 'complete') {
     const promise = new Promise(async () => {
       await debounceBadgeSearch(tab.url, tabId);
@@ -114,7 +111,7 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
 const debounceBadgeSearch = debounce(badgeSearch, 500);
 
 try {
-  Browser.contextMenus.create({
+  browser.contextMenus.create({
     id: 'clip-with-selection',
     title: 'Clip "%s"',
     visible: true,
@@ -125,7 +122,7 @@ try {
 }
 
 try {
-  Browser.contextMenus.create({
+  browser.contextMenus.create({
     id: 'clip-page',
     title: 'Clip page link',
     visible: true,
@@ -135,13 +132,13 @@ try {
   console.log(error);
 }
 
-Browser.contextMenus.onClicked.addListener((info, tab) => {
-  Browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
+browser.contextMenus.onClicked.addListener((info, tab) => {
+  browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
 });
 
-Browser.runtime.onInstalled.addListener((event) => {
+browser.runtime.onInstalled.addListener((event) => {
   if (event.reason === 'install') {
-    Browser.runtime.openOptionsPage();
+    browser.runtime.openOptionsPage();
   } else if (event.reason === 'update') {
     if (versionCompare(event.previousVersion!, '1.10.19') < 0) {
       changeOptionsHostToHostNameAndPort();
@@ -149,8 +146,8 @@ Browser.runtime.onInstalled.addListener((event) => {
   }
 });
 
-Browser.commands.onCommand.addListener((command, tab) => {
+browser.commands.onCommand.addListener((command, tab) => {
   if (command === 'clip' && tab !== undefined) {
-    Browser.tabs.sendMessage(tab.id!, { type: 'clip' });
+    browser.tabs.sendMessage(tab.id!, { type: 'clip' });
   }
 });
