@@ -1,6 +1,7 @@
 # Logseq Copilot 🚀
 
 [![Build](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml/badge.svg)](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml) ![Visitors](https://visitor-badge.glitch.me/badge?page_id=eindex.logseq-copliot&left_color=green&right_color=red) ![License](https://img.shields.io/github/license/eindex/logseq-copilot)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot?ref=badge_shield)
 
 Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
 
@@ -89,3 +90,6 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 ## License
 
 GPLv3
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot?ref=badge_large)
