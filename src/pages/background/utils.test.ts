@@ -4,7 +4,7 @@ import { blockRending, logseqEscape, setExtensionBadge } from './utils';
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {
     const clipNoteTemplate = '{{time}}';
-    const time = new Date('2021-08-19T16:31:00+0800');
+    const time = new Date('2021-08-19T16:31:00+0000');
     const renderBlock = blockRending({
       clipNoteTemplate: clipNoteTemplate,
       time: time,
@@ -12,12 +12,16 @@ describe('renderBlock', () => {
       preferredDateFormat: 'yyyy-MM-dd',
     });
 
-    expect(renderBlock).toEqual('16:31');
+    const offset = time.getTimezoneOffset();
+    const newTime = new Date(time.getTime() - offset * 60 * 1000);
+    const expectTime = newTime.toISOString().split('T')[1];
+
+    expect(expectTime.startsWith(renderBlock)).toBeTruthy();
   });
 
   test('should format date as logseq date format', () => {
     const clipNoteTemplate = '[[{{date}}]]';
-    const time = new Date('2021-08-19T16:31:00+0800');
+    const time = new Date('2021-08-19T16:30:00+0000');
     const renderBlock = blockRending({
       clipNoteTemplate: clipNoteTemplate,
       time: time,
@@ -25,12 +29,16 @@ describe('renderBlock', () => {
       preferredDateFormat: 'yyyy-MM-dd',
     });
 
-    expect(renderBlock).toEqual('[[2021-08-19]]');
+    const offset = time.getTimezoneOffset();
+    const newTime = new Date(time.getTime() - offset * 60 * 1000);
+    const expectDate = newTime.toISOString().split('T')[0];
+
+    expect(renderBlock).toEqual(`[[${expectDate}]]`);
   });
 
   test('should format link as markdown', () => {
     const clipNoteTemplate = '[{{title}}]({{url}})';
-    const time = new Date('2021-08-19T16:31:00+0800');
+    const time = new Date('2021-08-19T16:31:00+0000');
     const renderBlock = blockRending({
       clipNoteTemplate: clipNoteTemplate,
       title: 'Logseq Copilot',
@@ -92,10 +100,18 @@ describe('setExtensionBadge', () => {
   it('should set badge text', async () => {
     const text = 'test';
     await setExtensionBadge(text, 1);
-    
-    expect(browser.browserAction.setBadgeText).toHaveBeenCalledWith({ text, tabId: 1 });
-    expect(browser.browserAction.setBadgeBackgroundColor).toHaveBeenCalledWith({ color: "#4caf50", tabId: 1 });
-    expect(browser.browserAction.setBadgeTextColor).toHaveBeenCalledWith({ color: "#ffffff", tabId: 1 });
 
+    expect(browser.browserAction.setBadgeText).toHaveBeenCalledWith({
+      text,
+      tabId: 1,
+    });
+    expect(browser.browserAction.setBadgeBackgroundColor).toHaveBeenCalledWith({
+      color: '#4caf50',
+      tabId: 1,
+    });
+    expect(browser.browserAction.setBadgeTextColor).toHaveBeenCalledWith({
+      color: '#ffffff',
+      tabId: 1,
+    });
   });
 });
