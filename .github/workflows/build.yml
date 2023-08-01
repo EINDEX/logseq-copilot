@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - 'main'
+      - '*'
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
           cache-dependency-path: 'package-lock.json'
 
       - run: npm install --save
-
+      - run: npm run test
       - run: npm run build
         env:
           VERSION: v0.0.0
