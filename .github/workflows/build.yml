@@ -20,7 +20,11 @@ jobs:
           cache-dependency-path: 'package-lock.json'
 
       - run: npm install --save
-      - run: npm run test
+      - run: npm run test 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - run: npm run build
         env:
           VERSION: v0.0.0

@@ -10,7 +10,6 @@
   "scripts": {
     "test": "jest",
     "test:coverage": "npm test -- --coverage",
-    "test:badges": "npm run test:coverage  && jest-coverage-badges",
     "build": "node build.mjs",
     "start": "chokidar src -c 'npm run build'",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
