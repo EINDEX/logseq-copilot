@@ -2,8 +2,8 @@ import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
-import { setExtensionBadge, versionCompare } from './utils';
-import { delay, debounce } from '@/utils';
+import { blockRending, setExtensionBadge, versionCompare } from './utils';
+import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
 
@@ -36,7 +36,7 @@ Browser.runtime.onMessage.addListener((msg, sender) => {
   } else if (msg.type === 'open-page') {
     openPage(msg.url);
   } else {
-    console.debug(msg)
+    console.debug(msg);
   }
 });
 
@@ -61,24 +61,22 @@ const quickCapture = async (data: string) => {
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
   const journalPage = format(now, resp['preferredDateFormat']);
-  const render = clipNoteTemplate
-    .replaceAll('{{date}}', journalPage)
-    .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
-    .replaceAll('{{url}}', activeTab.url)
-    .replaceAll(
-      '{{time}}',
-      `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
-    )
-    .replaceAll('{{title}}', activeTab.title)
-    .trim();
+  const block = blockRending({
+    url: activeTab.url,
+    title: activeTab.title,
+    data,
+    clipNoteTemplate,
+    preferredDateFormat: journalPage,
+    time: now,
+  });
 
   if (clipNoteLocation === 'customPage') {
-    await logseqClient.appendBlock(clipNoteCustomPage, render);
+    await logseqClient.appendBlock(clipNoteCustomPage, block);
   } else if (clipNoteLocation === 'currentPage') {
     const { name: currentPage } = await logseqClient.getCurrentPage();
-    await logseqClient.appendBlock(currentPage, render);
+    await logseqClient.appendBlock(currentPage, block);
   } else {
-    await logseqClient.appendBlock(journalPage, render);
+    await logseqClient.appendBlock(journalPage, block);
   }
 
   debounceBadgeSearch(activeTab.url, activeTab.id);

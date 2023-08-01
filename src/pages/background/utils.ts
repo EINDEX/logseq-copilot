@@ -1,4 +1,4 @@
-import Browser from 'webextension-polyfill';
+import { format } from 'date-fns';
 
 export const removeUrlHash = (url: string) => {
   const hashIndex = url.indexOf('#');
@@ -7,9 +7,9 @@ export const removeUrlHash = (url: string) => {
 
 export const setExtensionBadge = async (text: string, tabId: number) => {
   const action =
-    Browser.runtime.getManifest().manifest_version === 2
-      ? Browser.browserAction
-      : Browser.action;
+    browser.runtime.getManifest().manifest_version === 2
+      ? browser.browserAction
+      : browser.action;
   await action.setBadgeText({
     text: text,
     tabId: tabId,
@@ -19,19 +19,48 @@ export const setExtensionBadge = async (text: string, tabId: number) => {
 };
 
 const mappingVersionToNumbers = (version: string): Array<number> => {
-  return version.split('.').slice(0, 3).map((x) => {
-    return parseInt(x.split('0')[0]);
-  })
-}
+  return version
+    .split('.')
+    .slice(0, 3)
+    .map((x) => {
+      return parseInt(x.split('0')[0]);
+    });
+};
 
 export const versionCompare = (versionA: string, versionB: string) => {
-  const [majorA, minorA, patchA] = mappingVersionToNumbers(versionA)
-  const [majorB, minorB, patchB] = mappingVersionToNumbers(versionB)
-  if (majorA < majorB) return -1
-  if (majorA > majorB) return 1
-  if (minorA < minorB) return -1
-  if (minorA > minorB) return 1
-  if (patchA < patchB) return -1
-  if (patchA > patchB) return 1
-  return 0
+  const [majorA, minorA, patchA] = mappingVersionToNumbers(versionA);
+  const [majorB, minorB, patchB] = mappingVersionToNumbers(versionB);
+  if (majorA < majorB) return -1;
+  if (majorA > majorB) return 1;
+  if (minorA < minorB) return -1;
+  if (minorA > minorB) return 1;
+  if (patchA < patchB) return -1;
+  if (patchA > patchB) return 1;
+  return 0;
 };
+
+export function blockRending({
+  url,
+  title,
+  data,
+  clipNoteTemplate,
+  preferredDateFormat,
+  time,
+}: {
+  url?: string;
+  title?: string;
+  data: string;
+  clipNoteTemplate: string;
+  preferredDateFormat: string;
+  time: Date;
+}): string {
+  const render = clipNoteTemplate
+    .replaceAll('{{date}}', format(time, preferredDateFormat))
+    .replaceAll('{{content}}', data.replaceAll(/([\{\}])/g, '\\$1'))
+    .replaceAll('{{url}}', url || '')
+    .replaceAll('{{time}}', format(time, 'HH:mm'))
+    .replaceAll('{{title}}', title || '')
+    .trim();
+
+  return render;
+}
