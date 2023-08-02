@@ -1,9 +1,8 @@
 # Logseq Copilot 🚀
 
-[![Build](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml/badge.svg)](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml) ![Visitors](https://visitor-badge.glitch.me/badge?page_id=eindex.logseq-copliot&left_color=green&right_color=red) ![License](https://img.shields.io/github/license/eindex/logseq-copilot)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot?ref=badge_shield)
+[![Build](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml/badge.svg)](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml) [![codecov](https://codecov.io/github/EINDEX/logseq-copilot/branch/main/graph/badge.svg?token=Z70QAMVZR1)](https://codecov.io/github/EINDEX/logseq-copilot) ![License](https://img.shields.io/github/license/eindex/logseq-copilot)
 
-Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, learning experience. 🧠
+Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, and learning experience. 🧠
 
 [Add to Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl)
 
@@ -13,16 +12,16 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 ## Features
 
-- 🔍 Show Logseq content when you search on popular searching engines via your keywords. Now support Google, Bing, Baidu, Yandex, DuckDuckGo, SearX.
+- 🔍 Show Logseq content when you search on popular search engines via your keywords. Now support Google, Bing, Baidu, Yandex, DuckDuckGo, SearX.
 
 ## Screenshot
 
 ![](docs/screenshots/screenshot.png)
 ## Usage
 
-How to use this extension, Please follow below steps:
+How to use this extension, please follow the below steps:
 
-**Making sure your using Logseq which version above 0.8.18**
+**Make sure you're using Logseq which version above 0.8.18**
 
 
 1. Setup your Logeq API server:
@@ -90,6 +89,3 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 ## License
 
 GPLv3
-
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FEINDEX%2Flogseq-copilot?ref=badge_large)
