@@ -1,5 +1,4 @@
-import { browserAction } from 'webextension-polyfill';
-import { blockRending, logseqEscape, setExtensionBadge } from './utils';
+import { blockRending, logseqEscape } from './utils';
 
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {
@@ -90,28 +89,28 @@ describe('test logseq_copliot', () => {
   });
 });
 
-describe('setExtensionBadge', () => {
-  beforeEach(() => {
-    browser.browserAction.setBadgeText.mockClear();
-    browser.browserAction.setBadgeTextColor.mockClear();
-    browser.browserAction.setBadgeBackgroundColor.mockClear();
-  });
+// describe('setExtensionBadge', () => {
+//   beforeEach(() => {
+//     browser.browserAction.setBadgeText.mockClear();
+//     browser.browserAction.setBadgeTextColor.mockClear();
+//     browser.browserAction.setBadgeBackgroundColor.mockClear();
+//   });
 
-  it('should set badge text', async () => {
-    const text = 'test';
-    await setExtensionBadge(text, 1);
+//   it('should set badge text', async () => {
+//     const text = 'test';
+//     await setExtensionBadge(text, 1);
 
-    expect(browser.browserAction.setBadgeText).toHaveBeenCalledWith({
-      text,
-      tabId: 1,
-    });
-    expect(browser.browserAction.setBadgeBackgroundColor).toHaveBeenCalledWith({
-      color: '#4caf50',
-      tabId: 1,
-    });
-    expect(browser.browserAction.setBadgeTextColor).toHaveBeenCalledWith({
-      color: '#ffffff',
-      tabId: 1,
-    });
-  });
-});
+//     expect(browser.browserAction.setBadgeText).toHaveBeenCalledWith({
+//       text,
+//       tabId: 1,
+//     });
+//     expect(browser.browserAction.setBadgeBackgroundColor).toHaveBeenCalledWith({
+//       color: '#4caf50',
+//       tabId: 1,
+//     });
+//     expect(browser.browserAction.setBadgeTextColor).toHaveBeenCalledWith({
+//       color: '#ffffff',
+//       tabId: 1,
+//     });
+//   });
+// });

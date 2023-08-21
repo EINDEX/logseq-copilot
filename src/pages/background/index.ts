@@ -1,11 +1,11 @@
+import { browser } from '@/browser';
 import LogseqClient from '../logseq/client';
 import { getLogseqCopliotConfig } from '../../config';
 import { removeUrlHash } from '@/utils';
-import { blockRending, setExtensionBadge, versionCompare } from './utils';
+import { blockRending, versionCompare } from './utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
-
 
 const logseqClient = new LogseqClient();
 
@@ -61,7 +61,7 @@ const quickCapture = async (data: string) => {
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
   const journalPage = format(now, resp['preferredDateFormat']);
-  
+
   const block = blockRending({
     url: activeTab.url,
     title: activeTab.title,
@@ -151,3 +151,12 @@ browser.commands.onCommand.addListener((command, tab) => {
     browser.tabs.sendMessage(tab.id!, { type: 'clip' });
   }
 });
+
+async function setExtensionBadge(text: string, tabId: number) {
+  await browser.action.setBadgeText({
+    text: text,
+    tabId: tabId,
+  });
+  await browser.action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
+  await browser.action.setBadgeTextColor({ color: '#ffffff', tabId });
+}

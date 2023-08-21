@@ -50,7 +50,7 @@ async function runEsbuild() {
         },
       }),
     ],
-    globalName: 'Browser',
+    globalName: 'browser',
   });
 }
 

@@ -32,9 +32,8 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
               {pages.map((page) => {
                 if (!page) return <></>;
                 return (
-                  <p>
+                  <p key={page.name}>
                     <LogseqPageLink
-                      key={page.uuid}
                       graph={graph}
                       page={page}
                     ></LogseqPageLink>

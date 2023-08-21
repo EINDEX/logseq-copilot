@@ -82,7 +82,7 @@ export class DuckDuckGo extends SearchingEngine {
 
   gotElement(): Element {
     const container = document.createElement('div');
-    const asideElement = document.getElementsByClassName('results--sidebar')[0];
+    const asideElement = document.getElementsByClassName('js-react-sidebar')[0];
 
     container.style.marginLeft = '8px';
 
