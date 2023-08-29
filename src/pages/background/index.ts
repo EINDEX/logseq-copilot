@@ -60,14 +60,13 @@ const quickCapture = async (data: string) => {
     await getLogseqCopliotConfig();
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
-  const journalPage = format(now, resp['preferredDateFormat']);
-
+  
   const block = blockRending({
     url: activeTab.url,
     title: activeTab.title,
     data,
     clipNoteTemplate,
-    preferredDateFormat: journalPage,
+    preferredDateFormat: resp['preferredDateFormat'],
     time: now,
   });
 
@@ -77,6 +76,7 @@ const quickCapture = async (data: string) => {
     const { name: currentPage } = await logseqClient.getCurrentPage();
     await logseqClient.appendBlock(currentPage, block);
   } else {
+    const journalPage = format(now, resp['preferredDateFormat']);
     await logseqClient.appendBlock(journalPage, block);
   }
 

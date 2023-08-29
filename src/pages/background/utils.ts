@@ -52,6 +52,7 @@ export function blockRending({
   preferredDateFormat: string;
   time: Date;
 }): string {
+  console.log(preferredDateFormat);
   const render = engine
     .parseAndRenderSync(clipNoteTemplate, {
       date: format(time, preferredDateFormat),
