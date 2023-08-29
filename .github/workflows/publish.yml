@@ -29,6 +29,9 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
 
+      - name: Testing
+        run: npm run test
+
       - name: Firefox Upload & release
         run: npx web-ext sign -s build/firefox
         if: matrix.platform == 'firefox'
