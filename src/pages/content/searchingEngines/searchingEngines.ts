@@ -208,29 +208,27 @@ export class Kagi extends SearchingEngine {
     return container;
   }
 }
+export class Startpage extends SearchingEngine {
+  isMatch(): boolean {
+    const match = window.location.hostname.match(/startpage\.com$/g);
+    return !!match;
+  }
 
-// todo try to support brave search but the CSP ban the inline sytle.
-// export class Brave extends SearchingEngine {
-//   isMatch(): boolean {
-//     const match = window.location.hostname.match(/search\.brave\.com$/g);
-//     return !!match;
-//   }
+  getQuery(): string | null {
+    const query = document.querySelector('#q')?.getAttribute('value') || null;
+    return query;
+  }
 
-//   getQuery(): string | null {
-//     const searchUrl = new URL(window.location.href);
-//     const query = searchUrl.searchParams.get('q');
+  gotElement(): Element {
+    const container = document.createElement('div');
+    const asideElement = document.querySelector(
+      'div.layout-web__sidebar.layout-web__sidebar--web',
+    );
 
-//     return query;
-//   }
-
-//   gotElement(): Element {
-//     const container = document.createElement('div');
-//     const asideElement = document.querySelector('#side-right');
-//     container.style.paddingTop = '20px';
-//     asideElement!.insertBefore(container, asideElement!.firstChild);
-//     return container;
-//   }
-// }
+    asideElement!.insertBefore(container, asideElement!.firstChild);
+    return container;
+  }
+}
 
 const searchEngins = [
   new Google(),
@@ -239,8 +237,8 @@ const searchEngins = [
   new Yandex(),
   new SearX(),
   new Kagi(),
-  // new Brave(),
   new Baidu(),
+  new Startpage(),
 ];
 
 export default searchEngins;
