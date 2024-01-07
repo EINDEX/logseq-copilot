@@ -106,7 +106,20 @@ describe('renderBlock', () => {
       preferredDateFormat: 'yyyy-MM-dd',
     });
 
-    expect(renderBlock).toEqual('\\[\\[test]]\\{\\{test}}');
+    expect(renderBlock).toEqual('\\[[test]]\\{{test}}');
+  });
+
+  test('should keeping url as same as before', () => {
+    const clipNoteTemplate = '{{content}}';
+    const time = new Date('2021-08-19T16:31:00+0800');
+    const renderBlock = blockRending({
+      clipNoteTemplate: clipNoteTemplate,
+      time: time,
+      data: '[url](url)',
+      preferredDateFormat: 'yyyy-MM-dd',
+    });
+
+    expect(renderBlock).toEqual('[url](url)');
   });
 });
 
@@ -114,21 +127,21 @@ describe('test logseq_copliot', () => {
   it('test logseq-copliot.logseqEscape', () => {
     let str = '[[a]]';
     let result = logseqEscape(str);
-    let expected = '\\[\\[a]]';
+    let expected = '\\[[a]]';
     expect(result).toEqual(expected);
   });
 
   it('test logseq-copliot.logseqEscape', () => {
     let str = '((a))';
     let result = logseqEscape(str);
-    let expected = '\\(\\(a))';
+    let expected = '\\((a))';
     expect(result).toEqual(expected);
   });
 
   it('test logseq-copliot.logseqEscape', () => {
     let str = '{{a}}';
     let result = logseqEscape(str);
-    let expected = '\\{\\{a}}';
+    let expected = '\\{{a}}';
     expect(result).toEqual(expected);
   });
 });

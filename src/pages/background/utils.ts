@@ -34,7 +34,7 @@ export const versionCompare = (versionA: string, versionB: string) => {
 };
 
 export function logseqEscape(str: string): string {
-  return str.replaceAll(/([\[\{\(])/g, '\\$1');
+  return str.replaceAll(/([\[\{\(]{2})/g, '\\$1');
 }
 
 export function blockRending({
