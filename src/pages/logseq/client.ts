@@ -127,6 +127,7 @@ export default class LogseqClient {
       .replaceAll(/^deadline: <.*?>$/gm, '') // clean deadline
       .replaceAll(/^scheduled: <.*?>$/gm, '') // clean schedule
       .replaceAll(/^:logbook:[\S\s]*?:end:$/gm, '') // clean logbook
+      .replaceAll(/^:LOGBOOK:[\S\s]*?:END:$/gm, '') // clean logbook
       .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gm, '<em>$1</em>') // clean highlight
       .replaceAll(/^\s*?-\s*?$/gm, '')
       .trim();
