@@ -21,13 +21,13 @@ export const LogseqBlock = ({
           dangerouslySetInnerHTML={{ __html: block.html }}
         ></div>
         <span className={styles.blockFooter}>
-          <a
+          {block.uuid && <a
             className={styles.toBlock}
             href={`logseq://graph/${graph}?block-id=${block.uuid}`}
           >
             <span className={'tie tie-block'}></span>
             To block
-          </a>
+          </a>}
           <LogseqPageLink
             graph={graph}
             page={block.page}
