@@ -241,19 +241,21 @@ export default class LogseqClient {
   ): Promise<LogseqResponseType<LogseqSearchResult>> => {
     const { name: graphName } = await this.getCurrentGraph();
     const res = await this.find(query);
-    const blocks = (await Promise.all(
-      res.map(async (item) => {
-        const content = this.format(item.content, graphName, query)
-        if(!content) return null;
-        return {
-          html: content,
-          uuid: item.uuid,
-          page: await this.getPage({
-            id: item.page.id,
-          } as LogseqPageIdenity),
-        } as LogseqBlockType;
-      }),
-    )).filter((b)=>b);
+    const blocks = (
+      await Promise.all(
+        res.map(async (item) => {
+          const content = this.format(item.content, graphName, query);
+          if (!content) return null;
+          return {
+            html: content,
+            uuid: item.uuid,
+            page: await this.getPage({
+              id: item.page.id,
+            } as LogseqPageIdenity),
+          } as LogseqBlockType;
+        }),
+      )
+    ).filter((b) => b);
     return {
       status: 200,
       msg: 'success',
@@ -341,6 +343,83 @@ export default class LogseqClient {
   ): Promise<LogseqResponseType<LogseqSearchResult | null>> => {
     return await this.catchIssues(async () => {
       return this.findLogseqInternal(query);
+    });
+  };
+
+  private margeSearchResult = (...searchResult: LogseqSearchResult[]) => {
+    const result = {
+      blocks: [],
+      pages: [],
+      graph: '',
+    } as LogseqSearchResult;
+    const blockSet = new Set();
+    const pageSet = new Set();
+    searchResult.forEach((search) => {
+      search.blocks.forEach((block) => {
+        if (!blockSet.has(block.uuid)) {
+          blockSet.add(block.uuid);
+          result.blocks.push(block);
+        }
+      });
+      search.pages.forEach((page) => {
+        if (!pageSet.has(page.name)) {
+          pageSet.add(page.name);
+          result.pages.push(page);
+        }
+      });
+    });
+    return result;
+  };
+
+  public urlSearch = async (
+    url: URL,
+    options: { fuzzy?: boolean } = { fuzzy: false },
+  ): Promise<LogseqResponseType<LogseqSearchResult | null>> => {
+    return await this.catchIssues(async () => {
+      const results = [];
+
+      if (url.hash) {
+        results.push(
+          (
+            await this.findLogseqInternal(
+              url.host + url.pathname + url.search + url.hash,
+            )
+          ).response,
+        );
+      }
+      if (url.search) {
+        results.push(
+          (await this.findLogseqInternal(url.host + url.pathname + url.search))
+            .response,
+        );
+      }
+      if (url.pathname) {
+        results.push(
+          (await this.findLogseqInternal(url.host + url.pathname)).response,
+        );
+      }
+      if (url.host && options.fuzzy) {
+        results.push({
+          blocks: [
+            {
+              html: '↓ fuzzy search ↓',
+              uuid: null,
+              page: null,
+            },
+          ],
+          pages: [],
+          graph: '',
+        } as LogseqSearchResult);
+        results.push((await this.findLogseqInternal(url.host)).response);
+      }
+      const result = this.margeSearchResult(...results);
+      const resp: LogseqResponseType<LogseqSearchResult> = {
+        status: 200,
+        msg: 'success',
+        response: result,
+        count: result.blocks.length + result.pages.length,
+      };
+      return resp;
     });
   };
 }

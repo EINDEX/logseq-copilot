@@ -102,8 +102,8 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 const badgeSearch = async (url: string | undefined, tabId: number) => {
   if (!url) return;
-  const cleanUrl = removeUrlHash(url);
-  const searchRes = await logseqClient.blockSearch(cleanUrl);
+  const searchURL = new URL(url)
+  const searchRes = await logseqClient.urlSearch(searchURL);
   const resultCount = searchRes.count ? searchRes.count!.toString() : '';
   await setExtensionBadge(resultCount, tabId);
 };
