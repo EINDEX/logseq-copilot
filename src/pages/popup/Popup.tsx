@@ -20,7 +20,7 @@ export default function Popup() {
 
   const mountOpenPageMethod = () => {
     const innerFunction = () => {
-      if(isLoading) return;
+      if (isLoading) return;
       document.querySelectorAll('a').forEach((e) => {
         if (e.onclick === null) {
           e.onclick = () => {
@@ -33,7 +33,7 @@ export default function Popup() {
           };
         }
         if (!isLoading) {
-            clearInterval(interval);
+          clearInterval(interval);
 
         }
       });
@@ -49,9 +49,11 @@ export default function Popup() {
       let queryOptions = { active: true, lastFocusedWindow: true };
       let [tab] = await Browser.tabs.query(queryOptions);
       setIsLoading(true);
-      if (!tab.url) return;
-      const url = removeUrlHash(tab.url);
-      const result = await client.blockSearch(url);
+      if (!tab || !tab.url) return;
+
+      const tabURL = new URL(tab.url);
+      const result = await client.urlSearch(tabURL, {fuzzy: true});
+
       if (result.status !== 200) return;
       setLogseqSearchResult(result.response!);
       mountOpenPageMethod();
