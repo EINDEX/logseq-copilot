@@ -367,7 +367,8 @@ export default class LogseqClient {
           pageSet.add(page.name);
           result.pages.push(page);
         }
-      });
+      })
+      result.graph = result.graph || search.graph;
     });
     return result;
   };
