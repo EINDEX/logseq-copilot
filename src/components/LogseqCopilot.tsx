@@ -14,39 +14,37 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
   };
 
   const blocksRender = () => {
+    if (blocks.length === 0) {
+      return <></>;
+    }
     return (
-      <>
+      <div className={styles.blocks}>
         {blocks.map((block) => {
           return <LogseqBlock key={block.uuid} block={block} graph={graph} />;
         })}
-      </>
+      </div>
     );
   };
 
   const pagesRender = () => {
-    return (
-      <>
-        {pages.length > 0 ? (
-          <div className="pages">
-            <ul>
-              {pages.map((page) => {
-                if (!page) return <></>;
-                return (
-                  <p key={page.name}>
-                    <LogseqPageLink
-                      graph={graph}
-                      page={page}
-                    ></LogseqPageLink>
-                  </p>
-                );
-              })}
-            </ul>
+    if (pages.length === 0) {
+      return <></>;
+    }
+    return <div className={styles.pages}>
+      {pages.slice(0, 9).map((page) => {
+        if (!page) return <></>;
+        return (
+          <div className={styles.page}>
+            <LogseqPageLink
+              key={page.name}
+              graph={graph}
+              page={page}
+            ></LogseqPageLink>
           </div>
-        ) : (
-          <></>
-        )}
-      </>
-    );
+        );
+      })}
+    </div>
+
   };
 
   if (count() === 0) {

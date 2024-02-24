@@ -8,7 +8,7 @@ body {
   @apply flex flex-col w-full max-w-sm gap-2 pb-4;
 
   .content {
-    @apply flex flex-col gap-2  prose-sm whitespace-pre-wrap text-sm;
+    @apply flex flex-col gap-4 prose-sm whitespace-pre-wrap text-sm;
     * {
       @apply break-all text-sm;
     }
@@ -30,10 +30,6 @@ body {
     }
   }
 
-  .divide {
-    @apply divide-y divide-x-0 divide-dashed;
-  }
-
   ul,
   ol {
     @apply flex flex-col gap-1;
@@ -53,7 +49,7 @@ body {
 }
 
 .content {
-  @apply flex flex-col prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm;
+  @apply flex flex-col gap-2 prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm;
   * {
     @apply break-all text-sm;
   }
@@ -73,10 +69,6 @@ body {
   .config-it {
     @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
   }
-}
-
-.divide {
-  @apply divide-y divide-x-0 divide-dashed;
 }
 
 .copilotCardHeader {

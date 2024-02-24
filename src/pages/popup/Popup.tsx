@@ -1,6 +1,3 @@
-import { removeUrlHash } from '@/utils';
-
-import LogseqClient from '../logseq/client';
 import Browser from 'webextension-polyfill';
 import { useEffect, useState } from 'react';
 import React from 'react';
@@ -10,8 +7,9 @@ import { IconSettings } from '@tabler/icons-react';
 import { LogseqBlock } from '@components/LogseqBlock';
 
 import styles from './index.module.scss';
+import LogseqService from '@pages/logseq/service';
 
-const client = new LogseqClient();
+const service = new LogseqService();
 
 export default function Popup() {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,20 +43,20 @@ export default function Popup() {
     if (isLoading) return;
 
     new Promise(async () => {
-      console.log('loading');
       let queryOptions = { active: true, lastFocusedWindow: true };
       let [tab] = await Browser.tabs.query(queryOptions);
       setIsLoading(true);
       if (!tab || !tab.url) return;
 
       const tabURL = new URL(tab.url);
-      const result = await client.urlSearch(tabURL, {fuzzy: true});
+      const result = await service.urlSearch(tabURL, { fuzzy: true });
 
       if (result.status !== 200) return;
+
       setLogseqSearchResult(result.response!);
       mountOpenPageMethod();
     });
-  });
+  }, []);
 
   const openSettingsPage = () => {
     Browser.runtime.sendMessage({ type: 'open-options' });
@@ -66,7 +64,7 @@ export default function Popup() {
 
   return (
     <div className="copilot">
-      <div className={`${styles.content} + ${styles.divide}`}>
+      <div className={styles.content}>
         <div className={styles.copilotCardHeader}>
           <span>Graph: {logseqSearchResult?.graph}</span>
           <IconSettings size={16} onClick={openSettingsPage} />

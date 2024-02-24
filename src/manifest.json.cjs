@@ -52,11 +52,11 @@ const build = (releaseFor) => {
     },
     commands: {
       clip: {
-        "suggested_key": {
-          "default": "Ctrl+Shift+U",
+        suggested_key: {
+          default: 'Ctrl+Shift+U',
         },
-        "description": "Make Clip note"
-      }
+        description: 'Make Clip note',
+      },
     },
     web_accessible_resources: [
       {

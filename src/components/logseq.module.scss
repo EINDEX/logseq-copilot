@@ -1,28 +1,5 @@
-.blockFooter {
-  @apply w-full justify-between flex flex-row;
-}
-
-.blockContent {
-  @apply flex flex-col  prose-sm dark:prose-invert whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
-  * {
-    @apply break-all text-sm;
-  }
-
-  a {
-    @apply no-underline hover:underline;
-  }
-
-  img {
-    @apply max-w-full max-h-96 my-0.5;
-  }
-
-  pre {
-    @apply overflow-x-auto whitespace-pre-wrap;
-  }
-}
-
 .pageContent {
-  @apply flex flex-col gap-2 prose-sm  dark:prose-invert whitespace-pre-wrap text-sm;
+  @apply flex flex-col gap-2 prose-sm dark:prose-invert whitespace-pre-wrap text-sm;
 }
 
 .pageContentFooter {
@@ -41,14 +18,97 @@
   @apply divide-y divide-x-0 divide-dashed;
 }
 
-.block {
-  @apply py-2;
-}
-
 .toBlock {
-  @apply no-underline hover:underline;
+  @apply no-underline hover:underline min-w-max;
 }
 
 .logseqPageLink {
   @apply no-underline hover:underline;
+}
+
+.pages {
+  @apply grid grid-cols-3 gap-3;
+}
+
+:root {
+  --cardShadow: color-mix(in srgb, black 30%, transparent) 0 1px 2px 0,
+    color-mix(in srgb, black 15%, transparent) 0 1px 3px 1px;
+
+  --cardBG: rgba(210, 210, 210, 0.2);
+  --markerStatusHoverColor: black;
+  --markerCheckerBGColor: rgba(175, 175, 175, 0.799);
+
+  // @media (prefers-color-scheme: dark) {
+  //   --cardBG: #292a2d;
+  //   --markerStatusHoverColor: white;
+  // }
+}
+
+.page {
+  @apply rounded-lg p-2 whitespace-break-spaces overflow-hidden text-ellipsis break-normal;
+  background-color: var(--cardBG);
+  box-shadow: var(--cardShadow);
+}
+
+.blocks {
+  @apply flex flex-col gap-2;
+}
+
+.block {
+  @apply p-2 rounded-lg;
+  background-color: var(--cardBG);
+  box-shadow: var(--cardShadow);
+}
+
+.blockBody {
+  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline;
+}
+
+.blockHeader {
+  @apply w-full justify-between flex flex-row gap-2;
+}
+
+.blockContent {
+  @apply flex flex-col items-start whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
+  * {
+    @apply m-0 break-all text-sm;
+  }
+  p {
+    @apply m-0;
+  }
+
+  a {
+    @apply no-underline hover:underline;
+  }
+
+  img {
+    @apply max-w-full max-h-96 my-0.5;
+  }
+
+  pre {
+    @apply overflow-x-auto whitespace-pre-wrap;
+  }
+}
+
+.blockMarker {
+  @apply flex flex-row h-5 justify-center items-center;
+}
+
+.blockMarkerCheckbox {
+  @apply h-4 w-4 m-0 border-none transition ease-in-out mr-1 transform hover:scale-110 duration-150 rounded-sm;
+  appearance: none;
+  background-color: var(--markerCheckerBGColor);
+}
+
+.blockMarkerCheckbox:checked {
+  appearance: auto;
+  background-color: var(--markerCheckerBGColor);
+}
+
+.blockMarkerStatus {
+  @apply h-4 text-sm flex items-center self-center text-center border-none font-bold no-underline text-orange-500 hover:no-underline transform duration-300 px-0;
+  background: none;
+}
+.blockMarkerStatus:hover {
+  color: var(--markerStatusHoverColor);
 }

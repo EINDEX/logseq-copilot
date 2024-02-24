@@ -2,12 +2,17 @@ export type LogseqPageIdenity = {
   name: string;
   id: number;
   uuid: string;
+  originalName?: string;
 };
 
 export type LogseqBlockType = {
   uuid: string;
   html: string;
   page: LogseqPageIdenity;
+  content: string;
+  format: string;
+  marker: string;
+  priority: string;
 };
 
 export type LogseqPageContentType = {

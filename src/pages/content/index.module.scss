@@ -15,7 +15,7 @@
 }
 
 .copilotBody {
-  @apply rounded-lg ring-1  ring-gray-500/30 -m-2 p-2;
+  @apply flex flex-col -m-2 gap-2;
 }
 
 .configIt {
@@ -23,7 +23,7 @@
 }
 
 .content {
-  @apply flex flex-col rounded-lg border border-gray-300/70 border-solid px-4 py-2 prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm;
+  @apply flex flex-col rounded-lg prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm gap-4;
   * {
     @apply break-all text-sm;
   }

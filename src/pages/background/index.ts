@@ -1,19 +1,20 @@
 import { browser } from '@/browser';
 import LogseqClient from '../logseq/client';
 import { getLogseqCopliotConfig } from '../../config';
-import { removeUrlHash } from '@/utils';
 import { blockRending, versionCompare } from './utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
+import LogseqService from '@pages/logseq/service';
 
 const logseqClient = new LogseqClient();
+const logseqService = new LogseqService();
 
 browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
     if (msg.type === 'query') {
       const promise = new Promise(async () => {
-        const searchRes = await logseqClient.searchLogseq(msg.query);
+        const searchRes = await logseqService.search(msg.query);
         port.postMessage(searchRes);
       });
 
@@ -35,32 +36,48 @@ browser.runtime.onMessage.addListener((msg, sender) => {
     quickCapture('');
   } else if (msg.type === 'open-page') {
     openPage(msg.url);
+  } else if (msg.type === 'change-block-marker') {
+    changeBlockMarker(msg.uuid, msg.marker);
   } else {
     console.debug(msg);
   }
 });
 
+const changeBlockMarker = async (uuid: string, marker: string) => {
+  const tab = await getCurrentTab();
+  if (!tab) {
+    return;
+  }
+  const result = await logseqService.changeBlockMarker(uuid, marker);
+  browser.tabs.sendMessage(tab.id!, result);
+};
+
+const getCurrentTab = async () => {
+  const tab = await browser.tabs.query({ active: true, currentWindow: true });
+  return tab[0];
+};
+
 const openPage = async (url: string) => {
   console.debug(url);
-  const tab = await browser.tabs.query({ active: true, currentWindow: true });
+  const tab = await getCurrentTab();
   if (!tab) {
     browser.tabs.create({ url: url });
     return;
   }
-  const activeTab = tab[0];
+  const activeTab = tab;
   if (activeTab.url !== url)
     await browser.tabs.update(activeTab.id, { url: url });
 };
 
 const quickCapture = async (data: string) => {
-  const tab = await browser.tabs.query({ active: true, currentWindow: true });
+  const tab = await getCurrentTab();
   if (!tab) return;
-  const activeTab = tab[0];
+  const activeTab = tab;
   const { clipNoteLocation, clipNoteCustomPage, clipNoteTemplate } =
     await getLogseqCopliotConfig();
   const now = new Date();
   const resp = await logseqClient.getUserConfig();
-  
+
   const block = blockRending({
     url: activeTab.url,
     title: activeTab.title,
@@ -102,8 +119,8 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 const badgeSearch = async (url: string | undefined, tabId: number) => {
   if (!url) return;
-  const searchURL = new URL(url)
-  const searchRes = await logseqClient.urlSearch(searchURL);
+  const searchURL = new URL(url);
+  const searchRes = await logseqService.urlSearch(searchURL);
   const resultCount = searchRes.count ? searchRes.count!.toString() : '';
   await setExtensionBadge(resultCount, tabId);
 };

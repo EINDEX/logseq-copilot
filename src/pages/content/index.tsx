@@ -51,7 +51,7 @@ function getEngine() {
 const searchEngine = getEngine();
 
 if (searchEngine) {
-  run(searchEngine);
+  setTimeout(() => run(searchEngine), 200);
   if (searchEngine.reload) {
     searchEngine.reload(() => run(searchEngine));
   }
