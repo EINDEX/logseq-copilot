@@ -7,6 +7,7 @@ import scssStyles from './index.module.scss';
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';
+const highlights = CSS.highlights;
 
 const QuickCapture = () => {
   const [position, setPostion] = useState({
@@ -15,10 +16,19 @@ const QuickCapture = () => {
   });
   const [show, setShow] = useState(false);
 
+  const setHighlight = (range: Range) => {
+    if(!highlights.has("copilot-highlight")) {
+      highlights.set('copilot-highlight', new Highlight())
+    }
+    const highlight = highlights.get('copilot-highlight');
+    highlight.add(range);
+  }
+
   const capture = () => {
     const selection = getSelection();
     if (selection !== null) {
       const range = selection.getRangeAt(0);
+      setHighlight(range);
       const clonedSelection = range.cloneContents();
       const turndownService = buildTurndownService();
       selection.empty();
