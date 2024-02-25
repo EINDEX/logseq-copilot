@@ -52,3 +52,8 @@
 .popupButton {
   @apply rounded-lg h-6 w-6;
 }
+
+::highlight(copilot-highlight) {
+  background-color: rgba(255, 192, 4, 0.5);
+  color: black;
+}

@@ -1,5 +1,4 @@
 import { buildTurndownService } from '@/utils';
-import { debounce } from '@/utils';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Browser from 'webextension-polyfill';
@@ -9,36 +8,6 @@ import scssStyles from './index.module.scss';
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';
 
-const capture = () => {
-  const selection = getSelection();
-  if (selection !== null) {
-    const range = selection!.getRangeAt(0);
-    const clonedSelection = range.cloneContents();
-    const turndownService = buildTurndownService();
-    selection?.removeAllRanges();
-    Browser.runtime.sendMessage({
-      type: 'clip-with-selection',
-      data: turndownService.turndown(clonedSelection),
-    });
-  } else {
-    clipPage();
-  }
-};
-
-const clipPage = () => {
-  Browser.runtime.sendMessage({
-    type: 'clip-page'
-  })
-};
-
-Browser.runtime.onMessage.addListener((request) => {
-  if (request.type === 'clip-with-selection' || request.type === 'clip') {
-    capture();
-  } else if (request.type === 'clip-page') {
-    clipPage();
-  }
-});
-
 const QuickCapture = () => {
   const [position, setPostion] = useState({
     x: 0,
@@ -46,31 +15,58 @@ const QuickCapture = () => {
   });
   const [show, setShow] = useState(false);
 
+  const capture = () => {
+    const selection = getSelection();
+    if (selection !== null) {
+      const range = selection.getRangeAt(0);
+      const clonedSelection = range.cloneContents();
+      const turndownService = buildTurndownService();
+      selection.empty();
+      Browser.runtime.sendMessage({
+        type: 'clip-with-selection',
+        data: turndownService.turndown(clonedSelection),
+      });
+    } else {
+      clipPage();
+    }
+  };
+
+  const clipPage = () => {
+    Browser.runtime.sendMessage({
+      type: 'clip-page'
+    })
+  };
+
+
   const clicked = (event: MouseEvent) => {
-    if (show) {
+    const selection = getSelection();
+    const haveSelection = selection && selection.toString().trim().length > 0;
+    const isButton = event.target && event.target.className && event.target.className.includes("quickCapture")
+    if (isButton) {
+      if (event.type === "mouseup") {
+        setShow(false);
+      }
       return;
     }
-    const selection = getSelection();
-    if (selection && selection.toString().trim() !== '') {
+    if (haveSelection && event.type === "mouseup") {
       setShow(true);
       setPostion({ x: event.pageX + 10, y: event.pageY + 10 });
-      console.log('clicked');
+    } else {
+      setShow(false)
     }
-  };
-
-  const release = (event: MouseEvent) => {
-    setShow(false);
-  };
-
-  const quickCapture = () => {
-    setShow(false);
-    capture();
   };
 
   useEffect(() => {
-    document.addEventListener('mouseup', debounce(clicked, 100));
-    document.addEventListener('mousedown', debounce(release, 100));
-  });
+    document.addEventListener('mouseup', clicked);
+    document.addEventListener('mousedown', clicked);
+    Browser.runtime.onMessage.addListener((request) => {
+      if (request.type === 'clip-with-selection' || request.type === 'clip') {
+        capture();
+      } else if (request.type === 'clip-page') {
+        clipPage();
+      }
+    });
+  }, []);
 
   const styles = (): React.CSSProperties => {
     return {
@@ -86,9 +82,9 @@ const QuickCapture = () => {
   return (
     <div className={scssStyles.popupButton} style={styles()}>
       <img
-        className={scssStyles.popupButton}
+        className={`${scssStyles.popupButton} quickCapture`}
         src={logo}
-        onClick={quickCapture}
+        onClick={capture}
         alt={'clip-button'}
       />
     </div>
