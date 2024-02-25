@@ -6,7 +6,7 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 [Add to Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl)
 
-[Add to Edge](https://chrome.google.com/webstore/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
+[Add to Edge](https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
 
 [Add to Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
 
