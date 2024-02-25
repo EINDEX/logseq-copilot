@@ -24,6 +24,7 @@ export const cleanBlock = (block: LogseqBlockType): string => {
     .replaceAll(/^:logbook:[\S\s]*?:end:$/gim, '') // clean logbook
     .replaceAll(/^:LOGBOOK:[\S\s]*?:END:$/gim, '') // clean logbook
     .replaceAll(/\$pfts_2lqh>\$(.*?)\$<pfts_2lqh\$/gim, '<em>$1</em>') // clean highlight
+    .replaceAll(/{{video .*?}}/gm, '')
     .replaceAll(/^\s*?-\s*?$/gim, '')
     .trim();
 };
