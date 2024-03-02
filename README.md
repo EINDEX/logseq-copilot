@@ -1,18 +1,42 @@
 # Logseq Copilot 🚀
 
-[![Build](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml/badge.svg)](https://github.com/EINDEX/logseq-copilot/actions/workflows/build.yml) [![codecov](https://codecov.io/github/EINDEX/logseq-copilot/branch/main/graph/badge.svg?token=Z70QAMVZR1)](https://codecov.io/github/EINDEX/logseq-copilot) ![License](https://img.shields.io/github/license/eindex/logseq-copilot)
+<p align="center">
+  <a href="LICENSE" target="_blank">
+    <img alt="GPL-3.0 License" src="https://img.shields.io/github/license/eindex/logseq-copilot.svg?style=flat-square" />
+  </a>
+
+  <!-- TypeScript Badge -->
+  <img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-blue?style=flat-square&logo=typescript&logoColor=white" />
+
+  <a href="https://chrome.google.com/webstore/detail/hihgfcgbmnbomabfdbajlbpnacndeihl" target="_blank">
+    <img alt="Chrome" src="https://img.shields.io/chrome-web-store/stars/hihgfcgbmnbomabfdbajlbpnacndeihl?color=blue&label=Chrome&style=flat-square&logo=google-chrome&logoColor=white" />
+  </a>
+
+  <a href="https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi" target="_blank">
+    <img alt="Microsoft Edge" src="https://img.shields.io/badge/Microsoft%20Edge-gray?style=flat-square&logo=microsoftedge">
+  </a>
+
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/" target="_blank">
+    <img alt="Firefox" src="https://img.shields.io/amo/stars/logseq-copilot?color=orange&label=Firefox&style=flat-square&logo=firefox&logoColor=white" />
+  </a>
+</p>
+
 
 Logseq Copilot is a Chrome extension that allows you to access your Logseq using your browser. Logseq is a privacy-first, open-source platform for knowledge sharing and management. With Logseq Copilot, you can easily retrieve relevant information from your Logseq graph and enrich your online search, reading, and learning experience. 🧠
-
-[Add to Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl)
-
-[Add to Edge](https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
-
-[Add to Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
 
 ## Features
 
 - 🔍 Show Logseq content when you search on popular search engines via your keywords. Now support Google, Bing, Baidu, Yandex, DuckDuckGo, SearX.
+
+## Support
+<p align="center">
+   <a href="https://img.shields.io/github/sponsors/eindex" target="_blank">
+      <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/eindex?style=flat-square&logo=github">
+   </a>
+  <a href="https://www.buymeacoffee.com/eindex" target="_blank">
+    <img alt="Buy me a Coffee" src="https://img.shields.io/badge/Buy%20me%20a%20coffee-gray?style=flat-square&logo=buymeacoffee">
+  </a>
+</p>
 
 ## Screenshot
 
@@ -33,20 +57,25 @@ How to use this extension, please follow the below steps:
 
       ![Starting Logseq API Server](docs/screenshots/start-api-server.png)
 
-   3. Setting Authorization tokens, for security reason, highly recommend setting this, If you want to connect with logseq copilot, must to setting this up.
+   3. Setting Authorization token, for security reasons, highly recommend setting this, If you want to connect with Logseq copilot, must set this up.
 
+      **PS:** `Authorization token` is a secret string, you can set it as a random string you like.
       ![Setting up Authorization Token](docs/screenshots/setting-auth-token.png)
+      
 
-   4. (Optional) Enable auto start server when Logseq lunched.
+   4. Enable auto-start server when Logseq open.
 
       ![Enable Auto Start](docs/screenshots/enable-auto-start.png)
 
 2. Install extension. 
-   - Store version(**Recommend**): [Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl), [Edge](https://chrome.google.com/webstore/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi), [Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
-   - Newest Version [release page](https://github.com/EINDEX/logseq-copilot/releases) download it and load as unpacked.
+   - Store version(**Recommend**): [Chrome](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl), [Edge](https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi), [Firefox](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
+   - Newest Version [release page](https://github.com/EINDEX/logseq-copilot/releases) download it and load it as unpacked.
 
-3. Go to Options page to setting the connection.
-   If you're setting correct, you will see a message show on your Logseq and options page will show connected.
+3. Go to Options page to set the connection.
+   If you're setting it correctly, you will see a message show on your Logseq and options page will show connected.
+   And your `Authorization token` will be used here agian.
+   ![Set Options](docs/screenshots/logseq-copilot-option.png)
+
 
 4. You can use Logseq Copilot now!!
 
@@ -73,9 +102,7 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 - Create a new branch for your feature or bug fix. 🌿
 - Make your changes and commit them with a clear and concise message.
 
-## Support
 
-<a href="https://www.buymeacoffee.com/eindex"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=eindex&button_colour=40DCA5&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 
 ## Credits
 
