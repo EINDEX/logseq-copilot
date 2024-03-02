@@ -9,6 +9,46 @@ const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';
 const highlights = CSS.highlights;
 
+const capture = () => {
+  const selection = getSelection();
+  if (selection !== null) {
+    const range = selection.getRangeAt(0);
+    setHighlight(range);
+    const clonedSelection = range.cloneContents();
+    const turndownService = buildTurndownService();
+    selection.empty();
+    Browser.runtime.sendMessage({
+      type: 'clip-with-selection',
+      data: turndownService.turndown(clonedSelection),
+    });
+  } else {
+    clipPage();
+  }
+};
+
+const clipPage = () => {
+  Browser.runtime.sendMessage({
+    type: 'clip-page'
+  })
+};
+
+const setHighlight = (range: Range) => {
+  if(!highlights.has("copilot-highlight")) {
+    highlights.set('copilot-highlight', new Highlight())
+  }
+  const highlight = highlights.get('copilot-highlight');
+  highlight.add(range);
+}
+
+
+Browser.runtime.onMessage.addListener((request) => {
+  if (request.type === 'clip-with-selection' || request.type === 'clip') {
+    capture();
+  } else if (request.type === 'clip-page') {
+    clipPage();
+  }
+});
+
 const QuickCapture = () => {
   const [position, setPostion] = useState({
     x: 0,
@@ -16,36 +56,6 @@ const QuickCapture = () => {
   });
   const [show, setShow] = useState(false);
 
-  const setHighlight = (range: Range) => {
-    if(!highlights.has("copilot-highlight")) {
-      highlights.set('copilot-highlight', new Highlight())
-    }
-    const highlight = highlights.get('copilot-highlight');
-    highlight.add(range);
-  }
-
-  const capture = () => {
-    const selection = getSelection();
-    if (selection !== null) {
-      const range = selection.getRangeAt(0);
-      setHighlight(range);
-      const clonedSelection = range.cloneContents();
-      const turndownService = buildTurndownService();
-      selection.empty();
-      Browser.runtime.sendMessage({
-        type: 'clip-with-selection',
-        data: turndownService.turndown(clonedSelection),
-      });
-    } else {
-      clipPage();
-    }
-  };
-
-  const clipPage = () => {
-    Browser.runtime.sendMessage({
-      type: 'clip-page'
-    })
-  };
 
 
   const clicked = (event: MouseEvent) => {
@@ -69,13 +79,6 @@ const QuickCapture = () => {
   useEffect(() => {
     document.addEventListener('mouseup', clicked);
     document.addEventListener('mousedown', clicked);
-    Browser.runtime.onMessage.addListener((request) => {
-      if (request.type === 'clip-with-selection' || request.type === 'clip') {
-        capture();
-      } else if (request.type === 'clip-page') {
-        clipPage();
-      }
-    });
   }, []);
 
   const styles = (): React.CSSProperties => {
