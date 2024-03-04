@@ -33,11 +33,15 @@ const clipPage = () => {
 };
 
 const setHighlight = (range: Range) => {
-  if(!highlights.has("copilot-highlight")) {
-    highlights.set('copilot-highlight', new Highlight())
+  try {
+    if (!highlights.has("copilot-highlight")) {
+      highlights.set('copilot-highlight', new Highlight())
+    }
+    const highlight = highlights.get('copilot-highlight');
+    highlight.add(range);
+  } catch (error) {
+    console.debug("platform not support highlight function")
   }
-  const highlight = highlights.get('copilot-highlight');
-  highlight.add(range);
 }
 
 
