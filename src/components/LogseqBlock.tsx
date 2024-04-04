@@ -6,13 +6,15 @@ import React, { useEffect } from 'react';
 
 type LogseqBlockProps = {
   graph: string;
-  block: LogseqBlockType;
+  blocks: LogseqBlockType[];
   isPopUp?: boolean;
 };
 
-export const LogseqBlock = ({ graph, block }: LogseqBlockProps) => {
+export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
   const [checked, setChecked] = React.useState(false);
   const [status, setStatus] = React.useState('');
+
+  const block = blocks[0]; // TODO: randomyl picking first item - need to change later
 
   const statusUpdate = (marker: string) => {
     switch (marker) {
@@ -87,7 +89,7 @@ export const LogseqBlock = ({ graph, block }: LogseqBlockProps) => {
     );
   };
 
-  const toBlock = () => {
+  const toBlock = (block) => {
     if (!block.uuid) {
       return <></>
     }
@@ -105,11 +107,21 @@ export const LogseqBlock = ({ graph, block }: LogseqBlockProps) => {
       <div className={styles.block}>
         <div className={styles.blockHeader}>
           <LogseqPageLink graph={graph} page={block.page}></LogseqPageLink>
-          {toBlock()}
         </div>
         <div className={styles.blockBody}>
-          {markerRender(block.marker)}{' '}
-          <div className={styles.blockContent} dangerouslySetInnerHTML={{ __html: block.html }} />
+          <ul className={styles.blockContentList}>
+            {blocks.map((block) => {
+              return(
+                <li className={styles.blockContentListItem}>
+                  <div className={styles.blockContentRoot} >
+                    {markerRender(block.marker)}{' '}
+                    <div className={styles.blockContent} dangerouslySetInnerHTML={{ __html: block.html }} />
+                    {toBlock(block)}
+                  </div>
+                </li>
+              )}
+            )}
+          </ul>
         </div>
       </div>
     );
