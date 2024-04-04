@@ -73,7 +73,7 @@ export default function Popup() {
           <LogseqBlock
             key={block.uuid}
             graph={logseqSearchResult?.graph}
-            block={block}
+            blocks={[block]}
             isPopUp={true}
           />
         ))}
