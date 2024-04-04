@@ -25,7 +25,7 @@ const ReleaseFor = {
 const build = (releaseFor) => {
   return {
     manifest_version: 3,
-    version: process.env.VERSION.replace('v', ''),
+    version: process.env.VERSION?.replace('v', '') ?? '0.0.0',
     author: 'eindex.lee@gmail.com',
     name: 'Logseq Copilot',
     description:
