@@ -11,6 +11,11 @@ type LogseqBlockProps = {
 };
 
 export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
+
+  if(blocks.length === 0) {
+    return <></>;
+  }
+
   const [checked, setChecked] = React.useState(false);
   const [status, setStatus] = React.useState('');
 
