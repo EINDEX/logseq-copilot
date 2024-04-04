@@ -27,8 +27,15 @@
 }
 
 .pages {
-  @apply grid grid-cols-3 gap-3;
+  @apply grid grid-cols-3 gap-2 p-1 bg-[#8080801a] rounded-lg relative max-h-52 overflow-auto;
 }
+
+.pages::before{
+  content: 📝;
+  position: absolute;
+  // top: 0;
+}
+
 
 :root {
   --cardShadow: color-mix(in srgb, black 30%, transparent) 0 1px 2px 0,
@@ -61,11 +68,31 @@
 }
 
 .blockBody {
-  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline;
+  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline ml-3 my-1;
 }
 
 .blockHeader {
-  @apply w-full justify-between flex flex-row gap-2;
+  @apply w-full justify-between flex flex-row gap-2 border-0 border-b-[1px] border-solid border-[#6666664d] pb-1;
+}
+
+.blockContentList{
+  width: 100%;
+}
+
+.blockContentListItem{
+  // @apply list-inside;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.blockContentListItem:hover{
+  background-color: hsl(0deg 0% 40% / 30%);
+}
+
+.blockContentRoot{
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .blockContent {

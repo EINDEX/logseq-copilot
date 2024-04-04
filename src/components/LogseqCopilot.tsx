@@ -9,6 +9,15 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
     Browser.runtime.sendMessage({ type: 'open-options' });
   };
 
+  const groupedBlocks = blocks.reduce((groups, item) => {
+    const group = (groups[item.page.name] || []);
+    group.push(item);
+    groups[item.page.name] = group;
+    return groups;
+  }, {});
+
+  console.log({groupedBlocks, blocks})
+
   const count = () => {
     return pages.length + blocks.length;
   };
@@ -19,8 +28,10 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
     }
     return (
       <div className={styles.blocks}>
-        {blocks.map((block) => {
-          return <LogseqBlock key={block.uuid} block={block} graph={graph} />;
+        {Object.entries(groupedBlocks).map(([key, blocks], i) => {
+          // return blockGroup.map((block) => {
+            return <LogseqBlock key={key} blocks={blocks} graph={graph} />;
+          // });
         })}
       </div>
     );
