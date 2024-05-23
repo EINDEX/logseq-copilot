@@ -45,6 +45,27 @@ export class Google extends SearchingEngine {
   }
 }
 
+export class Ecosia extends SearchingEngine {
+  isMatch(): boolean {
+    const match = window.location.hostname.match(/ecosia\.org$/g);
+    return !!match;
+  }
+
+  getQuery(): string | null {
+    const searchURL = new URL(window.location.href);
+    const query = searchURL.searchParams.get('q');
+    return query;
+  }
+
+  gotElement(): Element {
+    const container = document.createElement('article');
+    const asideElement = document.querySelector('.sidebar .web__sidebar');
+    asideElement!.insertBefore(container, asideElement!.firstChild);
+    
+    return container;
+  }
+}
+
 export class Bing extends SearchingEngine {
   isMatch(): boolean {
     const match = window.location.hostname.match(/bing(\.com)?(\.\w{2})?$/g);
@@ -232,6 +253,7 @@ export class Startpage extends SearchingEngine {
 
 const searchEngins = [
   new Google(),
+  new Ecosia(),
   new Bing(),
   new DuckDuckGo(),
   new Yandex(),
