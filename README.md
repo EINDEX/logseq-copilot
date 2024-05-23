@@ -26,7 +26,7 @@ Logseq Copilot is a Chrome extension that allows you to access your Logseq using
 
 ## Features
 
-- 🔍 Show Logseq content when you search on popular search engines via your keywords. Now support Google, Bing, Baidu, Yandex, DuckDuckGo, SearX.
+- 🔍 Show Logseq content when you search on popular search engines via your keywords. Now support Google, Bing, Ecosia, Baidu, Yandex, DuckDuckGo, SearX.
 
 ## Support
 <p align="center">

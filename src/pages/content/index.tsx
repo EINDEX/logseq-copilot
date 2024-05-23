@@ -7,6 +7,7 @@ import mountQuickCapture from './QuickCapture';
 import searchEngines, {
   Baidu,
   Bing,
+  Ecosia,
   DuckDuckGo,
   Google,
   SearX,
@@ -24,7 +25,7 @@ const mount = async (container: Element, query: string) => {
 };
 
 async function run(
-  searchEngine: Google | Bing | DuckDuckGo | Yandex | SearX | Baidu,
+  searchEngine: Google | Bing | Ecosia | DuckDuckGo | Yandex | SearX | Baidu,
 ) {
   console.debug('Logseq copliot', window.location.hostname);
 
