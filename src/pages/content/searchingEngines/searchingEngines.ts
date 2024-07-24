@@ -59,7 +59,7 @@ export class Ecosia extends SearchingEngine {
 
   gotElement(): Element {
     const container = document.createElement('article');
-    const asideElement = document.querySelector('.sidebar .web__sidebar');
+    const asideElement = document.querySelector('.layout__content .web .sidebar');
     asideElement!.insertBefore(container, asideElement!.firstChild);
     
     return container;
