@@ -149,7 +149,7 @@ export class SearX extends SearchingEngine {
     const searchUrlDom = document.getElementById('search_url');
     if (searchUrlDom) {
       const searchUrl = new URL(
-        searchUrlDom.getElementsByTagName('pre')[0].innerText,
+        searchUrlDom.getElementsByTagName('pre')[0].innerHTML,
       );
       return searchUrl.searchParams.get('q');
     }
