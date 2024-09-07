@@ -63,7 +63,6 @@ export const ClipNoteOptions = () => {
   };
 
   const updateCustomPage = (event) => {
-    console.log(event)
     updateConfig('clipNoteCustomPage', event.target.value);
   };
 

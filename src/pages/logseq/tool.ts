@@ -102,7 +102,6 @@ export const renderBlock = (
 export const getLogseqService = async (): Promise<LogseqServiceInterface> => {
   try {
     const resp = await client.isDBGraph()
-    console.log("result!!!!", resp)
     if (resp === "true" || resp === true || resp === false){
       return logseqServiceDB;
     }

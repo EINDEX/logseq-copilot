@@ -36,7 +36,7 @@ export const LogseqConnectOptions = () => {
 
   const changeLogseqPort = (port: string) => {
     if (port === '' || parseInt(port) < 0) {
-      port='0'
+      port = '0'
     }
     setLogseqConfig({
       ...logseqConfig,

@@ -165,7 +165,6 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   };
 
   public updateBlock = async (block: LogseqBlockType) => {
-    console.log(block.content)
     return await this.baseJson('logseq.Editor.updateBlock', [
       block.uuid,
       block.content,
