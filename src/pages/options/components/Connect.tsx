@@ -17,9 +17,7 @@ import {
   saveLogseqCopliotConfig,
   LogseqCopliotConfig,
 } from '@/config';
-import LogseqClient from '@pages/logseq/client';
-
-const client = new LogseqClient();
+import { getLogseqService } from '@pages/logseq/tool';
 
 export const LogseqConnectOptions = () => {
   const [init, setInit] = React.useState(false);
@@ -64,7 +62,8 @@ export const LogseqConnectOptions = () => {
         logseqPort: logseqConfig?.logseqPort,
       });
       if (await checkConnection()) {
-        const graph = await client.getGraph();
+        const service = await getLogseqService();
+        const graph = await service.getGraph();
         window.location = `logseq://graph/${graph!.name}`;
       }
     });
@@ -91,11 +90,12 @@ export const LogseqConnectOptions = () => {
 
   const checkConnection = async (): Promise<boolean> => {
     setLoading(true);
-    const resp = await client.showMsg('Logseq Copliot Connect!');
+    const service = await getLogseqService();
+    const resp = await service.showMsg('Logseq Copliot Connect!');
     const connectStatus = resp.msg === 'success';
     setConnected(connectStatus);
     if (connectStatus) {
-      const version = await (await client.getVersion()).response;
+      const version = await service.getVersion();
       setButtonMessage(`Connected to Logseq v${version}!`);
     } else {
       setConnected(false);

@@ -15,20 +15,14 @@ import {
   Input,
   Link,
 } from '@chakra-ui/react';
-import LogseqClient from '@pages/logseq/client';
 
-import { Select } from 'chakra-react-select';
 import React, { useEffect } from 'react';
-import styles from '../Options.module.scss';
 import Browser from 'webextension-polyfill';
-
-const client = new LogseqClient();
 
 export const ClipNoteOptions = () => {
   const [init, setInit] = React.useState(false);
 
   const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
-  const [allPages, setAllPages] = React.useState([]);
 
   const [clipShortCut, setClipShortCut] = React.useState();
 
@@ -39,16 +33,6 @@ export const ClipNoteOptions = () => {
         setInit(true);
       });
 
-      client.getAllPages().then((allPages) => {
-        setAllPages(
-          allPages.map((page) => {
-            return {
-              label: page.originalName,
-              value: page.name,
-            };
-          }),
-        );
-      });
       Browser.commands
         .getAll()
         .then((commands) =>
@@ -78,16 +62,10 @@ export const ClipNoteOptions = () => {
     updateConfig('clipNoteLocation', value);
   };
 
-  const onClipNoteCustomPageSelect = (value) => {
-    updateConfig('clipNoteCustomPage', value.value);
+  const updateCustomPage = (event) => {
+    console.log(event)
+    updateConfig('clipNoteCustomPage', event.target.value);
   };
-
-  // const setShortCut = () => {
-  //   // window.location = 'chrome://extensions/shortcuts';
-  //   // Browser.commands.getAll();
-  //   // Browser.commands.update();
-
-  // };
 
   return (
     <>
@@ -102,7 +80,7 @@ export const ClipNoteOptions = () => {
         columnGap={2}
       >
         <Text fontSize="md" mb="0">
-          Display Floating Button
+          Floating Button
         </Text>
         <Switch
           name="enableClipNoteFloatButton"
@@ -131,18 +109,13 @@ export const ClipNoteOptions = () => {
             <Radio value="customPage">Custom Page</Radio>
           </Stack>
         </RadioGroup>
-        <Text fontSize="md">Custom Page</Text>
-        <Select
-          classNamePrefix={'chakra-react-select'}
-          className={styles.selection}
+        <Text fontSize="md">Custom Page Name</Text>
+        <Input
           isDisabled={logseqConfig?.clipNoteLocation !== 'customPage'}
           name="customPage"
-          options={allPages}
-          value={{
-            label: logseqConfig?.clipNoteCustomPage,
-            value: logseqConfig?.clipNoteCustomPage,
-          }}
-          onChange={onClipNoteCustomPageSelect}
+          value={logseqConfig?.clipNoteCustomPage}
+          onChange={updateCustomPage}
+          placeholder="Custom Page Name"
         />
         <Text fontSize="md">Clip Template</Text>
         <Textarea

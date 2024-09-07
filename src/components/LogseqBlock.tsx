@@ -116,16 +116,26 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
         <div className={styles.blockBody}>
           <ul className={styles.blockContentList}>
             {blocks.map((block) => {
-              return(
+              if (block.marker != null) {
+                return (
+                  <li className={styles.blockContentListItem}>
+                    <div className={styles.blockContentRoot} >
+                      {markerRender(block.marker)}
+                      <div className={styles.blockContent} dangerouslySetInnerHTML={{ __html: block.html }} />
+                      {toBlock(block)}
+                    </div>
+                  </li>
+                )
+              }
+              return (
                 <li className={styles.blockContentListItem}>
                   <div className={styles.blockContentRoot} >
-                    {markerRender(block.marker)}{' '}
                     <div className={styles.blockContent} dangerouslySetInnerHTML={{ __html: block.html }} />
                     {toBlock(block)}
                   </div>
                 </li>
-              )}
-            )}
+              )
+            })}
           </ul>
         </div>
       </div>

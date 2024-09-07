@@ -1,38 +1,52 @@
-import { LogseqBlockType } from '../../types/logseqBlock';
+import { LogseqBlockType } from '../../../types/logseqBlock';
 import LogseqClient from './client';
-import { renderBlock } from './tool';
+import { renderBlock } from '../tool';
+import { LogseqServiceInterface } from '../interfaces';
 
-export default class LogseqService {
-  private logseqClient: LogseqClient = new LogseqClient();
+export default class LogseqService implements LogseqServiceInterface {
+  public client: LogseqClient = new LogseqClient();
 
   public async getGraph() {
-    return await this.logseqClient.getGraph();
+    return (await this.client.getGraph()).name;
   }
 
-  public async search(query: string) {
-    const graph = await this.getGraph();
-    const result = await this.logseqClient.search(query);
+  public async showMsg(message: string) {
+    return await this.client.showMsg(message);
+  }
+
+  public async getVersion() {
+    return (await this.client.getVersion()).version;
+  }
+
+  private async searchGraph(graphName: string, query: string) {
+    const result = await this.client.search(query);
     result.blocks = await Promise.all(
       result.blocks.map(async (block) => {
-        return await this.getBlock(block['block/uuid'], graph.name, query);
+        return await this.getBlock(block['block/uuid'], graphName, query);
       }),
     );
     result.pages = await Promise.all(
       result.pages.map(async (page: string) => {
-        return await this.logseqClient.getPage({
+        return await this.client.getPage({
           name: page,
         });
       }),
     );
 
-    result.graph = graph.name;
     result.count = result.blocks.length + result.pages.length;
+    result.graph = graphName;
+    return result;
+  }
 
-    return {
+  public async search(query: string) {
+    const graph = await this.getGraph();
+    console.debug(`Normal Graph Name: ${graph}`);
+    const resp = {
       msg: 'success',
       status: 200,
-      response: result,
+      response: await this.searchGraph(graph, query),
     };
+    return resp;
   }
 
   public async getBlock(
@@ -41,10 +55,10 @@ export default class LogseqService {
     query?: string,
     includeChildren: boolean = false,
   ) {
-    const block = await this.logseqClient.getBlockViaUuid(blockUuid, {
+    const block = await this.client.getBlockViaUuid(blockUuid, {
       includeChildren,
     });
-    block.page = await this.logseqClient.getPage(block.page);
+    block.page = await this.client.getPage(block.page);
     return renderBlock(block, graph, query);
   }
 
@@ -62,7 +76,7 @@ export default class LogseqService {
     };
 
     const find = async (url: string) => {
-      const results = await this.logseqClient.find(url);
+      const results = await this.client.find(url);
       results.forEach(blockAdd);
     };
 
@@ -88,9 +102,9 @@ export default class LogseqService {
       msg: 'success',
       response: {
         blocks: blocks.map((block) => {
-          return renderBlock(block, graph.name, url.href);
+          return renderBlock(block, graph, url.href);
         }),
-        graph: graph.name,
+        graph: graph,
       },
       count: count,
     };
@@ -98,7 +112,7 @@ export default class LogseqService {
 
   public async changeBlockMarker(uuid: string, marker: string) {
     const graph = await this.getGraph();
-    const block = await this.getBlock(uuid, graph.name);
+    const block = await this.getBlock(uuid, graph);
 
     if (block.content.includes('SCHEDULED:')) {
       return {
@@ -110,7 +124,7 @@ export default class LogseqService {
     }
     block.content = block.content.replace(block.marker, marker);
 
-    const result = await this.logseqClient.updateBlock(block);
+    const result = await this.client.updateBlock(block);
     console.debug(result);
     if (Object.hasOwnProperty(result, 'error')) {
       return {

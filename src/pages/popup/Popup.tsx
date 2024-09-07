@@ -7,9 +7,7 @@ import { IconSettings } from '@tabler/icons-react';
 import { LogseqBlock } from '@components/LogseqBlock';
 
 import styles from './index.module.scss';
-import LogseqService from '@pages/logseq/service';
-
-const service = new LogseqService();
+import { getLogseqService } from '@pages/logseq/tool';
 
 export default function Popup() {
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +47,7 @@ export default function Popup() {
       if (!tab || !tab.url) return;
 
       const tabURL = new URL(tab.url);
+      const service = await getLogseqService();
       const result = await service.urlSearch(tabURL, { fuzzy: true });
 
       if (result.status !== 200) return;

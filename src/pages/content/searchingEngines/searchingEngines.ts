@@ -61,7 +61,7 @@ export class Ecosia extends SearchingEngine {
     const container = document.createElement('article');
     const asideElement = document.querySelector('.layout__content .web .sidebar');
     asideElement!.insertBefore(container, asideElement!.firstChild);
-    
+
     return container;
   }
 }

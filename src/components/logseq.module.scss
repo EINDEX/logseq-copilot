@@ -1,5 +1,5 @@
 .pageContent {
-  @apply flex flex-col gap-2 prose-sm dark:prose-invert whitespace-pre-wrap text-sm;
+  @apply flex flex-col gap-2 prose-sm dark:prose-invert whitespace-pre-wrap text-sm grow;
 }
 
 .pageContentFooter {
@@ -19,7 +19,7 @@
 }
 
 .toBlock {
-  @apply no-underline hover:underline min-w-max;
+  @apply no-underline hover:underline min-w-fit;
 }
 
 .logseqPageLink {
@@ -30,12 +30,11 @@
   @apply grid grid-cols-3 gap-2 p-1 bg-[#8080801a] rounded-lg relative max-h-52 overflow-auto;
 }
 
-.pages::before{
+.pages::before {
   content: 📝;
   position: absolute;
   // top: 0;
 }
-
 
 :root {
   --cardShadow: color-mix(in srgb, black 30%, transparent) 0 1px 2px 0,
@@ -68,36 +67,36 @@
 }
 
 .blockBody {
-  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline ml-3 my-1;
+  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline my-1;
 }
 
 .blockHeader {
   @apply w-full justify-between flex flex-row gap-2 border-0 border-b-[1px] border-solid border-[#6666664d] pb-1;
 }
 
-.blockContentList{
+.blockContentList {
   width: 100%;
   margin: 0 !important;
 }
 
-.blockContentListItem{
-  // @apply list-inside;
-  padding: 1px 3px;
+.blockContentListItem {
+  @apply list-outside ml-4;
+  min-height: 20px;
+  line-height: 20px;
+  // padding: 1px 3px;
   border-radius: 3px;
 }
 
-.blockContentListItem:hover{
+.blockContentListItem:hover {
   background-color: hsl(0deg 0% 40% / 30%);
 }
 
-.blockContentRoot{
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+.blockContentRoot {
+  @apply flex flex-row justify-between gap-2 flex-wrap items-center;
 }
 
 .blockContent {
-  @apply flex flex-col items-start whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1;
+  @apply grow flex flex-col items-start whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1 self-start;
   * {
     @apply m-0 break-all text-sm;
   }
@@ -119,12 +118,14 @@
 }
 
 .blockMarker {
-  @apply flex flex-row h-5 justify-center items-center;
+  @apply flex flex-row justify-center items-center;
 }
 
 .blockMarkerCheckbox {
-  @apply h-4 w-4 m-0 border-none transition ease-in-out mr-1 transform hover:scale-110 duration-150 rounded-sm;
+  @apply m-0 border-none transition ease-in-out mr-1 transform hover:scale-110 duration-150 rounded-sm;
   appearance: none;
+  height: 16px;
+  width: 16px;
   background-color: var(--markerCheckerBGColor);
 }
 
@@ -134,8 +135,10 @@
 }
 
 .blockMarkerStatus {
-  @apply h-4 text-sm flex items-center self-center text-center border-none font-bold no-underline text-orange-500 hover:no-underline transform duration-300 px-0;
+  @apply flex items-center self-center text-center border-none font-bold no-underline text-orange-500 hover:no-underline transform duration-300 p-0;
   background: none;
+  font-size: 14px;
+  line-height: 16px;
 }
 .blockMarkerStatus:hover {
   color: var(--markerStatusHoverColor);

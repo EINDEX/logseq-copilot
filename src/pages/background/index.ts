@@ -1,20 +1,18 @@
 import { browser } from '@/browser';
-import LogseqClient from '../logseq/client';
 import { getLogseqCopliotConfig } from '../../config';
 import { blockRending, versionCompare } from './utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
-import LogseqService from '@pages/logseq/service';
-
-const logseqClient = new LogseqClient();
-const logseqService = new LogseqService();
+import {getLogseqService} from '@pages/logseq/tool';
 
 browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
     if (msg.type === 'query') {
       const promise = new Promise(async () => {
+        const logseqService = await getLogseqService();
         const searchRes = await logseqService.search(msg.query);
+        console.debug("search result", searchRes)
         port.postMessage(searchRes);
       });
 
@@ -48,6 +46,7 @@ const changeBlockMarker = async (uuid: string, marker: string) => {
   if (!tab) {
     return;
   }
+  const logseqService = await getLogseqService();
   const result = await logseqService.changeBlockMarker(uuid, marker);
   browser.tabs.sendMessage(tab.id!, result);
 };
@@ -76,7 +75,9 @@ const quickCapture = async (data: string) => {
   const { clipNoteLocation, clipNoteCustomPage, clipNoteTemplate } =
     await getLogseqCopliotConfig();
   const now = new Date();
-  const resp = await logseqClient.getUserConfig();
+  const logseqService = await getLogseqService();
+
+  const resp = await logseqService.client.getUserConfig();
 
   const block = blockRending({
     url: activeTab.url,
@@ -88,13 +89,13 @@ const quickCapture = async (data: string) => {
   });
 
   if (clipNoteLocation === 'customPage') {
-    await logseqClient.appendBlock(clipNoteCustomPage, block);
+    await logseqService.client.appendBlock(clipNoteCustomPage, block);
   } else if (clipNoteLocation === 'currentPage') {
-    const { name: currentPage } = await logseqClient.getCurrentPage();
-    await logseqClient.appendBlock(currentPage, block);
+    const { name: currentPage } = await logseqService.client.getCurrentPage();
+    await logseqService.client.appendBlock(currentPage, block);
   } else {
     const journalPage = format(now, resp['preferredDateFormat']);
-    await logseqClient.appendBlock(journalPage, block);
+    await logseqService.client.appendBlock(journalPage, block);
   }
 
   debounceBadgeSearch(activeTab.url, activeTab.id!);
@@ -120,6 +121,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 const badgeSearch = async (url: string | undefined, tabId: number) => {
   if (!url) return;
   const searchURL = new URL(url);
+  const logseqService = await getLogseqService();
   const searchRes = await logseqService.urlSearch(searchURL);
   const resultCount = searchRes.count ? searchRes.count!.toString() : '';
   await setExtensionBadge(resultCount, tabId);

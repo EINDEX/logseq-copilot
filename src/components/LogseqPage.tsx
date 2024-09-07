@@ -24,7 +24,7 @@ const LogseqPageLink = ({
         href={`logseq://graph/${graph}?page=${page?.name}`}
       >
         <span className="tie tie-page"></span>
-        {page?.originalName?.replaceAll("/", "/ ")}
+        {page?.originalName || page?.title}
       </a>
     </>
   );

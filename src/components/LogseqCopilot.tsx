@@ -47,7 +47,7 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
         return (
           <div className={styles.page}>
             <LogseqPageLink
-              key={page.name}
+              key={page.uuid}
               graph={graph}
               page={page}
             ></LogseqPageLink>
