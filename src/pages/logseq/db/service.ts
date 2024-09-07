@@ -44,7 +44,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
             await this.getBlock(item['block/uuid']['uuid'], graphName, query),
         ),
     );
-    console.log(response);
+
     return response;
   }
 
@@ -89,13 +89,6 @@ export default class LogseqDBService implements LogseqServiceInterface {
       const results = await this.searchGraph(graph, url);
       results.blocks.forEach(blockAdd);
     };
-
-    if (url.hash) {
-      await find(url.host + url.pathname + url.search + url.hash);
-    }
-    if (url.search) {
-      await find(url.host + url.pathname + url.search);
-    }
 
     if (url.pathname) {
       await find(url.host + url.pathname);

@@ -127,7 +127,7 @@ const badgeSearch = async (url: string | undefined, tabId: number) => {
   await setExtensionBadge(resultCount, tabId);
 };
 
-const debounceBadgeSearch = debounce(badgeSearch, 500);
+const debounceBadgeSearch = debounce(badgeSearch, 1000);
 
 try {
   browser.contextMenus.create({
