@@ -12,7 +12,7 @@ type LogseqBlockProps = {
 
 export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
 
-  if(blocks.length === 0) {
+  if (blocks.length === 0) {
     return <></>;
   }
 
@@ -118,7 +118,7 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
             {blocks.map((block) => {
               if (block.marker != null) {
                 return (
-                  <li className={styles.blockContentListItem}>
+                  <li key={block.uuid} className={styles.blockContentListItem}>
                     <div className={styles.blockContentRoot} >
                       {markerRender(block.marker)}
                       <div className={styles.blockContent} dangerouslySetInnerHTML={{ __html: block.html }} />

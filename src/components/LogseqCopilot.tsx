@@ -16,8 +16,6 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
     return groups;
   }, {});
 
-  console.log({groupedBlocks, blocks})
-
   const count = () => {
     return pages.length + blocks.length;
   };
@@ -29,9 +27,7 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
     return (
       <div className={styles.blocks}>
         {Object.entries(groupedBlocks).map(([key, blocks], i) => {
-          // return blockGroup.map((block) => {
-            return <LogseqBlock key={key} blocks={blocks} graph={graph} />;
-          // });
+          return <LogseqBlock key={key} blocks={blocks} graph={graph} />;
         })}
       </div>
     );
@@ -45,9 +41,8 @@ const LogseqCopilot = ({ graph, pages, blocks }) => {
       {pages.slice(0, 9).map((page) => {
         if (!page) return <></>;
         return (
-          <div className={styles.page}>
+          <div key={page.name} className={styles.page}>
             <LogseqPageLink
-              key={page.uuid}
               graph={graph}
               page={page}
             ></LogseqPageLink>
