@@ -30,13 +30,13 @@ jobs:
           # cache-dependency-path: '/docs/pnpm-lock.yaml'
 
       - name: Install dependencies
-        run: pnpm install
+        run: cd docs && pnpm install
 
       - name: Update changelog
         run: cd docs && node changelog.js
 
       - name: Build
-        run: pnpm build
+        run: cd docs && pnpm build
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
