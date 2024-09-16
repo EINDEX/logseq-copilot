@@ -33,7 +33,7 @@ jobs:
         run: pnpm install
 
       - name: Update changelog
-        run: node changelog.js
+        run: cd docs && node changelog.js
 
       - name: Build
         run: pnpm build
