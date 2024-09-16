@@ -1,10 +1,10 @@
-name: Build
+name: Document website generate
 
 on:
   push:
     paths:
-      - '/docs/**'
-      - '/.github/workflows/**'
+      - 'docs/**'
+      - '.github/workflows/**'
   release:
 
 jobs:
