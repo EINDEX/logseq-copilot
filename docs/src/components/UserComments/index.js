@@ -1,29 +1,29 @@
-import styles from "./styles.module.css";
+import styles from './styles.module.css';
 
 const Comments = [
   {
-    source: "chrome-web-store",
-    lang: "en",
+    source: 'chrome-web-store',
+    lang: 'en',
     score: 5,
-    date: "2024-03-26",
-    name: "Jordan G",
+    date: '2024-03-26',
+    name: 'Jordan G',
     review:
-      "Amazing extension, looking forward to using it more and it being open-sourced is even better",
+      'Amazing extension, looking forward to using it more and it being open-sourced is even better',
     avatar:
-      "https://lh3.googleusercontent.com/a-/ALV-UjUJ7omSYEBpKwrWhZBSoalAZ3ourO_eI3Yr5_aTKHaEblRcmBrm=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a-/ALV-UjUJ7omSYEBpKwrWhZBSoalAZ3ourO_eI3Yr5_aTKHaEblRcmBrm=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   {
-    source: "chrome-web-store",
-    lang: "en",
+    source: 'chrome-web-store',
+    lang: 'en',
     score: 5,
-    date: "2024-03-24",
-    name: "Vitaliy Gordeev",
+    date: '2024-03-24',
+    name: 'Vitaliy Gordeev',
     review:
-      "Possibly one of the most useful extensions. Easy to use. Open source.",
+      'Possibly one of the most useful extensions. Easy to use. Open source.',
     avatar:
-      "https://lh3.googleusercontent.com/a/ACg8ocLRJJgapC95QcH8baiyJbTX2oAFhhPh9fXIZ2gTespT1T-fuA=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a/ACg8ocLRJJgapC95QcH8baiyJbTX2oAFhhPh9fXIZ2gTespT1T-fuA=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   // {
   //   source: "chrome-web-store",
@@ -37,75 +37,75 @@ const Comments = [
   //   url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
   // },
   {
-    source: "chrome-web-store",
-    lang: "fr",
+    source: 'chrome-web-store',
+    lang: 'fr',
     score: 4,
-    date: "2024-01-25",
-    name: "Thierry Portmann",
+    date: '2024-01-25',
+    name: 'Thierry Portmann',
     review:
       "Presque excellent ! Manque juste la possibilité d'ajouter une note (prévue)",
     avatar:
-      "https://lh3.googleusercontent.com/a-/ALV-UjV2hVyn_dKomnfTfX52m4r0LQ9rmxGbLUCLlFcN-GZgppWd6sSI=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a-/ALV-UjV2hVyn_dKomnfTfX52m4r0LQ9rmxGbLUCLlFcN-GZgppWd6sSI=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   {
-    source: "chrome-web-store",
-    lang: "zh",
+    source: 'chrome-web-store',
+    lang: 'zh',
     score: 5,
-    date: "2023-05-02",
-    name: "Da Tou",
-    review: "确实是五星插件了!比印象笔记的google检索还好用！",
+    date: '2023-05-02',
+    name: 'Da Tou',
+    review: '确实是五星插件了!比印象笔记的google检索还好用！',
     avatar:
-      "https://lh3.googleusercontent.com/a-/ALV-UjWIJticHrAsHO7Z7-RZGCCncBecpf0uYPrZspBQr1dxOA=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a-/ALV-UjWIJticHrAsHO7Z7-RZGCCncBecpf0uYPrZspBQr1dxOA=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   {
-    source: "chrome-web-store",
-    lang: "zh",
+    source: 'chrome-web-store',
+    lang: 'zh',
     score: 5,
-    date: "2023-04-15",
-    name: "Joshua C",
-    review: "太好用了！本地笔记和搜索引擎无缝连接！",
+    date: '2023-04-15',
+    name: 'Joshua C',
+    review: '太好用了！本地笔记和搜索引擎无缝连接！',
     avatar:
-      "https://lh3.googleusercontent.com/a/ACg8ocL7xMHaEWwjYUeU_4gL55i1dOm-YN6sCo-iQ50wxjgR=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a/ACg8ocL7xMHaEWwjYUeU_4gL55i1dOm-YN6sCo-iQ50wxjgR=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   {
-    source: "chrome-web-store",
-    lang: "en",
+    source: 'chrome-web-store',
+    lang: 'en',
     score: 5,
-    date: "2023-03-10",
-    name: "Alexander Ivanov",
+    date: '2023-03-10',
+    name: 'Alexander Ivanov',
     review:
-      "Possibly the most beautiful application I have ever put on my browser. I feel like my thought is further than me, it has become part of the web.",
+      'Possibly the most beautiful application I have ever put on my browser. I feel like my thought is further than me, it has become part of the web.',
     avatar:
-      "https://lh3.googleusercontent.com/a-/ALV-UjWYFzH_8Q3vAyEpyI9W6tt5KminF4NIGoRGnM39_wV1GlAD=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a-/ALV-UjWYFzH_8Q3vAyEpyI9W6tt5KminF4NIGoRGnM39_wV1GlAD=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
   {
-    source: "chrome-web-store",
-    lang: "en",
+    source: 'chrome-web-store',
+    lang: 'en',
     score: 5,
-    date: "2023-02-18",
-    name: "Yurii Piskun",
+    date: '2023-02-18',
+    name: 'Yurii Piskun',
     review:
       'AWESOME!!!!!!! Now "Promnesia" & "fireSeqSearch" can be deleted )))',
     avatar:
-      "https://lh3.googleusercontent.com/a-/ALV-UjXqKew0X4I9A6YFBPkMdHNDdCoww-PcTKMrUuE5LtUaOI3q=s96-w96-h96",
-    url: "https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl",
+      'https://lh3.googleusercontent.com/a-/ALV-UjXqKew0X4I9A6YFBPkMdHNDdCoww-PcTKMrUuE5LtUaOI3q=s96-w96-h96',
+    url: 'https://chromewebstore.google.com/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl',
   },
 ];
 
 function UserComment({ source, score, name, review, avatar, url }) {
   return (
     <div className={`button--secondary ${styles.comment}`}>
-      <comment className={styles.review}>{review}</comment>
+      <q className={styles.review}>{review}</q>
       <div className={styles.bottom}>
         <span className={styles.username}>
-          <img className={styles.commentAvatar} src={avatar}></img>
+          <img className={styles.commentAvatar} alt={name+"'s avatar"} src={avatar}></img>
           {name}
         </span>
-        <span>{"⭐".repeat(score)}</span>
+        <span>{'⭐'.repeat(score)}</span>
       </div>
     </div>
   );
@@ -115,9 +115,7 @@ export default function UserComments() {
   return (
     <section className={`${styles.comments}`}>
       {Comments.map((props, idx) => (
-        <>
-          <UserComment key={idx} {...props} />
-        </>
+        <UserComment key={idx} {...props} />
       ))}
     </section>
   );
