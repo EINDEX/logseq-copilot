@@ -162,7 +162,7 @@ export const LogseqConnectOptions = () => {
         <Text gridColumn={'1 / span 3'} justifySelf={'end'}>
           <Link
             color={!connected ? 'red' : undefined}
-            href="https://github.com/eindex/logseq-copilot#usage"
+            href="https://logseq-copilot.eindex.me/docs/setup"
           >
             Guide to Connection
           </Link>

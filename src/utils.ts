@@ -25,10 +25,6 @@ function cleanAttribute(attribute: string) {
   return attribute ? attribute.replace(/(\n+\s*)+/g, '\n') : '';
 }
 
-function repeat(character, count) {
-  return Array(count + 1).join(character);
-}
-
 function linkProcess(src: string) {
   if (src.startsWith('/')) {
     return window.location.origin + src;
