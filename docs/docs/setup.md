@@ -17,19 +17,20 @@ sidebar_position: 3
 ### Seting Authorization Token
 
 1. Go to logseq copilot tool bar, Click `API` icon.
-   ![click api button](/img/screenshots/click-api-button.png)
+![click api button](/img/screenshots/click-api-button.png)
 
 2. Click `Authorization tokens`.
-   ![open authorization tokens](/img/screenshots/open-auth-tokens.png)
+
+![open authorization tokens](/img/screenshots/open-auth-tokens.png)
 
 3. Click `Add new token`.
-   ![click add new token](/img/screenshots/click-add-new-token.png)
+![click add new token](/img/screenshots/click-add-new-token.png)
 
 4. You will see a row as below.
-   ![empty auth tokens](/img/screenshots/empty-authorization-tokens.png)
+![empty auth tokens](/img/screenshots/empty-authorization-tokens.png)
 
 5. Fill name as `logseq-copilot`, value is a secret, eg. `secret-value`, then click `Save`.
-   ![fill auth token](/img/screenshots/fill-auth-token.png)
+![fill auth token](/img/screenshots/fill-auth-token.png)
 
 :::info
 The `value` of `Authorization token` is a secret string, suggest to setting like a random string.
@@ -41,6 +42,7 @@ The `value` of `Authorization token` is a secret string, suggest to setting like
 ![click api button](/img/screenshots/click-api-button.png)
 
 2. Click `Server configurations`.
+
 ![click server configurations](/img/screenshots/click-server-configurations.png)
 
 3. Toggle on `Auto start server with the app launched`.
@@ -54,6 +56,7 @@ The `value` of `Authorization token` is a secret string, suggest to setting like
 ![click api button](/img/screenshots/click-api-button.png)
 
 2. Click `Start Server`.
+
 ![click start server](/img/screenshots/click-start-server.png)
 
 ### Check Server is started
@@ -62,6 +65,7 @@ The `value` of `Authorization token` is a secret string, suggest to setting like
 ![click api button](/img/screenshots/click-api-button.png)
 
 2. If you see something like below, your `API` server is setting correct.
+
 ![check api server panel](/img/screenshots/success-enable-api-server.png)
 
 ## Setting up Browser Extension
