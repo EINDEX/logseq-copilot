@@ -1,4 +1,4 @@
-name: Document website generate
+name: Website Deploy
 
 on:
   push:
