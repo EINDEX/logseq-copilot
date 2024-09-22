@@ -16,15 +16,14 @@ jobs:
         name: Use Node.js
         with:
           node-version: 18.x
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
+          cache: 'pnpm'
 
-      - run: npm install --save
-      - run: npm run test -- --coverage --coverageDirectory coverage
+      - run: pnpm install
+      - run: pnpm run test -- --coverage --coverageDirectory coverage
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - run: npm run build
+      - run: pnpm run build
         env:
           VERSION: v0.0.0
