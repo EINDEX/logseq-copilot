@@ -13,7 +13,10 @@
     "build": "node build.mjs",
     "start": "chokidar src -c 'npm run build'",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",
@@ -40,6 +43,7 @@
     "@types/webextension-polyfill": "^0.10.0",
     "archiver": "^5.3.1",
     "autoprefixer": "^10.4.13",
+    "axios": "^1.7.7",
     "chokidar-cli": "^3.0.0",
     "css-loader": "^6.7.3",
     "dotenv": "^16.0.3",
@@ -72,6 +76,8 @@
     "ts-loader": "^9.4.2",
     "type-fest": "^3.5.2",
     "typescript": "^4.9.4",
+    "vitepress": "^1.3.4",
+    "vue": "^3.5.8",
     "web-ext": "^7.6.0",
     "webextension-polyfill": "^0.10.0"
   }

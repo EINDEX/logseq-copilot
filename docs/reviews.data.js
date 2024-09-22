@@ -1,6 +1,4 @@
-import styles from './styles.module.css';
-
-const Comments = [
+const comments = [
   {
     source: 'chrome-web-store',
     lang: 'en',
@@ -96,27 +94,8 @@ const Comments = [
   },
 ];
 
-function UserComment({ source, score, name, review, avatar, url }) {
-  return (
-    <div className={`button--secondary ${styles.comment}`}>
-      <q className={styles.review}>{review}</q>
-      <div className={styles.bottom}>
-        <span className={styles.username}>
-          <img className={styles.commentAvatar} alt={name+"'s avatar"} src={avatar}></img>
-          {name}
-        </span>
-        <span>{'⭐'.repeat(score)}</span>
-      </div>
-    </div>
-  );
-}
-
-export default function UserComments() {
-  return (
-    <section className={`${styles.comments}`}>
-      {Comments.map((props, idx) => (
-        <UserComment key={idx} {...props} />
-      ))}
-    </section>
-  );
-}
+export default {
+  load() {
+    return comments;
+  },
+};

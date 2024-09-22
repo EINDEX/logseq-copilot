@@ -1,7 +1,6 @@
 ---
-sidebar_position: 2
+outline: deep
 ---
-
 # Install
 
 Now Logseq Copilot suport 3 common browsers.
@@ -20,8 +19,8 @@ Most browser are support Chrome Extension, if your not using Firefox & Safiry, Y
 
 :::warning
 
-Safari is not supported because registration in the Apple Developer Program is required, which costs US$99 per year.
+**Safari** is not supported because registration in the Apple Developer Program is required, which costs US$99 per year.
 
-If really need, welcome become [sponsor](./sponsor.md).
+If really need, welcome become [sponsor](/sponsor).
 
 :::

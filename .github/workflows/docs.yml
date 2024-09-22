@@ -14,8 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: cd docs
-
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
@@ -26,17 +24,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          # cache: 'pnpm'
-          # cache-dependency-path: '/docs/pnpm-lock.yaml'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: cd docs && pnpm install
+        run: pnpm install
 
       - name: Update changelog
-        run: cd docs && node changelog.js
-
-      - name: Build
-        run: cd docs && pnpm build
+        run: pnpm docs:build
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -44,13 +38,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 162c9bc5d98e73ac9c64f756da29d06d
           projectName: logseq-copilot-page
-          directory: build
+          directory: dist/build
           # Optional: Enable this if you want to have GitHub Deployments triggered
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           # Optional: Switch what branch you are publishing to.
           # By default this will be the branch which triggered this workflow
           branch: main
           # Optional: Change the working directory
-          workingDirectory: docs
+          # workingDirectory: docs
           # Optional: Change the Wrangler version, allows you to point to a specific version or a tag such as `beta`
           wranglerVersion: '3'
