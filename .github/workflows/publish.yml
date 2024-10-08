@@ -38,7 +38,7 @@ jobs:
         run: pnpm run test
 
       - name: Firefox Upload & release
-        run: npx web-ext sign -s build/firefox
+        run: pnpm publish:firefox
         if: matrix.platform == 'firefox'
         env:
           WEB_EXT_API_KEY: ${{ secrets.FIREFOX_WEB_EXT_API_KEY }}
@@ -55,7 +55,7 @@ jobs:
           refresh-token: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
 
       - name: Edge Upload & release
-        run: node pipeline/edge-addon-publish.mjs
+        run: pnpm publish:edge
         if: matrix.platform == 'edge'
         env:
           VERSION: ${{ github.ref_name }}

@@ -181,7 +181,7 @@ importers:
         specifier: ^3.5.8
         version: 3.5.8(typescript@4.9.5)
       web-ext:
-        specifier: ^7.6.0
+        specifier: ^7.12.0
         version: 7.12.0
       webextension-polyfill:
         specifier: ^0.10.0

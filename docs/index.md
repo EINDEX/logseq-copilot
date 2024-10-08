@@ -12,12 +12,15 @@ hero:
       link: /doc/
     - theme: alt
       text: Chrome
+      target: _blank
       link: https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl
     - theme: alt
       text: Edge
+      target: _blank
       link: https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi
     - theme: alt
       text: Firefox
+      target: _blank
       link: https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/
 
 features:

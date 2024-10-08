@@ -9,14 +9,16 @@
   },
   "scripts": {
     "test": "jest",
-    "test:coverage": "npm test -- --coverage",
+    "test:coverage": "jest --coverage --passWithNoTests --coverageDirectory coverage",
     "build": "node build.mjs",
-    "start": "chokidar src -c 'npm run build'",
+    "start": "chokidar src -c 'pnpm run build'",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
     "prepare": "husky install",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "publish:edge": "node pipeline/edge-addon-publish.mjs",
+    "publish:firefox": "web-ext sign -s build/firefox"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",
@@ -78,7 +80,7 @@
     "typescript": "^4.9.4",
     "vitepress": "^1.3.4",
     "vue": "^3.5.8",
-    "web-ext": "^7.6.0",
+    "web-ext": "^7.12.0",
     "webextension-polyfill": "^0.10.0"
   }
 }
