@@ -37,9 +37,10 @@ export class Google extends SearchingEngine {
     if (hasAside) {
       asideElement.insertBefore(container, asideElement.firstChild);
     } else {
-      const noAsideElement = document.getElementById('rcnt');
-      noAsideElement!.appendChild(container);
+      const noAsideElement = document.getElementById('center_col');
+      noAsideElement?.parentNode?.appendChild(container);
       container.id = 'rhs';
+      container.style.width = '372px';
     }
     return container;
   }
@@ -59,7 +60,9 @@ export class Ecosia extends SearchingEngine {
 
   gotElement(): Element {
     const container = document.createElement('article');
-    const asideElement = document.querySelector('.layout__content .web .sidebar');
+    const asideElement = document.querySelector(
+      '.layout__content .web .sidebar',
+    );
     asideElement!.insertBefore(container, asideElement!.firstChild);
 
     return container;
