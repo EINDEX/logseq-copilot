@@ -84,11 +84,16 @@ export default defineConfig({
     [
       'script',
       {
-        'data-website-id': '6728c810-c8a8-43ae-b072-4788d1ec7cc9',
-        src: 'https://umami.eindex.me/script.js',
+        'data-domain': 'logseq-copilot.eindex.me',
+        src: 'https://t.eindex.me/js/script.file-downloads.hash.outbound-links.pageview-props.revenue.tagged-events.js',
         defer: 'true',
-        async: 'true',
       },
+    ],
+    [
+      'script',
+      {
+      },
+      `window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`
     ],
     [
       'script',
