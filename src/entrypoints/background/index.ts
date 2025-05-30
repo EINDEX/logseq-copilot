@@ -1,5 +1,5 @@
 import { getLogseqCopliotConfig } from '../../config';
-import { blockRending, versionCompare } from '@/utils/index';
+import { blockRending, versionCompare } from '@/utils/utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';

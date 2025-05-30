@@ -1,4 +1,5 @@
 import { getLogseqCopliotConfig } from '@/config';
+import { log } from '@/utils';
 
 export type LogseqPageResponse = {
   name: string;
@@ -15,6 +16,7 @@ export type LogseqResponseType<T> = {
 
 export default class LogseqClientBase {
   baseFetch = async (method: string, args: any[]) => {
+    log.debug(`Logseq Method ${method}, Args -> \n`, args);
     const config = await getLogseqCopliotConfig();
     const endPoint = new URL(config.logseqHost);
     const apiUrl = new URL(`${endPoint.origin}/api`);
@@ -34,14 +36,13 @@ export default class LogseqClientBase {
     if (resp.status !== 200) {
       throw resp;
     }
-
     return resp;
   };
 
   baseJson = async (method: string, args: any[]) => {
     const resp = await this.baseFetch(method, args);
     const data = await resp.json();
-    console.debug(`Logseq Method ${method}, Response -> \n`, data);
+    log.debug(`Logseq Method ${method}, Response -> \n`, data);
     return data;
   };
 

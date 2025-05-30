@@ -7,7 +7,6 @@ export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
 
   public async getGraph() {
-    console.log(await this.client.getGraph());
     return (await this.client.getGraph()).name.replace('logseq_db_', '');;
   }
 

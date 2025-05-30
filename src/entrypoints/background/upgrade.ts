@@ -1,6 +1,6 @@
-import { getLogseqCopliotConfig, saveLogseqCopliotConfig } from "@/config";
+import { getLogseqCopliotConfig, saveLogseqCopliotConfig } from '@/config';
 
-export const changeOptionsHostToHostNameAndPort = async() => {
+export const changeOptionsHostToHostNameAndPort = async () => {
   const { logseqHost } = await getLogseqCopliotConfig();
   if (logseqHost) {
     const url = new URL(logseqHost);
@@ -10,5 +10,4 @@ export const changeOptionsHostToHostNameAndPort = async() => {
     });
     browser.storage.local.remove('logseqHost');
   }
-}
-
+};

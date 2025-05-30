@@ -11,6 +11,7 @@ import {
   NumberInputField,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
+import { log } from '@/utils';
 
 import {
   getLogseqCopliotConfig,
@@ -64,8 +65,8 @@ export const LogseqConnectOptions = () => {
       if (await checkConnection()) {
         const service = await getLogseqService();
         const graph = await service.getGraph();
-        console.log(graph);
-        window.location = `logseq://graph/${graph!.name}`;
+        log.info(`Logseq Graph -> ${graph}`);
+        window.location = `logseq://graph/${graph}`;
       }
     });
     promise.then(console.log).catch(console.error);
@@ -163,7 +164,7 @@ export const LogseqConnectOptions = () => {
         <Text gridColumn={'1 / span 3'} justifySelf={'end'}>
           <Link
             color={!connected ? 'red' : undefined}
-            href="https://logseq-copilot.eindex.me/docs/setup"
+            href="https://logseq-copilot.eindex.me/doc/setup"
           >
             Guide to Connection
           </Link>

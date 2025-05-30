@@ -101,12 +101,10 @@ export const renderBlock = (
 
 export const getLogseqService = async (): Promise<LogseqServiceInterface> => {
   try {
-    const resp = await client.isDBGraph()
-    if (resp === "true" || resp === true || resp === false){
+    const resp = await client.isDBGraph();
+    if (resp === 'true' || resp === true || resp === false) {
       return logseqServiceDB;
     }
-  } catch (error) {
-    
-  }
+  } catch (error) {}
   return logseqService;
 };

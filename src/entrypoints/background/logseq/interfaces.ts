@@ -1,6 +1,5 @@
 import { LogseqBlockType } from '@/types/logseqBlock';
 
-
 export interface LogseqClientInterface {
   getGraph(): any;
   appendBlock(page: string, content: string): any;
