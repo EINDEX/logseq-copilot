@@ -1,13 +1,14 @@
-import { LogseqBlockType } from '../../../types/logseqBlock';
+import { LogseqBlockType } from '@/types/logseqBlock';
 import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 
-export default class LogseqService implements LogseqServiceInterface {
+export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
 
   public async getGraph() {
-    return (await this.client.getGraph()).name;
+    console.log(await this.client.getGraph());
+    return (await this.client.getGraph()).name.replace('logseq_db_', '');;
   }
 
   public async showMsg(message: string) {
@@ -19,28 +20,38 @@ export default class LogseqService implements LogseqServiceInterface {
   }
 
   private async searchGraph(graphName: string, query: string) {
-    const result = await this.client.search(query);
-    result.blocks = await Promise.all(
-      result.blocks.map(async (block) => {
-        return await this.getBlock(block['block/uuid'], graphName, query);
-      }),
+    const resp = await this.client.search(query);
+    const response = {
+      blocks: [],
+      pages: [],
+      count: 0,
+      graph: graphName,
+    };
+
+    response.pages = await Promise.all(
+      resp.blocks
+        .filter((item) => item['page?'] === true)
+        .map(async (item) => {
+          return await this.client.getPage({
+            uuid: item['block/uuid']['uuid'],
+          });
+        }),
     );
-    result.pages = await Promise.all(
-      result.pages.map(async (page: string) => {
-        return await this.client.getPage({
-          name: page,
-        });
-      }),
+    response.blocks = await Promise.all(
+      resp.blocks
+        .filter((item) => item['page?'] === false)
+        .map(
+          async (item) =>
+            await this.getBlock(item['block/uuid']['uuid'], graphName, query),
+        ),
     );
 
-    result.count = result.blocks.length + result.pages.length;
-    result.graph = graphName;
-    return result;
+    return response;
   }
 
   public async search(query: string) {
     const graph = await this.getGraph();
-    console.debug(`Normal Graph Name: ${graph}`);
+    console.debug(`DG Graph Name: ${graph}`);
     const resp = {
       msg: 'success',
       status: 200,
@@ -76,16 +87,9 @@ export default class LogseqService implements LogseqServiceInterface {
     };
 
     const find = async (url: string) => {
-      const results = await this.client.find(url);
-      results.forEach(blockAdd);
+      const results = await this.searchGraph(graph, url);
+      results.blocks.forEach(blockAdd);
     };
-
-    if (url.hash) {
-      await find(url.host + url.pathname + url.search + url.hash);
-    }
-    if (url.search) {
-      await find(url.host + url.pathname + url.search);
-    }
 
     if (url.pathname) {
       await find(url.host + url.pathname);

@@ -1,4 +1,4 @@
-import { blockRending, logseqEscape } from './utils';
+import { blockRending, logseqEscape } from '.';
 
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {

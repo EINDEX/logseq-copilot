@@ -1,4 +1,4 @@
-import { LogseqBlockType } from '../../types/logseqBlock';
+import { LogseqBlockType } from '@/types/logseqBlock';
 
 import { marked } from 'marked';
 import LogseqClient from './client';

@@ -4,10 +4,10 @@ import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
 import { IconSettings } from '@tabler/icons-react';
 
-import { LogseqBlock } from '@components/LogseqBlock';
+import { LogseqBlock } from '@/components/LogseqBlock';
 
 import styles from './index.module.scss';
-import { getLogseqService } from '@pages/logseq/tool';
+import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 
 export default function Popup() {
   const [isLoading, setIsLoading] = useState(false);

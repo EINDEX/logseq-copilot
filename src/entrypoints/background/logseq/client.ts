@@ -1,4 +1,4 @@
-import { getLogseqCopliotConfig } from '../../config';
+import { getLogseqCopliotConfig } from '@/config';
 
 export type LogseqPageResponse = {
   name: string;
@@ -46,6 +46,6 @@ export default class LogseqClientBase {
   };
 
   public isDBGraph = async () => {
-    return await this.baseJson('check_current_is_db_graph', []);
+    return await this.baseJson('logseq.App.checkCurrentIsDBGraph', []);
   };
 }

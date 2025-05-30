@@ -10,6 +10,9 @@ import { LogseqConnectOptions } from './components/Connect';
 import { ClipNoteOptions } from './components/ClipNote';
 import styles from './Options.module.scss';
 
+const version = import.meta.env.WXT_EXT_VERSION;
+
+console.log(import.meta.env);
 const Options = () => {
   return (
     <Container className={styles.options} maxW={'56rem'} mt={'1rem'}>
@@ -18,9 +21,9 @@ const Options = () => {
           <Heading>Logseq Copilot</Heading>
           <Text>
             <Link
-              href={`https://github.com/EINDEX/logseq-copilot/releases/tag/${process.env.VERSION}`}
+              href={`https://github.com/EINDEX/logseq-copilot/releases/tag/${version}`}
             >
-              {process.env.VERSION}
+              {version}
             </Link>
           </Text>
         </Flex>

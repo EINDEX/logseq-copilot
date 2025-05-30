@@ -1,4 +1,4 @@
-import { LogseqBlockType } from '../../types/logseqBlock';
+import { LogseqBlockType } from '@/types/logseqBlock';
 
 
 export interface LogseqClientInterface {

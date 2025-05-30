@@ -1,4 +1,4 @@
-import { LogseqBlockType, LogseqPageIdenity } from '../../../types/logseqBlock';
+import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 
 import {
   CannotConnectWithLogseq,

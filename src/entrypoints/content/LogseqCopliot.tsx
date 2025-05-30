@@ -1,9 +1,9 @@
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
-import { LogseqResponseType } from '../logseq/client';
+import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import Browser from 'webextension-polyfill';
 import styles from './index.module.scss';
-import LogseqCopilot from '@components/LogseqCopilot';
+import LogseqCopilot from '@/components/LogseqCopilot';
 type LogseqCopliotProps = {
   connect: Browser.Runtime.Port;
 };

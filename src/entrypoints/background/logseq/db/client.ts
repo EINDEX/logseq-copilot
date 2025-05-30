@@ -1,4 +1,4 @@
-import { LogseqBlockType, LogseqPageIdenity } from '../../../types/logseqBlock';
+import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 
 import {
   CannotConnectWithLogseq,
@@ -43,7 +43,7 @@ export type LogseqResponseType<T> = {
 
 export default class LogseqClient extends LogseqClientBase implements LogseqClientInterface {
   private getCurrentGraph = async (): Promise<Graph> => {
-    return await this.baseJson('logseq.getCurrentGraph', []);
+    return await this.baseJson('logseq.App.getCurrentGraph', []);
   };
 
   public appendBlock = async (page: string, content: string) => {

@@ -19,6 +19,7 @@ Flashpost-tests/
 
 # misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -30,3 +31,6 @@ secrets.*.js
 .vscode/
 
 .envrc
+.output
+.wxt
+.cursorrules

@@ -17,7 +17,7 @@ import {
   saveLogseqCopliotConfig,
   LogseqCopliotConfig,
 } from '@/config';
-import { getLogseqService } from '@pages/logseq/tool';
+import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 
 export const LogseqConnectOptions = () => {
   const [init, setInit] = React.useState(false);
@@ -64,6 +64,7 @@ export const LogseqConnectOptions = () => {
       if (await checkConnection()) {
         const service = await getLogseqService();
         const graph = await service.getGraph();
+        console.log(graph);
         window.location = `logseq://graph/${graph!.name}`;
       }
     });
