@@ -31,7 +31,8 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: '{dbe73d0a-f6b8-474a-ad39-0d46a07e4525}',
-      }
-    }
+      },
+    },
   },
+  modules: ["@wxt-dev/module-react"],
 });

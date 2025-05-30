@@ -1,12 +1,16 @@
 import { createRoot } from 'react-dom/client';
-import Options from './Options';
 import './index.scss';
-import { ChakraProvider } from '@chakra-ui/react';
+// import '@/assets/globals.css';
+import Options from './Options';
+import Layout from './layout';
 
-const container = document.getElementById('app-container');
+const container = document.getElementById('app');
 const root = createRoot(container!);
 root.render(
-  <ChakraProvider>
-    <Options />
-  </ChakraProvider>,
+  <>
+    <Layout>
+      {/* <Options /> */}
+      <span>Hello</span>
+    </Layout>
+  </>
 );

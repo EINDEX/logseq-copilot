@@ -1,4 +1,4 @@
-import Browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import { useEffect, useState } from 'react';
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
@@ -20,7 +20,7 @@ export default function Popup() {
       document.querySelectorAll('a').forEach((e) => {
         if (e.onclick === null) {
           e.onclick = () => {
-            Browser.runtime
+            browser.runtime
               .sendMessage({
                 type: 'open-page',
                 url: e.href,

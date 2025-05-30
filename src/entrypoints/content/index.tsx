@@ -1,7 +1,7 @@
 import { getLogseqCopliotConfig } from '@/config';
 import { fixDuckDuckGoDark } from '@/utils';
 import { createRoot } from 'react-dom/client';
-import Browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
 import mountQuickCapture from './QuickCapture';
 import searchEngines, {
@@ -38,7 +38,7 @@ export default defineContentScript({
 
   main(ctx) {
     // Executed when content script is loaded, can be async
-    const connect = Browser.runtime.connect();
+    const connect = browser.runtime.connect();
 
     const mount = async (container: Element, query: string) => {
       const root = createRoot(container);
