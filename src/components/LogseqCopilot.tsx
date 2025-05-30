@@ -1,12 +1,12 @@
 import { IconSettings } from '@tabler/icons-react';
 import styles from './logseq.module.scss';
-import Browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import { LogseqBlock } from './LogseqBlock';
 import LogseqPageLink from './LogseqPage';
 
 const LogseqCopilot = ({ graph, pages, blocks }) => {
   const goOptionPage = () => {
-    Browser.runtime.sendMessage({ type: 'open-options' });
+    browser.runtime.sendMessage({ type: 'open-options' });
   };
 
   const groupedBlocks = blocks.reduce((groups, item) => {

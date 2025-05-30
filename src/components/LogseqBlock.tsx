@@ -1,6 +1,6 @@
 import { LogseqBlockType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
-import Browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import styles from './logseq.module.scss';
 import React, { useEffect } from 'react';
 
@@ -48,12 +48,12 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
   }
 
   useEffect(() => {
-    Browser.runtime.onMessage.addListener(processEvent)
+    browser.runtime.onMessage.addListener(processEvent)
     statusUpdate(block.marker)
   }, []);
 
   const updateBlock = (marker: string) => {
-    Browser.runtime.sendMessage({ type: 'change-block-marker', marker: marker, uuid: block.uuid })
+    browser.runtime.sendMessage({ type: 'change-block-marker', marker: marker, uuid: block.uuid })
   };
 
   const markerStatusChange = (

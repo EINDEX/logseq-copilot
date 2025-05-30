@@ -1,4 +1,4 @@
-import Browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 
 export type LogseqCopliotConfig = {
   version: string;
@@ -25,7 +25,7 @@ export const getLogseqCopliotConfig =
       clipNoteCustomPage = "",
       clipNoteTemplate = `#[[Clip]] [{{title}}]({{url}})
 {{content}}`
-    } = await Browser.storage.local.get();
+    } = await browser.storage.local.get();
     return {
       version,
       logseqHost,
@@ -43,5 +43,5 @@ export const saveLogseqCopliotConfig = async (
   updates: Partial<LogseqCopliotConfig>,
 ) => {
   console.log('saveLogseqCopliotConfig', updates);
-  await Browser.storage.local.set(updates);
+  await browser.storage.local.set(updates);
 };
