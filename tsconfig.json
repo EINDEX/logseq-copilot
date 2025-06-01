@@ -22,7 +22,7 @@
   //     "@assets/*": ["src/assets/*"],
   //     "@/*": ["src/*"],
   //   },
-  //   "types": ["esbuild-style-plugin", "jest", "webextension-polyfill"]
+  //   "types": ["esbuild-style-plugin", "jest"]
   // },
   // "include": ["src", "__setups__"],
   // "exclude": ["build", "node_modules"],

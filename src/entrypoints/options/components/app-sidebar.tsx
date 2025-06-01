@@ -1,5 +1,5 @@
 import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
-
+import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
   SidebarContent,
@@ -15,32 +15,34 @@ import {
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/home",
     icon: Home,
   },
   {
     title: "Inbox",
-    url: "#",
+    url: "/inbox",
     icon: Inbox,
   },
   {
     title: "Calendar",
-    url: "#",
+    url: "/calendar",
     icon: Calendar,
   },
   {
     title: "Search",
-    url: "#",
+    url: "/search",
     icon: Search,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
 ]
 
 export function AppSidebar() {
+  const location = useLocation()
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -50,11 +52,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
+                  >
+                    <NavLink to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

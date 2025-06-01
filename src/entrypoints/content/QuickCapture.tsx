@@ -1,7 +1,7 @@
 import { buildTurndownService } from '@/utils';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import Browser from 'webextension-polyfill';
+import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
 import scssStyles from './index.module.scss';
 
@@ -17,7 +17,7 @@ const capture = () => {
     const clonedSelection = range.cloneContents();
     const turndownService = buildTurndownService();
     selection.empty();
-    Browser.runtime.sendMessage({
+    browser.runtime.sendMessage({
       type: 'clip-with-selection',
       data: turndownService.turndown(clonedSelection),
     });
@@ -27,7 +27,7 @@ const capture = () => {
 };
 
 const clipPage = () => {
-  Browser.runtime.sendMessage({
+  browser.runtime.sendMessage({
     type: 'clip-page'
   })
 };
@@ -45,7 +45,7 @@ const setHighlight = (range: Range) => {
 }
 
 
-Browser.runtime.onMessage.addListener((request) => {
+browser.runtime.onMessage.addListener((request) => {
   if (request.type === 'clip-with-selection' || request.type === 'clip') {
     capture();
   } else if (request.type === 'clip-page') {

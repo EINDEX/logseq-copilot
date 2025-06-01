@@ -1,15 +1,7 @@
-import {
-  Heading,
-  Grid,
-  Text,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Button,
-  Link,
-  NumberInput,
-  NumberInputField,
-} from '@chakra-ui/react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import React, { useEffect } from 'react';
 import { log } from '@/utils';
 
@@ -29,13 +21,16 @@ export const LogseqConnectOptions = () => {
   const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!logseqConfig) return;
     setLogseqConfig({
       ...logseqConfig,
       [e.target.name]: e.target.value,
     });
   };
 
-  const changeLogseqPort = (port: string) => {
+  const changeLogseqPort = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!logseqConfig) return;
+    let port = e.target.value;
     if (port === '' || parseInt(port) < 0) {
       port = '0'
     }
@@ -66,7 +61,7 @@ export const LogseqConnectOptions = () => {
         const service = await getLogseqService();
         const graph = await service.getGraph();
         log.info(`Logseq Graph -> ${graph}`);
-        window.location = `logseq://graph/${graph}`;
+        window.location.href = `logseq://graph/${graph}`;
       }
     });
     promise.then(console.log).catch(console.error);
@@ -108,68 +103,74 @@ export const LogseqConnectOptions = () => {
   };
 
   return (
-    <>
-      <Heading size={'lg'}>Logseq Connect</Heading>
-      <Grid
-        gridTemplateColumns={'1fr 1fr 1fr'}
-        alignItems={'center'}
-        rowGap={2}
-        columnGap={2}
-      >
-        <Text gridColumn={'1 / span 2'} fontSize="sm">
-          Host
-        </Text>
-        <Text fontSize="sm">Port (1 ~ 65535)</Text>
-        <Input
-          gridColumn={'1 / span 2'}
-          name="logseqHostName"
-          placeholder="Logseq Host"
-          onChange={onChange}
-          value={logseqConfig?.logseqHostName}
-        />
-        <NumberInput
-          max={65535}
-          min={1}
-          name="logseqPort"
-          placeholder="Logseq Host"
-          onChange={changeLogseqPort}
-          value={logseqConfig?.logseqPort}
-        >
-          <NumberInputField />
-        </NumberInput>
-        <Text fontSize="sm">Authorization Token</Text>
-        <InputGroup gridColumn={'1 / span 3'}>
+    <Card>
+      <CardHeader>
+        <CardTitle>Logseq Connect</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-4 items-center">
+          <Label className="col-span-2 text-sm">Host</Label>
+          <Label className="text-sm">Port (1 ~ 65535)</Label>
+
           <Input
-            name="logseqAuthToken"
-            type={showToken ? 'text' : 'password'}
+            className="col-span-2"
+            name="logseqHostName"
+            placeholder="Logseq Host"
             onChange={onChange}
-            value={logseqConfig?.logseqAuthToken}
-            placeholder="Logseq Authorization Token"
+            value={logseqConfig?.logseqHostName || ''}
           />
-          <InputRightElement width="4.5rem">
-            <Button h="1.75rem" size="sm" onClick={triggerShowToken}>
+          <Input
+            type="number"
+            min={1}
+            max={65535}
+            name="logseqPort"
+            placeholder="Port"
+            onChange={changeLogseqPort}
+            value={logseqConfig?.logseqPort || ''}
+          />
+
+          <Label className="text-sm">Authorization Token</Label>
+          <div className="col-span-3 relative">
+            <Input
+              name="logseqAuthToken"
+              type={showToken ? 'text' : 'password'}
+              onChange={onChange}
+              value={logseqConfig?.logseqAuthToken || ''}
+              placeholder="Logseq Authorization Token"
+              className="pr-20"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7"
+              onClick={triggerShowToken}
+            >
               {showToken ? 'Hide' : 'Show'}
             </Button>
-          </InputRightElement>
-        </InputGroup>
-        <Button
-          gridColumn={'1 / span 3'}
-          onClick={save}
-          variant="outline"
-          colorScheme={!connected ? 'red' : 'green'}
-          isLoading={loading}
-        >
-          {buttonMessage}
-        </Button>
-        <Text gridColumn={'1 / span 3'} justifySelf={'end'}>
-          <Link
-            color={!connected ? 'red' : undefined}
-            href="https://logseq-copilot.eindex.me/doc/setup"
+          </div>
+
+          <Button
+            className="col-span-3"
+            onClick={save}
+            variant="outline"
+            disabled={loading}
           >
-            Guide to Connection
-          </Link>
-        </Text>
-      </Grid>
-    </>
+            {loading ? 'Connecting...' : buttonMessage}
+          </Button>
+
+          <div className="col-span-3 text-right">
+            <a
+              className={`text-sm hover:underline ${!connected ? 'text-destructive' : 'text-primary'}`}
+              href="https://logseq-copilot.eindex.me/doc/setup"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Guide to Connection
+            </a>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

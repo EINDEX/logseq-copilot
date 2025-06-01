@@ -1,16 +1,12 @@
 import { createRoot } from 'react-dom/client';
-import './index.scss';
-// import '@/assets/globals.css';
-import Options from './Options';
-import Layout from './layout';
+import { HashRouter } from 'react-router-dom';
+import '@/assets/globals.css';
+import App from './App';
 
 const container = document.getElementById('app');
 const root = createRoot(container!);
 root.render(
-  <>
-    <Layout>
-      {/* <Options /> */}
-      <span>Hello</span>
-    </Layout>
-  </>
+  <HashRouter>
+    <App />
+  </HashRouter>
 );

@@ -1,11 +1,12 @@
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
-import Browser from 'webextension-polyfill';
 import styles from './index.module.scss';
 import LogseqCopilot from '@/components/LogseqCopilot';
+import { browser, type Browser } from 'wxt/browser';
+
 type LogseqCopliotProps = {
-  connect: Browser.Runtime.Port;
+  connect: Browser.runtime.Port;
 };
 
 export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
@@ -21,7 +22,7 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
   );
 
   const goOptionPage = () => {
-    Browser.runtime.sendMessage({ type: 'open-options' });
+    browser.runtime.sendMessage({ type: 'open-options' });
   };
 
   const statusShower = () => {
