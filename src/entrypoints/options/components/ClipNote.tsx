@@ -6,7 +6,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -59,10 +58,6 @@ export const ClipNoteOptions = () => {
 
   const updateCustomPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateConfig('clipNoteCustomPage', event.target.value);
-  };
-
-  const updateTemplate = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    updateConfig('clipNoteTemplate', event.target.value);
   };
 
   return (
@@ -129,29 +124,6 @@ export const ClipNoteOptions = () => {
             onChange={updateCustomPage}
             placeholder="Custom Page Name"
           />
-
-          <Label htmlFor="clip-template">Clip Template</Label>
-          <Textarea
-            id="clip-template"
-            className="min-h-36"
-            name="clipNoteTemplate"
-            onChange={updateTemplate}
-            value={logseqConfig?.clipNoteTemplate || ''}
-          />
-
-          <div className="col-span-2 text-right space-y-1">
-            <p className="text-sm text-muted-foreground">
-              Available params: date, time, title, url, content, dt.
-            </p>
-            <a
-              href="https://liquidjs.com/tutorials/intro-to-liquid.html"
-              className="text-sm text-primary hover:underline block"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              The template language follow the LiquidJS.
-            </a>
-          </div>
         </div>
       </CardContent>
     </Card>

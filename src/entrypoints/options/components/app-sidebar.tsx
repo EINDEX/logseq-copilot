@@ -1,37 +1,32 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import { Settings, Search, FileText } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+import logo from "@/assets/img/logo.png"
+import { TemplatesSidebar } from "./templates-sidebar"
+
 // Menu items.
 const items = [
   {
-    title: "Home",
-    url: "/home",
-    icon: Home,
-  },
-  {
-    title: "Inbox",
-    url: "/inbox",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "/search",
+    title: "Search Engine",
+    url: "/search-engine",
     icon: Search,
+  },
+  {
+    title: "Templates",
+    url: "/templates",
+    icon: FileText,
   },
   {
     title: "Settings",
@@ -42,12 +37,20 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
+  // Example template data - replace with your actual data source and state management
+
 
   return (
     <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2">
+          <img src={logo} alt="Logseq Copilot" className="w-10 h-10 rounded-full" />
+          <span className="text-lg font-bold">Logseq Copilot</span>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Logseq Copilot</SidebarGroupLabel>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -66,7 +69,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <TemplatesSidebar />
       </SidebarContent>
+      <SidebarFooter>
+        <span className="text-sm text-muted-foreground">v1.0.0</span>
+      </SidebarFooter>
     </Sidebar>
   )
 }

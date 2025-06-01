@@ -1,5 +1,6 @@
 import { defineConfig } from 'wxt';
 import { version } from './package.json';
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   srcDir: 'src',
@@ -35,4 +36,7 @@ export default defineConfig({
     },
   },
   modules: ["@wxt-dev/module-react"],
+  vite: () => ({
+    plugins: [tailwindcss()],
+  })
 });
