@@ -26,18 +26,27 @@ export default defineContentScript({
   // matchOriginAsFallback: undefined | true | false,
   // world: undefined | 'ISOLATED' | 'MAIN',
 
-  // // Set include/exclude if the background should be removed from some builds
+  // Set include/exclude if the background should be removed from some builds
   // include: undefined | string[],
   // exclude: undefined | string[],
 
-  // // Configure how CSS is injected onto the page
-  // cssInjectionMode: undefined | "manifest" | "manual" | "ui",
+  // Configure how CSS is injected onto the page
+  cssInjectionMode: "ui",
 
-  // // Configure how/when content script will be registered
+  // Configure how/when content script will be registered
   // registration: undefined | "manifest" | "runtime",
+  // 2. Set cssInjectionMode
 
-  main(ctx) {
-    // Executed when content script is loaded, can be async
+  async main(ctx) {
+
+    function getEngine() {
+      for (const engine of searchEngines) {
+        if (engine.isMatch()) {
+          return engine;
+        }
+      }
+    }
+
     const connect = browser.runtime.connect();
 
     const mount = async (container: Element, query: string) => {
@@ -46,6 +55,7 @@ export default defineContentScript({
       connect.postMessage({ type: 'query', query: query });
 
       root.render(<LogseqCopliot connect={connect} />);
+      return root;
     };
 
     async function run(
@@ -61,31 +71,75 @@ export default defineContentScript({
       if (query) {
         console.log(`match ${typeof searchEngine}, query ${query}`);
         const container = await searchEngine.gotElement();
-        await mount(container, query);
-      }
-    }
+        // Executed when content script is loaded, can be async
+        const searchEngineUi = await createShadowRootUi(ctx, {
+          name: 'logseq-copilot-search-engine',
+          position: 'inline',
+          anchor: container,
+          append: 'first',
+          onMount: async (container) => {
+            // Container is a body, and React warns when creating a root on the body, so create a wrapper div
+            const app = document.createElement('div');
+            container.append(app);
+            return mount(app, query);
+          },
+          onRemove: async (root) => {
+            // Unmount the root when the UI is removed
+            if (root) {
+              const toUnmount = await root
+              toUnmount?.unmount()
+            }
+          },
+        });
 
-    function getEngine() {
-      for (const engine of searchEngines) {
-        if (engine.isMatch()) {
-          return engine;
+        if (searchEngineUi) {
+          // 4. Mount the UI
+          searchEngineUi.mount();
         }
       }
     }
 
     const searchEngine = getEngine();
 
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     if (searchEngine) {
-      setTimeout(() => run(searchEngine), 200);
+      run(searchEngine);
       if (searchEngine.reload) {
         searchEngine.reload(() => run(searchEngine));
       }
     }
 
-    getLogseqCopliotConfig().then(({ enableClipNoteFloatButton }) => {
-      if (!enableClipNoteFloatButton) return;
-      mountQuickCapture();
+
+    // Executed when content script is loaded, can be async
+    const popupUi = await createShadowRootUi(ctx, {
+      name: 'logseq-copilot-popup',
+      position: 'inline',
+      anchor: 'body',
+      onMount: async (container) => {
+        // Container is a body, and React warns when creating a root on the body, so create a wrapper div
+        const app = document.createElement('div');
+        app.id = 'logseq-copilot-popup';
+        container.append(app);
+
+        const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
+        if (!enableClipNoteFloatButton) return;
+        return mountQuickCapture(app);
+      },
+      onRemove: async (root) => {
+        // Unmount the root when the UI is removed
+        if (root) {
+          const toUnmount = await root
+          toUnmount?.unmount()
+        }
+      },
     });
+
+    if (popupUi) {
+      // 4. Mount the UI
+      popupUi.mount();
+    }
+
 
   },
 })
