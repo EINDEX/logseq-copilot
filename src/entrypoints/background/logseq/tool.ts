@@ -99,7 +99,7 @@ export const renderBlock = (
   return block;
 };
 
-export const getLogseqService = async (): Promise<LogseqServiceInterface> => {
+export const getLogseqService = async (config?: LogseqCopliotSettingsV1): Promise<LogseqServiceInterface> => {
   try {
     const resp = await client.isDBGraph();
     if (resp === 'true' || resp === true || resp === false) {

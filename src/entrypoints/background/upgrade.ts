@@ -1,4 +1,8 @@
-import { getLogseqCopliotConfig, saveLogseqCopliotConfig } from '@/config';
+import {
+  getLogseqCopliotConfig,
+  saveLogseqCopliotConfig,
+  storageItems,
+} from '@/config';
 
 export const changeOptionsHostToHostNameAndPort = async () => {
   const { logseqHost } = await getLogseqCopliotConfig();
@@ -8,6 +12,7 @@ export const changeOptionsHostToHostNameAndPort = async () => {
       logseqHostName: url.hostname,
       logseqPort: parseInt(url.port),
     });
-    browser.storage.local.remove('logseqHost');
+    // Remove the old logseqHost key using WXT storage
+    await storageItems.logseqHost.removeValue();
   }
 };

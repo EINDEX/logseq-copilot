@@ -4,6 +4,7 @@ import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
 import { getLogseqService } from './logseq/tool';
+import { migrateToWXTStorage } from '@/utils/migration';
 
 export default defineBackground({
   // Set manifest options
@@ -170,7 +171,10 @@ export default defineBackground({
       browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
     });
 
-    browser.runtime.onInstalled.addListener((event) => {
+    browser.runtime.onInstalled.addListener(async (event) => {
+      // Run migration for both install and update events
+      await migrateToWXTStorage();
+
       if (event.reason === 'install') {
         browser.runtime.openOptionsPage();
       } else if (event.reason === 'update') {

@@ -8,17 +8,16 @@ import { log } from '@/utils';
 import {
   getLogseqCopliotConfig,
   saveLogseqCopliotConfig,
-  LogseqCopliotConfig,
 } from '@/config';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
+import { settings } from '@/utils/storage';
 
 export const LogseqConnectOptions = () => {
-  const [init, setInit] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
   const [showToken, setShowToken] = React.useState(false);
-  const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
+  const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotSettingsV1>();
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!logseqConfig) return;
@@ -42,64 +41,106 @@ export const LogseqConnectOptions = () => {
 
   const triggerShowToken = () => setShowToken(!showToken);
 
-  const save = () => {
-    try {
-      // new URL(logseqConfig!.logseqHost);
-    } catch (error) {
-      setConnected(false);
-      setButtonMessage('Logseq Host is not a URL!');
+  const save = async () => {
+    if (!logseqConfig) {
+      setButtonMessage('Configuration is not loaded yet!');
       return;
     }
 
-    const promise = new Promise(async () => {
-      await saveLogseqCopliotConfig({
-        logseqAuthToken: logseqConfig!.logseqAuthToken,
-        logseqHostName: logseqConfig?.logseqHostName,
-        logseqPort: logseqConfig?.logseqPort,
-      });
-      if (await checkConnection()) {
-        const service = await getLogseqService();
+    try {
+      if (logseqConfig.logseqHost) new URL(`http://${logseqConfig.logseqHost}`);
+    } catch (error) {
+      setConnected(false);
+      setButtonMessage('Logseq Host is not a valid hostname!');
+      return;
+    }
+
+    try {
+      await settings.setValue(logseqConfig);
+      log.info('Configuration saved!');
+
+      if (await checkConnection(logseqConfig)) { // 使用当前已保存的配置进行连接检查
+        const service = await getLogseqService(logseqConfig);
         const graph = await service.getGraph();
         log.info(`Logseq Graph -> ${graph}`);
-        window.location.href = `logseq://graph/${graph}`;
+        if (graph) {
+          window.location.href = `logseq://graph/${graph}`;
+        } else {
+          setButtonMessage('Connected, but no graph found or specified.');
+        }
+      } else {
+        setButtonMessage('Connection failed. Check console.');
       }
-    });
-    promise.then(console.log).catch(console.error);
+    } catch (error) {
+      log.error("Save operation failed:", error);
+      setButtonMessage('Save failed. Check console.');
+      setLoading(false); // 确保在错误时停止加载
+    }
   };
 
+
   useEffect(() => {
-    if (!init) {
-      getLogseqCopliotConfig().then((config) => {
-        console.log('inti');
+    let isMounted = true;
+    const loadInitConfigAndConnect = async () => {
+      try {
+        const config = await settings.getValue();
+        if (!isMounted) return;
+
         setLogseqConfig(config);
-        setInit(true);
+
+        log.debug('config', config);
         if (config.logseqAuthToken === '') {
           setLoading(false);
           return;
         }
-        const promise = new Promise(async () => {
-          await checkConnection();
-        });
-        promise.then(console.log).catch(console.error);
-      });
-    }
-  });
 
-  const checkConnection = async (): Promise<boolean> => {
-    setLoading(true);
-    const service = await getLogseqService();
-    const resp = await service.showMsg('Logseq Copliot Connect!');
-    const connectStatus = resp.msg === 'success';
-    setConnected(connectStatus);
-    if (connectStatus) {
-      const version = await service.getVersion();
-      setButtonMessage(`Connected to Logseq v${version}!`);
-    } else {
-      setConnected(false);
-      setButtonMessage(resp.msg);
+        await checkConnection();
+      } catch (error) {
+        console.error(error);
+        setLoading(false);
+        setButtonMessage('Error loading config');
+      }
+    };
+
+    loadInitConfigAndConnect();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const checkConnection = async (currentConfig?: LogseqCopliotSettingsV1): Promise<boolean> => {
+    const configToUse = currentConfig || await settings.getValue();
+    if (!configToUse || !configToUse.logseqAuthToken) { // 确保有 token 才尝试连接
+        setLoading(false);
+        setConnected(false);
+        setButtonMessage('Auth Token is missing');
+        return false;
     }
-    setLoading(false);
-    return connectStatus;
+
+    setLoading(true);
+    try {
+      // 注意：getLogseqService 可能也需要配置，或者它内部会从 storage 获取
+      // 如果 getLogseqService 依赖于最新的 logseqConfig, 确保传递或使其能获取到
+      const service = await getLogseqService(configToUse); // 假设 service 接受配置
+      const resp = await service.showMsg('Logseq Copilot Connect!');
+      const connectStatus = resp.msg === 'success';
+      setConnected(connectStatus);
+      if (connectStatus) {
+        const version = await service.getVersion();
+        setButtonMessage(`Connected to Logseq v${version}!`);
+      } else {
+        setButtonMessage(resp.msg || 'Connection failed');
+      }
+      return connectStatus;
+    } catch (error) {
+      log.error('Connection check failed:', error);
+      setConnected(false);
+      setButtonMessage('Connection error');
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,7 +158,7 @@ export const LogseqConnectOptions = () => {
             name="logseqHostName"
             placeholder="Logseq Host"
             onChange={onChange}
-            value={logseqConfig?.logseqHostName || ''}
+            value={logseqConfig?.logseqHost || ''}
           />
           <Input
             type="number"

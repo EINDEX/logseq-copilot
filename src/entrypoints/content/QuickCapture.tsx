@@ -1,6 +1,6 @@
 import { buildTurndownService } from '@/utils';
 import { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
 import scssStyles from './index.module.scss';
@@ -108,13 +108,10 @@ const QuickCapture = () => {
   );
 };
 
-const mountQuickCapture = () => {
-  const contrainer = document.createElement('div');
-  contrainer.id = logseqCopilotPopupId;
-  document.getElementsByTagName('body')[0].appendChild(contrainer);
+const mountQuickCapture = (contrainer: Container) => {
   const root = createRoot(contrainer);
-
   root.render(<QuickCapture />);
+  return root;
 };
 
 export default mountQuickCapture;

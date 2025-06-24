@@ -5,4 +5,13 @@ export default defineWebExtConfig({
     'https://plugins-doc.logseq.com/',
     'chrome-extension://hihgfcgbmnbomabfdbajlbpnacndeihl/options.html',
   ],
+  // chromiumProfile: "./chromium-profile",
+  // openDevtools: true,
+  // chromiumPref: {
+  //   extensions: {
+  //     ui: {
+  //       developer_mode: true,
+  //     },
+  //   },
+  // }
 });
