@@ -84,16 +84,12 @@ export default defineConfig({
     [
       'script',
       {
-        'data-domain': 'logseq-copilot.eindex.me',
-        src: 'https://t.eindex.me/js/script.file-downloads.hash.outbound-links.pageview-props.revenue.tagged-events.js',
-        defer: 'true',
+        src: 'https://a.eindex.me/api/script.js',
+        'data-site-id': '1',
+        'data-tracking-errors': 'true',
+        'data-session-replay': 'true',
+        defer: true
       },
-    ],
-    [
-      'script',
-      {
-      },
-      `window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`
     ],
     [
       'script',
