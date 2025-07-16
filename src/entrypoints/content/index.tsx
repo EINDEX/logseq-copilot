@@ -6,6 +6,7 @@ import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
 import mountQuickCapture from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
+import { onMessage } from '@/types/messaging';
 
 export default defineContentScript({
   // Set manifest options
@@ -31,6 +32,29 @@ export default defineContentScript({
   // 2. Set cssInjectionMode
 
   async main(ctx) {
+    // Setup message listeners for background script communication
+    onMessage('content:quickCapture', async (message) => {
+      // QuickCapture will handle its own mounting via the existing event listeners
+      const event = new Event('quickCapture');
+      document.dispatchEvent(event);
+    });
+
+    onMessage('content:quickCaptureWithSelection', async (message) => {
+      // Trigger quick capture with selection
+      const event = new Event('quickCaptureWithSelection');
+      document.dispatchEvent(event);
+    });
+
+    onMessage('content:quickCapturePage', async (message) => {
+      // Trigger quick capture page
+      const event = new Event('quickCapturePage');
+      document.dispatchEvent(event);
+    });
+
+    onMessage('content:blockMarkerChanged', async (message) => {
+      // Handle block marker change result
+      console.debug('Block marker changed:', message.data);
+    });
 
     async function getEngine() {
       // Get enabled search engines from storage
@@ -56,14 +80,10 @@ export default defineContentScript({
       }
     }
 
-    const connect = browser.runtime.connect();
-
     const mount = async (container: Element, query: string) => {
       const root = createRoot(container);
 
-      connect.postMessage({ type: 'query', query: query });
-
-      root.render(<LogseqCopliot connect={connect} />);
+      root.render(<LogseqCopliot query={query} />);
       return root;
     };
 

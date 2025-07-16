@@ -37,6 +37,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tabler/icons-react": "^2.47.0",
+    "@webext-core/messaging": "^2.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^2.30.0",

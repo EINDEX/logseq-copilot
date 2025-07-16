@@ -2,13 +2,14 @@ import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import LogseqCopilot from '@/components/LogseqCopilot';
-import { browser, type Browser } from 'wxt/browser';
+import { browser } from 'wxt/browser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconSettings, IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { sendMessage, onMessage } from '@/types/messaging';
 import '@/assets/globals.css';
 
 // Import theme test function for debugging
@@ -20,41 +21,45 @@ if (import.meta.env.DEV) {
 }
 
 type LogseqCopliotProps = {
-  connect: Browser.runtime.Port;
+  query: string;
 };
 
 type LoadingState = 'loading' | 'success' | 'error' | 'disconnected';
 
-const LogseqCopliotContent = ({ connect }: LogseqCopliotProps) => {
+const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
   const [state, setState] = React.useState<LoadingState>('loading');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [logseqSearchResult, setLogseqSearchResult] = React.useState<LogseqSearchResult>();
 
   React.useEffect(() => {
-    const handleMessage = (resp: LogseqResponseType<LogseqSearchResult>) => {
-      if (resp.msg === 'success') {
-        setState('success');
-        setLogseqSearchResult(resp.response);
-        setErrorMessage('');
-      } else if (resp.msg === 'Loading...') {
-        setState('loading');
-        setErrorMessage('');
-      } else {
+    const performSearch = async () => {
+      setState('loading');
+      setErrorMessage('');
+
+      try {
+        const result = await sendMessage('logseq:search', query);
+
+        if (result.msg === 'success') {
+          setState('success');
+          setLogseqSearchResult(result.response);
+          setErrorMessage('');
+        } else {
+          setState('error');
+          setErrorMessage(result.msg);
+          setLogseqSearchResult(undefined);
+        }
+      } catch (err) {
         setState('error');
-        setErrorMessage(resp.msg);
+        setErrorMessage(err instanceof Error ? err.message : 'Search failed');
         setLogseqSearchResult(undefined);
       }
     };
 
-    connect.onMessage.addListener(handleMessage);
-
-    return () => {
-      connect.onMessage.removeListener(handleMessage);
-    };
-  }, [connect]);
+    performSearch();
+  }, [query]);
 
   const handleOpenOptions = () => {
-    browser.runtime.sendMessage({ type: 'open-options' });
+    sendMessage('app:openOptions');
   };
 
   const handleOpenLogseq = () => {
@@ -235,10 +240,10 @@ const LogseqCopliotContent = ({ connect }: LogseqCopliotProps) => {
   );
 };
 
-export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
+export const LogseqCopliot = ({ query }: LogseqCopliotProps) => {
   return (
     <ThemeProvider>
-      <LogseqCopliotContent connect={connect} />
+      <LogseqCopliotContent query={query} />
     </ThemeProvider>
   );
 };

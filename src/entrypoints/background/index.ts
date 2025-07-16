@@ -6,6 +6,7 @@ import { changeOptionsHostToHostNameAndPort } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
 import { templates } from '@/utils/storage';
+import { onMessage, sendMessage } from '@/types/messaging';
 
 export default defineBackground({
   // Set manifest options
@@ -19,49 +20,76 @@ export default defineBackground({
   main() {
     // Executed when background is loaded, CANNOT BE ASYNC
 
-    browser.runtime.onConnect.addListener((port) => {
-      port.onMessage.addListener((msg) => {
-        if (msg.type === 'query') {
-          const promise = new Promise(async () => {
-            const logseqService = await getLogseqService();
-            const searchRes = await logseqService.search(msg.query);
-            console.debug('search result', searchRes);
-            port.postMessage(searchRes);
-          });
-
-          promise.catch((err) => console.error(err));
-        } else if (msg.type === 'open-options') {
-          browser.runtime.openOptionsPage();
-        } else {
-          console.debug(msg);
-        }
-      });
+    // Register message handlers using @webext-core/messaging
+    onMessage('logseq:search', async ({ data }) => {
+      const logseqService = await getLogseqService();
+      const searchRes = await logseqService.search(data);
+      console.debug('search result', searchRes);
+      return searchRes;
     });
 
-    browser.runtime.onMessage.addListener((msg, sender) => {
-      if (msg.type === 'open-options') {
-        browser.runtime.openOptionsPage();
-      } else if (msg.type === 'clip-with-selection') {
-        quickCapture(msg.data);
-      } else if (msg.type === 'clip-page') {
-        quickCapture('');
-      } else if (msg.type === 'open-page') {
-        openPage(msg.url);
-      } else if (msg.type === 'change-block-marker') {
-        changeBlockMarker(msg.uuid, msg.marker);
-      } else {
-        console.debug(msg);
-      }
+    onMessage('logseq:urlSearch', async ({ data }) => {
+      const logseqService = await getLogseqService();
+      const url = new URL(data.url);
+      const searchRes = await logseqService.urlSearch(url, data.options);
+      return searchRes;
+    });
+
+    onMessage('app:openOptions', async () => {
+      browser.runtime.openOptionsPage();
+    });
+
+    onMessage('logseq:clipWithSelection', async ({ data }) => {
+      await quickCapture(data);
+    });
+
+    onMessage('logseq:clipPage', async () => {
+      await quickCapture('');
+    });
+
+    onMessage('app:openPage', async ({ data }) => {
+      await openPage(data.url);
+    });
+
+    onMessage('logseq:changeBlockMarker', async ({ data }) => {
+      const result = await changeBlockMarker(data.uuid, data.marker);
+      return result;
     });
 
     const changeBlockMarker = async (uuid: string, marker: string) => {
       const tab = await getCurrentTab();
       if (!tab) {
-        return;
+        return {
+          type: 'change-block-marker-result',
+          uuid,
+          status: 'error',
+          marker,
+          msg: 'No active tab found',
+        };
       }
       const logseqService = await getLogseqService();
       const result = await logseqService.changeBlockMarker(uuid, marker);
-      browser.tabs.sendMessage(tab.id!, result);
+
+      // Send result to content script
+      await sendMessage(
+        'content:blockMarkerChanged',
+        {
+          type: 'change-block-marker-result',
+          uuid,
+          status: 'success',
+          marker,
+          msg: result.msg,
+        },
+        { tabId: tab.id! },
+      );
+
+      return {
+        type: 'change-block-marker-result',
+        uuid,
+        status: 'success',
+        marker,
+        msg: result.msg,
+      };
     };
 
     const getCurrentTab = async () => {
@@ -180,7 +208,13 @@ export default defineBackground({
     }
 
     browser.contextMenus.onClicked.addListener((info, tab) => {
-      browser.tabs.sendMessage(tab!.id!, { type: info.menuItemId }, {});
+      if (info.menuItemId === 'clip-with-selection') {
+        sendMessage('content:quickCaptureWithSelection', undefined, {
+          tabId: tab!.id!,
+        });
+      } else if (info.menuItemId === 'clip-page') {
+        sendMessage('content:quickCapturePage', undefined, { tabId: tab!.id! });
+      }
     });
 
     browser.runtime.onInstalled.addListener(async (event) => {
@@ -198,7 +232,7 @@ export default defineBackground({
 
     browser.commands.onCommand.addListener((command, tab) => {
       if (command === 'clip' && tab !== undefined) {
-        browser.tabs.sendMessage(tab.id!, { type: 'clip' });
+        sendMessage('content:quickCapture', undefined, { tabId: tab.id! });
       }
     });
 

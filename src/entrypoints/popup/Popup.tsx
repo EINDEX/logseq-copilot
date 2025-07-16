@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
-import { getLogseqService } from '@/entrypoints/background/logseq/tool';
+import { sendMessage } from '@/types/messaging';
 import { QuickActions } from './components/QuickActions';
 import { SearchResults } from './components/SearchResults';
 
@@ -30,11 +30,7 @@ export default function Popup() {
         if (e.onclick === null) {
           e.onclick = (event) => {
             event.preventDefault();
-            browser.runtime
-              .sendMessage({
-                type: 'open-page',
-                url: e.href,
-              })
+            sendMessage('app:openPage', { url: e.href })
               .then(() => window.close());
           };
         }
@@ -53,9 +49,10 @@ export default function Popup() {
     setError(null);
 
     try {
-      const tabURL = new URL(currentTab.url);
-      const service = await getLogseqService();
-      const result = await service.urlSearch(tabURL, { fuzzy: true });
+      const result = await sendMessage('logseq:urlSearch', {
+        url: currentTab.url,
+        options: { fuzzy: true }
+      });
 
       if (result.status !== 200) {
         setError(result.msg || 'Failed to search current page');
@@ -78,8 +75,7 @@ export default function Popup() {
     setError(null);
 
     try {
-      const service = await getLogseqService();
-      const result = await service.search(query);
+      const result = await sendMessage('logseq:search', query);
 
       if (result.status !== 200) {
         setError(result.msg || 'Search failed');
@@ -101,7 +97,7 @@ export default function Popup() {
   };
 
   const openSettingsPage = () => {
-    browser.runtime.sendMessage({ type: 'open-options' });
+    sendMessage('app:openOptions');
     window.close();
   };
 
@@ -113,7 +109,7 @@ export default function Popup() {
   };
 
   const quickCapture = () => {
-    browser.runtime.sendMessage({ type: 'clip-page' });
+    sendMessage('logseq:clipPage');
     window.close();
   };
 
@@ -137,7 +133,7 @@ export default function Popup() {
     initializePopup();
   }, []);
 
-    const handleRetry = () => {
+  const handleRetry = () => {
     setError(null);
     searchCurrentPage();
   };

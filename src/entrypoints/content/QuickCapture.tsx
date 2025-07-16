@@ -4,6 +4,7 @@ import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { sendMessage } from '@/types/messaging';
 import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
 
@@ -20,19 +21,14 @@ const capture = () => {
     const clonedSelection = range.cloneContents();
     const turndownService = buildTurndownService();
     selection.empty();
-    browser.runtime.sendMessage({
-      type: 'clip-with-selection',
-      data: turndownService.turndown(clonedSelection),
-    });
+    sendMessage('logseq:clipWithSelection', turndownService.turndown(clonedSelection));
   } else {
     clipPage();
   }
 };
 
 const clipPage = () => {
-  browser.runtime.sendMessage({
-    type: 'clip-page'
-  })
+  sendMessage('logseq:clipPage');
 };
 
 const setHighlight = (range: Range) => {
@@ -50,13 +46,10 @@ const setHighlight = (range: Range) => {
 }
 
 
-browser.runtime.onMessage.addListener((request) => {
-  if (request.type === 'clip-with-selection' || request.type === 'clip') {
-    capture();
-  } else if (request.type === 'clip-page') {
-    clipPage();
-  }
-});
+// Listen for custom events dispatched from content script message handlers
+document.addEventListener('quickCapture', capture);
+document.addEventListener('quickCaptureWithSelection', capture);
+document.addEventListener('quickCapturePage', clipPage);
 
 const QuickCapture = () => {
   const [position, setPostion] = useState({
