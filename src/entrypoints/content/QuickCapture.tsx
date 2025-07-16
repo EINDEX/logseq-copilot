@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
+import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
+
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';

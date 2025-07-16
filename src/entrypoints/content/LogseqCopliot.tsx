@@ -1,9 +1,12 @@
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
-import styles from './index.module.scss';
 import LogseqCopilot from '@/components/LogseqCopilot';
 import { browser, type Browser } from 'wxt/browser';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import '@/assets/globals.css';
+import styles from './index.module.scss';
 
 type LogseqCopliotProps = {
   connect: Browser.runtime.Port;
@@ -46,6 +49,15 @@ export const LogseqCopliot = ({ connect }: LogseqCopliotProps) => {
 
   return (
     <div className={styles.copilot}>
+      <Button>Click me</Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Card Title</CardTitle>
+        </CardHeader>
+        <CardContent>
+          1234567890
+        </CardContent>
+      </Card>
       <div className={styles.copilotBody}>{statusShower()}</div>
 
       <div className={styles.copilotFooter}>

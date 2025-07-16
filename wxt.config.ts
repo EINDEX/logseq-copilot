@@ -1,6 +1,8 @@
 import { defineConfig } from 'wxt';
 import { version } from './package.json';
-import tailwindcss from "@tailwindcss/vite";
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   srcDir: 'src',
@@ -35,11 +37,14 @@ export default defineConfig({
       },
     },
   },
-  modules: ["@wxt-dev/module-react"],
+  modules: ['@wxt-dev/module-react'],
+  alias: {
+    '@/*': path.resolve(__dirname, './src/*'),
+  },
   vite: () => ({
     plugins: [tailwindcss()],
     optimizeDeps: {
       // rollupOptions: true
-    }
-  })
+    },
+  }),
 });

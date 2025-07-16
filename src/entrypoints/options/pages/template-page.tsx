@@ -1,39 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-    LogseqCopliotConfig,
-    getLogseqCopliotConfig,
-    saveLogseqCopliotConfig,
-} from '@/config';
+import { useSettings } from '@/hooks/use-settings';
 
 const TemplatePage: React.FC = () => {
-    const [init, setInit] = React.useState(false);
-    const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
-
-    useEffect(() => {
-        if (!init) {
-            getLogseqCopliotConfig().then((config) => {
-                setLogseqConfig(config);
-                setInit(true);
-            });
-        }
-    });
-
-    const updateConfig = (key: string, value: string | boolean) => {
-        if (!logseqConfig) return;
-        setLogseqConfig({
-            ...logseqConfig,
-            [key]: value,
-        });
-        saveLogseqCopliotConfig({
-            [key]: value,
-        });
-    };
+    const { settings: logseqConfig, updateSettings } = useSettings();
 
     const updateTemplate = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        updateConfig('clipNoteTemplate', event.target.value);
+        updateSettings({ clipNoteTemplate: event.target.value });
     };
 
     return (

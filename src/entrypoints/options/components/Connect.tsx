@@ -4,27 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import React, { useEffect } from 'react';
 import { log } from '@/utils';
-
-import {
-  getLogseqCopliotConfig,
-  saveLogseqCopliotConfig,
-} from '@/config';
+import { useSettings } from '@/hooks/use-settings';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import { settings } from '@/utils/storage';
 
 export const LogseqConnectOptions = () => {
+  const { settings: logseqConfig, loading: settingsLoading, updateSettings } = useSettings();
   const [loading, setLoading] = React.useState(true);
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
   const [showToken, setShowToken] = React.useState(false);
-  const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotSettingsV1>();
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!logseqConfig) return;
-    setLogseqConfig({
-      ...logseqConfig,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    updateSettings({ [name]: value });
   };
 
   const changeLogseqPort = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,10 +27,7 @@ export const LogseqConnectOptions = () => {
     if (port === '' || parseInt(port) < 0) {
       port = '0'
     }
-    setLogseqConfig({
-      ...logseqConfig,
-      logseqPort: parseInt(port),
-    });
+    updateSettings({ logseqPort: parseInt(port) });
   }
 
   const triggerShowToken = () => setShowToken(!showToken);
@@ -56,11 +47,11 @@ export const LogseqConnectOptions = () => {
     }
 
     try {
-      await settings.setValue(logseqConfig);
+      // 配置已经通过 updateSettings 自动保存，不需要手动调用 settings.setValue
       log.info('Configuration saved!');
 
-      if (await checkConnection(logseqConfig)) { // 使用当前已保存的配置进行连接检查
-        const service = await getLogseqService(logseqConfig);
+      if (await checkConnection()) { // 使用当前已保存的配置进行连接检查
+        const service = await getLogseqService();
         const graph = await service.getGraph();
         log.info(`Logseq Graph -> ${graph}`);
         if (graph) {
@@ -80,49 +71,34 @@ export const LogseqConnectOptions = () => {
 
 
   useEffect(() => {
-    let isMounted = true;
-    const loadInitConfigAndConnect = async () => {
-      try {
-        const config = await settings.getValue();
-        if (!isMounted) return;
+    if (settingsLoading || !logseqConfig) return;
 
-        setLogseqConfig(config);
-
-        log.debug('config', config);
-        if (config.logseqAuthToken === '') {
-          setLoading(false);
-          return;
-        }
-
-        await checkConnection();
-      } catch (error) {
-        console.error(error);
+    const initializeConnection = async () => {
+      log.debug('config', logseqConfig);
+      if (logseqConfig.logseqAuthToken === '') {
         setLoading(false);
-        setButtonMessage('Error loading config');
+        return;
       }
+
+      await checkConnection();
     };
 
-    loadInitConfigAndConnect();
+    initializeConnection();
+  }, [settingsLoading, logseqConfig]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const checkConnection = async (currentConfig?: LogseqCopliotSettingsV1): Promise<boolean> => {
-    const configToUse = currentConfig || await settings.getValue();
+  const checkConnection = async (currentConfig?: typeof logseqConfig): Promise<boolean> => {
+    const configToUse = currentConfig || logseqConfig;
     if (!configToUse || !configToUse.logseqAuthToken) { // 确保有 token 才尝试连接
-        setLoading(false);
-        setConnected(false);
-        setButtonMessage('Auth Token is missing');
-        return false;
+      setLoading(false);
+      setConnected(false);
+      setButtonMessage('Auth Token is missing');
+      return false;
     }
 
     setLoading(true);
     try {
-      // 注意：getLogseqService 可能也需要配置，或者它内部会从 storage 获取
-      // 如果 getLogseqService 依赖于最新的 logseqConfig, 确保传递或使其能获取到
-      const service = await getLogseqService(configToUse); // 假设 service 接受配置
+      // getLogseqService 会内部获取配置，不需要传递参数
+      const service = await getLogseqService();
       const resp = await service.showMsg('Logseq Copilot Connect!');
       const connectStatus = resp.msg === 'success';
       setConnected(connectStatus);
@@ -158,7 +134,7 @@ export const LogseqConnectOptions = () => {
             name="logseqHostName"
             placeholder="Logseq Host"
             onChange={onChange}
-            value={logseqConfig?.logseqHost || ''}
+            value={logseqConfig?.logseqHostName || ''}
           />
           <Input
             type="number"

@@ -78,7 +78,6 @@ export default defineContentScript({
           anchor: container,
           append: 'first',
           onMount: async (container) => {
-            // Container is a body, and React warns when creating a root on the body, so create a wrapper div
             const app = document.createElement('div');
             container.append(app);
             return mount(app, query);
@@ -110,7 +109,8 @@ export default defineContentScript({
       }
     }
 
-
+    const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
+    if (!enableClipNoteFloatButton) return;
     // Executed when content script is loaded, can be async
     const popupUi = await createShadowRootUi(ctx, {
       name: 'logseq-copilot-popup',
@@ -122,8 +122,7 @@ export default defineContentScript({
         app.id = 'logseq-copilot-popup';
         container.append(app);
 
-        const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
-        if (!enableClipNoteFloatButton) return;
+
         return mountQuickCapture(app);
       },
       onRemove: async (root) => {

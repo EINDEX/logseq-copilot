@@ -1,3 +1,4 @@
+@tailwind base;
 .pageContent {
   @apply flex flex-col gap-2 prose-sm dark:prose-invert whitespace-pre-wrap text-sm grow;
 }

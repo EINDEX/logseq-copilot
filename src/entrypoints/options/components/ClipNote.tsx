@@ -1,51 +1,30 @@
-import {
-  LogseqCopliotConfig,
-  getLogseqCopliotConfig,
-  saveLogseqCopliotConfig,
-} from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useSettings } from '@/hooks/use-settings';
 
 import React, { useEffect } from 'react';
 import { browser } from 'wxt/browser';
 
 export const ClipNoteOptions = () => {
-  const [init, setInit] = React.useState(false);
-
-  const [logseqConfig, setLogseqConfig] = React.useState<LogseqCopliotConfig>();
-
+  const { settings: logseqConfig, updateSettings } = useSettings();
   const [clipShortCut, setClipShortCut] = React.useState<string>('');
 
   useEffect(() => {
-    if (!init) {
-      getLogseqCopliotConfig().then((config) => {
-        setLogseqConfig(config);
-        setInit(true);
-      });
-
-      browser.commands
-        .getAll()
-        .then((commands) =>
-          commands.forEach(
-            (command) =>
-              command.name === 'clip' && setClipShortCut(command.shortcut || ''),
-          ),
-        );
-    }
-  });
+    browser.commands
+      .getAll()
+      .then((commands) =>
+        commands.forEach(
+          (command) =>
+            command.name === 'clip' && setClipShortCut(command.shortcut || ''),
+        ),
+      );
+  }, []);
 
   const updateConfig = (key: string, value: string | boolean) => {
-    if (!logseqConfig) return;
-    setLogseqConfig({
-      ...logseqConfig,
-      [key]: value,
-    });
-    saveLogseqCopliotConfig({
-      [key]: value,
-    });
+    updateSettings({ [key]: value });
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
