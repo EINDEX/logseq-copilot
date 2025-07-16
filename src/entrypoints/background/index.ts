@@ -1,10 +1,11 @@
-import { getLogseqCopliotConfig } from '../../config';
+import { getLogseqCopliotConfig } from '@/utils/storage';
 import { blockRending, versionCompare } from '@/utils/utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { migrateToWXTStorage } from '@/utils/migration';
+import { templates } from '@/utils/storage';
 
 export default defineBackground({
   // Set manifest options
@@ -87,8 +88,16 @@ export default defineBackground({
       const tab = await getCurrentTab();
       if (!tab) return;
       const activeTab = tab;
-      const { clipNoteLocation, clipNoteCustomPage, clipNoteTemplate } =
-        await getLogseqCopliotConfig();
+
+      // Get the first template (default template) from the templates list
+      const templateList = await templates.getValue();
+      const defaultTemplate = templateList[0];
+
+      if (!defaultTemplate) {
+        console.error('No templates found for clipping');
+        return;
+      }
+
       const now = new Date();
       const logseqService = await getLogseqService();
 
@@ -98,10 +107,13 @@ export default defineBackground({
         url: activeTab.url,
         title: activeTab.title,
         data,
-        clipNoteTemplate,
+        clipNoteTemplate: defaultTemplate.content,
         preferredDateFormat: resp['preferredDateFormat'],
         time: now,
       });
+
+      const clipNoteLocation = defaultTemplate.clipNoteLocation || 'journal';
+      const clipNoteCustomPage = defaultTemplate.clipNoteCustomPage || '';
 
       if (clipNoteLocation === 'customPage') {
         await logseqService.client.appendBlock(clipNoteCustomPage, block);

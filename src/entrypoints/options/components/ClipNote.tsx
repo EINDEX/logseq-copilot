@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '@/hooks/use-settings';
@@ -31,13 +30,7 @@ export const ClipNoteOptions = () => {
     updateConfig(e.target.name, e.target.type === 'checkbox' ? e.target.checked : e.target.value);
   };
 
-  const onClipNoteLocationSelect = (value: string) => {
-    updateConfig('clipNoteLocation', value);
-  };
 
-  const updateCustomPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateConfig('clipNoteCustomPage', event.target.value);
-  };
 
   return (
     <Card>
@@ -72,37 +65,12 @@ export const ClipNoteOptions = () => {
             </a>
           </div>
 
-          <Label>Clip Location</Label>
-          <RadioGroup
-            defaultValue="journal"
-            value={logseqConfig?.clipNoteLocation || 'journal'}
-            onValueChange={onClipNoteLocationSelect}
-          >
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="journal" id="journal" />
-                <Label htmlFor="journal">Journal</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="currentPage" id="currentPage" />
-                <Label htmlFor="currentPage">Current Page</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="customPage" id="customPage" />
-                <Label htmlFor="customPage">Custom Page</Label>
-              </div>
-            </div>
-          </RadioGroup>
-
-          <Label htmlFor="custom-page">Custom Page Name</Label>
-          <Input
-            id="custom-page"
-            disabled={logseqConfig?.clipNoteLocation !== 'customPage'}
-            name="customPage"
-            value={logseqConfig?.clipNoteCustomPage || ''}
-            onChange={updateCustomPage}
-            placeholder="Custom Page Name"
-          />
+          <div className="col-span-2">
+            <p className="text-sm text-muted-foreground">
+              Clip location and custom page settings are now configured per template. 
+              Go to Templates → Select a template to configure these settings.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

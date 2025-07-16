@@ -29,12 +29,9 @@ import {
 } from "@dnd-kit/sortable"
 import { useState } from "react"
 import { CSS } from "@dnd-kit/utilities"
-
-// Template type definition
-interface TemplateItem {
-  id: string
-  name: string
-}
+import { NavLink, useLocation } from "react-router-dom"
+import { useTemplates } from "@/hooks/use-templates"
+import { TemplateItemV1 } from "@/utils/storage"
 
 // SortableTemplateItem component
 const SortableTemplateItem = ({
@@ -48,6 +45,7 @@ const SortableTemplateItem = ({
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
+  const location = useLocation();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -55,17 +53,23 @@ const SortableTemplateItem = ({
     opacity: isDragging ? 0.5 : 1,
   }
 
+  const isActive = location.pathname === `/template/${id}`;
+
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <SidebarMenuItem className="group/item">
-        <SidebarMenuButton className="group-hover/item:bg-accent">
-          <div className="flex items-center w-full gap-2">
+        <SidebarMenuButton 
+          asChild 
+          className="group-hover/item:bg-accent" 
+          isActive={isActive}
+        >
+          <NavLink to={`/template/${id}`} className="flex items-center w-full gap-2">
             <GripVertical {...listeners}
-              className="cursor-grab active:cursor-grabbing touch-none p-1 flex items-center justify-center  rounded"
+              className="cursor-grab active:cursor-grabbing touch-none p-1 flex items-center justify-center rounded"
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder" />
             <span className="flex-grow text-left">{name}</span>
-          </div>
+          </NavLink>
         </SidebarMenuButton>
 
         <SidebarMenuAction
@@ -90,13 +94,7 @@ const TemplateItem = ({ name }: { name: string }) => (
 )
 
 export const TemplatesSidebar = () => {
-  const [templates, setTemplates] = useState<TemplateItem[]>([
-    { id: "template-1", name: "Template 2" },
-    { id: "template-2", name: "Template 1" },
-    { id: "template-3", name: "Template" },
-    { id: "default", name: "Default" },
-  ])
-
+  const { templates, loading, addTemplate, deleteTemplate, reorderTemplates } = useTemplates();
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
@@ -118,12 +116,10 @@ export const TemplatesSidebar = () => {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      setTemplates((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id)
-        const newIndex = items.findIndex((item) => item.id === over.id)
-
-        return arrayMove(items, oldIndex, newIndex)
-      })
+      const oldIndex = templates.findIndex((item) => item.id === active.id)
+      const newIndex = templates.findIndex((item) => item.id === over.id)
+      const newOrder = arrayMove(templates, oldIndex, newIndex)
+      reorderTemplates(newOrder)
     }
 
     setActiveId(null)
@@ -134,16 +130,31 @@ export const TemplatesSidebar = () => {
   }
 
   const handleAddTemplate = () => {
-    const newId = `template-${Date.now()}`
-    const newTemplate: TemplateItem = {
-      id: newId,
-      name: `New Template ${templates.length + 1}`
+    const newTemplate: Omit<TemplateItemV1, 'id'> = {
+      name: `New Template ${templates.length + 1}`,
+      content: `#[[Clip]] [{{title}}]({{url}})
+{{content}}`,
+      clipNoteLocation: 'journal',
+      clipNoteCustomPage: ''
     }
-    setTemplates([newTemplate, ...templates])
+    addTemplate(newTemplate)
   }
 
   const handleDeleteTemplate = (id: string) => {
-    setTemplates((items) => items.filter((item) => item.id !== id))
+    deleteTemplate(id)
+  }
+
+  if (loading) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>Templates</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <div className="p-4 text-center text-muted-foreground">
+            Loading templates...
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    )
   }
 
   return (

@@ -23,6 +23,8 @@ export interface TemplateItemV1 {
   id: string;
   name: string;
   content: string;
+  clipNoteLocation?: string;
+  clipNoteCustomPage?: string;
 }
 
 export const settings = storage.defineItem<LogseqCopliotSettingsV1>(
@@ -48,6 +50,8 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
         name: 'Default',
         content: `#[[Clip]] [{{title}}]({{url}})
 {{content}}`,
+        clipNoteLocation: 'journal',
+        clipNoteCustomPage: '',
       },
     ],
   },

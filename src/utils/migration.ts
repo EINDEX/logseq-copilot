@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { storageItems } from './storage';
+import { storageItems, templates } from './storage';
 import { log } from '@/utils';
 
 /**
@@ -86,6 +86,42 @@ export const migrateToWXTStorage = async (): Promise<void> => {
 
     // Execute all migrations in parallel
     await Promise.all(migrationPromises);
+
+    // Migrate old global template settings to new template system
+    if (
+      existingData.clipNoteTemplate ||
+      existingData.clipNoteLocation ||
+      existingData.clipNoteCustomPage
+    ) {
+      log.info(
+        '[Migration] Migrating global template settings to new template system...',
+      );
+
+      // Check if templates already exist
+      const existingTemplates = await templates.getValue();
+
+      // Only migrate if we have the default template and old settings exist
+      if (
+        existingTemplates.length === 1 &&
+        existingTemplates[0].id === 'default'
+      ) {
+        const migratedTemplate = {
+          id: 'default',
+          name: 'Default',
+          content:
+            existingData.clipNoteTemplate ||
+            `#[[Clip]] [{{title}}]({{url}})
+{{content}}`,
+          clipNoteLocation: existingData.clipNoteLocation || 'journal',
+          clipNoteCustomPage: existingData.clipNoteCustomPage || '',
+        };
+
+        await templates.setValue([migratedTemplate]);
+        log.info(
+          '[Migration] Successfully migrated global template settings to default template',
+        );
+      }
+    }
 
     // Set version to mark migration as completed
     if (!existingData.version) {
