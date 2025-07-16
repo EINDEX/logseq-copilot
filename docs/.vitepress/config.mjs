@@ -85,7 +85,7 @@ export default defineConfig({
       'script',
       {
         src: 'https://a.eindex.me/api/script.js',
-        'data-site-id': '1',
+        'data-site-id': '3',
         'data-tracking-errors': 'true',
         'data-session-replay': 'true',
         defer: true
