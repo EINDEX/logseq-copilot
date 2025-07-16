@@ -27,6 +27,20 @@ export interface TemplateItemV1 {
   clipNoteCustomPage?: string;
 }
 
+export interface SearchEngineConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  icon?: string;
+  description?: string;
+  isCustom?: boolean;
+  // Custom search engine template fields
+  urlPattern?: string; // Regex pattern or hostname to match
+  querySelector?: string; // CSS selector or URL parameter to get search query
+  elementSelector?: string; // CSS selector to find where to insert the Logseq Copilot
+  insertPosition?: 'before' | 'after' | 'first' | 'last'; // Where to insert relative to the element
+}
+
 export interface AIProviderConfig {
   id: string;
   name: string;
@@ -74,6 +88,24 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
         clipNoteLocation: 'journal',
         clipNoteCustomPage: '',
       },
+    ],
+  },
+);
+
+export const searchEngineConfig = storage.defineItem<SearchEngineConfig[]>(
+  'local:searchEngineConfig',
+  {
+    version: 1,
+    fallback: [
+      { id: 'google', name: 'Google', enabled: true, icon: '🔍', description: 'The world\'s most popular search engine' },
+      { id: 'bing', name: 'Bing', enabled: true, icon: '🔷', description: 'Microsoft\'s search engine with AI integration' },
+      { id: 'duckduckgo', name: 'DuckDuckGo', enabled: true, icon: '🦆', description: 'Privacy-focused search engine' },
+      { id: 'ecosia', name: 'Ecosia', enabled: true, icon: '🌱', description: 'Search engine that plants trees' },
+      { id: 'yandex', name: 'Yandex', enabled: true, icon: '🔴', description: 'Russian search engine and web services' },
+      { id: 'searx', name: 'SearX', enabled: true, icon: '🔒', description: 'Privacy-respecting metasearch engine' },
+      { id: 'baidu', name: 'Baidu', enabled: true, icon: '🐾', description: 'Leading Chinese search engine' },
+      { id: 'kagi', name: 'Kagi', enabled: true, icon: '🔎', description: 'Ad-free, privacy-focused search' },
+      { id: 'startpage', name: 'Startpage', enabled: true, icon: '🛡️', description: 'Private search using Google results' },
     ],
   },
 );

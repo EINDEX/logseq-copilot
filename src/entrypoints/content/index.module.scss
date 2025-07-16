@@ -1,29 +1,32 @@
 @import url(../../icon.css);
-@tailwind base;
+@import url('tailwindcss');
 
-.copilot {
-  @apply flex flex-col w-full max-w-sm gap-2 pb-4;
-
-  ul,
-  ol {
-    @apply flex flex-col gap-1;
-
-    li {
-      @apply max-h-fit leading-4;
-    }
-  }
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
-.copilotBody {
-  @apply flex flex-col -m-2 gap-2;
-}
-
-.configIt {
-  @apply rounded-lg h-8 w-full hover:bg-gray-500 shadow-lg border-0;
-}
-
+/* Content script specific styles */
 .content {
   @apply flex flex-col rounded-lg prose-sm prose-p:my-0 prose-pre:my-1 whitespace-pre-wrap text-sm gap-4;
+
   * {
     @apply break-all text-sm;
   }
@@ -33,27 +36,65 @@
   }
 }
 
-.copilotCardHeader {
-  @apply flex flex-row justify-between items-center text-sm pb-2;
 
-  a {
-    @apply text-sm text-center object-center;
-  }
+
+/* Theme-aware styles for content script */
+[data-theme-container] {
+  /* Light theme (default) */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: oklch(0.705 0.213 47.604);
+  --primary-foreground: oklch(0.98 0.016 73.684);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.016 73.684);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.213 47.604);
+  --logo-filter: none;
 }
 
-.copilotFooter {
-  @apply flex flex-row text-xs justify-between text-gray-500 mt-2;
-
-  a {
-    @apply text-gray-500 no-underline hover:underline;
-  }
+[data-theme-container].dark {
+  /* Dark theme */
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.646 0.222 41.116);
+  --primary-foreground: oklch(0.98 0.016 73.684);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.98 0.016 73.684);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.646 0.222 41.116);
+  --logo-filter: invert(1);
 }
 
-.popupButton {
-  @apply rounded-lg h-6 w-6;
-}
-
+/* Highlight styles for search results */
 ::highlight(copilot-highlight) {
   background-color: rgba(255, 192, 4, 0.5);
   color: black;
+}
+
+/* Dark mode highlight adjustment */
+[data-theme-container].dark ::highlight(copilot-highlight) {
+  background-color: rgba(255, 192, 4, 0.3);
+  color: white;
 }

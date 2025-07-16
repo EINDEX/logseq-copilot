@@ -1,4 +1,6 @@
-@tailwind base;
+@import url('tailwindcss');
+
+/* Legacy styles - to be removed gradually */
 .pageContent {
   @apply flex flex-col gap-2 prose-sm dark:prose-invert whitespace-pre-wrap text-sm grow;
 }
@@ -7,140 +9,8 @@
   @apply flex flex-row justify-end;
 }
 
-.copilotCardHeader {
-  @apply flex flex-row justify-between items-center text-sm pb-2;
-
-  a {
-    @apply text-sm text-center object-center;
-  }
-}
-
-.divide {
-  @apply divide-y divide-x-0 divide-dashed;
-}
-
-.toBlock {
-  @apply no-underline hover:underline min-w-fit;
-}
-
-.logseqPageLink {
-  @apply no-underline hover:underline;
-}
-
-.pages {
-  @apply grid grid-cols-3 gap-2 p-1 bg-[#8080801a] rounded-lg relative max-h-52 overflow-auto;
-}
-
-.pages::before {
-  content: 📝;
-  position: absolute;
-  // top: 0;
-}
-
-:root {
-  --cardShadow: color-mix(in srgb, black 30%, transparent) 0 1px 2px 0,
-    color-mix(in srgb, black 15%, transparent) 0 1px 3px 1px;
-
-  --cardBG: rgba(210, 210, 210, 0.2);
-  --markerStatusHoverColor: black;
-  --markerCheckerBGColor: rgba(175, 175, 175, 0.799);
-
-  // @media (prefers-color-scheme: dark) {
-  //   --cardBG: #292a2d;
-  //   --markerStatusHoverColor: white;
-  // }
-}
-
-.page {
-  @apply rounded-lg p-2 whitespace-break-spaces overflow-hidden text-ellipsis break-normal;
-  background-color: var(--cardBG);
-  box-shadow: var(--cardShadow);
-}
-
-.blocks {
-  @apply flex flex-col gap-2;
-}
-
-.block {
-  @apply p-2 rounded-lg;
-  background-color: var(--cardBG);
-  box-shadow: var(--cardShadow);
-}
-
-.blockBody {
-  @apply flex flex-row flex-wrap gap-2 items-start hover:no-underline my-1;
-}
-
-.blockHeader {
-  @apply w-full justify-between flex flex-row gap-2 border-0 border-b-[1px] border-solid border-[#6666664d] pb-1;
-}
-
-.blockContentList {
-  width: 100%;
-  margin: 0 !important;
-}
-
-.blockContentListItem {
-  @apply list-outside ml-4;
-  min-height: 20px;
-  line-height: 20px;
-  // padding: 1px 3px;
-  border-radius: 3px;
-}
-
-.blockContentListItem:hover {
-  background-color: hsl(0deg 0% 40% / 30%);
-}
-
-.blockContentRoot {
-  @apply flex flex-row justify-between gap-2 flex-wrap items-center;
-}
-
-.blockContent {
-  @apply grow flex flex-col items-start whitespace-pre-wrap text-sm prose-img:w-full prose-p:my-0 prose-img:my-1 self-start;
-  * {
-    @apply m-0 break-all text-sm;
-  }
-  p {
-    @apply m-0;
-  }
-
-  a {
-    @apply no-underline hover:underline;
-  }
-
-  img {
-    @apply max-w-full max-h-96 my-0.5;
-  }
-
-  pre {
-    @apply overflow-x-auto whitespace-pre-wrap;
-  }
-}
-
-.blockMarker {
-  @apply flex flex-row justify-center items-center;
-}
-
-.blockMarkerCheckbox {
-  @apply m-0 border-none transition ease-in-out mr-1 transform hover:scale-110 duration-150 rounded-sm;
-  appearance: none;
-  height: 16px;
-  width: 16px;
-  background-color: var(--markerCheckerBGColor);
-}
-
-.blockMarkerCheckbox:checked {
-  appearance: auto;
-  background-color: var(--markerCheckerBGColor);
-}
-
-.blockMarkerStatus {
-  @apply flex items-center self-center text-center border-none font-bold no-underline text-orange-500 hover:no-underline transform duration-300 p-0;
-  background: none;
-  font-size: 14px;
-  line-height: 16px;
-}
-.blockMarkerStatus:hover {
-  color: var(--markerStatusHoverColor);
+/* Highlight styles for search results */
+::highlight(copilot-highlight) {
+  background-color: rgba(255, 192, 4, 0.5);
+  color: black;
 }

@@ -1,32 +1,37 @@
+import React from 'react';
 import { LogseqPageIdenity } from '@/types/logseqBlock';
-
-import styles from './logseq.module.scss';
+import { IconFile } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 
 type LogseqPageLinkProps = {
   page: LogseqPageIdenity;
   graph: string;
   isPopUp?: boolean;
+  className?: string;
 };
 
 const LogseqPageLink = ({
   page,
   graph,
+  className,
 }: LogseqPageLinkProps) => {
-
   if (page === undefined || page?.name === undefined) {
-    return <></>;
+    return null;
   }
 
   return (
-    <>
-      <a
-        className={styles.logseqPageLink}
-        href={`logseq://graph/${graph}?page=${page?.name}`}
-      >
-        <span className="tie tie-page"></span>
-        {page?.originalName || page?.title}
-      </a>
-    </>
+    <a
+      href={`logseq://graph/${graph}?page=${page?.name}`}
+      className={cn(
+        "flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors no-underline hover:underline",
+        className
+      )}
+    >
+      <IconFile className="h-3 w-3 text-muted-foreground" />
+      <span className="truncate">
+        {page?.originalName || page?.name}
+      </span>
+    </a>
   );
 };
 
