@@ -1,4 +1,4 @@
-import { Settings, Search, FileText } from "lucide-react"
+import { Settings, Search, FileText, Bot } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -22,6 +22,11 @@ const items = [
     title: "Search Engine",
     url: "/search-engine",
     icon: Search,
+  },
+  {
+    title: "AI Configuration",
+    url: "/ai-config",
+    icon: Bot,
   },
   {
     title: "Templates",

@@ -27,6 +27,27 @@ export interface TemplateItemV1 {
   clipNoteCustomPage?: string;
 }
 
+export interface AIProviderConfig {
+  id: string;
+  name: string;
+  type: 'openai' | 'anthropic' | 'google' | 'ollama' | 'litellm' | 'custom';
+  baseUrl?: string;
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+}
+
+export interface AIConfig {
+  enabled: boolean;
+  providers: AIProviderConfig[];
+  defaultProvider?: string;
+  autoRun: boolean;
+  defaultContext: string;
+}
+
 export const settings = storage.defineItem<LogseqCopliotSettingsV1>(
   'local:settings',
   {
@@ -54,6 +75,19 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
         clipNoteCustomPage: '',
       },
     ],
+  },
+);
+
+export const aiConfig = storage.defineItem<AIConfig>(
+  'local:aiConfig',
+  {
+    version: 1,
+    fallback: {
+      enabled: false,
+      providers: [],
+      autoRun: false,
+      defaultContext: '{{fullHtml}}',
+    },
   },
 );
 

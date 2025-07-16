@@ -1,4 +1,4 @@
-import './index.scss';
+import '@/assets/globals.css';
 import { createRoot } from 'react-dom/client';
 import Popup from './Popup';
 
