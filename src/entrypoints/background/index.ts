@@ -4,7 +4,7 @@ import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
 import { getLogseqService } from './logseq/tool';
-import { migrateToWXTStorage } from '@/utils/migration';
+import { SearchEngineConfigMigration } from '@/utils/migration';
 import { templates } from '@/utils/storage';
 
 export default defineBackground({
@@ -185,7 +185,7 @@ export default defineBackground({
 
     browser.runtime.onInstalled.addListener(async (event) => {
       // Run migration for both install and update events
-      await migrateToWXTStorage();
+      await SearchEngineConfigMigration.runMigrations();
 
       if (event.reason === 'install') {
         browser.runtime.openOptionsPage();

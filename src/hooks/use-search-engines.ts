@@ -192,14 +192,14 @@ export function useSearchEngines(): UseSearchEnginesReturn {
    * Get only custom search engines
    */
   const getCustomSearchEngines = useCallback(() => {
-    return engines.filter((engine) => engine.isCustom);
+    return engines.filter((engine) => engine.isCustom === true);
   }, [engines]);
 
   /**
    * Get only built-in search engines
    */
   const getBuiltInSearchEngines = useCallback(() => {
-    return engines.filter((engine) => !engine.isCustom);
+    return engines.filter((engine) => engine.isCustom === false);
   }, [engines]);
 
   /**

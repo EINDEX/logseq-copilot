@@ -1,155 +1,211 @@
-import { browser } from 'wxt/browser';
-import { storageItems, templates } from './storage';
-import { log } from '@/utils';
+import { searchEngineConfig, SearchEngineConfig } from './storage';
+import { log } from './index';
 
 /**
- * Migrates existing browser storage data to WXT storage format
- * This should be called once during the extension startup to ensure
- * existing user data is preserved when upgrading to the new storage system
+ * Migration utility for search engine configuration
  */
-export const migrateToWXTStorage = async (): Promise<void> => {
-  try {
-    // Check if migration has already been completed
-    const migrationCompleted = await storageItems.version.getValue();
-    if (migrationCompleted) {
-      // Migration already completed, no need to run again
-      return;
-    }
+export class SearchEngineConfigMigration {
+  /**
+   * Migrate from v1 to v2 search engine configuration
+   * This handles the transition from simple config to full configuration-based search engines
+   */
+  static async migrateToV2() {
+    try {
+      const currentConfig = await searchEngineConfig.getValue();
 
-    log.info('[Migration] Starting migration to WXT storage...');
-
-    // Get all existing data from browser storage
-    const existingData = await browser.storage.local.get();
-
-    // If no existing data, no migration needed
-    if (!existingData || Object.keys(existingData).length === 0) {
-      log.info('[Migration] No existing data found, setting defaults...');
-      // Set a version to mark migration as completed
-      await storageItems.version.setValue('1.6.0');
-      return;
-    }
-
-    log.info('[Migration] Found existing data:', Object.keys(existingData));
-
-    // Migrate each field that exists in the old storage
-    const migrationPromises: Promise<void>[] = [];
-
-    if (existingData.version !== undefined) {
-      migrationPromises.push(
-        storageItems.version.setValue(existingData.version),
-      );
-    }
-    if (existingData.logseqHost !== undefined) {
-      migrationPromises.push(
-        storageItems.logseqHost.setValue(existingData.logseqHost),
-      );
-    }
-    if (existingData.logseqHostName !== undefined) {
-      migrationPromises.push(
-        storageItems.logseqHostName.setValue(existingData.logseqHostName),
-      );
-    }
-    if (existingData.logseqPort !== undefined) {
-      migrationPromises.push(
-        storageItems.logseqPort.setValue(existingData.logseqPort),
-      );
-    }
-    if (existingData.logseqAuthToken !== undefined) {
-      migrationPromises.push(
-        storageItems.logseqAuthToken.setValue(existingData.logseqAuthToken),
-      );
-    }
-    if (existingData.enableClipNoteFloatButton !== undefined) {
-      migrationPromises.push(
-        storageItems.enableClipNoteFloatButton.setValue(
-          existingData.enableClipNoteFloatButton,
-        ),
-      );
-    }
-    if (existingData.clipNoteLocation !== undefined) {
-      migrationPromises.push(
-        storageItems.clipNoteLocation.setValue(existingData.clipNoteLocation),
-      );
-    }
-    if (existingData.clipNoteCustomPage !== undefined) {
-      migrationPromises.push(
-        storageItems.clipNoteCustomPage.setValue(
-          existingData.clipNoteCustomPage,
-        ),
-      );
-    }
-    if (existingData.clipNoteTemplate !== undefined) {
-      migrationPromises.push(
-        storageItems.clipNoteTemplate.setValue(existingData.clipNoteTemplate),
-      );
-    }
-
-    // Execute all migrations in parallel
-    await Promise.all(migrationPromises);
-
-    // Migrate old global template settings to new template system
-    if (
-      existingData.clipNoteTemplate ||
-      existingData.clipNoteLocation ||
-      existingData.clipNoteCustomPage
-    ) {
-      log.info(
-        '[Migration] Migrating global template settings to new template system...',
+      // Check if migration is needed
+      const needsMigration = currentConfig.some(
+        (engine) =>
+          !engine.urlPattern ||
+          !engine.querySelector ||
+          !engine.elementSelector,
       );
 
-      // Check if templates already exist
-      const existingTemplates = await templates.getValue();
-
-      // Only migrate if we have the default template and old settings exist
-      if (
-        existingTemplates.length === 1 &&
-        existingTemplates[0].id === 'default'
-      ) {
-        const migratedTemplate = {
-          id: 'default',
-          name: 'Default',
-          content:
-            existingData.clipNoteTemplate ||
-            `#[[Clip]] [{{title}}]({{url}})
-{{content}}`,
-          clipNoteLocation: existingData.clipNoteLocation || 'journal',
-          clipNoteCustomPage: existingData.clipNoteCustomPage || '',
-        };
-
-        await templates.setValue([migratedTemplate]);
-        log.info(
-          '[Migration] Successfully migrated global template settings to default template',
-        );
+      if (!needsMigration) {
+        log.debug('[Migration] Search engine config is already up to date');
+        return;
       }
+
+      log.info(
+        '[Migration] Starting search engine configuration migration to v2',
+      );
+
+      // Define the default built-in search engines with full configuration
+      const builtInEngines: SearchEngineConfig[] = [
+        {
+          id: 'google',
+          name: 'Google',
+          enabled: true,
+          icon: '🔍',
+          description: "The world's most popular search engine",
+          isCustom: false,
+          urlPattern: '\\.google(\\.com?)?(\\.[a-z]{2})?(\\.[a-z]{3})?$',
+          querySelector: '?q',
+          elementSelector: '#rhs',
+          insertPosition: 'first',
+        },
+        {
+          id: 'bing',
+          name: 'Bing',
+          enabled: true,
+          icon: '🔷',
+          description: "Microsoft's search engine with AI integration",
+          isCustom: false,
+          urlPattern: 'bing(\\.com?)?(\\.[a-z]{2})?$',
+          querySelector: '?q',
+          elementSelector: '#b_context',
+          insertPosition: 'first',
+        },
+        {
+          id: 'duckduckgo',
+          name: 'DuckDuckGo',
+          enabled: true,
+          icon: '🦆',
+          description: 'Privacy-focused search engine',
+          isCustom: false,
+          urlPattern: 'duckduckgo\\.com$',
+          querySelector: '?q',
+          elementSelector: '.js-react-sidebar',
+          insertPosition: 'first',
+        },
+        {
+          id: 'ecosia',
+          name: 'Ecosia',
+          enabled: true,
+          icon: '🌱',
+          description: 'Search engine that plants trees',
+          isCustom: false,
+          urlPattern: 'ecosia\\.org$',
+          querySelector: '?q',
+          elementSelector: '.layout__content .web .sidebar',
+          insertPosition: 'first',
+        },
+        {
+          id: 'yandex',
+          name: 'Yandex',
+          enabled: true,
+          icon: '🔴',
+          description: 'Russian search engine and web services',
+          isCustom: false,
+          urlPattern: 'yandex\\.(com|ru)$',
+          querySelector: '?text',
+          elementSelector: '#search-result-aside',
+          insertPosition: 'first',
+        },
+        {
+          id: 'searx',
+          name: 'SearX',
+          enabled: true,
+          icon: '🔒',
+          description: 'Privacy-respecting metasearch engine',
+          isCustom: false,
+          urlPattern: '^searx(ng)?\\.',
+          querySelector: '?q',
+          elementSelector: '#sidebar',
+          insertPosition: 'first',
+        },
+        {
+          id: 'baidu',
+          name: 'Baidu',
+          enabled: true,
+          icon: '🐾',
+          description: 'Leading Chinese search engine',
+          isCustom: false,
+          urlPattern: 'baidu\\.com',
+          querySelector: '?wd',
+          elementSelector: '#con-ar',
+          insertPosition: 'first',
+        },
+        {
+          id: 'kagi',
+          name: 'Kagi',
+          enabled: true,
+          icon: '🔎',
+          description: 'Ad-free, privacy-focused search',
+          isCustom: false,
+          urlPattern: 'kagi\\.com$',
+          querySelector: '?q',
+          elementSelector: 'div.right-content-box',
+          insertPosition: 'first',
+        },
+        {
+          id: 'startpage',
+          name: 'Startpage',
+          enabled: true,
+          icon: '🛡️',
+          description: 'Private search using Google results',
+          isCustom: false,
+          urlPattern: 'startpage\\.com$',
+          querySelector: '#q',
+          elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
+          insertPosition: 'first',
+        },
+      ];
+
+      // Merge existing configuration with new built-in engines
+      const migratedConfig: SearchEngineConfig[] = [];
+
+      // First, add built-in engines with preserved enabled state
+      for (const builtInEngine of builtInEngines) {
+        const existingEngine = currentConfig.find(
+          (e) => e.id === builtInEngine.id,
+        );
+        migratedConfig.push({
+          ...builtInEngine,
+          enabled: existingEngine
+            ? existingEngine.enabled
+            : builtInEngine.enabled,
+        });
+      }
+
+      // Then, add any custom engines that already exist
+      const customEngines = currentConfig.filter((e) => e.isCustom === true);
+      for (const customEngine of customEngines) {
+        // Ensure custom engines have all required fields
+        if (
+          customEngine.urlPattern &&
+          customEngine.querySelector &&
+          customEngine.elementSelector
+        ) {
+          migratedConfig.push(customEngine);
+        }
+      }
+
+      // Save the migrated configuration
+      await searchEngineConfig.setValue(migratedConfig);
+
+      log.info(
+        '[Migration] Successfully migrated search engine configuration to v2',
+      );
+      log.debug('[Migration] Migrated configuration:', migratedConfig);
+    } catch (error) {
+      log.error(
+        '[Migration] Failed to migrate search engine configuration:',
+        error,
+      );
+      throw error;
     }
-
-    // Set version to mark migration as completed
-    if (!existingData.version) {
-      await storageItems.version.setValue('1.6.0');
-    }
-
-    log.info('[Migration] Migration to WXT storage completed successfully');
-
-    // Optional: Clean up old storage keys after successful migration
-    // Uncomment if you want to remove old data after migration
-    // await browser.storage.local.clear();
-  } catch (error) {
-    log.error('[Migration] Failed to migrate to WXT storage:', error);
-    // Don't throw the error to prevent breaking the extension startup
-    // The extension should still work with default values
   }
-};
+
+  /**
+   * Run all necessary migrations
+   */
+  static async runMigrations() {
+    try {
+      await this.migrateToV2();
+      log.info(
+        '[Migration] All search engine migrations completed successfully',
+      );
+    } catch (error) {
+      log.error('[Migration] Migration failed:', error);
+      throw error;
+    }
+  }
+}
 
 /**
- * Gets the migration status
+ * Auto-run migrations on import
  */
-export const getMigrationStatus = async (): Promise<{
-  isCompleted: boolean;
-  version: string;
-}> => {
-  const version = await storageItems.version.getValue();
-  return {
-    isCompleted: !!version,
-    version: version || 'unknown',
-  };
-};
+SearchEngineConfigMigration.runMigrations().catch((error) => {
+  console.error('Failed to run search engine migrations:', error);
+});

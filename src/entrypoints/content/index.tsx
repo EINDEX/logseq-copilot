@@ -5,16 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
 import mountQuickCapture from './QuickCapture';
-import searchEngines, {
-  Baidu,
-  Bing,
-  Ecosia,
-  DuckDuckGo,
-  Google,
-  SearX,
-  Yandex,
-  CustomSearchEngine,
-} from './searchingEngines/searchingEngines';
+import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 
 export default defineContentScript({
   // Set manifest options
@@ -44,20 +35,10 @@ export default defineContentScript({
     async function getEngine() {
       // Get enabled search engines from storage
       const enabledEngines = await searchEngineConfig.getValue();
-      const enabledEngineIds = new Set(
-        enabledEngines.filter(e => e.enabled).map(e => e.id)
-      );
+      const enabledEngineConfigs = enabledEngines.filter(e => e.enabled);
 
-      // First try built-in search engines
-      for (const engine of searchEngines) {
-        if (engine.isMatch() && enabledEngineIds.has(engine.getId())) {
-          return engine;
-        }
-      }
-
-      // Then try custom search engines
-      const customEngines = enabledEngines.filter(e => e.enabled && e.isCustom);
-      for (const engineConfig of customEngines) {
+      // Try all enabled search engines (both built-in and custom)
+      for (const engineConfig of enabledEngineConfigs) {
         if (engineConfig.urlPattern && engineConfig.querySelector && engineConfig.elementSelector) {
           const customEngine = new CustomSearchEngine({
             id: engineConfig.id,
@@ -67,7 +48,7 @@ export default defineContentScript({
             elementSelector: engineConfig.elementSelector,
             insertPosition: engineConfig.insertPosition || 'last',
           });
-          
+
           if (customEngine.isMatch()) {
             return customEngine;
           }
@@ -86,25 +67,23 @@ export default defineContentScript({
       return root;
     };
 
-    async function run(
-      searchEngine: Google | Bing | Ecosia | DuckDuckGo | Yandex | SearX | Baidu | CustomSearchEngine,
-    ) {
+    async function run(searchEngine: CustomSearchEngine) {
       console.debug('Logseq copliot', window.location.hostname);
 
-      if (searchEngine instanceof DuckDuckGo) {
+      if (searchEngine.getId() === 'duckduckgo') {
         fixDuckDuckGoDark()
       }
 
-              const query = searchEngine.getQuery();
-        if (query) {
-          console.log(`match ${typeof searchEngine}, query ${query}`);
-          const container = await searchEngine.gotElement();
-          if (!container) {
-            console.warn('Failed to get container element for search engine');
-            return;
-          }
-          // Executed when content script is loaded, can be async
-          const searchEngineUi = await createShadowRootUi(ctx, {
+      const query = searchEngine.getQuery();
+      if (query) {
+        console.log(`match ${typeof searchEngine}, query ${query}`);
+        const container = await searchEngine.gotElement();
+        if (!container) {
+          console.warn('Failed to get container element for search engine');
+          return;
+        }
+        // Executed when content script is loaded, can be async
+        const searchEngineUi = await createShadowRootUi(ctx, {
           name: 'logseq-copilot-search-engine',
           position: 'inline',
           anchor: container,
@@ -136,9 +115,7 @@ export default defineContentScript({
 
     if (searchEngine) {
       run(searchEngine);
-      if (searchEngine.reload) {
-        searchEngine.reload(() => run(searchEngine));
-      }
+      searchEngine.reload(() => run(searchEngine));
     }
 
     const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
