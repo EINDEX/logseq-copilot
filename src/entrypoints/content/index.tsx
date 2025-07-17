@@ -7,6 +7,8 @@ import { LogseqCopliot } from './LogseqCopliot';
 import mountQuickCapture from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
+import { HighlightManager } from '@/utils/highlight-manager';
+import { HighlightsSidebarContainer } from '@/components/HighlightsSidebarContainer';
 
 export default defineContentScript({
   // Set manifest options
@@ -32,6 +34,10 @@ export default defineContentScript({
   // 2. Set cssInjectionMode
 
   async main(ctx) {
+    // Initialize highlight manager to restore saved highlights
+    const highlightManager = HighlightManager.getInstance();
+    await highlightManager.initialize();
+
     // Setup message listeners for background script communication
     onMessage('content:quickCapture', async (message) => {
       // QuickCapture will handle its own mounting via the existing event listeners
@@ -163,6 +169,31 @@ export default defineContentScript({
       popupUi.mount();
     }
 
+    // Mount the highlights sidebar
+    const sidebarUi = await createShadowRootUi(ctx, {
+      name: 'logseq-copilot-highlights-sidebar',
+      position: 'inline',
+      anchor: 'body',
+      onMount: async (container) => {
+        const app = document.createElement('div');
+        app.id = 'logseq-copilot-highlights-sidebar';
+        container.append(app);
+
+        const root = createRoot(app);
+        root.render(<HighlightsSidebarContainer />);
+        return root;
+      },
+      onRemove: async (root) => {
+        if (root) {
+          const toUnmount = await root;
+          toUnmount?.unmount();
+        }
+      },
+    });
+
+    if (sidebarUi) {
+      sidebarUi.mount();
+    }
 
   },
 })

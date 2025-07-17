@@ -5,24 +5,41 @@ import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage } from '@/types/messaging';
+import { HighlightManager } from '@/utils/highlight-manager';
+import { ThemedHighlightCommentPopup } from '@/components/HighlightCommentPopup';
+import type { HighlightData } from '@/types/highlight';
 import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 export const zIndex = '2147483647';
-const highlights = CSS.highlights;
 
-const capture = () => {
+const capture = async () => {
   const selection = getSelection();
   // getSelection() is never null in practice; with no selection rangeCount is 0.
   if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
     const range = selection.getRangeAt(0);
-    setHighlight(range);
     const clonedSelection = range.cloneContents();
     const turndownService = buildTurndownService();
     selection.empty();
+    // Clip first so a highlight failure never blocks the clip itself.
     sendMessage('logseq:clipWithSelection', turndownService.turndown(clonedSelection));
+
+    try {
+      // Add temporary highlight for immediate feedback, then persist it.
+      const highlightManager = HighlightManager.getInstance();
+      highlightManager.addTemporaryHighlight(range);
+      const savedHighlight = await highlightManager.addHighlight(range);
+
+      // Dispatch event to notify sidebar of new highlight
+      if (savedHighlight) {
+        const event = new CustomEvent('highlightAdded', { detail: savedHighlight });
+        document.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.debug('[QuickCapture] Failed to save highlight', error);
+    }
   } else {
     clipPage();
   }
@@ -32,19 +49,7 @@ const clipPage = () => {
   sendMessage('logseq:clipPage');
 };
 
-const setHighlight = (range: Range) => {
-  try {
-    if (!highlights.has("copilot-highlight")) {
-      highlights.set('copilot-highlight', new Highlight())
-    }
-    const highlight = highlights.get('copilot-highlight');
-    if (highlight) {
-      highlight.add(range);
-    }
-  } catch (error) {
-    console.debug("platform not support highlight function")
-  }
-}
+
 
 
 // Listen for custom events dispatched from content script message handlers
@@ -58,6 +63,15 @@ const QuickCapture = () => {
     y: 0,
   });
   const [show, setShow] = useState(false);
+  const [commentPopup, setCommentPopup] = useState<{
+    show: boolean;
+    highlightData: HighlightData | null;
+    position: { x: number; y: number };
+  }>({
+    show: false,
+    highlightData: null,
+    position: { x: 0, y: 0 }
+  });
 
 
 
@@ -84,9 +98,23 @@ const QuickCapture = () => {
     document.addEventListener('mouseup', clicked);
     document.addEventListener('mousedown', clicked);
 
+    // Listen for highlight comment popup events
+    const handleShowHighlightComment = (event: CustomEvent) => {
+      console.log('[QuickCapture] Received showHighlightComment event:', event.detail);
+      const { highlightId, highlightData, clickPosition } = event.detail;
+      setCommentPopup({
+        show: true,
+        highlightData,
+        position: clickPosition
+      });
+    };
+
+    document.addEventListener('showHighlightComment', handleShowHighlightComment as EventListener);
+
     return () => {
       document.removeEventListener('mouseup', clicked);
       document.removeEventListener('mousedown', clicked);
+      document.removeEventListener('showHighlightComment', handleShowHighlightComment as EventListener);
     };
   }, []);
 
@@ -105,19 +133,50 @@ const QuickCapture = () => {
     };
   };
 
+  const handleCommentPopupClose = () => {
+    setCommentPopup({
+      show: false,
+      highlightData: null,
+      position: { x: 0, y: 0 }
+    });
+  };
+
+  const handleCommentUpdate = (updatedHighlight: HighlightData) => {
+    // Optionally refresh highlight data or notify other components
+    console.log('Highlight updated:', updatedHighlight);
+  };
+
+  const handleCommentDelete = (highlightId: string) => {
+    // Optionally refresh highlight data or notify other components
+    console.log('Highlight deleted:', highlightId);
+  };
+
   return (
-    <div className={scssStyles.popupButton} style={styles()}>
-      <img
-        className={`${scssStyles.popupButton} quickCapture`}
-        src={logo}
-        onClick={capture}
-        alt={'clip-button'}
-        style={{
-          filter: 'var(--logo-filter, none)',
-          opacity: 0.8,
-        }}
-      />
-    </div>
+    <>
+      <div className={scssStyles.popupButton} style={styles()}>
+        <img
+          className={`${scssStyles.popupButton} quickCapture`}
+          src={logo}
+          onClick={capture}
+          alt={'clip-button'}
+          style={{
+            filter: 'var(--logo-filter, none)',
+            opacity: 0.8,
+          }}
+        />
+      </div>
+
+      {/* Comment Popup */}
+      {commentPopup.show && commentPopup.highlightData && (
+        <ThemedHighlightCommentPopup
+          highlightData={commentPopup.highlightData}
+          position={commentPopup.position}
+          onClose={handleCommentPopupClose}
+          onUpdate={handleCommentUpdate}
+          onDelete={handleCommentDelete}
+        />
+      )}
+    </>
   );
 };
 

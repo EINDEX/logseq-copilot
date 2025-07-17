@@ -87,7 +87,7 @@
   --logo-filter: invert(1);
 }
 
-/* Highlight styles for search results */
+/* Highlight styles for search results and temporary highlights */
 ::highlight(copilot-highlight) {
   background-color: rgba(255, 192, 4, 0.5);
   color: black;
@@ -98,3 +98,13 @@
   background-color: rgba(255, 192, 4, 0.3);
   color: white;
 }
+
+/* Persistent highlight styles - these will be dynamically named */
+/* Each saved highlight will have its own name like 'logseq-highlight-123' */
+/* The HighlightManager will register them with CSS.highlights */
+
+/* Since CSS can't target dynamic highlight names, we'll use a common pattern */
+/* All persistent highlights will use names starting with 'logseq-highlight-' */
+
+/* Note: Actual styling will be applied when the highlight is registered */
+/* This is a placeholder for potential future global highlight styles */

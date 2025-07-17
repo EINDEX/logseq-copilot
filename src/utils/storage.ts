@@ -1,4 +1,5 @@
 import { storage } from '#imports';
+import { HighlightData } from '@/types/highlight';
 
 export type LogseqCopliotConfig = {
   version: string;
@@ -96,128 +97,134 @@ export const searchEngineConfig = storage.defineItem<SearchEngineConfig[]>(
   {
     version: 2,
     fallback: [
-      { 
-        id: 'google', 
-        name: 'Google', 
-        enabled: true, 
-        icon: '🔍', 
-        description: 'The world\'s most popular search engine',
+      {
+        id: 'google',
+        name: 'Google',
+        enabled: true,
+        icon: '🔍',
+        description: "The world's most popular search engine",
         isCustom: false,
         urlPattern: '\\.google(\\.com?)?(\\.[a-z]{2})?(\\.[a-z]{3})?$',
         querySelector: '?q',
         elementSelector: '#rhs',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'bing', 
-        name: 'Bing', 
-        enabled: true, 
-        icon: '🔷', 
-        description: 'Microsoft\'s search engine with AI integration',
+      {
+        id: 'bing',
+        name: 'Bing',
+        enabled: true,
+        icon: '🔷',
+        description: "Microsoft's search engine with AI integration",
         isCustom: false,
         urlPattern: 'bing(\\.com?)?(\\.[a-z]{2})?$',
         querySelector: '?q',
         elementSelector: '#b_context',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'duckduckgo', 
-        name: 'DuckDuckGo', 
-        enabled: true, 
-        icon: '🦆', 
+      {
+        id: 'duckduckgo',
+        name: 'DuckDuckGo',
+        enabled: true,
+        icon: '🦆',
         description: 'Privacy-focused search engine',
         isCustom: false,
         urlPattern: 'duckduckgo\\.com$',
         querySelector: '?q',
         elementSelector: '.js-react-sidebar',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'ecosia', 
-        name: 'Ecosia', 
-        enabled: true, 
-        icon: '🌱', 
+      {
+        id: 'ecosia',
+        name: 'Ecosia',
+        enabled: true,
+        icon: '🌱',
         description: 'Search engine that plants trees',
         isCustom: false,
         urlPattern: 'ecosia\\.org$',
         querySelector: '?q',
         elementSelector: '.layout__content .web .sidebar',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'yandex', 
-        name: 'Yandex', 
-        enabled: true, 
-        icon: '🔴', 
+      {
+        id: 'yandex',
+        name: 'Yandex',
+        enabled: true,
+        icon: '🔴',
         description: 'Russian search engine and web services',
         isCustom: false,
         urlPattern: 'yandex\\.(com|ru)$',
         querySelector: '?text',
         elementSelector: '#search-result-aside',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'searx', 
-        name: 'SearX', 
-        enabled: true, 
-        icon: '🔒', 
+      {
+        id: 'searx',
+        name: 'SearX',
+        enabled: true,
+        icon: '🔒',
         description: 'Privacy-respecting metasearch engine',
         isCustom: false,
         urlPattern: '^searx(ng)?\\.',
         querySelector: '?q',
         elementSelector: '#sidebar',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'baidu', 
-        name: 'Baidu', 
-        enabled: true, 
-        icon: '🐾', 
+      {
+        id: 'baidu',
+        name: 'Baidu',
+        enabled: true,
+        icon: '🐾',
         description: 'Leading Chinese search engine',
         isCustom: false,
         urlPattern: 'baidu\\.com',
         querySelector: '?wd',
         elementSelector: '#con-ar',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'kagi', 
-        name: 'Kagi', 
-        enabled: true, 
-        icon: '🔎', 
+      {
+        id: 'kagi',
+        name: 'Kagi',
+        enabled: true,
+        icon: '🔎',
         description: 'Ad-free, privacy-focused search',
         isCustom: false,
         urlPattern: 'kagi\\.com$',
         querySelector: '?q',
         elementSelector: 'div.right-content-box',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
-      { 
-        id: 'startpage', 
-        name: 'Startpage', 
-        enabled: true, 
-        icon: '🛡️', 
+      {
+        id: 'startpage',
+        name: 'Startpage',
+        enabled: true,
+        icon: '🛡️',
         description: 'Private search using Google results',
         isCustom: false,
         urlPattern: 'startpage\\.com$',
         querySelector: '#q',
         elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
-        insertPosition: 'first'
+        insertPosition: 'first',
       },
     ],
   },
 );
 
-export const aiConfig = storage.defineItem<AIConfig>(
-  'local:aiConfig',
+export const aiConfig = storage.defineItem<AIConfig>('local:aiConfig', {
+  version: 1,
+  fallback: {
+    enabled: false,
+    providers: [],
+    autoRun: false,
+    defaultContext: '{{fullHtml}}',
+  },
+});
+
+// Highlights storage - stores all user highlights across websites
+export const highlights = storage.defineItem<HighlightData[]>(
+  'local:highlights',
   {
     version: 1,
-    fallback: {
-      enabled: false,
-      providers: [],
-      autoRun: false,
-      defaultContext: '{{fullHtml}}',
-    },
+    fallback: [],
   },
 );
 

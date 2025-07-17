@@ -1,4 +1,4 @@
-import { Settings, Search, FileText } from "lucide-react"
+import { Settings, Search, FileText, Highlighter } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const items = [
     title: "Templates",
     url: "/templates",
     icon: FileText,
+  },
+  {
+    title: "Highlights",
+    url: "/highlights",
+    icon: Highlighter,
   },
   {
     title: "Settings",
