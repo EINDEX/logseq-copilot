@@ -14,18 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'publish'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           version: 9
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         name: Use Node.js
         with:
-          node-version: 20.x
+          node-version: 22.x
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
@@ -65,7 +65,7 @@ jobs:
           EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: matrix.platform == 'github'
         with:
           files: |
