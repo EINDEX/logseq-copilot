@@ -1,11 +1,11 @@
 {
-  "name": "logseq-copliot",
-  "version": "1.6.0",
-  "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",
-  "license": "MIT",
+  "name": "logseq-copilot",
+  "version": "1.15.2",
+  "description": "Connect to the Logseq API and use your notes while browsing.",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eindex/logseq-copliot.git"
+    "url": "https://github.com/EINDEX/logseq-copilot.git"
   },
   "scripts": {
     "test": "jest",
