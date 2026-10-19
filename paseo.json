@@ -1,0 +1,32 @@
+{
+  "worktree": {
+    "setup": [
+      "pnpm install --frozen-lockfile",
+      "[ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" ] && cp \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" .env || true",
+      "if [ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" ]; then cp \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" .envrc; command -v direnv >/dev/null 2>&1 && direnv allow || true; fi"
+    ]
+  },
+  "metadataGeneration": {
+    "title": {
+      "instructions": "A few words naming the task, no leading verb and no conventional-commit prefix. Example: Search engine selector fix."
+    },
+    "branchName": {
+      "instructions": "Use <type>/<short-kebab-desc> with type one of feat, fix, chore, docs, ci. Example: fix/duckduckgo-dark-mode."
+    },
+    "commitMessage": {
+      "instructions": "Conventional Commits in English: <type>(<scope>): <imperative summary in lowercase>, no trailing period. Types: feat, fix, chore, docs, ci. Scope is optional and names an area such as docs or style. Release commits are 'chore: release vX.Y.Z'."
+    },
+    "pullRequest": {
+      "instructions": "Title follows the commit convention. The repo has no PR template, so write a '## Summary' section (what changed and why, linking the issue if any) and a '## Testing' section (pnpm test, pnpm run build, and manual browser checks if the UI changed)."
+    }
+  },
+  "scripts": {
+    "test": { "command": "pnpm test" },
+    "coverage": { "command": "pnpm test:coverage" },
+    "build": { "command": "VERSION=v0.0.0 pnpm run build" },
+    "docs": {
+      "type": "service",
+      "command": "pnpm docs:dev --port $PASEO_PORT --host 127.0.0.1"
+    }
+  }
+}
