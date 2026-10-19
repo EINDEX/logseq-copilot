@@ -2,8 +2,8 @@
   "worktree": {
     "setup": [
       "pnpm install --frozen-lockfile",
-      "[ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" ] && cp \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" .env || true",
-      "if [ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" ]; then cp \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" .envrc; command -v direnv >/dev/null 2>&1 && direnv allow || true; fi"
+      "if [ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" ] && ! git ls-files --error-unmatch .env >/dev/null 2>&1; then E=\"$(git rev-parse --git-path info/exclude)\"; mkdir -p \"$(dirname \"$E\")\"; grep -qxF '/.env' \"$E\" 2>/dev/null || printf '%s\\n' '/.env' >> \"$E\"; cp \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" .env; fi",
+      "if [ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" ] && ! git ls-files --error-unmatch .envrc >/dev/null 2>&1; then E=\"$(git rev-parse --git-path info/exclude)\"; mkdir -p \"$(dirname \"$E\")\"; grep -qxF '/.envrc' \"$E\" 2>/dev/null || printf '%s\\n' '/.envrc' >> \"$E\"; cp \"$PASEO_SOURCE_CHECKOUT_PATH/.envrc\" .envrc && { command -v direnv >/dev/null 2>&1 && direnv allow .envrc || true; }; fi"
     ]
   },
   "metadataGeneration": {
