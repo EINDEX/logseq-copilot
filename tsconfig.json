@@ -34,5 +34,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "extends": "./.wxt/tsconfig.json"
+  "extends": "./.wxt/tsconfig.json",
+  // docs/ is a separate Astro project with its own dependencies and tsconfig.
+  "exclude": [".output", "docs"]
 }

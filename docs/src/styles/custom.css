@@ -1,0 +1,196 @@
+/* Custom styles for Logseq Copilot documentation */
+
+/* Import Bitter font */
+@import url('https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* Root variables */
+:root {
+  --sl-font: 'Bitter', 'Times New Roman', serif;
+  --sl-font-system: 'Bitter', 'Times New Roman', serif;
+}
+
+/* Typography */
+body {
+  font-family: 'Bitter', 'Times New Roman', serif;
+}
+
+/* Header and navigation styling */
+.site-title {
+  font-weight: 600;
+}
+
+/* Content styling */
+.content-panel {
+  font-family: 'Bitter', 'Times New Roman', serif;
+}
+
+/* Custom badge styles */
+.sl-badge {
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+}
+
+/* Code block styling */
+pre,
+code {
+  font-family: 'Fira Code', 'Menlo', 'Monaco', 'Consolas', monospace;
+}
+
+/* Card hover effects */
+.sl-card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+/* Logo styling */
+.site-title img {
+  max-height: 2rem;
+}
+
+/* Custom colors for Logseq theme */
+:root[data-theme='light'] {
+  --sl-color-accent: #4f46e5;
+  --sl-color-accent-high: #312e81;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent: #6366f1;
+  --sl-color-accent-high: #a5b4fc;
+}
+
+/* External link indicators */
+/* Target all links that don't start with relative paths, anchors, or internal references */
+.content a[href^="http://"]:after,
+.content a[href^="https://"]:after,
+.content a[href^="www."]:after,
+.content-panel a[href^="http://"]:after,
+.content-panel a[href^="https://"]:after,
+.content-panel a[href^="www."]:after,
+main a[href^="http://"]:after,
+main a[href^="https://"]:after,
+main a[href^="www."]:after {
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-left: 0.25em;
+  vertical-align: middle;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+/* Hover effect for external link icons */
+.content a[href^="http://"]:hover:after,
+.content a[href^="https://"]:hover:after,
+.content a[href^="www."]:hover:after,
+.content-panel a[href^="http://"]:hover:after,
+.content-panel a[href^="https://"]:hover:after,
+.content-panel a[href^="www."]:hover:after,
+main a[href^="http://"]:hover:after,
+main a[href^="https://"]:hover:after,
+main a[href^="www."]:hover:after {
+  opacity: 1;
+}
+
+/* Exclude certain elements from external link styling */
+/* Don't add icons to links that already have Starlight's external icon */
+a[data-astro-source-loc]:after,
+.sl-link-card a:after,
+.hero-actions a:after,
+.social-icons a:after,
+a[class*='icon']:after,
+a[href*='icon']:after,
+nav a:after,
+.starlight-toc a:after,
+.sidebar a:after,
+.sl-nav a:after {
+  display: none !important;
+}
+
+/* Remove external link tooltip styles - only keep the icon indicator */
+
+/* Removed tooltip animation - no longer needed */
+
+/* Dark mode adjustments for external link icons */
+:root[data-theme='dark'] .content a[href^="http://"]:after,
+:root[data-theme='dark'] .content a[href^="https://"]:after,
+:root[data-theme='dark'] .content a[href^="www."]:after,
+:root[data-theme='dark'] .content-panel a[href^="http://"]:after,
+:root[data-theme='dark'] .content-panel a[href^="https://"]:after,
+:root[data-theme='dark'] .content-panel a[href^="www."]:after,
+:root[data-theme='dark'] main a[href^="http://"]:after,
+:root[data-theme='dark'] main a[href^="https://"]:after,
+:root[data-theme='dark'] main a[href^="www."]:after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
+}
+
+/* Responsive image adjustments */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Screenshot specific styling */
+img[src*='screenshots/'] {
+  border: 1px solid var(--sl-color-gray-5);
+  margin: 1rem 0;
+}
+
+/* Step component styling */
+.steps {
+  counter-reset: step;
+}
+
+.steps > div {
+  counter-increment: step;
+}
+
+/* Link styling */
+a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Table of contents */
+.right-sidebar {
+  font-family: 'Bitter', 'Times New Roman', serif;
+}
+
+/* Custom button styles */
+.sl-button {
+  font-family: system-ui, sans-serif;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.sl-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Search styling */
+.pagefind-ui {
+  font-family: 'Bitter', 'Times New Roman', serif;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .sl-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  img[src*='screenshots/'] {
+    margin: 0.5rem 0;
+  }
+
+  /* External link icons work well on mobile - no special handling needed */
+}

@@ -1,0 +1,142 @@
+---
+title: Highlights Sidebar
+description: View and manage all your highlights with the convenient sidebar feature.
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+# Highlights Sidebar
+
+The Logseq Copilot extension includes a highlights sidebar that allows you to view and manage all your highlights while browsing. This sidebar provides quick access to your saved highlights with search and filtering capabilities.
+
+## Features
+
+### Sidebar Toggle
+
+- **Toggle Button**: A floating button appears on the right side of your browser window
+- **Highlight Count Badge** <Badge text="Live Updates" variant="note" />: Shows the number of highlights on the current page
+- **Smart Positioning**: Automatically adjusts position when sidebar is open/closed
+
+### Sidebar Content
+
+- **Current Page Highlights**: View highlights specific to the current webpage
+- **All Sites Highlights**: Browse highlights from all websites you've visited
+- **Search Function**: Find highlights by text content, notes, or page title
+- **Responsive Design**: Adapts to different screen sizes
+
+## How to Use
+
+### Opening the Sidebar
+
+1. **Click the toggle button** on the right side of your screen
+2. **Use keyboard shortcut**:
+   - `Ctrl+Shift+H` (Windows/Linux)
+   - `Cmd+Shift+H` (Mac)
+
+### Closing the Sidebar
+
+You can close the sidebar in multiple ways:
+
+1. **Click the X button** in the sidebar header
+2. **Click the toggle button** again
+3. **Press Escape key**
+4. **Use keyboard shortcut**: `Ctrl+Shift+H` or `Cmd+Shift+H`
+
+### Viewing Highlights
+
+#### Filter Options
+
+- **This Page**: Shows only highlights from the current webpage
+- **All Sites**: Shows highlights from all websites (limited to recent 100 for performance)
+
+#### Search Function
+
+Type in the search box to filter highlights by:
+
+- Highlighted text content
+- Your personal notes
+- Page titles
+
+### Interacting with Highlights
+
+#### Quick Actions
+
+- **Click on highlight text**: Jump to the highlight location on the page
+- **Edit notes**: Add or modify your personal notes for each highlight
+- **Delete highlights**: Remove highlights you no longer need
+- **Copy text**: Copy the highlighted text to your clipboard
+
+#### Highlight Details
+
+Each highlight shows:
+
+- The highlighted text content
+- Your personal notes (if any)
+- Creation date and time
+- Source page URL
+- Color coding (if used)
+
+## Tips for Better Organization
+
+### Using Search Effectively
+
+- **Search by keywords**: Find highlights containing specific terms
+- **Search by notes**: Locate highlights with specific annotations
+- **Search by page title**: Find all highlights from a particular website
+
+### Managing Large Collections
+
+- Use the **filter by current page** option to focus on relevant content
+- **Add meaningful notes** to make highlights easier to find later
+- **Delete outdated highlights** to keep your collection relevant
+
+### Keyboard Shortcuts <Badge text="Pro Tip" variant="tip" />
+
+- `Ctrl/Cmd+Shift+H`: Toggle sidebar
+- `Escape`: Close sidebar or cancel current action
+- `Enter`: Confirm edits when editing notes
+
+## Performance Considerations
+
+The sidebar is optimized for performance:
+
+- **Lazy loading**: Only loads highlights when needed
+- **Pagination**: Shows recent highlights first
+- **Search debouncing**: Waits for you to finish typing before searching
+- **Memory efficient**: Automatically manages memory usage
+
+## Troubleshooting
+
+### Common Issues
+
+**Sidebar not appearing**:
+
+- Check if the extension is enabled
+- Verify your browser permissions
+- Try refreshing the page
+
+**Highlights not loading**:
+
+- Ensure you're connected to Logseq
+- Check your internet connection
+- Verify the Logseq API server is running
+
+**Search not working**:
+
+- Make sure you have highlights to search
+- Try clearing the search and typing again
+- Check if your highlights have text content
+
+### Getting Help
+
+If you encounter issues:
+
+- Visit our [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions)
+- Check the [setup guide](/setup) for connection issues
+- Make sure your extension is up to date
+
+## What's Next?
+
+- Learn about [Highlight Comments](/features/highlight-comments)
+- Explore more features in the extension options
+- Join our community for tips and tricks!

@@ -1,4 +1,4 @@
-import { Settings, Search, FileText, Highlighter } from "lucide-react"
+import { Settings, Search, FileText, Highlighter, Target } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -24,6 +24,11 @@ const items = [
     icon: Search,
   },
   // "AI Configuration" (/ai-config) is hidden for now: no feature uses it yet.
+  {
+    title: "Recall Rules",
+    url: "/recall-rules",
+    icon: Target,
+  },
   {
     title: "Templates",
     url: "/templates",

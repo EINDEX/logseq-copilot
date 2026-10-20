@@ -10,9 +10,9 @@
   "scripts": {
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
     "prepare": "husky install",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
+    "docs:dev": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm run build",
+    "docs:preview": "cd docs && npm run preview",
     "publish:edge": "node pipeline/edge-addon-publish.mjs",
     "publish:firefox": "web-ext sign -s .output/firefox-mv3",
     "dev": "wxt",

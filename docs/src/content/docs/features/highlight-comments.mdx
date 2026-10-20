@@ -1,0 +1,169 @@
+---
+title: Highlight Comments
+description: Add and edit personal comments on your highlights for better note-taking.
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+# Highlight Comments Feature
+
+The Logseq Copilot extension supports adding and editing comments on your highlights. When you click on any highlighted text on a webpage, a comment popup will appear allowing you to add personal notes and thoughts about the highlighted content.
+
+## Overview
+
+Transform your web highlights into rich, annotated notes by adding personal comments and insights. This feature bridges the gap between passive highlighting and active note-taking.
+
+## How to Use
+
+### Creating Highlights
+
+1. **Select text** on any webpage
+2. **Click the Logseq Copilot button** that appears near your selection
+3. The text will be **highlighted and saved automatically**
+
+### Adding Comments to Highlights
+
+1. **Click on any existing highlight** on the webpage
+2. A comment popup will appear showing:
+
+   - The highlighted text
+   - Creation date and metadata (color, tags if any)
+   - Current comment (if exists)
+   - Edit and Delete buttons
+
+3. **To add or edit a comment**:
+   - Click the **"Edit"** button
+   - Type your comment in the text area
+   - Click **"Save"** to save your comment
+   - Or click **"Cancel"** to discard changes
+
+### Managing Comments
+
+#### Editing Comments <Badge text="Quick Edit" variant="note" />
+
+- Click **"Edit"** to modify existing comments
+- Comments support **markdown formatting**
+- **Auto-save** when you click outside the popup while editing
+
+#### Saving Comments
+
+- Comments are automatically saved when you click **"Save"**
+- **Quick save** by clicking outside the popup while editing
+- Changes sync immediately with your Logseq database
+
+#### Deleting Highlights
+
+- Use the **"Delete"** button to remove the entire highlight and its comment
+- **Confirmation prompt** prevents accidental deletions
+- Deleted highlights are removed from your Logseq database
+
+### Keyboard Shortcuts
+
+- **Escape key**: Close the comment popup (or cancel editing if in edit mode)
+- **Click outside**: Close popup (or save changes if editing)
+- **Enter + Ctrl/Cmd**: Quick save while editing (if implemented)
+
+## Features
+
+### Smart Positioning <Badge text="Auto-Adjust" variant="tip" />
+
+The comment popup automatically adjusts its position to stay within the viewport, ensuring it's always visible regardless of where you click on the page.
+
+### Theme Support
+
+The comment popup automatically adapts to your current theme (light/dark mode) for a consistent user experience across different websites.
+
+### Rich Text Support
+
+- **Markdown formatting**: Use basic markdown in your comments
+- **Code snippets**: Add inline code with backticks
+- **Links**: Include URLs in your comments
+- **Lists**: Create bullet points and numbered lists
+
+## Best Practices
+
+### Effective Comment Writing
+
+- **Be specific**: Write clear, actionable comments
+- **Add context**: Explain why you highlighted this text
+- **Include questions**: Note questions for later research
+- **Cross-reference**: Link to related notes in Logseq
+
+### Organization Tips
+
+- **Use consistent tagging**: Develop a personal tagging system
+- **Include source context**: Note the publication date or author
+- **Add follow-up actions**: Include next steps or research tasks
+- **Connect ideas**: Reference related highlights or concepts
+
+## Advanced Usage
+
+### Integration with Logseq
+
+Comments are automatically synced with your Logseq database:
+
+- **Block references**: Each comment becomes a block in Logseq
+- **Page organization**: Comments are organized by source page
+- **Search integration**: Find comments through Logseq's search
+- **Graph connections**: Comments appear in your knowledge graph
+
+### Workflow Integration
+
+1. **Highlight while reading**: Capture interesting passages
+2. **Add immediate thoughts**: Write quick reactions
+3. **Expand in Logseq**: Develop ideas further in your database
+4. **Connect concepts**: Link to related notes and ideas
+
+## Troubleshooting
+
+### Common Issues
+
+**Popup not appearing**:
+
+- Ensure the text is properly highlighted
+- Check if the extension is enabled
+- Verify connection to Logseq API server
+- Try refreshing the page
+
+**Comments not saving**:
+
+- Check your internet connection
+- Verify Logseq API server is running
+- Ensure you have proper permissions
+- Try the action again after a moment
+
+**Popup positioning issues**:
+
+- Try scrolling to bring the highlight into view
+- Check browser zoom level (100% recommended)
+- Disable other extensions that might interfere
+- Try resizing the browser window
+
+### Performance Optimization
+
+- **Keep comments concise** for faster loading
+- **Regular cleanup** of outdated highlights
+- **Stable internet connection** for real-time sync
+- **Updated browser** for best performance
+
+## Integration Examples
+
+### Research Workflow
+
+```markdown
+Original text: "Machine learning algorithms require large datasets..."
+Your comment: "Check dataset requirements for my project - need to find public datasets for sentiment analysis. Related: [[ML Resources]] #research #todo"
+```
+
+### Study Notes
+
+```markdown
+Original text: "The mitochondria is the powerhouse of the cell..."
+Your comment: "Key concept for biology exam. Remember: ATP production, cellular respiration. See also: [[Cell Biology Notes]] #study #biology"
+```
+
+## What's Next?
+
+- Explore the [Highlights Sidebar](/features/highlights-sidebar) for managing all your highlights
+- Learn about [advanced Logseq integration](/development/testing-architecture)
+- Join our [community](https://github.com/EINDEX/logseq-copilot/discussions) for tips and workflows!

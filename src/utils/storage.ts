@@ -62,6 +62,49 @@ export interface AIConfig {
   defaultContext: string;
 }
 
+export interface RecallRuleConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description?: string;
+  // URL matching patterns
+  urlPattern: string; // Regex pattern to match URLs
+  // Query processing rules
+  queryProcessing: {
+    // Remove hash fragments from URLs when searching
+    ignoreHashFragments: boolean;
+    // Remove query parameters from URLs when searching
+    ignoreQueryParams: boolean;
+    // Custom keywords to exclude from search
+    excludeKeywords: string[];
+    // Custom keywords to include/prioritize in search
+    includeKeywords: string[];
+    // URL path segments to ignore (for hash routers)
+    ignorePathSegments: string[];
+  };
+  // Search scope restrictions
+  searchScope: {
+    // Only search in specific Logseq pages/namespaces
+    restrictToPages?: string[];
+    // Exclude specific pages/namespaces
+    excludePages?: string[];
+    // Only search in journal entries within date range
+    journalDateRange?: {
+      enabled: boolean;
+      days: number; // Number of days to search back
+    };
+  };
+  // Search result filtering
+  resultFiltering: {
+    // Minimum relevance score threshold
+    minRelevanceScore?: number;
+    // Maximum number of results to show
+    maxResults?: number;
+    // Prefer recent results
+    prioritizeRecent: boolean;
+  };
+}
+
 export const settings = storage.defineItem<LogseqCopliotSettingsV1>(
   'local:settings',
   {
@@ -225,6 +268,65 @@ export const highlights = storage.defineItem<HighlightData[]>(
   {
     version: 1,
     fallback: [],
+  },
+);
+
+// Recall rules storage - stores rules for customizing search behavior per website
+export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
+  'local:recallRulesConfig',
+  {
+    version: 1,
+    fallback: [
+      {
+        id: 'default-spa',
+        name: '单页应用默认规则',
+        enabled: true,
+        description: '针对使用hash路由的单页应用，忽略URL hash片段',
+        urlPattern: '.*',
+        queryProcessing: {
+          ignoreHashFragments: true,
+          ignoreQueryParams: false,
+          excludeKeywords: [],
+          includeKeywords: [],
+          ignorePathSegments: [],
+        },
+        searchScope: {
+          journalDateRange: {
+            enabled: false,
+            days: 30,
+          },
+        },
+        resultFiltering: {
+          maxResults: 10,
+          prioritizeRecent: false,
+        },
+      },
+      {
+        id: 'github-pr',
+        name: 'GitHub Pull Request',
+        enabled: false,
+        description: '针对GitHub PR页面，只搜索代码和项目相关内容',
+        urlPattern: 'github\\.com.*/(pull|issues)/',
+        queryProcessing: {
+          ignoreHashFragments: true,
+          ignoreQueryParams: true,
+          excludeKeywords: ['comment', 'discussion', 'review'],
+          includeKeywords: ['code', 'bug', 'feature', 'implementation'],
+          ignorePathSegments: ['files', 'commits'],
+        },
+        searchScope: {
+          excludePages: ['Daily Notes'],
+          journalDateRange: {
+            enabled: true,
+            days: 90,
+          },
+        },
+        resultFiltering: {
+          maxResults: 15,
+          prioritizeRecent: true,
+        },
+      },
+    ],
   },
 );
 

@@ -1,0 +1,16 @@
+<svg viewBox="0 0 24 24" fill="none"
+    xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="edge-gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0078d4"/>
+            <stop offset="100%" stop-color="#106ebe"/>
+        </linearGradient>
+        <linearGradient id="edge-gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#40e0d0"/>
+            <stop offset="100%" stop-color="#0078d4"/>
+        </linearGradient>
+    </defs>
+    <circle cx="12" cy="12" r="10" fill="url(#edge-gradient1)"/>
+    <path d="M12 2C6.48 2 2 6.48 2 12c0 2.89 1.24 5.49 3.22 7.3C6.8 17.89 9.25 17 12 17c4.42 0 8-3.58 8-8 0-1.1-.9-2-2-2H12c-1.1 0-2 .9-2 2s.9 2 2 2h4c0 2.21-1.79 4-4 4-3.31 0-6-2.69-6-6 0-2.76 1.86-5.09 4.4-5.79C9.6 2.84 10.78 2 12 2z" fill="url(#edge-gradient2)"/>
+    <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5c1.38 0 2.63-.56 3.54-1.46L12 12V7z" fill="#fff" fill-opacity="0.3"/>
+</svg> 
