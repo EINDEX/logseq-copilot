@@ -7,7 +7,7 @@ import {
   UnknownIssues,
   NoSearchingResult,
 } from '../error';
-import LogseqClientBase from '../client';
+import LogseqClientBase, { escapeQueryString } from '../client';
 import { LogseqClientInterface } from '../interfaces';
 
 type Graph = {
@@ -151,7 +151,7 @@ export default class LogseqClient
 
   public find = async (query: string) => {
     const data = await this.baseJson('logseq.DB.q', [
-      `"${query.replaceAll('"', '"')}"`,
+      `"${escapeQueryString(query)}"`,
     ]);
     return data;
   };
