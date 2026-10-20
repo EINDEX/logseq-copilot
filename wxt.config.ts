@@ -1,7 +1,6 @@
 import { defineConfig } from 'wxt';
 import { version } from './package.json';
 import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
