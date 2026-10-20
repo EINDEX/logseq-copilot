@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import {
   changeOptionsHostToHostNameAndPort,
   migrateLegacyClipSettingsToTemplates,
+  migrateRecallRuleDefaultsToEnglish,
 } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
@@ -284,6 +285,9 @@ export default defineBackground({
       // Idempotent, so it is safe on every install/update (version gating via
       // versionCompare was unreliable).
       await changeOptionsHostToHostNameAndPort();
+      await migrateRecallRuleDefaultsToEnglish().catch((err) =>
+        log.error('Failed to migrate the recall rule defaults:', err),
+      );
 
       if (event.reason === 'install') {
         browser.runtime.openOptionsPage();

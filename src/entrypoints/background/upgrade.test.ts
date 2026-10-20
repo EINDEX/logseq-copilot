@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { storage } from '#imports';
-import { templates } from '@/utils/storage';
-import { migrateLegacyClipSettingsToTemplates } from './upgrade';
+import { recallRulesConfig, templates, type RecallRuleConfig } from '@/utils/storage';
+import {
+  migrateLegacyClipSettingsToTemplates,
+  migrateRecallRuleDefaultsToEnglish,
+} from './upgrade';
 
 const DEFAULT_CONTENT = `#[[Clip]] [{{title}}]({{url}})
 {{content}}`;
@@ -71,5 +74,64 @@ describe('migrateLegacyClipSettingsToTemplates', () => {
     await migrateLegacyClipSettingsToTemplates();
 
     expect((await templates.getValue())[0].content).toBe(DEFAULT_CONTENT);
+  });
+});
+
+describe('migrateRecallRuleDefaultsToEnglish', () => {
+  const [spaDefault, githubDefault] = recallRulesConfig.fallback;
+  // The built-in rules as older versions saved them.
+  const legacyRules = (): RecallRuleConfig[] => [
+    {
+      ...spaDefault,
+      name: '单页应用默认规则',
+      description: '针对使用hash路由的单页应用，忽略URL hash片段',
+    },
+    { ...githubDefault, description: '针对GitHub PR页面，只搜索代码和项目相关内容' },
+  ];
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it('replaces the old Chinese defaults with the English ones', async () => {
+    await recallRulesConfig.setValue(legacyRules());
+
+    await migrateRecallRuleDefaultsToEnglish();
+
+    expect(await recallRulesConfig.getValue()).toEqual(recallRulesConfig.fallback);
+  });
+
+  it('keeps names and descriptions the user changed', async () => {
+    const [spa, github] = legacyRules();
+    const custom = { ...github, id: 'rule-1', name: 'Mine', description: '我的规则' };
+    await recallRulesConfig.setValue([
+      { ...spa, name: 'My SPA rule', enabled: false },
+      { ...github, description: 'Only code' },
+      custom,
+    ]);
+
+    await migrateRecallRuleDefaultsToEnglish();
+
+    const [migratedSpa, migratedGithub, migratedCustom] = await recallRulesConfig.getValue();
+    expect(migratedSpa.name).toBe('My SPA rule');
+    expect(migratedSpa.description).toBe(spaDefault.description);
+    expect(migratedSpa.enabled).toBe(false);
+    expect(migratedGithub.description).toBe('Only code');
+    expect(migratedCustom).toEqual(custom);
+  });
+
+  it('does nothing when no rules are saved', async () => {
+    await migrateRecallRuleDefaultsToEnglish();
+    expect(await storage.getItem('local:recallRulesConfig')).toBeNull();
+  });
+
+  it('is idempotent', async () => {
+    await recallRulesConfig.setValue(legacyRules());
+    await migrateRecallRuleDefaultsToEnglish();
+    const once = await recallRulesConfig.getValue();
+
+    await migrateRecallRuleDefaultsToEnglish();
+
+    expect(await recallRulesConfig.getValue()).toEqual(once);
   });
 });
