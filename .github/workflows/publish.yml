@@ -14,15 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'publish'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           version: 9
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         name: Use Node.js
         with:
           node-version: 22.x
@@ -46,8 +46,10 @@ jobs:
           pnpm zip
           pnpm zip:firefox
 
+      # AMO needs the human readable sources for bundled code; `pnpm zip:firefox`
+      # writes them next to the extension zip.
       - name: Firefox Upload & release
-        run: pnpm publish:firefox
+        run: pnpm publish:firefox --upload-source-code ".output/logseq-copliot-${{ steps.version.outputs.value }}-sources.zip"
         if: matrix.platform == 'firefox'
         env:
           WEB_EXT_API_KEY: ${{ secrets.FIREFOX_WEB_EXT_API_KEY }}
@@ -55,10 +57,11 @@ jobs:
 
       - name: Chrome Upload & release
         if: matrix.platform == 'chrome'
-        uses: mnao305/chrome-extension-upload@v4.0.1
+        uses: mnao305/chrome-extension-upload@v7.0.0
         with:
           file-path: .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
           extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
+          publisher-id: ${{ secrets.CHROME_PUBLISHER_ID }}
           client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
           client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           refresh-token: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
@@ -68,12 +71,11 @@ jobs:
         if: matrix.platform == 'edge'
         env:
           EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
-          EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
           EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: matrix.platform == 'github'
         with:
           files: |
