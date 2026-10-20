@@ -177,6 +177,9 @@ importers:
       sass-loader:
         specifier: ^13.3.3
         version: 13.3.3(sass@1.89.2)(webpack@5.94.0)
+      semver:
+        specifier: ^7.7.2
+        version: 7.7.2
       source-map-loader:
         specifier: ^3.0.2
         version: 3.0.2(webpack@5.94.0)
