@@ -135,6 +135,22 @@ async function seedDbGraph() {
 
 let app: ElectronApplication | undefined;
 
+const step = (msg: string) => console.log(`[logseq] ${msg}`);
+
+// Vitest does not time out global setup/teardown, so never wait on Electron
+// to exit by itself.
+async function closeApp() {
+  if (!app) return;
+  const proc = app.process();
+  let timer: NodeJS.Timeout | undefined;
+  await Promise.race([
+    app.close().catch(() => {}),
+    new Promise((r) => (timer = setTimeout(r, 15_000))),
+  ]);
+  clearTimeout(timer);
+  if (proc.exitCode === null) proc.kill('SIGKILL');
+}
+
 export default async function setup(project: TestProject) {
   const variant = process.env.LOGSEQ_VARIANT as 'file' | 'db';
   const executablePath = process.env.LOGSEQ_BIN;
@@ -143,6 +159,7 @@ export default async function setup(project: TestProject) {
   }
 
   const home = prepareHome();
+  step(`launching ${executablePath}`);
   app = await electron.launch({
     executablePath,
     args: ['--no-sandbox', '--disable-gpu'],
@@ -163,23 +180,31 @@ export default async function setup(project: TestProject) {
 
   const win = await app.firstWindow();
   await win.waitForLoadState('domcontentloaded');
-  await ensureApiServer(win);
-
-  if (variant === 'file') {
-    await loadFileGraph(win, home);
-  } else {
-    await seedDbGraph();
+  step('window loaded, waiting for API server');
+  try {
+    await ensureApiServer(win);
+    step(`API server up, preparing ${variant} graph`);
+    if (variant === 'file') {
+      await loadFileGraph(win, home);
+    } else {
+      await seedDbGraph();
+    }
+  } catch (e) {
+    await win.screenshot({ path: 'logseq-setup-failure.png' }).catch(() => {});
+    await closeApp();
+    throw e;
   }
 
   const info = await callApi('logseq.App.getAppInfo');
-  console.log(`[logseq] ${variant} variant ready, version ${info?.version}`);
+  step(`${variant} variant ready, version ${info?.version}`);
 
   project.provide('logseqVariant', variant);
   project.provide('logseqApi', `http://${API_HOST}:${API_PORT}`);
   project.provide('logseqToken', API_TOKEN);
 
   return async () => {
-    await app?.close().catch(() => {});
+    step('closing');
+    await closeApp();
     fs.rmSync(home, { recursive: true, force: true });
   };
 }

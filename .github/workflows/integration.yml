@@ -59,7 +59,16 @@ jobs:
 
       - name: Run integration tests
         run: xvfb-run -a pnpm test:integration
+        timeout-minutes: 8
         env:
           LOGSEQ_VARIANT: ${{ matrix.variant }}
           LOGSEQ_BIN: ${{ steps.logseq.outputs.bin }}
           LOGSEQ_DEBUG: ${{ runner.debug }}
+
+      - name: Upload setup screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-${{ matrix.variant }}-failure
+          path: logseq-setup-failure.png
+          if-no-files-found: ignore
