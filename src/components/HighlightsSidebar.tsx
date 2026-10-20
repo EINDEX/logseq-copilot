@@ -23,7 +23,14 @@ import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import type { HighlightData } from '@/types/highlight';
 import { zIndex } from '@/entrypoints/content/QuickCapture';
+import { sendMessage } from '@/types/messaging';
 
+/**
+ * In-page sidebar. It runs inside the host page (an open shadow root, which
+ * page scripts can reach via element.shadowRoot), so it only ever loads the
+ * highlights of the current page. The cross-site list lives on the extension's
+ * own options page (Options > Highlights).
+ */
 interface HighlightsSidebarProps {
     isOpen: boolean;
     onClose: () => void;
@@ -34,14 +41,13 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
     const [filteredHighlights, setFilteredHighlights] = useState<HighlightData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [currentPageOnly, setCurrentPageOnly] = useState(true);
     const [hiddenHighlights, setHiddenHighlights] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (isOpen) {
             loadHighlights();
         }
-    }, [isOpen, currentPageOnly]);
+    }, [isOpen]);
 
     useEffect(() => {
         // Filter highlights based on search query
@@ -59,19 +65,8 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
     const loadHighlights = async () => {
         try {
             setLoading(true);
-            let allHighlights: HighlightData[] = [];
-
-            if (currentPageOnly) {
-                allHighlights = await HighlightService.getCurrentPageHighlights();
-            } else {
-                allHighlights = await HighlightService.getHighlights({
-                    sortBy: 'lastAccessedAt',
-                    sortOrder: 'desc',
-                    limit: 100 // Limit to recent 100 highlights for performance
-                });
-            }
-
-            setHighlights(allHighlights);
+            const pageHighlights = await HighlightService.getCurrentPageHighlights();
+            setHighlights(pageHighlights);
         } catch (error) {
             console.error('Failed to load highlights:', error);
         } finally {
@@ -227,25 +222,15 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
                     />
                 </div>
 
-                {/* Filter buttons */}
-                <div className="flex gap-2">
-                    <Button
-                        variant={currentPageOnly ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPageOnly(true)}
-                        className="flex-1"
-                    >
-                        This Page
-                    </Button>
-                    <Button
-                        variant={!currentPageOnly ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPageOnly(false)}
-                        className="flex-1"
-                    >
-                        All Sites
-                    </Button>
-                </div>
+                {/* Highlights from other sites are only listed on the options page */}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendMessage('app:openOptions')}
+                    className="w-full"
+                >
+                    All highlights (Options &gt; Highlights)
+                </Button>
             </div>
 
             {/* Content */}
@@ -361,11 +346,7 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
             {/* Footer */}
             <div className="p-4 border-t border-border">
                 <div className="text-xs text-muted-foreground text-center">
-                    {currentPageOnly ? (
-                        `${filteredHighlights.length} highlights on this page`
-                    ) : (
-                        `${filteredHighlights.length} of your recent highlights`
-                    )}
+                    {`${filteredHighlights.length} highlights on this page`}
                 </div>
             </div>
         </div>
