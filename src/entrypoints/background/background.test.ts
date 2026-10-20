@@ -120,3 +120,55 @@ describe('service errors reach the sender with a readable message', () => {
     expect(err.message).toBe(CannotConnectWithLogseq.msg);
   });
 });
+
+describe('logseq:hybridSearch', () => {
+  const rule = {
+    id: 'r1',
+    name: 'exclude work',
+    enabled: true,
+    urlPattern: 'example\\.com',
+    queryProcessing: {
+      ignoreHashFragments: false,
+      ignoreQueryParams: false,
+      excludeKeywords: [],
+      includeKeywords: [],
+      ignorePathSegments: [],
+    },
+    searchScope: { excludePages: ['Work'] },
+    resultFiltering: { prioritizeRecent: false },
+  };
+
+  test('applies the page scope to blocks and pages, and counts what is left', async () => {
+    await fakeBrowser.storage.local.set({ recallRulesConfig: [rule] });
+    const page = (id: number, name: string) => ({ id, uuid: `p${id}`, name, originalName: name });
+    service.urlSearch.mockResolvedValue({
+      status: 200,
+      msg: 'success',
+      response: {
+        blocks: [{ uuid: 'b1', content: 'a', page: page(1, 'Work') }],
+        graph: 'g',
+      },
+    });
+    service.search.mockResolvedValue({
+      status: 200,
+      msg: 'success',
+      response: {
+        blocks: [
+          { uuid: 'b2', content: 'b', page: page(2, 'Homework') },
+          { uuid: 'b1', content: 'a', page: page(1, 'Work') },
+        ],
+        pages: [page(1, 'Work'), page(2, 'Homework')],
+        graph: 'g',
+      },
+    });
+
+    const result = await sendMessage('logseq:hybridSearch', {
+      url: 'https://example.com/a',
+      query: 'q',
+    });
+
+    expect(result.response.blocks.map((b) => b.uuid)).toEqual(['b2']);
+    expect(result.response.pages.map((p) => p.name)).toEqual(['Homework']);
+    expect(result.count).toBe(2);
+  });
+});

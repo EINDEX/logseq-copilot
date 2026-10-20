@@ -331,6 +331,17 @@ export class RecallRuleProcessor {
   }
 
   /**
+   * Filter page results by the restrictToPages / excludePages scope (exact,
+   * case-insensitive names; unknown names are dropped while a scope is active).
+   */
+  public filterPages<T extends Exclude<ResultPage, string | number | null | undefined>>(
+    pages: T[],
+    context: ProcessedSearchContext,
+  ): T[] {
+    return pages.filter((page) => pageInScope(page, context.searchScope));
+  }
+
+  /**
    * Filter search results based on recall rules
    */
   public filterResults<

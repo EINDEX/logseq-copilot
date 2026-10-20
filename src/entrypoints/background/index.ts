@@ -65,21 +65,22 @@ export default defineBackground({
         ...(querySearchRes.response?.pages || []),
       ];
 
-      // Filter results based on recall rules
+      // Filter results (blocks and pages) based on recall rules
       const filteredBlocks = recallProcessor.filterResults(
         blocks,
         searchContext,
       );
+      const filteredPages = recallProcessor.filterPages(pages, searchContext);
 
       return {
         status: urlSearchRes.status,
         msg: urlSearchRes.msg,
         response: {
           blocks: filteredBlocks,
-          pages,
+          pages: filteredPages,
           graph: urlSearchRes.response?.graph || querySearchRes.response?.graph,
         },
-        count: filteredBlocks.length + pages.length,
+        count: filteredBlocks.length + filteredPages.length,
       };
     });
 
