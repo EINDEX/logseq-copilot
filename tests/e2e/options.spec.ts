@@ -37,14 +37,14 @@ test.describe('options: recall rules', () => {
 
     const options = await page.context().newPage();
     await options.goto(ext.url('options.html#/recall-rules'));
-    await options.getByRole('button', { name: '添加规则' }).first().click();
+    await options.getByRole('button', { name: 'Add rule' }).first().click();
     await options.locator('#name').fill('E2E exclude Another Page');
     await options.locator('#urlPattern').fill('google\\.com');
-    // Second "page name" input: 排除搜索页面 (the first is 限制搜索页面).
-    const excludeInput = options.getByPlaceholder('输入页面名称').nth(1);
+    // Second "Page name" input: "Exclude these pages" (the first is "Only search these pages").
+    const excludeInput = options.getByPlaceholder('Page name').nth(1);
     await excludeInput.fill('Another Page');
     await excludeInput.press('Enter');
-    await options.getByRole('button', { name: '保存规则' }).click();
+    await options.getByRole('button', { name: 'Save rule' }).click();
     await expect
       .poll(async () =>
         ((await ext.getStorage('recallRulesConfig')) ?? []).some((r: any) =>

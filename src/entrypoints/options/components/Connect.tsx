@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,6 +7,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import type { LogseqCopliotConfig } from '@/utils/storage';
 import { isValidLogseqHostName, isValidLogseqPort } from '@/utils/connection';
+import { PageSection } from './page-layout';
 
 /** Wait this long after the last edit before checking the connection. */
 export const CHECK_DEBOUNCE_MS = 600;
@@ -162,23 +162,24 @@ export const LogseqConnectOptions = () => {
   }, [settingsLoading, logseqHostName, logseqPort, logseqAuthToken]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Logseq Connect</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4 items-center">
-          <Label className="col-span-2 text-sm">Host</Label>
-          <Label className="text-sm">Port (1 ~ 65535)</Label>
-
+    <PageSection
+      title="Logseq Connect"
+    >
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="logseqHostName">Host</Label>
           <Input
-            className="col-span-2"
+            id="logseqHostName"
             name="logseqHostName"
             placeholder="Logseq Host"
             onChange={onChange}
             value={logseqConfig?.logseqHostName || ''}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="logseqPort">Port (1 ~ 65535)</Label>
           <Input
+            id="logseqPort"
             type="number"
             min={1}
             max={65535}
@@ -187,10 +188,13 @@ export const LogseqConnectOptions = () => {
             onChange={changeLogseqPort}
             value={logseqConfig?.logseqPort || ''}
           />
+        </div>
 
-          <Label className="text-sm">Authorization Token</Label>
-          <div className="col-span-3 relative">
+        <div className="space-y-2 sm:col-span-3">
+          <Label htmlFor="logseqAuthToken">Authorization Token</Label>
+          <div className="relative">
             <Input
+              id="logseqAuthToken"
               name="logseqAuthToken"
               type={showToken ? 'text' : 'password'}
               onChange={onChange}
@@ -208,44 +212,36 @@ export const LogseqConnectOptions = () => {
               {showToken ? 'Hide' : 'Show'}
             </Button>
           </div>
+        </div>
 
-          <Button
-            className="col-span-3"
-            onClick={save}
-            variant="outline"
-            disabled={loading}
-          >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-3">
+          <Button onClick={save} variant="outline" disabled={loading}>
             {loading ? 'Connecting...' : buttonMessage}
           </Button>
-
-          {notice && (
-            <p role="status" className="col-span-3 text-sm text-primary">
-              {notice}
-            </p>
-          )}
-
-          <div className="col-span-3 flex items-center justify-between">
-            {connected && graph ? (
-              <a
-                className="text-sm text-primary hover:underline"
-                href={`logseq://graph/${graph}`}
-              >
-                Open {graph} in Logseq
-              </a>
-            ) : (
-              <span />
-            )}
+          {connected && graph && (
             <a
-              className={`text-sm hover:underline ${!connected ? 'text-destructive' : 'text-primary'}`}
-              href="https://logseq-copilot.eindex.me/doc/setup"
-              target="_blank"
-              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
+              href={`logseq://graph/${graph}`}
             >
-              Guide to Connection
+              Open {graph} in Logseq
             </a>
-          </div>
+          )}
+          <a
+            className={`text-sm hover:underline sm:ml-auto ${!connected ? 'text-destructive' : 'text-primary'}`}
+            href="https://logseq-copilot.eindex.me/doc/setup"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Guide to Connection
+          </a>
         </div>
-      </CardContent>
-    </Card>
+
+        {notice && (
+          <p role="status" className="text-sm text-primary sm:col-span-3">
+            {notice}
+          </p>
+        )}
+      </div>
+    </PageSection>
   );
 };

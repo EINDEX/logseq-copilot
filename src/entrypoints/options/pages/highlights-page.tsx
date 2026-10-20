@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
     IconHighlight,
     IconSearch,
-    IconFilter,
     IconDownload,
     IconTrash,
-    IconCalendar,
-    IconGlobe
 } from '@tabler/icons-react';
+import { PageLayout, PageList, PageListRow, PageSection } from '../components/page-layout';
 import { HighlightService } from '@/utils/highlight-service';
 import type { HighlightData, HighlightQueryOptions } from '@/types/highlight';
 import log from '@/utils/logger';
@@ -171,104 +167,12 @@ export function HighlightsPage() {
     });
 
     return (
-        <div className="space-y-6">
-            {/* Header with stats */}
-            <div>
-                <h1 className="text-2xl font-semibold mb-2">Highlight Management</h1>
-                <p className="text-muted-foreground mb-4">
-                    Manage all your saved highlights across different websites
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-2xl font-bold">{stats.total}</p>
-                                <p className="text-xs text-muted-foreground">Total Highlights</p>
-                            </div>
-                            <IconHighlight className="h-8 w-8 text-muted-foreground" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-2xl font-bold">{stats.websites}</p>
-                                <p className="text-xs text-muted-foreground">Websites</p>
-                            </div>
-                            <IconGlobe className="h-8 w-8 text-muted-foreground" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-2xl font-bold">{stats.thisWeek}</p>
-                                <p className="text-xs text-muted-foreground">This Week</p>
-                            </div>
-                            <IconCalendar className="h-8 w-8 text-muted-foreground" />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Search and Filters */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <IconFilter className="h-4 w-4" />
-                        Search & Filter
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                        <div className="relative flex-1">
-                            <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search highlights..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                        <Input
-                            placeholder="Filter by website..."
-                            value={filterHostname}
-                            onChange={(e) => setFilterHostname(e.target.value)}
-                            className="w-60"
-                        />
-                        <Button onClick={handleSearch} variant="outline">
-                            Apply Filters
-                        </Button>
-                    </div>
-
-                    {allTags.length > 0 && (
-                        <div>
-                            <p className="text-sm font-medium mb-2">Tags:</p>
-                            <div className="flex flex-wrap gap-2">
-                                {allTags.map(tag => (
-                                    <Badge
-                                        key={tag}
-                                        variant={selectedTags.includes(tag) ? "default" : "outline"}
-                                        className="cursor-pointer"
-                                        onClick={() => toggleTag(tag)}
-                                    >
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex justify-between items-center">
-                <div className="text-sm text-muted-foreground">
-                    {filteredHighlights.length} of {highlights.length} highlights
-                </div>
-
-                <div className="flex gap-2">
+        <PageLayout
+            title="Highlight Management"
+            description="Manage all your saved highlights across different websites"
+            meta={`${stats.total} highlights · ${stats.websites} websites · ${stats.thisWeek} this week`}
+            actions={
+                <>
                     <Button
                         onClick={handleExportAll}
                         variant="outline"
@@ -288,101 +192,114 @@ export function HighlightsPage() {
                         <IconTrash className="h-4 w-4 mr-2" />
                         Clear All
                     </Button>
+                </>
+            }
+        >
+            <PageSection
+                title="All Highlights"
+                description={`${filteredHighlights.length} of ${highlights.length} highlights`}
+            >
+                <div className="flex flex-wrap gap-2">
+                    <div className="relative min-w-60 flex-1">
+                        <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search highlights..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                    <Input
+                        placeholder="Filter by website..."
+                        value={filterHostname}
+                        onChange={(e) => setFilterHostname(e.target.value)}
+                        className="w-60"
+                    />
+                    <Button onClick={handleSearch} variant="outline">
+                        Apply Filters
+                    </Button>
                 </div>
-            </div>
 
-            {/* Highlights List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>All Highlights</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <div className="text-center py-8">
-                            <div className="text-sm text-muted-foreground">Loading highlights...</div>
+                {allTags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="mr-1 text-sm text-muted-foreground">Tags</span>
+                        {allTags.map(tag => (
+                            <Badge
+                                key={tag}
+                                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                                className="cursor-pointer font-normal"
+                                onClick={() => toggleTag(tag)}
+                            >
+                                {tag}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
+
+                {loading ? (
+                    <p className="py-12 text-center text-sm text-muted-foreground">Loading highlights...</p>
+                ) : filteredHighlights.length === 0 ? (
+                    <div className="py-12 text-center">
+                        <IconHighlight className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
+                        <div className="text-sm text-muted-foreground mb-1">
+                            {highlights.length === 0 ? 'No highlights found' : 'No highlights match your search'}
                         </div>
-                    ) : filteredHighlights.length === 0 ? (
-                        <div className="text-center py-8">
-                            <IconHighlight className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <div className="text-sm text-muted-foreground mb-2">
-                                {highlights.length === 0 ? 'No highlights found' : 'No highlights match your search'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                                {highlights.length === 0
-                                    ? 'Start highlighting text on websites to see them here'
-                                    : 'Try adjusting your search or filters'
-                                }
-                            </div>
+                        <div className="text-xs text-muted-foreground">
+                            {highlights.length === 0
+                                ? 'Start highlighting text on websites to see them here'
+                                : 'Try adjusting your search or filters'
+                            }
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredHighlights.map((highlight, index) => (
-                                <div key={highlight.id} className="space-y-2">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <a
-                                                    href={highlight.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm font-medium text-primary hover:underline"
-                                                >
-                                                    {highlight.title}
-                                                </a>
-                                                <Badge variant="outline" className="text-xs">
-                                                    {highlight.hostname}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="text-sm text-foreground bg-muted/50 p-3 rounded border-l-4 border-primary/50 mb-2">
-                                                "{truncateText(highlight.range.textContent)}"
-                                            </div>
-
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                                                <span>{formatDate(highlight.createdAt)}</span>
-                                                {highlight.color && (
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="h-4 px-1.5 py-0"
-                                                    >
-                                                        {highlight.color}
-                                                    </Badge>
-                                                )}
-                                                {highlight.tags && highlight.tags.length > 0 && (
-                                                    <div className="flex gap-1">
-                                                        {highlight.tags.map(tag => (
-                                                            <Badge key={tag} variant="outline" className="h-4 px-1.5 py-0">
-                                                                {tag}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {highlight.note && (
-                                                <div className="text-xs text-muted-foreground italic">
-                                                    Note: {highlight.note}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDeleteHighlight(highlight.id)}
-                                            className="text-destructive hover:text-destructive"
+                    </div>
+                ) : (
+                    <PageList>
+                        {filteredHighlights.map((highlight) => (
+                            <PageListRow key={highlight.id} className="group flex items-start justify-between gap-4">
+                                <div className="min-w-0 flex-1 space-y-2">
+                                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                        <a
+                                            href={highlight.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium text-primary hover:underline"
                                         >
-                                            <IconTrash className="h-4 w-4" />
-                                        </Button>
+                                            {highlight.title}
+                                        </a>
+                                        <span className="text-xs text-muted-foreground">{highlight.hostname}</span>
                                     </div>
 
-                                    {index < filteredHighlights.length - 1 && <Separator />}
+                                    <blockquote className="border-l-2 border-highlight pl-3 text-sm text-foreground">
+                                        {truncateText(highlight.range.textContent)}
+                                    </blockquote>
+
+                                    {highlight.note && (
+                                        <p className="text-sm text-muted-foreground">{highlight.note}</p>
+                                    )}
+
+                                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                                        <span className="mr-1">{formatDate(highlight.createdAt)}</span>
+                                        {highlight.tags?.map(tag => (
+                                            <Badge key={tag} variant="secondary" className="px-1.5 py-0 font-normal">
+                                                {tag}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteHighlight(highlight.id)}
+                                    className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                                    aria-label="Delete highlight"
+                                >
+                                    <IconTrash className="h-4 w-4" />
+                                </Button>
+                            </PageListRow>
+                        ))}
+                    </PageList>
+                )}
+            </PageSection>
+        </PageLayout>
     );
 } 

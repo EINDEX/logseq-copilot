@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-    RefreshCw,
-    Plus,
-    Edit,
-    Trash2,
-    Settings,
-    Globe,
-    Target,
-    Filter,
-    CheckCircle,
-    XCircle,
-    GripVertical
-} from 'lucide-react';
+import { RefreshCw, Plus, Edit, Trash2 } from 'lucide-react';
 import { useRecallRules } from '@/hooks/use-recall-rules';
 import { RecallRuleConfig } from '@/utils/storage';
 import RecallRuleForm from '../components/RecallRuleForm';
+import {
+    PageHelp,
+    PageLayout,
+    PageList,
+    PageListRow,
+    PageLoading,
+    PageSection,
+} from '../components/page-layout';
 import log from '@/utils/logger';
 
 const RecallRulesPage: React.FC = () => {
@@ -38,13 +32,7 @@ const RecallRulesPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
 
     if (loading) {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-muted-foreground">Loading recall rules...</div>
-                </div>
-            </div>
-        );
+        return <PageLoading title="Recall Rules">Loading recall rules...</PageLoading>;
     }
 
     const enabledRules = recallRules.filter(rule => rule.enabled);
@@ -69,7 +57,7 @@ const RecallRulesPage: React.FC = () => {
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (confirm(`确定要删除召回规则 "${name}" 吗？`)) {
+        if (confirm(`Delete the recall rule "${name}"?`)) {
             await deleteRecallRule(id);
         }
     };
@@ -102,38 +90,49 @@ const RecallRulesPage: React.FC = () => {
         }
     };
 
-    const renderRuleCard = (rule: RecallRuleConfig) => (
-        <div key={rule.id} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                    <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{rule.name}</span>
-                        {rule.enabled ? (
-                            <Badge variant="default" className="gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                启用
-                            </Badge>
-                        ) : (
-                            <Badge variant="secondary" className="gap-1">
-                                <XCircle className="h-3 w-3" />
-                                禁用
-                            </Badge>
-                        )}
-                    </div>
+    const flags = (rule: RecallRuleConfig) =>
+        [
+            rule.queryProcessing.ignoreHashFragments && 'Ignore hash',
+            rule.queryProcessing.ignoreQueryParams && 'Ignore query',
+            rule.searchScope.journalDateRange?.enabled &&
+                `Journals: last ${rule.searchScope.journalDateRange.days} days`,
+            rule.resultFiltering.prioritizeRecent && 'Recent first',
+        ].filter((flag): flag is string => Boolean(flag));
+
+    const keywordLine = (label: string, keywords: string[]) =>
+        keywords.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="mr-1 text-muted-foreground">{label}</span>
+                {keywords.map((keyword, index) => (
+                    <Badge key={index} variant="secondary" className="font-normal">
+                        {keyword}
+                    </Badge>
+                ))}
+            </div>
+        );
+
+    const renderRule = (rule: RecallRuleConfig) => (
+        <PageListRow key={rule.id} className="space-y-2">
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-0.5">
+                    <div className="text-sm font-medium">{rule.name}</div>
+                    {rule.description && (
+                        <p className="text-sm text-muted-foreground">{rule.description}</p>
+                    )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
                     <Switch
                         checked={rule.enabled}
                         onCheckedChange={() => handleToggle(rule.id)}
+                        aria-label={`Enable ${rule.name}`}
+                        className="mr-2"
                     />
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(rule)}
                         aria-label={`Edit ${rule.name}`}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                     >
                         <Edit className="h-4 w-4" />
                     </Button>
@@ -142,280 +141,128 @@ const RecallRulesPage: React.FC = () => {
                         size="sm"
                         onClick={() => handleDelete(rule.id, rule.name)}
                         aria-label={`Delete ${rule.name}`}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
 
-            {rule.description && (
-                <p className="text-sm text-muted-foreground">{rule.description}</p>
-            )}
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span className="font-medium">URL 模式：</span>
-                    <code className="ml-2 px-2 py-1 bg-muted rounded text-xs">
-                        {rule.urlPattern}
-                    </code>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                    {rule.queryProcessing.ignoreHashFragments && (
-                        <Badge variant="outline" className="text-xs">忽略Hash</Badge>
-                    )}
-                    {rule.queryProcessing.ignoreQueryParams && (
-                        <Badge variant="outline" className="text-xs">忽略参数</Badge>
-                    )}
-                    {rule.searchScope.journalDateRange?.enabled && (
-                        <Badge variant="outline" className="text-xs">
-                            日记范围({rule.searchScope.journalDateRange.days}天)
-                        </Badge>
-                    )}
-                    {rule.resultFiltering.prioritizeRecent && (
-                        <Badge variant="outline" className="text-xs">优先最新</Badge>
-                    )}
-                </div>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{rule.urlPattern}</code>
+                {flags(rule).map((flag) => (
+                    <Badge key={flag} variant="outline" className="font-normal text-muted-foreground">
+                        {flag}
+                    </Badge>
+                ))}
             </div>
 
-            {(rule.queryProcessing.excludeKeywords.length > 0 ||
-                rule.queryProcessing.includeKeywords.length > 0) && (
-                    <div className="space-y-2 text-sm">
-                        {rule.queryProcessing.excludeKeywords.length > 0 && (
-                            <div>
-                                <span className="font-medium text-muted-foreground">排除关键词：</span>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {rule.queryProcessing.excludeKeywords.map((keyword, index) => (
-                                        <Badge key={index} variant="destructive" className="text-xs">
-                                            {keyword}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {rule.queryProcessing.includeKeywords.length > 0 && (
-                            <div>
-                                <span className="font-medium text-muted-foreground">优先关键词：</span>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {rule.queryProcessing.includeKeywords.map((keyword, index) => (
-                                        <Badge key={index} variant="default" className="text-xs">
-                                            {keyword}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
+            {keywordLine('Exclude', rule.queryProcessing.excludeKeywords)}
+            {keywordLine('Prefer', rule.queryProcessing.includeKeywords)}
 
-            {/* Test URL Pattern */}
-            <div className="pt-2 border-t">
-                <details className="text-sm">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                        测试URL模式
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                        <input
-                            type="text"
-                            placeholder="输入URL进行测试..."
-                            className="w-full px-2 py-1 border rounded text-xs"
-                            onInput={(e) => {
-                                const input = e.target as HTMLInputElement;
-                                const isMatch = testRulePattern(rule.urlPattern, input.value);
-                                input.className = `w-full px-2 py-1 border rounded text-xs ${input.value ? (isMatch ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5') : 'border-input'
-                                    }`;
-                            }}
-                        />
-                    </div>
-                </details>
-            </div>
-        </div>
+            <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Test URL pattern
+                </summary>
+                <input
+                    type="text"
+                    placeholder="Enter a URL to test..."
+                    className="mt-2 w-full max-w-xl rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+                    onInput={(e) => {
+                        const input = e.target as HTMLInputElement;
+                        const isMatch = testRulePattern(rule.urlPattern, input.value);
+                        input.className = `mt-2 w-full max-w-xl rounded-md border px-2 py-1 text-xs ${input.value ? (isMatch ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5') : 'border-input bg-transparent'
+                            }`;
+                    }}
+                />
+            </details>
+        </PageListRow>
     );
 
     if (showForm) {
         return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold">
-                            {editingRule ? '编辑召回规则' : '添加召回规则'}
-                        </h1>
-                        <p className="text-muted-foreground mt-2">
-                            {editingRule ? '修改现有召回规则的配置' : '创建新的召回规则'}
-                        </p>
-                    </div>
+            <PageLayout
+                title={editingRule ? 'Edit recall rule' : 'Add recall rule'}
+                description={editingRule ? 'Change how this rule matches pages and searches your graph.' : 'Create a rule for the pages it should match.'}
+                actions={
                     <Button variant="outline" onClick={handleCancel}>
-                        取消
+                        Cancel
                     </Button>
-                </div>
-
+                }
+            >
                 <RecallRuleForm
                     initialRule={editingRule}
                     onSave={handleSave}
                     onCancel={handleCancel}
                 />
-            </div>
+            </PageLayout>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">召回规则配置</h1>
-                    <p className="text-muted-foreground mt-2">
-                        配置针对不同网站的搜索召回规则，提高搜索结果的相关性
-                    </p>
-                </div>
-                <div className="flex gap-2">
+        <PageLayout
+            title="Recall Rules"
+            description="Adjust how Logseq Copilot searches your graph on specific websites."
+            meta={`${enabledRules.length} enabled · ${disabledRules.length} disabled`}
+            actions={
+                <>
                     <Button variant="outline" size="sm" onClick={handleRefresh}>
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        刷新
+                        Refresh
                     </Button>
-                    <Button onClick={handleAdd}>
+                    <Button size="sm" onClick={handleAdd}>
                         <Plus className="h-4 w-4 mr-2" />
-                        添加规则
+                        Add rule
                     </Button>
-                </div>
-            </div>
-
+                </>
+            }
+        >
             {error && (
                 <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
                     {error}
                 </div>
             )}
 
-            {/* Summary Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5" />
-                        规则概览
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <div className="text-2xl font-bold text-primary">
-                                {enabledRules.length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">启用的规则</p>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-muted-foreground">
-                                {disabledRules.length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">禁用的规则</p>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold">
-                                {recallRules.length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">总规则数</p>
-                        </div>
+            <PageSection title="Enabled rules">
+                {enabledRules.length === 0 ? (
+                    <div className="flex flex-col items-start gap-3 rounded-md border border-dashed px-4 py-6">
+                        <p className="text-sm text-muted-foreground">No recall rule is enabled.</p>
+                        <Button onClick={handleAdd} variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create a rule
+                        </Button>
                     </div>
-                </CardContent>
-            </Card>
+                ) : (
+                    <PageList>{enabledRules.map(renderRule)}</PageList>
+                )}
+            </PageSection>
 
-            {/* Enabled Rules */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="flex items-center gap-2">
-                                <CheckCircle className="h-5 w-5 text-primary" />
-                                启用的规则 ({enabledRules.length})
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                这些规则当前正在生效
-                            </p>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {enabledRules.length === 0 ? (
-                        <div className="text-center py-8">
-                            <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground mb-4">没有启用的召回规则</p>
-                            <Button onClick={handleAdd} variant="outline">
-                                <Plus className="h-4 w-4 mr-2" />
-                                创建第一个规则
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {enabledRules.map(renderRuleCard)}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Disabled Rules */}
             {disabledRules.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <XCircle className="h-5 w-5 text-muted-foreground" />
-                            禁用的规则 ({disabledRules.length})
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            这些规则当前未生效
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {disabledRules.map(renderRuleCard)}
-                        </div>
-                    </CardContent>
-                </Card>
+                <PageSection title="Disabled rules">
+                    <PageList>{disabledRules.map(renderRule)}</PageList>
+                </PageSection>
             )}
 
-            {/* Help Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        使用说明
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <h4 className="font-medium mb-2">URL模式</h4>
-                            <ul className="space-y-1 text-muted-foreground">
-                                <li>• 使用正则表达式匹配网站</li>
-                                <li>• 例如：<code>github\.com</code> 匹配GitHub</li>
-                                <li>• 例如：<code>.*reddit\.com.*</code> 匹配Reddit</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-medium mb-2">查询处理</h4>
-                            <ul className="space-y-1 text-muted-foreground">
-                                <li>• 忽略Hash：移除URL中的#后缀部分</li>
-                                <li>• 忽略参数：移除URL中的?后查询参数</li>
-                                <li>• 关键词过滤：包含或排除特定词汇</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-medium mb-2">搜索范围</h4>
-                            <ul className="space-y-1 text-muted-foreground">
-                                <li>• 限制页面：只在指定页面中搜索</li>
-                                <li>• 排除页面：排除特定页面</li>
-                                <li>• 日记范围：限制日记条目的时间范围</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-medium mb-2">结果过滤</h4>
-                            <ul className="space-y-1 text-muted-foreground">
-                                <li>• 最大结果数：限制显示的结果数量</li>
-                                <li>• 优先最新：最新的结果排在前面</li>
-                                <li>• 相关性阈值：设置最低相关度</li>
-                            </ul>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+            <PageHelp title="How recall rules work">
+                <p>
+                    <span className="font-medium text-foreground">URL pattern:</span> a regular
+                    expression matched against the page URL, e.g. <code>github\.com</code> or{' '}
+                    <code>.*reddit\.com.*</code>.
+                </p>
+                <p>
+                    <span className="font-medium text-foreground">Query processing:</span> drop the
+                    URL hash or query parameters before searching, and exclude or prefer keywords.
+                </p>
+                <p>
+                    <span className="font-medium text-foreground">Search scope:</span> search only
+                    some pages, skip pages, or limit journals to recent days.
+                </p>
+                <p>
+                    <span className="font-medium text-foreground">Result filtering:</span> limit the
+                    number of results, show recent ones first, or set a minimum relevance score.
+                </p>
+            </PageHelp>
+        </PageLayout>
     );
 };
 
