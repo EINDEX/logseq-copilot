@@ -43,6 +43,10 @@ export function HighlightCommentPopup({
     useEffect(() => {
         // Close popup when clicking outside
         const handleClickOutside = (event: MouseEvent) => {
+            // The popup lives in a shadow root: on `document` a click inside it
+            // is retargeted to the shadow host, so the host counts as inside.
+            const root = popupRef.current?.getRootNode();
+            if (root instanceof ShadowRoot && event.target === root.host) return;
             if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
                 if (isEditing) {
                     handleSaveComment();
