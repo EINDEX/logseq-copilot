@@ -117,7 +117,7 @@ export const buildTurndownService = () => {
   turndownService.addRule('image-add-black', {
     filter: 'img',
 
-    replacement: function (content, node) {
+    replacement: function (content: string, node: any) {
       const alt = cleanAttribute(node.getAttribute('alt'));
       const src = node.getAttribute('src') || '';
       return src ? ` ![${alt}](${linkProcess(src)}) ` : '';
@@ -127,7 +127,7 @@ export const buildTurndownService = () => {
   turndownService.addRule('p-logseq', {
     filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
 
-    replacement: function (content, node) {
+    replacement: function (content: string, node: any) {
       const hLevel = Number(node.nodeName.charAt(1));
       if (hLevel === 1) return '\n\n**' + content + '**\n\n';
       return '\n\n' + content + '\n\n';
@@ -137,7 +137,7 @@ export const buildTurndownService = () => {
   turndownService.addRule('a-logseq', {
     filter: 'a',
 
-    replacement: function (content, node) {
+    replacement: function (content: string, node: any) {
       const href = node.getAttribute('href');
       return `[${content}](${linkProcess(href)})`;
     },

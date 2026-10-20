@@ -21,7 +21,7 @@ export default function Popup() {
   const [error, setError] = useState<string | null>(null);
   const [logseqSearchResult, setLogseqSearchResult] = useState<LogseqSearchResult>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null);
+  const [currentTab, setCurrentTab] = useState<Browser.tabs.Tab | null>(null);
 
   const mountOpenPageMethod = () => {
     const innerFunction = () => {

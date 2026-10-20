@@ -15,13 +15,13 @@ export default class LogseqService implements LogseqServiceInterface {
   }
 
   public async getVersion() {
-    return (await this.client.getVersion()).version;
+    return ((await this.client.getVersion()) as any).version;
   }
 
   private async searchGraph(graphName: string, query: string) {
-    const result = await this.client.search(query);
+    const result: any = await this.client.search(query);
     result.blocks = await Promise.all(
-      result.blocks.map(async (block) => {
+      result.blocks.map(async (block: any) => {
         return await this.getBlock(block['block/uuid'], graphName, query);
       }),
     );
@@ -62,7 +62,7 @@ export default class LogseqService implements LogseqServiceInterface {
     return renderBlock(block, graph, query);
   }
 
-  public async urlSearch(url: URL, opt: { fuzzy: boolean } = { fuzzy: false }) {
+  public async urlSearch(url: URL, opt: { fuzzy?: boolean } = { fuzzy: false }) {
     const graph = await this.getGraph();
     const blockUuidSet = new Set();
     const blocks: LogseqBlockType[] = [];
@@ -126,6 +126,7 @@ export default class LogseqService implements LogseqServiceInterface {
 
     const result = await this.client.updateBlock(block);
     console.debug(result);
+    // @ts-expect-error existing behavior: Object.hasOwnProperty ignores the 2nd argument
     if (Object.hasOwnProperty(result, 'error')) {
       return {
         type: 'change-block-marker-result',

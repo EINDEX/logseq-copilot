@@ -65,7 +65,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   };
 
   public getPage = async (
-    pageIdenity: LogseqPageIdenity,
+    pageIdenity: Partial<LogseqPageIdenity>,
   ): Promise<LogseqPageIdenity> => {
     const resp: LogseqPageIdenity = await this.baseJson(
       'get_page',

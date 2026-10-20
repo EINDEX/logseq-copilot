@@ -4,7 +4,6 @@ export interface LogseqClientInterface {
   getGraph(): any;
   appendBlock(page: string, content: string): any;
   getVersion(): any;
-  updateBlock(): any;
   getAllPages(): any;
   showMsg(message: string): any;
   getUserConfig(): any;
@@ -24,7 +23,7 @@ export interface LogseqServiceInterface {
     query?: string,
     includeChildren?: boolean,
   ): any;
-  urlSearch(url: URL, opt?: { fuzzy: boolean }): any;
+  urlSearch(url: URL, opt?: { fuzzy?: boolean }): any;
   showMsg(message: string): any;
   getVersion(): any;
   changeBlockMarker(uuid: string, marker: string): any;

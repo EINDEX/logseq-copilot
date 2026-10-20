@@ -90,7 +90,7 @@ describe(`extension services (${variant})`, () => {
     expect(result.status).toBe(200);
     const blocks = result.response.blocks;
     expect(blocks.length).toBeGreaterThanOrEqual(3);
-    const hello = blocks.find((b) =>
+    const hello = blocks.find((b: any) =>
       b.content.toLowerCase().includes('hello from copilot'),
     );
     expect(hello).toBeDefined();

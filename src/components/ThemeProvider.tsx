@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                         console.log(`[ThemeProvider] No theme container found in shadow root ${index + 1}`);
                         // Log all elements in shadow root for debugging
                         const allElements = shadowRoot.querySelectorAll('*');
-                        console.log(`[ThemeProvider] Elements in shadow root ${index + 1}:`, Array.from(allElements).map(el => el.tagName + (el.className ? '.' + el.className : '')));
+                        console.log(`[ThemeProvider] Elements in shadow root ${index + 1}:`, Array.from<Element>(allElements).map(el => el.tagName + (el.className ? '.' + el.className : '')));
                     }
                 }
             });

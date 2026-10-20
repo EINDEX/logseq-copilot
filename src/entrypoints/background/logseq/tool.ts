@@ -39,7 +39,7 @@ export const cleanBlock = (block: LogseqBlockType): string => {
 
 const highlightTokens = (query: string) => {
   const re = new RegExp(`^(?!<mark>)${query}(?!<\/mark>)`, 'g');
-  return (token) => {
+  return (token: any) => {
     if (
       token.type !== 'code' &&
       token.type !== 'codespan' &&
@@ -70,7 +70,7 @@ const logseqLinkExt = (graph: string, query?: string) => {
       }
       return false;
     },
-    renderer: function (token) {
+    renderer: function (token: any) {
       const { text, href } = token;
 
       const fillText = query
@@ -87,7 +87,7 @@ export const renderBlock = (
   query?: string,
 ) => {
   const cleanContent = cleanBlock(block);
-  marked.use({
+  marked.use(<marked.MarkedExtension>{
     gfm: true,
     tables: true,
     walkTokens: query ? highlightTokens(query) : undefined,

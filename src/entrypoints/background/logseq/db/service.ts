@@ -1,4 +1,4 @@
-import { LogseqBlockType } from '@/types/logseqBlock';
+import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
@@ -15,12 +15,17 @@ export default class LogseqDBService implements LogseqServiceInterface {
   }
 
   public async getVersion() {
-    return (await this.client.getVersion()).version;
+    return ((await this.client.getVersion()) as any).version;
   }
 
   private async searchGraph(graphName: string, query: string) {
-    const resp = await this.client.search(query);
-    const response = {
+    const resp: any = await this.client.search(query);
+    const response: {
+      blocks: LogseqBlockType[];
+      pages: LogseqPageIdenity[];
+      count: number;
+      graph: string;
+    } = {
       blocks: [],
       pages: [],
       count: 0,
@@ -29,8 +34,8 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
     response.pages = await Promise.all(
       resp.blocks
-        .filter((item) => item['page?'] === true)
-        .map(async (item) => {
+        .filter((item: any) => item['page?'] === true)
+        .map(async (item: any) => {
           return await this.client.getPage({
             uuid: item['block/uuid']['uuid'],
           });
@@ -38,9 +43,9 @@ export default class LogseqDBService implements LogseqServiceInterface {
     );
     response.blocks = await Promise.all(
       resp.blocks
-        .filter((item) => item['page?'] === false)
+        .filter((item: any) => item['page?'] === false)
         .map(
-          async (item) =>
+          async (item: any) =>
             await this.getBlock(item['block/uuid']['uuid'], graphName, query),
         ),
     );
@@ -72,7 +77,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
     return renderBlock(block, graph, query);
   }
 
-  public async urlSearch(url: URL, opt: { fuzzy: boolean } = { fuzzy: false }) {
+  public async urlSearch(url: URL, opt: { fuzzy?: boolean } = { fuzzy: false }) {
     const graph = await this.getGraph();
     const blockUuidSet = new Set();
     const blocks: LogseqBlockType[] = [];
@@ -129,6 +134,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
     const result = await this.client.updateBlock(block);
     console.debug(result);
+    // @ts-expect-error existing behavior: Object.hasOwnProperty ignores the 2nd argument
     if (Object.hasOwnProperty(result, 'error')) {
       return {
         type: 'change-block-marker-result',

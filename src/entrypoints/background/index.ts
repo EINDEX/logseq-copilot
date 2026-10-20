@@ -109,7 +109,7 @@ export default defineBackground({
       }
       const activeTab = tab;
       if (activeTab.url !== url)
-        await browser.tabs.update(activeTab.id, { url: url });
+        await browser.tabs.update(activeTab.id!, { url: url });
     };
 
     const quickCapture = async (data: string) => {
