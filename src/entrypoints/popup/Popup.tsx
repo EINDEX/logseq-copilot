@@ -42,15 +42,15 @@ export default function Popup() {
     const interval = setInterval(innerFunction, 50);
   };
 
-  const searchCurrentPage = async () => {
-    if (!currentTab?.url) return;
+  const searchPage = async (url: string | undefined) => {
+    if (!url) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
       const result = await sendMessage('logseq:urlSearch', {
-        url: currentTab.url,
+        url,
         options: { fuzzy: true }
       });
 
@@ -67,6 +67,10 @@ export default function Popup() {
       setIsLoading(false);
     }
   };
+
+  // Uses state, so only call it from event handlers (not from the mount effect,
+  // where currentTab has not been committed yet).
+  const searchCurrentPage = () => searchPage(currentTab?.url);
 
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -122,7 +126,7 @@ export default function Popup() {
         if (tab) {
           setCurrentTab(tab);
           if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('moz-extension://')) {
-            await searchCurrentPage();
+            await searchPage(tab.url);
           }
         }
       } catch (err) {
