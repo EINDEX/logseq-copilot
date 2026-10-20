@@ -16,8 +16,10 @@ const isDB = variant === 'db';
 const TEST_PAGE = 'Copilot Test Page';
 
 // Known extension bugs on DB graphs: LogseqDBService expects search results
-// keyed by `block/uuid`, but Logseq 2.x returns `uuid`. `test.fails` keeps CI
-// green and turns red once fixed, so the marker can be removed.
+// keyed by `block/uuid`, but Logseq 2.x returns `uuid`; it also reads
+// `block.content` / `block.marker`, while 2.x blocks expose `title` and keep the
+// task status in a property. `test.fails` keeps CI green and turns red once
+// fixed, so the marker can be removed.
 const failsOnDB = isDB ? test.fails : test;
 
 const api = async (method: string, args: unknown[] = []) => {
@@ -116,5 +118,59 @@ describe(`extension services (${variant})`, () => {
 
     const { body } = await api('logseq.Editor.getBlock', [block.uuid]);
     expect(body.content).toContain(marker);
+  });
+
+  describe('changeBlockMarker', () => {
+    const readBlock = async (uuid: string) =>
+      (await api('logseq.Editor.getBlock', [uuid])).body;
+
+    // The block entity is re-parsed asynchronously after an edit.
+    const eventually = async <T>(fn: () => Promise<T>, ok: (v: T) => boolean) => {
+      let value = await fn();
+      for (let i = 0; i < 20 && !ok(value); i++) {
+        await new Promise((r) => setTimeout(r, 250));
+        value = await fn();
+      }
+      return value;
+    };
+
+    failsOnDB('cycles TODO -> DONE -> TODO and changes the block', async () => {
+      const text = `marker-cycle-${Date.now()}`;
+      const created = await service.client.appendBlock(TEST_PAGE, `TODO ${text}`);
+      expect(created?.uuid).toBeTruthy();
+      expect((await readBlock(created.uuid)).content).toContain(`TODO ${text}`);
+
+      const done = await service.changeBlockMarker(created.uuid, 'DONE');
+      expect(done).toMatchObject({ status: 'success', marker: 'DONE' });
+      const afterDone = await eventually(
+        () => readBlock(created.uuid),
+        (b) => b.marker === 'DONE',
+      );
+      expect(afterDone.content).toContain(`DONE ${text}`);
+      expect(afterDone.content).not.toContain(`TODO ${text}`);
+      expect(afterDone.marker).toBe('DONE');
+
+      const todo = await service.changeBlockMarker(created.uuid, 'TODO');
+      expect(todo).toMatchObject({ status: 'success', marker: 'TODO' });
+      const afterTodo = await eventually(
+        () => readBlock(created.uuid),
+        (b) => b.marker === 'TODO',
+      );
+      expect(afterTodo.content).toContain(`TODO ${text}`);
+      expect(afterTodo.marker).toBe('TODO');
+    });
+
+    test.skipIf(isDB)('refuses a scheduled task and leaves it untouched', async () => {
+      const text = `marker-scheduled-${Date.now()}`;
+      const created = await service.client.appendBlock(
+        TEST_PAGE,
+        `TODO ${text}\nSCHEDULED: <2030-01-01 Tue>`,
+      );
+      expect((await readBlock(created.uuid)).content).toContain('SCHEDULED:');
+
+      const result = await service.changeBlockMarker(created.uuid, 'DONE');
+      expect(result.status).toBe('failed');
+      expect((await readBlock(created.uuid)).content).toContain(`TODO ${text}`);
+    });
   });
 });
