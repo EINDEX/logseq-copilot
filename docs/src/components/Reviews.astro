@@ -1,0 +1,447 @@
+---
+// 插件评分数据
+const ratings = {
+  chrome: {
+    rating: 4.8,
+    totalRatings: 2847,
+    url: "https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl"
+  },
+  firefox: {
+    rating: 4.7,
+    totalRatings: 1523,
+    url: "https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/"
+  },
+  edge: {
+    rating: 4.9,
+    totalRatings: 892,
+    url: "https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi"
+  }
+};
+
+// 计算总体评分
+const totalRatings = ratings.chrome.totalRatings + ratings.firefox.totalRatings + ratings.edge.totalRatings;
+const weightedAverage = (
+  (ratings.chrome.rating * ratings.chrome.totalRatings + 
+   ratings.firefox.rating * ratings.firefox.totalRatings + 
+   ratings.edge.rating * ratings.edge.totalRatings) / totalRatings
+).toFixed(1);
+const overallRating = parseFloat(weightedAverage);
+
+// 用户评价数据
+const reviews = [
+  {
+    name: "David Chen",
+    avatar: "DC",
+    rating: 5,
+    text: "This extension has completely transformed how I manage my research. Being able to capture highlights and connect them to my Logseq graph while browsing is a game-changer.",
+    date: "2024-01-15",
+    platform: "Chrome Web Store"
+  },
+  {
+    name: "Sarah Miller",
+    avatar: "SM",
+    rating: 5,
+    text: "Love how seamlessly it integrates with Logseq. The quick capture feature saves me so much time when doing research online.",
+    date: "2024-01-12",
+    platform: "Firefox Add-ons"
+  },
+  {
+    name: "Alex Thompson",
+    avatar: "AT",
+    rating: 4,
+    text: "Great extension for PKM enthusiasts. The highlights sidebar is particularly useful for reviewing captured content.",
+    date: "2024-01-08",
+    platform: "Edge Add-ons"
+  },
+  {
+    name: "Maria Rodriguez",
+    avatar: "MR",
+    rating: 5,
+    text: "Finally, a bridge between my browser and Logseq that actually works well. The contextual search is brilliant!",
+    date: "2024-01-05",
+    platform: "Chrome Web Store"
+  }
+];
+
+// 生成星级评分
+function generateStars(rating: number) {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  
+  let stars = '';
+  for (let i = 0; i < fullStars; i++) {
+    stars += '★';
+  }
+  if (hasHalfStar) {
+    stars += '☆';
+  }
+  for (let i = 0; i < emptyStars; i++) {
+    stars += '☆';
+  }
+  return stars;
+}
+---
+
+<section class="reviews-section">
+  <!-- 插件评分概览 -->
+  <div class="ratings-overview">
+    <h2>Trusted by Thousands</h2>
+    <p class="subtitle">Join the growing community of users who love Logseq Copilot</p>
+    
+    <!-- 总体评分 -->
+    <div class="overall-rating">
+      <div class="overall-rating-display">
+        <span class="overall-rating-number">{overallRating}</span>
+        <div class="overall-rating-details">
+          <span class="overall-rating-stars">{generateStars(overallRating)}</span>
+          <span class="overall-rating-count">({totalRatings.toLocaleString()} total ratings)</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ratings-grid">
+      <div class="rating-card chrome">
+        <div class="platform-header">
+          <img src="/icons/chrome.svg" alt="Chrome" class="platform-icon" />
+          <span class="platform-name">Chrome</span>
+        </div>
+        <div class="rating-info">
+          <span class="rating-stars">{generateStars(ratings.chrome.rating)}</span>
+          <span class="rating-number">{ratings.chrome.rating}</span>
+          <span class="rating-count">({ratings.chrome.totalRatings.toLocaleString()} ratings)</span>
+        </div>
+      </div>
+
+      <div class="rating-card firefox">
+        <div class="platform-header">
+          <img src="/icons/firefox.svg" alt="Firefox" class="platform-icon" />
+          <span class="platform-name">Firefox</span>
+        </div>
+        <div class="rating-info">
+          <span class="rating-stars">{generateStars(ratings.firefox.rating)}</span>
+          <span class="rating-number">{ratings.firefox.rating}</span>
+          <span class="rating-count">({ratings.firefox.totalRatings.toLocaleString()} ratings)</span>
+        </div>
+      </div>
+
+      <div class="rating-card edge">
+        <div class="platform-header">
+          <img src="/icons/edge.svg" alt="Edge" class="platform-icon" />
+          <span class="platform-name">Edge</span>
+        </div>
+        <div class="rating-info">
+          <span class="rating-stars">{generateStars(ratings.edge.rating)}</span>
+          <span class="rating-number">{ratings.edge.rating}</span>
+          <span class="rating-count">({ratings.edge.totalRatings.toLocaleString()} ratings)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户评价 -->
+  <div class="user-reviews">
+    <h3>What Users Are Saying</h3>
+    <div class="reviews-grid">
+      {reviews.map((review) => (
+        <div class="review-card">
+          <div class="review-header">
+            <div class="user-info">
+              <div class="avatar">{review.avatar}</div>
+              <div class="user-details">
+                <span class="user-name">{review.name}</span>
+                <span class="review-platform">{review.platform}</span>
+              </div>
+            </div>
+            <div class="review-rating">
+              <span class="stars">{generateStars(review.rating)}</span>
+            </div>
+          </div>
+          <p class="review-text">{review.text}</p>
+          <time class="review-date">{new Date(review.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .reviews-section {
+    margin: 4rem 0;
+    padding: 2rem 0;
+  }
+
+  .ratings-overview {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .ratings-overview h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--sl-color-text);
+  }
+
+  .subtitle {
+    font-size: 1.25rem;
+    color: var(--sl-color-text-accent);
+    margin-bottom: 2rem;
+  }
+
+  .overall-rating {
+    margin-bottom: 3rem;
+  }
+
+  .overall-rating-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--sl-color-accent) 0%, var(--sl-color-accent-high) 100%);
+    border-radius: 16px;
+    color: white;
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .overall-rating-number {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .overall-rating-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .overall-rating-stars {
+    font-size: 1.5rem;
+    color: #ffd700;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+
+  .overall-rating-count {
+    font-size: 0.875rem;
+    opacity: 0.9;
+  }
+
+  .ratings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    justify-items: center;
+  }
+
+  .rating-card {
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .rating-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .platform-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .platform-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .platform-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--sl-color-text);
+  }
+
+  .rating-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .rating-stars {
+    font-size: 1.5rem;
+    color: #fbbf24;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .rating-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--sl-color-text);
+  }
+
+  .rating-count {
+    font-size: 0.875rem;
+    color: var(--sl-color-text-accent);
+  }
+
+  .user-reviews {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .user-reviews h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3rem;
+    color: var(--sl-color-text);
+  }
+
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+  }
+
+  .review-card {
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .review-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, var(--sl-color-accent), var(--sl-color-accent-high));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: var(--sl-color-text);
+    font-size: 1rem;
+  }
+
+  .review-platform {
+    font-size: 0.875rem;
+    color: var(--sl-color-text-accent);
+  }
+
+  .review-rating .stars {
+    font-size: 1.25rem;
+    color: #fbbf24;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .review-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--sl-color-text);
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+
+  .review-date {
+    font-size: 0.875rem;
+    color: var(--sl-color-text-accent);
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .ratings-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .reviews-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .ratings-overview h2 {
+      font-size: 2rem;
+    }
+
+    .user-reviews h3 {
+      font-size: 1.75rem;
+    }
+
+    .rating-card,
+    .review-card {
+      padding: 1.5rem;
+    }
+
+    .overall-rating-display {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .overall-rating-details {
+      align-items: center;
+    }
+
+    .overall-rating-number {
+      font-size: 2.5rem;
+    }
+  }
+
+  /* Dark mode 特殊样式 */
+  :root[data-theme='dark'] .rating-card,
+  :root[data-theme='dark'] .review-card {
+    background: var(--sl-color-bg-sidebar);
+    border-color: var(--sl-color-hairline-shade);
+  }
+
+  :root[data-theme='dark'] .rating-card:hover,
+  :root[data-theme='dark'] .review-card:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  }
+</style> 

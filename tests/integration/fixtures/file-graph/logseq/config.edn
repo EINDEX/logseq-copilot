@@ -1,0 +1,4 @@
+{:meta/version 1
+ :preferred-format :markdown
+ :preferred-workflow :todo
+ :journal/page-title-format "MMM do, yyyy"}

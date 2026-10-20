@@ -1,0 +1,13 @@
+<svg viewBox="0 0 24 24" fill="none"
+    xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="firefox-gradient" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stop-color="#ff9500"/>
+            <stop offset="50%" stop-color="#ff6000"/>
+            <stop offset="100%" stop-color="#ff3000"/>
+        </radialGradient>
+    </defs>
+    <circle cx="12" cy="12" r="10" fill="url(#firefox-gradient)"/>
+    <path d="M12 2c-1.1 0-2.2.2-3.2.5C7.8 3 7 3.8 7 4.8v2.4c0 .4.2.8.5 1l2.5 1.5c.3.2.7.2 1 0l1-0.6c.3-.2.7-.2 1 0l2.5 1.5c.3.2.5.6.5 1v2.4c0 1-.8 1.8-1.8 1.8-.2 0-.4 0-.6-.1L12 14c-.3-.2-.7-.2-1 0l-2 1.2c-.8.5-1.8.3-2.4-.4-.4-.5-.6-1.2-.6-1.8V9c0-3.9 3.1-7 7-7s7 3.1 7 7c0 3.9-3.1 7-7 7" fill="#fff" fill-opacity="0.2"/>
+    <path d="M16 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#fff"/>
+</svg> 

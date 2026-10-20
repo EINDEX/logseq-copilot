@@ -1,0 +1,138 @@
+---
+title: Setup
+description: Configure Logseq Copilot to connect with your Logseq instance.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# Setup
+
+Let's set up **Logseq Copilot in less than 5 minutes**.
+
+## Setup Logseq API Server
+
+### Enable API Service
+
+<Steps>
+
+1. Open Logseq **Settings**.
+
+   ![Open Logseq settings](/screenshots/open-logseq-settings.png)
+
+2. Go to **Features** → Enable **HTTP APIs Server**
+
+   ![Enable http APIs Server Feature](/screenshots/enable-api-server-feature.png)
+
+</Steps>
+
+### Setting Authorization Token
+
+<Steps>
+
+1. Go to logseq copilot tool bar, Click **API** icon.
+
+   ![click api button](/screenshots/click-api-button.png)
+
+2. Click **Authorization tokens**.
+
+   ![open authorization tokens](/screenshots/open-auth-tokens.png)
+
+3. Click **Add new token**.
+
+   ![click add new token](/screenshots/click-add-new-token.png)
+
+4. You will see a row as below.
+
+   ![empty auth tokens](/screenshots/empty-authorization-tokens.png)
+
+5. Fill name as `logseq-copilot`, value is a secret, eg. `secret-value`, then click **Save**.
+
+   ![fill auth token](/screenshots/fill-auth-token.png)
+
+</Steps>
+
+:::tip[Security Note]
+The `value` of `Authorization token` is a secret string. We suggest setting it to a random string for security.
+:::
+
+### Setting API Server Auto Start
+
+<Steps>
+
+1. Go to logseq copilot tool bar, Click **API** icon.
+
+   ![click api button](/screenshots/click-api-button.png)
+
+2. Click **Server configurations**.
+
+   ![click server configurations](/screenshots/click-server-configurations.png)
+
+3. Toggle on **Auto start server with the app launched**.
+
+   ![toggle on auto start](/screenshots/auto-start.png)
+
+4. Click **Start Server** to start the API server.
+
+   ![start server](/screenshots/start-api-server.png)
+
+</Steps>
+
+## Setup Browser Extension
+
+### Connect to Logseq
+
+<Steps>
+
+1. Open the Logseq Copilot extension options page.
+
+   ![open extension options](/screenshots/open-logseq-copilot-option.png)
+
+2. Enter your Logseq API server details:
+
+   - **Server URL**: Usually `http://localhost:12315`
+   - **Authorization Token**: The token you created earlier
+
+   ![setting auth token](/screenshots/setting-auth-token.png)
+
+3. Click **Connect** to establish the connection.
+
+   ![click connect](/screenshots/click-connect.png)
+
+4. You should see a success message when connected.
+
+   ![success connected](/screenshots/success-connected.png)
+
+</Steps>
+
+## Verification
+
+To verify that everything is working correctly:
+
+1. **Check API Server Status**: Make sure the Logseq API server is running
+2. **Test Connection**: The extension should show "Connected" status
+3. **Try Highlighting**: Select some text on a webpage and see if the highlight option appears
+
+## Troubleshooting
+
+### Common Issues
+
+- **Connection Failed**: Check if Logseq API server is running
+- **Wrong URL**: Make sure you're using the correct API server URL (usually `http://localhost:12315`)
+- **Invalid Token**: Verify that the authorization token matches exactly
+- **Firewall Issues**: Check if your firewall is blocking the connection
+
+### Getting Help
+
+If you're still having trouble:
+
+- Check our [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions)
+- Make sure both Logseq and the browser extension are up to date
+- Try restarting both Logseq and your browser
+
+## Next Steps
+
+Once everything is set up:
+
+- [Learn about the Highlights Sidebar →](/features/highlights-sidebar)
+- [Discover Highlight Comments →](/features/highlight-comments)
+- Start capturing your first highlights!

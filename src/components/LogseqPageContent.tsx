@@ -1,7 +1,8 @@
+import React from 'react';
 import { LogseqPageContentType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
-
-import styles from './logseq.module.scss';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { cn } from '@/lib/utils';
 
 type LogseqPageContentProps = {
   graph: string;
@@ -14,18 +15,31 @@ export const LogseqPageContent = ({
   pageContent,
   isPopUp = false,
 }: LogseqPageContentProps) => {
-  if (pageContent.content) {
-    return (
-      <div className={styles.pageContent}>
-        <div className={styles.pageContentFooter}>
-          <LogseqPageLink
-            graph={graph}
-            page={pageContent.page}
-          ></LogseqPageLink>
-        </div>
-        <div dangerouslySetInnerHTML={{ __html: pageContent.content }}></div>
-      </div>
-    );
+  if (!pageContent.content) {
+    return null;
   }
-  return <></>;
+
+  return (
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <LogseqPageLink
+          graph={graph}
+          page={pageContent.page}
+        />
+      </CardHeader>
+      <CardContent>
+        <div
+          className={cn(
+            "prose prose-sm max-w-none dark:prose-invert",
+            "prose-p:my-0 prose-pre:my-1 prose-img:my-1",
+            "prose-a:no-underline hover:prose-a:underline",
+            "prose-img:max-w-full prose-img:max-h-96",
+            "prose-pre:overflow-x-auto prose-pre:whitespace-pre-wrap",
+            "[&_*]:break-words [&_*]:text-sm"
+          )}
+          dangerouslySetInnerHTML={{ __html: pageContent.content }}
+        />
+      </CardContent>
+    </Card>
+  );
 };

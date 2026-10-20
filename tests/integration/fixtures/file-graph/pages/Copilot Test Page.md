@@ -1,0 +1,4 @@
+- Hello from copilot integration test
+- TODO check copilot marker
+- Reading notes from https://example.com/copilot/article
+- link to [[Another Page]]

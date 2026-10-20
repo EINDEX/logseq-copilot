@@ -1,0 +1,482 @@
+import { storage } from '#imports';
+import { HighlightData } from '@/types/highlight';
+import log from './logger';
+
+export type LogseqCopliotConfig = {
+  version: string;
+  logseqHostName: string;
+  logseqPort: number;
+  logseqAuthToken: string;
+  enableClipNoteFloatButton: boolean;
+  clipNoteLocation: string;
+  clipNoteCustomPage: string;
+  clipNoteTemplate: string;
+};
+
+export interface LogseqCopliotSettingsV1 {
+  logseqPortcol: string;
+  logseqHost: string;
+  logseqPort: number;
+  logseqAuthToken: string;
+}
+
+export interface TemplateItemV1 {
+  id: string;
+  name: string;
+  content: string;
+  clipNoteLocation?: string;
+  clipNoteCustomPage?: string;
+}
+
+export interface SearchEngineConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  icon?: string;
+  description?: string;
+  isCustom?: boolean;
+  // Custom search engine template fields
+  urlPattern?: string; // Regex pattern or hostname to match
+  querySelector?: string; // CSS selector or URL parameter to get search query
+  elementSelector?: string; // CSS selector to find where to insert the Logseq Copilot
+  insertPosition?: 'before' | 'after' | 'first' | 'last'; // Where to insert relative to the element
+}
+
+export interface AIProviderConfig {
+  id: string;
+  name: string;
+  type: 'openai' | 'anthropic' | 'google' | 'ollama' | 'litellm' | 'custom';
+  baseUrl?: string;
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+}
+
+export interface AIConfig {
+  enabled: boolean;
+  providers: AIProviderConfig[];
+  defaultProvider?: string;
+  autoRun: boolean;
+  defaultContext: string;
+}
+
+export interface RecallRuleConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description?: string;
+  // URL matching patterns
+  urlPattern: string; // Regex pattern to match URLs
+  // Query processing rules
+  queryProcessing: {
+    // Remove hash fragments from URLs when searching
+    ignoreHashFragments: boolean;
+    // Remove query parameters from URLs when searching
+    ignoreQueryParams: boolean;
+    // Custom keywords to exclude from search
+    excludeKeywords: string[];
+    // Custom keywords to include/prioritize in search
+    includeKeywords: string[];
+    // URL path segments to ignore (for hash routers)
+    ignorePathSegments: string[];
+  };
+  // Search scope restrictions
+  searchScope: {
+    // Only search in specific Logseq pages/namespaces
+    restrictToPages?: string[];
+    // Exclude specific pages/namespaces
+    excludePages?: string[];
+    // Only search in journal entries within date range
+    journalDateRange?: {
+      enabled: boolean;
+      days: number; // Number of days to search back
+    };
+  };
+  // Search result filtering
+  resultFiltering: {
+    // Minimum relevance score threshold
+    minRelevanceScore?: number;
+    // Maximum number of results to show
+    maxResults?: number;
+    // Prefer recent results
+    prioritizeRecent: boolean;
+  };
+}
+
+export const settings = storage.defineItem<LogseqCopliotSettingsV1>(
+  'local:settings',
+  {
+    version: 1,
+    fallback: {
+      logseqPortcol: 'http',
+      logseqHost: 'localhost',
+      logseqPort: 12315,
+      logseqAuthToken: '',
+    },
+  },
+);
+
+export const templates = storage.defineItem<TemplateItemV1[]>(
+  'local:templates',
+  {
+    version: 1,
+    fallback: [
+      {
+        id: 'default',
+        name: 'Default',
+        content: `#[[Clip]] [{{title}}]({{url}})
+{{content}}`,
+        clipNoteLocation: 'journal',
+        clipNoteCustomPage: '',
+      },
+    ],
+  },
+);
+
+export const searchEngineConfig = storage.defineItem<SearchEngineConfig[]>(
+  'local:searchEngineConfig',
+  {
+    version: 2,
+    fallback: [
+      {
+        id: 'google',
+        name: 'Google',
+        enabled: true,
+        icon: '🔍',
+        description: "The world's most popular search engine",
+        isCustom: false,
+        urlPattern: '\\.google(\\.com?)?(\\.[a-z]{2})?(\\.[a-z]{3})?$',
+        querySelector: '?q',
+        elementSelector: '#rhs',
+        insertPosition: 'first',
+      },
+      {
+        id: 'bing',
+        name: 'Bing',
+        enabled: true,
+        icon: '🔷',
+        description: "Microsoft's search engine with AI integration",
+        isCustom: false,
+        urlPattern: 'bing(\\.com?)?(\\.[a-z]{2})?$',
+        querySelector: '?q',
+        elementSelector: '#b_context',
+        insertPosition: 'first',
+      },
+      {
+        id: 'duckduckgo',
+        name: 'DuckDuckGo',
+        enabled: true,
+        icon: '🦆',
+        description: 'Privacy-focused search engine',
+        isCustom: false,
+        urlPattern: 'duckduckgo\\.com$',
+        querySelector: '?q',
+        elementSelector: '.js-react-sidebar',
+        insertPosition: 'first',
+      },
+      {
+        id: 'ecosia',
+        name: 'Ecosia',
+        enabled: true,
+        icon: '🌱',
+        description: 'Search engine that plants trees',
+        isCustom: false,
+        urlPattern: 'ecosia\\.org$',
+        querySelector: '?q',
+        elementSelector: '.layout__content .web .sidebar',
+        insertPosition: 'first',
+      },
+      {
+        id: 'yandex',
+        name: 'Yandex',
+        enabled: true,
+        icon: '🔴',
+        description: 'Russian search engine and web services',
+        isCustom: false,
+        urlPattern: 'yandex\\.(com|ru)$',
+        querySelector: '?text',
+        elementSelector: '#search-result-aside',
+        insertPosition: 'first',
+      },
+      {
+        id: 'searx',
+        name: 'SearX',
+        enabled: true,
+        icon: '🔒',
+        description: 'Privacy-respecting metasearch engine',
+        isCustom: false,
+        urlPattern: '^searx(ng)?\\.',
+        querySelector: '?q',
+        elementSelector: '#sidebar',
+        insertPosition: 'first',
+      },
+      {
+        id: 'baidu',
+        name: 'Baidu',
+        enabled: true,
+        icon: '🐾',
+        description: 'Leading Chinese search engine',
+        isCustom: false,
+        urlPattern: 'baidu\\.com',
+        querySelector: '?wd',
+        elementSelector: '#con-ar',
+        insertPosition: 'first',
+      },
+      {
+        id: 'kagi',
+        name: 'Kagi',
+        enabled: true,
+        icon: '🔎',
+        description: 'Ad-free, privacy-focused search',
+        isCustom: false,
+        urlPattern: 'kagi\\.com$',
+        querySelector: '?q',
+        elementSelector: 'div.right-content-box',
+        insertPosition: 'first',
+      },
+      {
+        id: 'startpage',
+        name: 'Startpage',
+        enabled: true,
+        icon: '🛡️',
+        description: 'Private search using Google results',
+        isCustom: false,
+        urlPattern: 'startpage\\.com$',
+        querySelector: '#q',
+        elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
+        insertPosition: 'first',
+      },
+    ],
+  },
+);
+
+export const aiConfig = storage.defineItem<AIConfig>('local:aiConfig', {
+  version: 1,
+  fallback: {
+    enabled: false,
+    providers: [],
+    autoRun: false,
+    defaultContext: '{{fullHtml}}',
+  },
+});
+
+// Highlights storage - stores all user highlights across websites
+export const highlights = storage.defineItem<HighlightData[]>(
+  'local:highlights',
+  {
+    version: 1,
+    fallback: [],
+  },
+);
+
+// Recall rules storage - stores rules for customizing search behavior per website
+export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
+  'local:recallRulesConfig',
+  {
+    version: 1,
+    fallback: [
+      {
+        id: 'default-spa',
+        name: '单页应用默认规则',
+        enabled: true,
+        description: '针对使用hash路由的单页应用，忽略URL hash片段',
+        urlPattern: '.*',
+        queryProcessing: {
+          ignoreHashFragments: true,
+          ignoreQueryParams: false,
+          excludeKeywords: [],
+          includeKeywords: [],
+          ignorePathSegments: [],
+        },
+        searchScope: {
+          journalDateRange: {
+            enabled: false,
+            days: 30,
+          },
+        },
+        resultFiltering: {
+          maxResults: 10,
+          prioritizeRecent: false,
+        },
+      },
+      {
+        id: 'github-pr',
+        name: 'GitHub Pull Request',
+        enabled: false,
+        description: '针对GitHub PR页面，只搜索代码和项目相关内容',
+        urlPattern: 'github\\.com.*/(pull|issues)/',
+        queryProcessing: {
+          ignoreHashFragments: true,
+          ignoreQueryParams: true,
+          excludeKeywords: ['comment', 'discussion', 'review'],
+          includeKeywords: ['code', 'bug', 'feature', 'implementation'],
+          ignorePathSegments: ['files', 'commits'],
+        },
+        searchScope: {
+          excludePages: ['Daily Notes'],
+          journalDateRange: {
+            enabled: true,
+            days: 90,
+          },
+        },
+        resultFiltering: {
+          maxResults: 15,
+          prioritizeRecent: true,
+        },
+      },
+    ],
+  },
+);
+
+// Define individual storage items for better type safety and default values
+export const versionItem = storage.defineItem<string>('local:version', {
+  fallback: '',
+});
+
+// Legacy (pre hostname/port split) full-URL key. Not part of the config any
+// more: logseqHostName + logseqPort are the single source of truth, and
+// upgrade.ts migrates and removes this key.
+export const logseqHostItem = storage.defineItem<string>('local:logseqHost', {
+  fallback: 'http://localhost:12315',
+});
+
+export const logseqHostNameItem = storage.defineItem<string>(
+  'local:logseqHostName',
+  {
+    fallback: 'localhost',
+  },
+);
+
+export const logseqPortItem = storage.defineItem<number>('local:logseqPort', {
+  fallback: 12315,
+});
+
+export const logseqAuthTokenItem = storage.defineItem<string>(
+  'local:logseqAuthToken',
+  {
+    fallback: import.meta.env.WXT_LOGSEQ_TOKEN || '',
+  },
+);
+
+export const enableClipNoteFloatButtonItem = storage.defineItem<boolean>(
+  'local:enableClipNoteFloatButton',
+  {
+    fallback: false,
+  },
+);
+
+export const clipNoteLocationItem = storage.defineItem<string>(
+  'local:clipNoteLocation',
+  {
+    fallback: 'journal',
+  },
+);
+
+export const clipNoteCustomPageItem = storage.defineItem<string>(
+  'local:clipNoteCustomPage',
+  {
+    fallback: '',
+  },
+);
+
+export const clipNoteTemplateItem = storage.defineItem<string>(
+  'local:clipNoteTemplate',
+  {
+    fallback: `#[[Clip]] [{{title}}]({{url}})
+{{content}}`,
+  },
+);
+
+// Convenience function to get all configuration as an object
+export const getLogseqCopliotConfig =
+  async (): Promise<LogseqCopliotConfig> => {
+    const [
+      version,
+      logseqHostName,
+      logseqPort,
+      logseqAuthToken,
+      enableClipNoteFloatButton,
+      clipNoteLocation,
+      clipNoteCustomPage,
+      clipNoteTemplate,
+    ] = await Promise.all([
+      versionItem.getValue(),
+      logseqHostNameItem.getValue(),
+      logseqPortItem.getValue(),
+      logseqAuthTokenItem.getValue(),
+      enableClipNoteFloatButtonItem.getValue(),
+      clipNoteLocationItem.getValue(),
+      clipNoteCustomPageItem.getValue(),
+      clipNoteTemplateItem.getValue(),
+    ]);
+
+    return {
+      version,
+      logseqHostName,
+      logseqPort,
+      logseqAuthToken,
+      enableClipNoteFloatButton,
+      clipNoteLocation,
+      clipNoteCustomPage,
+      clipNoteTemplate,
+    };
+  };
+
+// Convenience function to save partial configuration updates
+export const saveLogseqCopliotConfig = async (
+  updates: Partial<LogseqCopliotConfig>,
+): Promise<void> => {
+  log.debug('saveLogseqCopliotConfig', updates);
+
+  const updatePromises: Promise<void>[] = [];
+
+  if (updates.version !== undefined) {
+    updatePromises.push(versionItem.setValue(updates.version));
+  }
+  if (updates.logseqHostName !== undefined) {
+    updatePromises.push(logseqHostNameItem.setValue(updates.logseqHostName));
+  }
+  if (updates.logseqPort !== undefined) {
+    updatePromises.push(logseqPortItem.setValue(updates.logseqPort));
+  }
+  if (updates.logseqAuthToken !== undefined) {
+    updatePromises.push(logseqAuthTokenItem.setValue(updates.logseqAuthToken));
+  }
+  if (updates.enableClipNoteFloatButton !== undefined) {
+    updatePromises.push(
+      enableClipNoteFloatButtonItem.setValue(updates.enableClipNoteFloatButton),
+    );
+  }
+  if (updates.clipNoteLocation !== undefined) {
+    updatePromises.push(
+      clipNoteLocationItem.setValue(updates.clipNoteLocation),
+    );
+  }
+  if (updates.clipNoteCustomPage !== undefined) {
+    updatePromises.push(
+      clipNoteCustomPageItem.setValue(updates.clipNoteCustomPage),
+    );
+  }
+  if (updates.clipNoteTemplate !== undefined) {
+    updatePromises.push(
+      clipNoteTemplateItem.setValue(updates.clipNoteTemplate),
+    );
+  }
+
+  await Promise.all(updatePromises);
+};
+
+// Export individual storage items for direct access if needed
+export const storageItems = {
+  version: versionItem,
+  logseqHostName: logseqHostNameItem,
+  logseqPort: logseqPortItem,
+  logseqAuthToken: logseqAuthTokenItem,
+  enableClipNoteFloatButton: enableClipNoteFloatButtonItem,
+  clipNoteLocation: clipNoteLocationItem,
+  clipNoteCustomPage: clipNoteCustomPageItem,
+  clipNoteTemplate: clipNoteTemplateItem,
+} as const;

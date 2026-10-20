@@ -1,3 +1,0 @@
-# Changelogs
-
-<!-- @content -->
