@@ -26,12 +26,18 @@ type LogseqCopliotProps = {
 
 type LoadingState = 'loading' | 'success' | 'error' | 'disconnected';
 
+// Minimum delay between URL-change re-searches.
+const RESEARCH_DEBOUNCE_MS = 500;
+
 const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
   const [state, setState] = React.useState<LoadingState>('loading');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [logseqSearchResult, setLogseqSearchResult] = React.useState<LogseqSearchResult>();
 
   React.useEffect(() => {
+    let lastSearchedUrl = '';
+    let researchTimer: ReturnType<typeof setTimeout> | undefined;
+
     const performSearch = async () => {
       setState('loading');
       setErrorMessage('');
@@ -39,15 +45,13 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
       try {
         // Use hybrid search with both URL and query to apply recall rules
         const currentUrl = window.location.href;
-        console.debug('[LogseqCopilot] Performing hybrid search:', { url: currentUrl, query });
+        lastSearchedUrl = currentUrl;
 
         const result = await sendMessage('logseq:hybridSearch', {
           url: currentUrl,
           query: query,
           options: { fuzzy: true }
         });
-
-        console.debug('[LogseqCopilot] Search result:', result);
 
         if (result.msg === 'success') {
           setState('success');
@@ -67,9 +71,17 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
 
     performSearch();
 
-    // Re-search when URL changes (for SPAs and hash routing)
-    const handleLocationChange = () => {
-      performSearch();
+    // Re-search when URL changes (for SPAs and hash routing). Ignore
+    // synthetic events from page scripts, skip unchanged URLs and debounce so
+    // the page cannot drive a burst of Logseq searches.
+    const handleLocationChange = (event: Event) => {
+      if (!event.isTrusted) return;
+      if (researchTimer) clearTimeout(researchTimer);
+      researchTimer = setTimeout(() => {
+        researchTimer = undefined;
+        if (window.location.href === lastSearchedUrl) return;
+        performSearch();
+      }, RESEARCH_DEBOUNCE_MS);
     };
 
     // Listen for popstate events (back/forward navigation)
@@ -79,6 +91,7 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
     window.addEventListener('hashchange', handleLocationChange);
 
     return () => {
+      if (researchTimer) clearTimeout(researchTimer);
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('hashchange', handleLocationChange);
     };
