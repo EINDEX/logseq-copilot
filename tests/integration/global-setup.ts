@@ -146,7 +146,14 @@ export default async function setup(project: TestProject) {
   app = await electron.launch({
     executablePath,
     args: ['--no-sandbox', '--disable-gpu'],
-    env: { ...process.env, HOME: home, LANG: 'en_US.UTF-8' } as Record<string, string>,
+    // XDG_CONFIG_HOME (set on GitHub runners) would move userData away from
+    // the configs.edn written by prepareHome().
+    env: {
+      ...process.env,
+      HOME: home,
+      XDG_CONFIG_HOME: path.join(home, '.config'),
+      LANG: 'en_US.UTF-8',
+    } as Record<string, string>,
     timeout: 120_000,
   });
   if (process.env.LOGSEQ_DEBUG) {
