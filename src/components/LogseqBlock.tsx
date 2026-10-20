@@ -152,11 +152,6 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <LogseqPageLink graph={graph} page={block.page} />
-          {blocks.length > 1 && (
-            <Badge variant="outline" className="text-xs">
-              {blocks.length} blocks
-            </Badge>
-          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">
