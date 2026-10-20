@@ -10,6 +10,7 @@ import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
 import { HighlightsSidebarContainer } from '@/components/HighlightsSidebarContainer';
+import log from '@/utils/logger';
 
 export default defineContentScript({
   // Set manifest options
@@ -87,7 +88,7 @@ export default defineContentScript({
     };
 
     async function run(searchEngine: CustomSearchEngine) {
-      console.debug('Logseq copliot', window.location.hostname);
+      log.debug('Logseq copliot', window.location.hostname);
 
       if (searchEngine.getId() === 'duckduckgo') {
         fixDuckDuckGoDark()
@@ -95,10 +96,10 @@ export default defineContentScript({
 
       const query = searchEngine.getQuery();
       if (query) {
-        console.log(`match ${typeof searchEngine}, query ${query}`);
+        log.debug(`match ${typeof searchEngine}, query ${query}`);
         const container = await searchEngine.gotElement();
         if (!container) {
-          console.warn('Failed to get container element for search engine');
+          log.warn('Failed to get container element for search engine');
           return;
         }
         // Executed when content script is loaded, can be async

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTheme } from '@/hooks/use-theme';
+import log from '@/utils/logger';
 
 interface ThemeProviderProps {
     children: React.ReactNode;
@@ -13,35 +14,35 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const { theme, isDark } = useTheme();
 
     useEffect(() => {
-        console.log('[ThemeProvider] Theme changed:', theme, 'isDark:', isDark);
+        log.debug('[ThemeProvider] Theme changed:', theme, 'isDark:', isDark);
 
         // Apply theme class to the container
         const applyTheme = () => {
             // Find all shadow roots that contain our components
             const shadowRoots = document.querySelectorAll('[data-wxt-shadow-root]');
-            console.log('[ThemeProvider] Found shadow roots:', shadowRoots.length);
+            log.debug('[ThemeProvider] Found shadow roots:', shadowRoots.length);
 
             shadowRoots.forEach((shadowHost, index) => {
                 const shadowRoot = (shadowHost as any).shadowRoot;
                 if (shadowRoot) {
-                    console.log(`[ThemeProvider] Processing shadow root ${index + 1}`);
+                    log.debug(`[ThemeProvider] Processing shadow root ${index + 1}`);
 
                     // Apply theme class to shadow root's first child (usually the container)
                     const container = shadowRoot.querySelector('[data-theme-container]');
                     if (container) {
-                        console.log(`[ThemeProvider] Applying theme to container:`, container);
+                        log.debug(`[ThemeProvider] Applying theme to container:`, container);
                         container.classList.toggle('dark', isDark);
-                        console.log(`[ThemeProvider] Container classes after update:`, Array.from(container.classList));
+                        log.debug(`[ThemeProvider] Container classes after update:`, Array.from(container.classList));
                         
                         // Log computed styles to verify theme application
                         const computedStyle = getComputedStyle(container);
-                        console.log('[ThemeProvider] Container computed background:', computedStyle.getPropertyValue('--background'));
-                        console.log('[ThemeProvider] Container computed foreground:', computedStyle.getPropertyValue('--foreground'));
+                        log.debug('[ThemeProvider] Container computed background:', computedStyle.getPropertyValue('--background'));
+                        log.debug('[ThemeProvider] Container computed foreground:', computedStyle.getPropertyValue('--foreground'));
                     } else {
-                        console.log(`[ThemeProvider] No theme container found in shadow root ${index + 1}`);
+                        log.debug(`[ThemeProvider] No theme container found in shadow root ${index + 1}`);
                         // Log all elements in shadow root for debugging
                         const allElements = shadowRoot.querySelectorAll('*');
-                        console.log(`[ThemeProvider] Elements in shadow root ${index + 1}:`, Array.from<Element>(allElements).map(el => el.tagName + (el.className ? '.' + el.className : '')));
+                        log.debug(`[ThemeProvider] Elements in shadow root ${index + 1}:`, Array.from<Element>(allElements).map(el => el.tagName + (el.className ? '.' + el.className : '')));
                     }
                 }
             });
@@ -52,7 +53,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
         // Also apply to any future shadow roots
         const observer = new MutationObserver((mutations) => {
-            console.log('[ThemeProvider] DOM mutations detected, reapplying theme');
+            log.debug('[ThemeProvider] DOM mutations detected, reapplying theme');
             applyTheme();
         });
 

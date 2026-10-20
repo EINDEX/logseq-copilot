@@ -11,6 +11,7 @@ import type { HighlightData } from '@/types/highlight';
 import { contentEvents } from '@/utils/content-events';
 import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
+import log from '@/utils/logger';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
@@ -38,7 +39,7 @@ const capture = async () => {
         contentEvents.emit('highlightAdded', savedHighlight);
       }
     } catch (error) {
-      console.debug('[QuickCapture] Failed to save highlight', error);
+      log.debug('[QuickCapture] Failed to save highlight', error);
     }
   } else {
     clipPage();
@@ -145,12 +146,12 @@ const QuickCapture = () => {
 
   const handleCommentUpdate = (updatedHighlight: HighlightData) => {
     // Optionally refresh highlight data or notify other components
-    console.log('Highlight updated:', updatedHighlight);
+    log.debug('Highlight updated:', updatedHighlight);
   };
 
   const handleCommentDelete = (highlightId: string) => {
     // Optionally refresh highlight data or notify other components
-    console.log('Highlight deleted:', highlightId);
+    log.debug('Highlight deleted:', highlightId);
   };
 
   return (

@@ -10,6 +10,7 @@ import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { zIndex } from '@/entrypoints/content/QuickCapture';
+import log from '@/utils/logger';
 
 interface HighlightCommentPopupProps {
     highlightData: HighlightData;
@@ -90,7 +91,7 @@ export function HighlightCommentPopup({
                 setIsEditing(false);
             }
         } catch (error) {
-            console.error('Failed to save comment:', error);
+            log.error('Failed to save comment:', error);
         } finally {
             setIsSaving(false);
         }
@@ -110,7 +111,7 @@ export function HighlightCommentPopup({
                 onClose();
             }
         } catch (error) {
-            console.error('Failed to delete highlight:', error);
+            log.error('Failed to delete highlight:', error);
         }
     };
 

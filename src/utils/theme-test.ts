@@ -1,28 +1,29 @@
 import { detectTheme } from './theme-detection';
+import log from './logger';
 
 /**
  * Test theme detection functionality
  * This function can be called from browser console to debug theme detection
  */
 export function testThemeDetection() {
-  console.log('=== Logseq Copilot Theme Detection Test ===');
+  log.debug('=== Logseq Copilot Theme Detection Test ===');
 
   // Basic info
-  console.log('Current URL:', window.location.href);
-  console.log('Hostname:', window.location.hostname);
+  log.debug('Current URL:', window.location.href);
+  log.debug('Hostname:', window.location.hostname);
 
   // System preference
   const systemPreference = window.matchMedia(
     '(prefers-color-scheme: dark)',
   ).matches;
-  console.log('System prefers dark mode:', systemPreference);
+  log.debug('System prefers dark mode:', systemPreference);
 
   // HTML element analysis
-  console.log(
+  log.debug(
     'HTML element classes:',
     Array.from(document.documentElement.classList),
   );
-  console.log('HTML element attributes:');
+  log.debug('HTML element attributes:');
   [
     'data-dark',
     'data-theme',
@@ -32,17 +33,17 @@ export function testThemeDetection() {
   ].forEach((attr) => {
     const value = document.documentElement.getAttribute(attr);
     if (value) {
-      console.log(`  ${attr}: ${value}`);
+      log.debug(`  ${attr}: ${value}`);
     }
   });
 
   // Body element analysis
-  console.log('Body element classes:', Array.from(document.body.classList));
-  console.log('Body element attributes:');
+  log.debug('Body element classes:', Array.from(document.body.classList));
+  log.debug('Body element attributes:');
   ['data-theme', 'data-color-scheme', 'theme'].forEach((attr) => {
     const value = document.body.getAttribute(attr);
     if (value) {
-      console.log(`  ${attr}: ${value}`);
+      log.debug(`  ${attr}: ${value}`);
     }
   });
 
@@ -50,22 +51,22 @@ export function testThemeDetection() {
   const htmlStyle = getComputedStyle(document.documentElement);
   const bodyStyle = getComputedStyle(document.body);
 
-  console.log('HTML computed styles:');
-  console.log('  background-color:', htmlStyle.backgroundColor);
-  console.log('  color:', htmlStyle.color);
+  log.debug('HTML computed styles:');
+  log.debug('  background-color:', htmlStyle.backgroundColor);
+  log.debug('  color:', htmlStyle.color);
 
-  console.log('Body computed styles:');
-  console.log('  background-color:', bodyStyle.backgroundColor);
-  console.log('  color:', bodyStyle.color);
+  log.debug('Body computed styles:');
+  log.debug('  background-color:', bodyStyle.backgroundColor);
+  log.debug('  color:', bodyStyle.color);
 
   // Google-specific checks
   if (window.location.hostname.includes('google.')) {
-    console.log('=== Google-specific checks ===');
-    console.log(
+    log.debug('=== Google-specific checks ===');
+    log.debug(
       'Dark elements found:',
       document.querySelectorAll('[data-ved][data-dark="1"]').length,
     );
-    console.log('Dark theme selectors:');
+    log.debug('Dark theme selectors:');
     [
       '[data-theme="dark"]',
       '.dark-theme',
@@ -73,14 +74,14 @@ export function testThemeDetection() {
       '[data-color-scheme="dark"]',
     ].forEach((selector) => {
       const element = document.querySelector(selector);
-      console.log(`  ${selector}:`, element ? 'found' : 'not found');
+      log.debug(`  ${selector}:`, element ? 'found' : 'not found');
     });
   }
 
   // Final detection result
   const detectedTheme = detectTheme();
-  console.log('=== Final Result ===');
-  console.log('Detected theme:', detectedTheme);
+  log.debug('=== Final Result ===');
+  log.debug('Detected theme:', detectedTheme);
 
   return detectedTheme;
 }

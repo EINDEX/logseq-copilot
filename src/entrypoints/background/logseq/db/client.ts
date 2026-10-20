@@ -3,6 +3,7 @@ import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 import { LogseqError, LogseqVersionIsLower, toLogseqError } from '../error';
 import { LogseqClientInterface } from '../interfaces';
 import LogseqClientBase, { escapeQueryString } from '../client';
+import log from '@/utils/logger';
 
 type Graph = {
   name: string;
@@ -107,7 +108,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     try {
       return await func();
     } catch (e: any) {
-      console.info(1, e);
+      log.warn(e);
       return toLogseqError(e).info;
     }
   }

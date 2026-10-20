@@ -15,6 +15,7 @@ import {
 } from '@tabler/icons-react';
 import { HighlightService } from '@/utils/highlight-service';
 import type { HighlightData, HighlightQueryOptions } from '@/types/highlight';
+import log from '@/utils/logger';
 
 export function HighlightsPage() {
     const [highlights, setHighlights] = useState<HighlightData[]>([]);
@@ -54,7 +55,7 @@ export function HighlightsPage() {
             setAllTags(Array.from(tags).sort());
 
         } catch (error) {
-            console.error('Failed to load highlights:', error);
+            log.error('Failed to load highlights:', error);
         } finally {
             setLoading(false);
         }
@@ -85,7 +86,7 @@ export function HighlightsPage() {
                 setHighlights(prev => prev.filter(h => h.id !== highlightId));
             }
         } catch (error) {
-            console.error('Failed to delete highlight:', error);
+            log.error('Failed to delete highlight:', error);
         }
     };
 
@@ -129,7 +130,7 @@ export function HighlightsPage() {
                 setStats({ total: 0, websites: 0, thisWeek: 0 });
             }
         } catch (error) {
-            console.error('Failed to clear highlights:', error);
+            log.error('Failed to clear highlights:', error);
         }
     };
 

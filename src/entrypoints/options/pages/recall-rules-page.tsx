@@ -20,6 +20,7 @@ import {
 import { useRecallRules } from '@/hooks/use-recall-rules';
 import { RecallRuleConfig } from '@/utils/storage';
 import RecallRuleForm from '../components/RecallRuleForm';
+import log from '@/utils/logger';
 
 const RecallRulesPage: React.FC = () => {
     const {
@@ -83,7 +84,7 @@ const RecallRulesPage: React.FC = () => {
             setShowForm(false);
             setEditingRule(null);
         } catch (error) {
-            console.error('Failed to save recall rule:', error);
+            log.error('Failed to save recall rule:', error);
         }
     };
 

@@ -12,6 +12,7 @@ import { templates } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import type { LogseqBlockType } from '@/types/logseqBlock';
+import log from '@/utils/logger';
 
 export default defineBackground({
   // Set manifest options
@@ -29,7 +30,7 @@ export default defineBackground({
     onMessage('logseq:search', async ({ data }) => {
       const logseqService = await getLogseqService();
       const searchRes = await logseqService.search(data);
-      console.debug('search result', searchRes);
+      log.debug('search result', searchRes);
       return searchRes;
     });
 
@@ -145,7 +146,7 @@ export default defineBackground({
     };
 
     const openPage = async (url: string) => {
-      console.debug(url);
+      log.debug(url);
       const tab = await getCurrentTab();
       if (!tab) {
         browser.tabs.create({ url: url });
@@ -166,7 +167,7 @@ export default defineBackground({
       const defaultTemplate = templateList[0];
 
       if (!defaultTemplate) {
-        console.error('No templates found for clipping');
+        log.error('No templates found for clipping');
         return;
       }
 
@@ -206,7 +207,7 @@ export default defineBackground({
         const tab = await browser.tabs.get(activeInfo.tabId);
         await debounceBadgeSearch(tab.url, activeInfo.tabId);
       });
-      promise.catch((err) => console.error(err));
+      promise.catch((err) => log.error(err));
     });
 
     browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -214,7 +215,7 @@ export default defineBackground({
         const promise = new Promise(async () => {
           await debounceBadgeSearch(tab.url, tabId);
         });
-        promise.catch((err) => console.error(err));
+        promise.catch((err) => log.error(err));
       }
     });
 
@@ -277,7 +278,7 @@ export default defineBackground({
 
       // Run migration for both install and update events
       await migrateLegacyClipSettingsToTemplates().catch((err) =>
-        console.error('Failed to migrate legacy clip settings:', err),
+        log.error('Failed to migrate legacy clip settings:', err),
       );
       await SearchEngineConfigMigration.runMigrations();
       // Idempotent, so it is safe on every install/update (version gating via

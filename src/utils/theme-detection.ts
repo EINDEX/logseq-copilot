@@ -1,3 +1,4 @@
+import log from './logger';
 /**
  * Enhanced theme detection utilities for content script
  * Supports various search engines and popular websites
@@ -9,12 +10,12 @@ export type Theme = 'light' | 'dark';
  * Detect theme from various sources with priority order
  */
 export function detectTheme(): Theme {
-  console.debug('[Theme Detection] Starting theme detection...');
+  log.debug('[Theme Detection] Starting theme detection...');
 
   // 1. Check specific search engines and popular sites
   const siteSpecificDark = detectSiteSpecificDarkMode();
   if (siteSpecificDark !== null) {
-    console.debug(
+    log.debug(
       '[Theme Detection] Site-specific detection result:',
       siteSpecificDark,
     );
@@ -24,7 +25,7 @@ export function detectTheme(): Theme {
   // 2. Check host page theme indicators
   const hostPageDark = detectHostPageTheme();
   if (hostPageDark !== null) {
-    console.debug(
+    log.debug(
       '[Theme Detection] Host page detection result:',
       hostPageDark,
     );
@@ -34,7 +35,7 @@ export function detectTheme(): Theme {
   // 3. Check computed styles heuristic
   const computedStyleDark = detectFromComputedStyles();
   if (computedStyleDark !== null) {
-    console.debug(
+    log.debug(
       '[Theme Detection] Computed styles detection result:',
       computedStyleDark,
     );
@@ -46,7 +47,7 @@ export function detectTheme(): Theme {
     .matches
     ? 'dark'
     : 'light';
-  console.debug(
+  log.debug(
     '[Theme Detection] System preference fallback:',
     systemPreference,
   );
@@ -58,30 +59,30 @@ export function detectTheme(): Theme {
  */
 function detectSiteSpecificDarkMode(): Theme | null {
   const hostname = window.location.hostname;
-  console.debug(
+  log.debug(
     '[Theme Detection] Checking site-specific detection for:',
     hostname,
   );
 
   // Google Search
   if (hostname.includes('google.')) {
-    console.debug('[Theme Detection] Detecting Google theme...');
+    log.debug('[Theme Detection] Detecting Google theme...');
 
     // Method 1: Check data-dark attribute
     const dataAttr = document.documentElement.getAttribute('data-dark');
-    console.debug('[Theme Detection] Google data-dark attribute:', dataAttr);
+    log.debug('[Theme Detection] Google data-dark attribute:', dataAttr);
 
     // Method 2: Check body classes
     const bodyClasses = Array.from(document.body.classList);
-    console.debug('[Theme Detection] Google body classes:', bodyClasses);
+    log.debug('[Theme Detection] Google body classes:', bodyClasses);
 
     // Method 3: Check html classes
     const htmlClasses = Array.from(document.documentElement.classList);
-    console.debug('[Theme Detection] Google html classes:', htmlClasses);
+    log.debug('[Theme Detection] Google html classes:', htmlClasses);
 
     // Method 4: Check for dark mode specific elements
     const darkElements = document.querySelectorAll('[data-ved][data-dark="1"]');
-    console.debug(
+    log.debug(
       '[Theme Detection] Google dark elements found:',
       darkElements.length,
     );
@@ -89,8 +90,8 @@ function detectSiteSpecificDarkMode(): Theme | null {
     // Method 5: Check computed background color
     const bodyBg = getComputedStyle(document.body).backgroundColor;
     const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
-    console.debug('[Theme Detection] Google body background:', bodyBg);
-    console.debug('[Theme Detection] Google html background:', htmlBg);
+    log.debug('[Theme Detection] Google body background:', bodyBg);
+    log.debug('[Theme Detection] Google html background:', htmlBg);
 
     // Method 6: Check for dark theme specific selectors
     const darkModeIndicators = [
@@ -99,7 +100,7 @@ function detectSiteSpecificDarkMode(): Theme | null {
       document.querySelector('[data-darkmode="true"]'),
       document.querySelector('[data-color-scheme="dark"]'),
     ];
-    console.debug(
+    log.debug(
       '[Theme Detection] Google dark mode indicators:',
       darkModeIndicators.some((el) => el !== null),
     );
@@ -108,12 +109,12 @@ function detectSiteSpecificDarkMode(): Theme | null {
     const bgRgb = parseRgbColor(bodyBg) || parseRgbColor(htmlBg);
     if (bgRgb) {
       const luminance = calculateLuminance(bgRgb);
-      console.debug(
+      log.debug(
         '[Theme Detection] Google background luminance:',
         luminance,
       );
       if (luminance < 0.5) {
-        console.debug(
+        log.debug(
           '[Theme Detection] Google detected as dark based on luminance',
         );
         return 'dark';
@@ -132,7 +133,7 @@ function detectSiteSpecificDarkMode(): Theme | null {
       darkModeIndicators.some((el) => el !== null) ||
       (bgRgb && calculateLuminance(bgRgb) < 0.5);
 
-    console.debug(
+    log.debug(
       '[Theme Detection] Google final result:',
       isDark ? 'dark' : 'light',
     );
@@ -141,12 +142,12 @@ function detectSiteSpecificDarkMode(): Theme | null {
 
   // DuckDuckGo
   if (hostname.includes('duckduckgo.')) {
-    console.debug('[Theme Detection] Detecting DuckDuckGo theme...');
+    log.debug('[Theme Detection] Detecting DuckDuckGo theme...');
     const isDark =
       document.querySelector('.dark-bg') !== null ||
       document.body.classList.contains('dark') ||
       document.documentElement.getAttribute('data-theme') === 'dark';
-    console.debug(
+    log.debug(
       '[Theme Detection] DuckDuckGo result:',
       isDark ? 'dark' : 'light',
     );
@@ -155,32 +156,32 @@ function detectSiteSpecificDarkMode(): Theme | null {
 
   // Bing
   if (hostname.includes('bing.')) {
-    console.debug('[Theme Detection] Detecting Bing theme...');
+    log.debug('[Theme Detection] Detecting Bing theme...');
     const isDark =
       document.body.classList.contains('dark') ||
       document.documentElement.classList.contains('dark') ||
       document.querySelector('[data-theme="dark"]') !== null;
-    console.debug('[Theme Detection] Bing result:', isDark ? 'dark' : 'light');
+    log.debug('[Theme Detection] Bing result:', isDark ? 'dark' : 'light');
     return isDark ? 'dark' : 'light';
   }
 
   // Baidu
   if (hostname.includes('baidu.')) {
-    console.debug('[Theme Detection] Detecting Baidu theme...');
+    log.debug('[Theme Detection] Detecting Baidu theme...');
     const isDark =
       document.body.classList.contains('dark') ||
       document.documentElement.classList.contains('dark');
-    console.debug('[Theme Detection] Baidu result:', isDark ? 'dark' : 'light');
+    log.debug('[Theme Detection] Baidu result:', isDark ? 'dark' : 'light');
     return isDark ? 'dark' : 'light';
   }
 
   // Yandex
   if (hostname.includes('yandex.')) {
-    console.debug('[Theme Detection] Detecting Yandex theme...');
+    log.debug('[Theme Detection] Detecting Yandex theme...');
     const isDark =
       document.body.classList.contains('dark') ||
       document.documentElement.classList.contains('dark');
-    console.debug(
+    log.debug(
       '[Theme Detection] Yandex result:',
       isDark ? 'dark' : 'light',
     );
@@ -189,11 +190,11 @@ function detectSiteSpecificDarkMode(): Theme | null {
 
   // GitHub
   if (hostname.includes('github.')) {
-    console.debug('[Theme Detection] Detecting GitHub theme...');
+    log.debug('[Theme Detection] Detecting GitHub theme...');
     const isDark =
       document.documentElement.getAttribute('data-color-mode') === 'dark' ||
       document.documentElement.getAttribute('data-dark-theme') !== null;
-    console.debug(
+    log.debug(
       '[Theme Detection] GitHub result:',
       isDark ? 'dark' : 'light',
     );
@@ -202,11 +203,11 @@ function detectSiteSpecificDarkMode(): Theme | null {
 
   // Twitter/X
   if (hostname.includes('twitter.') || hostname.includes('x.com')) {
-    console.debug('[Theme Detection] Detecting Twitter/X theme...');
+    log.debug('[Theme Detection] Detecting Twitter/X theme...');
     const isDark =
       document.body.style.backgroundColor.includes('rgb(0, 0, 0)') ||
       document.documentElement.style.colorScheme === 'dark';
-    console.debug(
+    log.debug(
       '[Theme Detection] Twitter/X result:',
       isDark ? 'dark' : 'light',
     );
@@ -215,18 +216,18 @@ function detectSiteSpecificDarkMode(): Theme | null {
 
   // YouTube
   if (hostname.includes('youtube.')) {
-    console.debug('[Theme Detection] Detecting YouTube theme...');
+    log.debug('[Theme Detection] Detecting YouTube theme...');
     const isDark =
       document.documentElement.getAttribute('dark') === 'true' ||
       document.body.classList.contains('dark');
-    console.debug(
+    log.debug(
       '[Theme Detection] YouTube result:',
       isDark ? 'dark' : 'light',
     );
     return isDark ? 'dark' : 'light';
   }
 
-  console.debug('[Theme Detection] No site-specific detection available');
+  log.debug('[Theme Detection] No site-specific detection available');
   return null;
 }
 
@@ -234,7 +235,7 @@ function detectSiteSpecificDarkMode(): Theme | null {
  * Detect theme from common host page indicators
  */
 function detectHostPageTheme(): Theme | null {
-  console.debug('[Theme Detection] Checking host page theme indicators...');
+  log.debug('[Theme Detection] Checking host page theme indicators...');
 
   const indicators = [
     // Class-based indicators
@@ -255,7 +256,7 @@ function detectHostPageTheme(): Theme | null {
   ];
 
   const hasDarkIndicator = indicators.some((indicator) => indicator);
-  console.debug('[Theme Detection] Dark indicators found:', hasDarkIndicator);
+  log.debug('[Theme Detection] Dark indicators found:', hasDarkIndicator);
 
   if (hasDarkIndicator) {
     return 'dark';
@@ -272,7 +273,7 @@ function detectHostPageTheme(): Theme | null {
   ];
 
   const hasLightIndicator = lightIndicators.some((indicator) => indicator);
-  console.debug('[Theme Detection] Light indicators found:', hasLightIndicator);
+  log.debug('[Theme Detection] Light indicators found:', hasLightIndicator);
 
   if (hasLightIndicator) {
     return 'light';
@@ -285,7 +286,7 @@ function detectHostPageTheme(): Theme | null {
  * Detect theme from computed styles
  */
 function detectFromComputedStyles(): Theme | null {
-  console.debug('[Theme Detection] Checking computed styles...');
+  log.debug('[Theme Detection] Checking computed styles...');
 
   try {
     const computedStyle = getComputedStyle(document.documentElement);
@@ -296,10 +297,10 @@ function detectFromComputedStyles(): Theme | null {
     const htmlText = computedStyle.color;
     const bodyText = bodyStyle.color;
 
-    console.debug('[Theme Detection] HTML background:', htmlBg);
-    console.debug('[Theme Detection] Body background:', bodyBg);
-    console.debug('[Theme Detection] HTML text:', htmlText);
-    console.debug('[Theme Detection] Body text:', bodyText);
+    log.debug('[Theme Detection] HTML background:', htmlBg);
+    log.debug('[Theme Detection] Body background:', bodyBg);
+    log.debug('[Theme Detection] HTML text:', htmlText);
+    log.debug('[Theme Detection] Body text:', bodyText);
 
     // Try both body and html backgrounds
     const bgColor = bodyBg !== 'rgba(0, 0, 0, 0)' ? bodyBg : htmlBg;
@@ -314,12 +315,12 @@ function detectFromComputedStyles(): Theme | null {
       const bgLuminance = calculateLuminance(bgRgb);
       const textLuminance = calculateLuminance(textRgb);
 
-      console.debug('[Theme Detection] Background luminance:', bgLuminance);
-      console.debug('[Theme Detection] Text luminance:', textLuminance);
+      log.debug('[Theme Detection] Background luminance:', bgLuminance);
+      log.debug('[Theme Detection] Text luminance:', textLuminance);
 
       // If background is significantly darker than text, it's likely dark mode
       if (bgLuminance < textLuminance && bgLuminance < 0.5) {
-        console.debug(
+        log.debug(
           '[Theme Detection] Detected dark mode from computed styles',
         );
         return 'dark';
@@ -327,14 +328,14 @@ function detectFromComputedStyles(): Theme | null {
 
       // If background is significantly lighter than text, it's likely light mode
       if (bgLuminance > textLuminance && bgLuminance > 0.5) {
-        console.debug(
+        log.debug(
           '[Theme Detection] Detected light mode from computed styles',
         );
         return 'light';
       }
     }
   } catch (error) {
-    console.debug('Error detecting theme from computed styles:', error);
+    log.debug('Error detecting theme from computed styles:', error);
   }
 
   return null;
@@ -386,7 +387,7 @@ export function setupThemeChangeListeners(
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   const handleChange = () => {
-    console.debug('[Theme Detection] Theme change detected, re-detecting...');
+    log.debug('[Theme Detection] Theme change detected, re-detecting...');
     const newTheme = detectTheme();
     callback(newTheme);
   };

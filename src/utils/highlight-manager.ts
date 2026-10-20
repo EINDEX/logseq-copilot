@@ -66,7 +66,7 @@ export class HighlightManager {
       return;
     }
 
-    console.log(
+    log.debug(
       '[HighlightManager] Click detected at',
       event.clientX,
       event.clientY,
@@ -74,31 +74,31 @@ export class HighlightManager {
 
     const clickedRange = caretRangeAtPoint(event.clientX, event.clientY);
     if (!clickedRange) {
-      console.log('[HighlightManager] No range found at click point');
+      log.debug('[HighlightManager] No range found at click point');
       return;
     }
 
     // Find the highlight that contains this clicked point
     const pageHighlights = await this.getPageHighlights();
-    console.log(
+    log.debug(
       '[HighlightManager] Found',
       pageHighlights.length,
       'highlights on page',
     );
-    console.log('[HighlightManager] Current URL:', window.location.href);
-    console.log('[HighlightManager] Page highlights data:', pageHighlights);
+    log.debug('[HighlightManager] Current URL:', window.location.href);
+    log.debug('[HighlightManager] Page highlights data:', pageHighlights);
 
     for (const highlightData of pageHighlights) {
       const range = HighlightService.deserializeRange(highlightData.range);
       if (range) {
-        console.log(
+        log.debug(
           '[HighlightManager] Checking highlight:',
           highlightData.id,
           range.toString(),
         );
 
         if (this.rangeContainsPoint(range, clickedRange)) {
-          console.log(
+          log.debug(
             '[HighlightManager] Clicked on highlight:',
             highlightData.id,
           );
@@ -115,7 +115,7 @@ export class HighlightManager {
           break;
         }
       } else {
-        console.log(
+        log.debug(
           '[HighlightManager] Could not deserialize range for highlight:',
           highlightData.id,
         );
@@ -148,7 +148,7 @@ export class HighlightManager {
           pointRect.top > highlightRect.bottom
         );
 
-        console.log('[HighlightManager] Rectangle intersection check:', {
+        log.debug('[HighlightManager] Rectangle intersection check:', {
           highlightRect,
           pointRect,
           intersects,
@@ -166,7 +166,7 @@ export class HighlightManager {
           pointNode.textContent.includes(highlightText) ||
           highlightText.includes(pointNode.textContent.trim());
 
-        console.log('[HighlightManager] Text comparison check:', {
+        log.debug('[HighlightManager] Text comparison check:', {
           highlightText,
           pointText: pointNode.textContent.trim(),
           containsText,
@@ -177,7 +177,7 @@ export class HighlightManager {
 
       return false;
     } catch (error) {
-      console.log('[HighlightManager] Range comparison error:', error);
+      log.debug('[HighlightManager] Range comparison error:', error);
 
       // Simple fallback: compare text content
       try {

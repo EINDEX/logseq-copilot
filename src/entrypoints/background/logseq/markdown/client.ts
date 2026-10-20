@@ -3,6 +3,7 @@ import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 import { LogseqError, LogseqVersionIsLower, toLogseqError } from '../error';
 import LogseqClientBase, { escapeQueryString } from '../client';
 import { LogseqClientInterface } from '../interfaces';
+import log from '@/utils/logger';
 
 type Graph = {
   name: string;
@@ -121,7 +122,7 @@ export default class LogseqClient
     try {
       return await func();
     } catch (e: any) {
-      console.info(e);
+      log.warn(e);
       return toLogseqError(e).info;
     }
   }
@@ -166,7 +167,7 @@ export default class LogseqClient
   };
 
   public updateBlock = async (block: LogseqBlockType) => {
-    console.log(block.content);
+    log.debug(block.content);
     return await this.baseJson('logseq.Editor.updateBlock', [
       block.uuid,
       block.content,

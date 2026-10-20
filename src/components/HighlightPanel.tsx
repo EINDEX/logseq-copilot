@@ -13,6 +13,7 @@ import {
     IconDownload
 } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
+import log from '@/utils/logger';
 
 interface HighlightPanelProps {
     className?: string;
@@ -30,7 +31,7 @@ export function HighlightPanel({ className }: HighlightPanelProps) {
             const pageHighlights = await highlightManager.getPageHighlights();
             setHighlights(pageHighlights);
         } catch (error) {
-            console.error('Failed to load highlights:', error);
+            log.error('Failed to load highlights:', error);
         } finally {
             setLoading(false);
         }
@@ -49,7 +50,7 @@ export function HighlightPanel({ className }: HighlightPanelProps) {
                 setHighlights(prev => prev.filter(h => h.id !== highlightId));
             }
         } catch (error) {
-            console.error('Failed to delete highlight:', error);
+            log.error('Failed to delete highlight:', error);
         }
     };
 
@@ -98,7 +99,7 @@ export function HighlightPanel({ className }: HighlightPanelProps) {
                 setHiddenHighlights(new Set());
             }
         } catch (error) {
-            console.error('Failed to clear highlights:', error);
+            log.error('Failed to clear highlights:', error);
         }
     };
 

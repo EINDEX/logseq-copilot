@@ -14,7 +14,9 @@ class Logger {
   }
 
   debug(...message: any[]) {
-    if (import.meta.env.WXT_ENV === 'development') {
+    // DEV is replaced with a literal at build time (true for `wxt` dev mode,
+    // false for build/zip), so debug output is stripped from packaged builds.
+    if (import.meta.env.DEV) {
       console.debug(prefix, ...message);
     }
   }

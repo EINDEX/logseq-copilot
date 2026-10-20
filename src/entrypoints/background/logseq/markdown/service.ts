@@ -3,6 +3,7 @@ import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
+import log from '@/utils/logger';
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -42,7 +43,7 @@ export default class LogseqService implements LogseqServiceInterface {
 
   public async search(query: string) {
     const graph = await this.getGraph();
-    console.debug(`Markdown Graph Name: ${graph}`);
+    log.debug(`Markdown Graph Name: ${graph}`);
     const resp = {
       msg: 'success',
       status: 200,
@@ -131,7 +132,7 @@ export default class LogseqService implements LogseqServiceInterface {
     block.content = block.content.replace(block.marker, marker);
 
     const result = await this.client.updateBlock(block);
-    console.debug(result);
+    log.debug(result);
     // The HTTP API reports failures as a 200 response carrying `{ error }`.
     if (result && typeof result === 'object' && 'error' in result) {
       return {

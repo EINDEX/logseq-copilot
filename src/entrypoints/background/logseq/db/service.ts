@@ -7,6 +7,7 @@ import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
+import log from '@/utils/logger';
 
 const STATUS_PROPERTY = ':logseq.property/status';
 const STATUS_IDENT_PREFIX = `${STATUS_PROPERTY}.`;
@@ -99,7 +100,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
   public async search(query: string) {
     const graph = await this.getGraph();
-    console.debug(`DG Graph Name: ${graph}`);
+    log.debug(`DG Graph Name: ${graph}`);
     const resp = {
       msg: 'success',
       status: 200,

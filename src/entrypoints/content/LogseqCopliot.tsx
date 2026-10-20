@@ -10,13 +10,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { IconSettings, IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage, onMessage } from '@/types/messaging';
+import log from '@/utils/logger';
 import '@/assets/globals.css';
 
 // Import theme test function for debugging
 if (import.meta.env.DEV) {
   import('@/utils/theme-test').then(({ testThemeDetection }) => {
     (window as any).testLogseqTheme = testThemeDetection;
-    console.log('Theme detection test function available: testLogseqTheme()');
+    log.debug('Theme detection test function available: testLogseqTheme()');
   });
 }
 

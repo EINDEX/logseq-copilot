@@ -24,6 +24,7 @@ import { HighlightManager } from '@/utils/highlight-manager';
 import type { HighlightData } from '@/types/highlight';
 import { zIndex } from '@/entrypoints/content/QuickCapture';
 import { sendMessage } from '@/types/messaging';
+import log from '@/utils/logger';
 
 /**
  * In-page sidebar. It runs inside the host page (an open shadow root, which
@@ -68,7 +69,7 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
             const pageHighlights = await HighlightService.getCurrentPageHighlights();
             setHighlights(pageHighlights);
         } catch (error) {
-            console.error('Failed to load highlights:', error);
+            log.error('Failed to load highlights:', error);
         } finally {
             setLoading(false);
         }
@@ -88,7 +89,7 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
                 setFilteredHighlights(prev => prev.filter(h => h.id !== highlightId));
             }
         } catch (error) {
-            console.error('Failed to delete highlight:', error);
+            log.error('Failed to delete highlight:', error);
         }
     };
 
@@ -118,7 +119,7 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
             if (highlight) {
                 // For now, we'll just track in state. 
                 // In a full implementation, we'd need a method to hide without deleting
-                console.log('Hiding highlight:', highlightId);
+                log.debug('Hiding highlight:', highlightId);
             }
         }
     };
@@ -133,14 +134,14 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
                 const highlightManager = HighlightManager.getInstance();
                 const success = await highlightManager.scrollToHighlight(highlight.id);
                 if (!success) {
-                    console.warn('Could not scroll to highlight, it may no longer exist on the page');
+                    log.warn('Could not scroll to highlight, it may no longer exist on the page');
                 }
             } else {
                 // Open the page with the highlight
                 window.open(highlight.url, '_blank');
             }
         } catch (error) {
-            console.error('Failed to handle highlight click:', error);
+            log.error('Failed to handle highlight click:', error);
         }
     };
 

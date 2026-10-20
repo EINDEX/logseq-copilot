@@ -1,4 +1,5 @@
 import type { HighlightData } from '@/types/highlight';
+import log from './logger';
 
 /**
  * In-memory event bus for the content script.
@@ -44,7 +45,7 @@ export function createEmitter<Events extends Record<string, unknown>>() {
         try {
           listener(payload);
         } catch (error) {
-          console.error(`[content-events] listener for ${String(name)} failed`, error);
+          log.error(`[content-events] listener for ${String(name)} failed`, error);
         }
       });
     },

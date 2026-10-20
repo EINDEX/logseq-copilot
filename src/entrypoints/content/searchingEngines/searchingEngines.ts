@@ -1,3 +1,4 @@
+import log from '@/utils/logger';
 abstract class SearchingEngine {
   abstract getId(): string;
 
@@ -60,7 +61,7 @@ class CustomSearchEngine extends SearchingEngine {
       // Fallback to simple hostname matching
       return window.location.hostname.includes(this.config.urlPattern);
     } catch (error) {
-      console.warn(
+      log.warn(
         `[CustomSearchEngine] Invalid URL pattern for ${this.config.name}:`,
         error,
       );
@@ -116,7 +117,7 @@ class CustomSearchEngine extends SearchingEngine {
 
       return null;
     } catch (error) {
-      console.warn(
+      log.warn(
         `[CustomSearchEngine] Error getting query for ${this.config.name}:`,
         error,
       );
@@ -147,7 +148,7 @@ class CustomSearchEngine extends SearchingEngine {
 
       const targetElement = document.querySelector(this.config.elementSelector);
       if (!targetElement) {
-        console.warn(
+        log.warn(
           `[CustomSearchEngine] Target element not found for ${this.config.name}`,
         );
         return null;
@@ -192,7 +193,7 @@ class CustomSearchEngine extends SearchingEngine {
 
       return container;
     } catch (error) {
-      console.warn(
+      log.warn(
         `[CustomSearchEngine] Error creating element for ${this.config.name}:`,
         error,
       );

@@ -1,5 +1,6 @@
 import { storage } from '#imports';
 import { HighlightData } from '@/types/highlight';
+import log from './logger';
 
 export type LogseqCopliotConfig = {
   version: string;
@@ -428,7 +429,7 @@ export const getLogseqCopliotConfig =
 export const saveLogseqCopliotConfig = async (
   updates: Partial<LogseqCopliotConfig>,
 ): Promise<void> => {
-  console.log('saveLogseqCopliotConfig', updates);
+  log.debug('saveLogseqCopliotConfig', updates);
 
   const updatePromises: Promise<void>[] = [];
 

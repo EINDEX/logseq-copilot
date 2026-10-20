@@ -4,6 +4,7 @@ import { HighlightsSidebarToggle } from './HighlightsSidebarToggle';
 import { HighlightService } from '@/utils/highlight-service';
 import { ThemeProvider } from './ThemeProvider';
 import { contentEvents } from '@/utils/content-events';
+import log from '@/utils/logger';
 
 export function HighlightsSidebarContainer() {
     const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +34,7 @@ export function HighlightsSidebarContainer() {
             const pageHighlights = await HighlightService.getCurrentPageHighlights();
             setHighlightCount(pageHighlights.length);
         } catch (error) {
-            console.error('Failed to load highlight count:', error);
+            log.error('Failed to load highlight count:', error);
         }
     };
 
