@@ -37,8 +37,24 @@ export const cleanBlock = (block: LogseqBlockType): string => {
     .trim();
 };
 
+const escapeRegExp = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Wrap every occurrence of `query` in `<mark>`. Existing `<mark>…</mark>`
+ * segments are left untouched so nothing is wrapped twice.
+ */
+export const markMatches = (text: string, query?: string): string => {
+  if (!query || !text) {
+    return text;
+  }
+  const re = new RegExp(`(<mark>[\\s\\S]*?<\\/mark>)|${escapeRegExp(query)}`, 'g');
+  return text.replace(re, (match, existing) =>
+    existing ? match : `<mark>${match}</mark>`,
+  );
+};
+
 const highlightTokens = (query: string) => {
-  const re = new RegExp(`^(?!<mark>)${query}(?!<\/mark>)`, 'g');
   return (token: any) => {
     if (
       token.type !== 'code' &&
@@ -46,9 +62,7 @@ const highlightTokens = (query: string) => {
       token.type !== 'logseqLink' &&
       token.text
     ) {
-      token.text = query
-        ? token.text.replaceAll(re, '<mark>' + query + '</mark>')
-        : token.text;
+      token.text = markMatches(token.text, query);
     }
   };
 };
@@ -73,12 +87,32 @@ const logseqLinkExt = (graph: string, query?: string) => {
     renderer: function (token: any) {
       const { text, href } = token;
 
-      const fillText = query
-        ? text.replaceAll(query, '<mark>' + query + '</mark>')
-        : text;
+      const fillText = markMatches(text, query);
       return `<a class="logseq-page-link" href="logseq://graph/${graph}?page=${href}"><span class="tie tie-page"></span>${fillText}</a>`;
     },
   };
+};
+
+/**
+ * marked 4.x has no `Marked` instance class: `marked.use` mutates global
+ * state, so extensions and walkTokens would accumulate between renders (a
+ * second search would still highlight the previous query). Start every
+ * render from pristine defaults and restore the previous global state after.
+ */
+const parseIsolated = (markdown: string, graphName: string, query?: string) => {
+  const previous = { ...marked.defaults };
+  try {
+    marked.setOptions(marked.getDefaults());
+    marked.use(<marked.MarkedExtension>{
+      gfm: true,
+      tables: true,
+      walkTokens: query ? highlightTokens(query) : undefined,
+      extensions: [logseqLinkExt(graphName, query)],
+    });
+    return marked.parse(markdown);
+  } finally {
+    marked.setOptions(previous);
+  }
 };
 
 export const renderBlock = (
@@ -87,13 +121,7 @@ export const renderBlock = (
   query?: string,
 ) => {
   const cleanContent = cleanBlock(block);
-  marked.use(<marked.MarkedExtension>{
-    gfm: true,
-    tables: true,
-    walkTokens: query ? highlightTokens(query) : undefined,
-    extensions: [logseqLinkExt(graphName, query)],
-  });
-  const html = marked.parse(cleanContent).trim();
+  const html = parseIsolated(cleanContent, graphName, query).trim();
 
   block.html = html;
   return block;
@@ -102,7 +130,7 @@ export const renderBlock = (
 export const getLogseqService = async (config?: LogseqCopliotSettingsV1): Promise<LogseqServiceInterface> => {
   try {
     const resp = await client.isDBGraph();
-    if (resp === 'true' || resp === true || resp === false) {
+    if (resp === 'true' || resp === true) {
       return logseqServiceDB;
     }
   } catch (error) {}
