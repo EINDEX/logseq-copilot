@@ -56,7 +56,7 @@ jobs:
           ref: refs/tags/${{ steps.tag.outputs.value }}
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         name: Install pnpm
         with:
           version: 9
@@ -97,7 +97,7 @@ jobs:
 
       - name: Chrome Upload & release
         if: matrix.platform == 'chrome'
-        uses: mnao305/chrome-extension-upload@v7.0.0
+        uses: mnao305/chrome-extension-upload@f549d5d654694a7722d6abfa64c97409ad5e64c1 # v7.0.0
         with:
           file-path: .output/logseq-copilot-${{ steps.version.outputs.value }}-chrome.zip
           extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
@@ -115,7 +115,7 @@ jobs:
           EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
 
       - name: Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         if: matrix.platform == 'github'
         with:
           # Attaches to the release release-please created; creates it when
