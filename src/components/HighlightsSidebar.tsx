@@ -27,9 +27,9 @@ import { sendMessage } from '@/types/messaging';
 import log from '@/utils/logger';
 
 /**
- * In-page sidebar. It runs inside the host page (an open shadow root, which
- * page scripts can reach via element.shadowRoot), so it only ever loads the
- * highlights of the current page. The cross-site list lives on the extension's
+ * In-page sidebar. It runs inside the host page (a shadow root: closed in
+ * packaged builds, open in dev/E2E builds where page scripts can reach it via
+ * element.shadowRoot), so it only ever loads the highlights of the current page. The cross-site list lives on the extension's
  * own options page (Options > Highlights).
  */
 interface HighlightsSidebarProps {

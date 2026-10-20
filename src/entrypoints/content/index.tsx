@@ -11,6 +11,7 @@ import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
 import { HighlightsSidebarContainer } from '@/components/HighlightsSidebarContainer';
 import log from '@/utils/logger';
+import { shadowRootMode } from '@/utils/shadow-mode';
 
 export default defineContentScript({
   // Set manifest options
@@ -104,6 +105,7 @@ export default defineContentScript({
         // Executed when content script is loaded, can be async
         const searchEngineUi = await createShadowRootUi(ctx, {
           name: 'logseq-copilot-search-engine',
+          mode: shadowRootMode,
           position: 'inline',
           anchor: container,
           append: 'first',
@@ -143,6 +145,7 @@ export default defineContentScript({
       // Executed when content script is loaded, can be async
       const popupUi = await createShadowRootUi(ctx, {
         name: 'logseq-copilot-popup',
+        mode: shadowRootMode,
         position: 'inline',
         anchor: 'body',
         onMount: async (container) => {
@@ -171,6 +174,7 @@ export default defineContentScript({
       // Mount the highlights sidebar
       const sidebarUi = await createShadowRootUi(ctx, {
         name: 'logseq-copilot-highlights-sidebar',
+        mode: shadowRootMode,
         position: 'inline',
         anchor: 'body',
         onMount: async (container) => {

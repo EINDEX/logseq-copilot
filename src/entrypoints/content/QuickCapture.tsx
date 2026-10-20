@@ -1,5 +1,5 @@
 import { buildTurndownService } from '@/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
@@ -80,11 +80,16 @@ const QuickCapture = () => {
 
 
 
+  const buttonRef = useRef<HTMLDivElement>(null);
+
   const clicked = (event: MouseEvent) => {
     const selection = getSelection();
     const haveSelection = selection && selection.toString().trim().length > 0;
     const target = event.target as HTMLElement;
-    const isButton = target && target.className && target.className.includes("quickCapture")
+    // On `document`, a click inside our shadow root is retargeted to its host.
+    const root = buttonRef.current?.getRootNode();
+    const isButton = (root instanceof ShadowRoot && target === root.host) ||
+      (target && target.className && target.className.includes("quickCapture"))
     if (isButton) {
       if (event.type === "mouseup") {
         setShow(false);
@@ -159,7 +164,7 @@ const QuickCapture = () => {
 
   return (
     <>
-      <div className={scssStyles.popupButton} style={styles()}>
+      <div ref={buttonRef} className={scssStyles.popupButton} style={styles()}>
         <img
           className={`${scssStyles.popupButton} quickCapture`}
           src={logo}

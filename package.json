@@ -27,7 +27,10 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "build:e2e": "WXT_E2E=true wxt build",
+    "test:e2e": "wxt build && pnpm build:e2e && pnpm test:e2e:run",
+    "test:e2e:run": "playwright test -c tests/e2e/playwright.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -61,6 +64,7 @@
   },
   "devDependencies": {
     "@plasmohq/edge-addons-api": "^2.0.0",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.10",
     "@testing-library/dom": "^10.4.2",
