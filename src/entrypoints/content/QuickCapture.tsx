@@ -15,7 +15,8 @@ const highlights = CSS.highlights;
 
 const capture = () => {
   const selection = getSelection();
-  if (selection !== null) {
+  // getSelection() is never null in practice; with no selection rangeCount is 0.
+  if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
     const range = selection.getRangeAt(0);
     setHighlight(range);
     const clonedSelection = range.cloneContents();
