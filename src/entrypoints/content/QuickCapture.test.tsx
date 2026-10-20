@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { contentEvents } from '@/utils/content-events';
 
 const sendMessage = vi.fn();
 vi.mock('@/types/messaging', () => ({
@@ -21,14 +22,14 @@ describe('QuickCapture capture()', () => {
   });
 
   it('clips the whole page when nothing is selected', () => {
-    document.dispatchEvent(new Event('quickCapture'));
+    contentEvents.emit('quickCapture', undefined);
     expect(sendMessage).toHaveBeenCalledWith('logseq:clipPage');
   });
 
   it('clips the whole page when the selection is collapsed', () => {
     const p = document.getElementById('p')!;
     window.getSelection()!.collapse(p.firstChild, 2);
-    document.dispatchEvent(new Event('quickCapture'));
+    contentEvents.emit('quickCapture', undefined);
     expect(sendMessage).toHaveBeenCalledWith('logseq:clipPage');
   });
 
@@ -37,10 +38,17 @@ describe('QuickCapture capture()', () => {
     const range = document.createRange();
     range.selectNodeContents(p);
     window.getSelection()!.addRange(range);
-    document.dispatchEvent(new Event('quickCapture'));
+    contentEvents.emit('quickCapture', undefined);
     expect(sendMessage).toHaveBeenCalledWith(
       'logseq:clipWithSelection',
       'hello world',
     );
+  });
+
+  it('ignores quickCapture events dispatched on document by page scripts', () => {
+    document.dispatchEvent(new Event('quickCapture'));
+    document.dispatchEvent(new Event('quickCaptureWithSelection'));
+    document.dispatchEvent(new Event('quickCapturePage'));
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });

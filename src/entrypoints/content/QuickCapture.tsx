@@ -52,10 +52,11 @@ const clipPage = () => {
 
 
 
-// Listen for custom events dispatched from content script message handlers
-document.addEventListener('quickCapture', capture);
-document.addEventListener('quickCaptureWithSelection', capture);
-document.addEventListener('quickCapturePage', clipPage);
+// Commands relayed from the content script message handlers (in-memory bus,
+// not DOM events that page scripts could dispatch to trigger a clip)
+contentEvents.on('quickCapture', capture);
+contentEvents.on('quickCaptureWithSelection', capture);
+contentEvents.on('quickCapturePage', clipPage);
 
 const QuickCapture = () => {
   const [position, setPostion] = useState({

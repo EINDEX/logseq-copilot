@@ -15,6 +15,10 @@ export type ContentEventMap = {
     highlightData: HighlightData;
     clickPosition: { x: number; y: number };
   };
+  // Background commands relayed to QuickCapture by the content script entry.
+  quickCapture: undefined;
+  quickCaptureWithSelection: undefined;
+  quickCapturePage: undefined;
 };
 
 type Listener<T> = (payload: T) => void;

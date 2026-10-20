@@ -8,6 +8,7 @@ import mountQuickCapture from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
+import { contentEvents } from '@/utils/content-events';
 import { HighlightsSidebarContainer } from '@/components/HighlightsSidebarContainer';
 
 export default defineContentScript({
@@ -40,21 +41,18 @@ export default defineContentScript({
 
     // Setup message listeners for background script communication
     onMessage('content:quickCapture', async (message) => {
-      // QuickCapture will handle its own mounting via the existing event listeners
-      const event = new Event('quickCapture');
-      document.dispatchEvent(event);
+      // QuickCapture subscribes to the in-memory content event bus
+      contentEvents.emit('quickCapture', undefined);
     });
 
     onMessage('content:quickCaptureWithSelection', async (message) => {
       // Trigger quick capture with selection
-      const event = new Event('quickCaptureWithSelection');
-      document.dispatchEvent(event);
+      contentEvents.emit('quickCaptureWithSelection', undefined);
     });
 
     onMessage('content:quickCapturePage', async (message) => {
       // Trigger quick capture page
-      const event = new Event('quickCapturePage');
-      document.dispatchEvent(event);
+      contentEvents.emit('quickCapturePage', undefined);
     });
 
     async function getEngine() {
