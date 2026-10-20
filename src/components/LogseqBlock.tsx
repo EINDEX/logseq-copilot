@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { LogseqBlockType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
-import { browser } from 'wxt/browser';
+import { sendMessage } from '@/types/messaging';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Checkbox } from './ui/checkbox';
@@ -15,121 +15,90 @@ type LogseqBlockProps = {
   isPopUp?: boolean;
 };
 
-export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
-  const [checked, setChecked] = React.useState(false);
-  const [status, setStatus] = React.useState('');
+const CHECKED_MARKERS = ['DONE', 'CANCELED'];
 
-  if (blocks.length === 0) {
-    return null;
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case 'TODO':
+      return 'secondary';
+    case 'DOING':
+      return 'default';
+    case 'NOW':
+      return 'destructive';
+    case 'LATER':
+      return 'outline';
+    case 'DONE':
+      return 'secondary';
+    case 'CANCELED':
+      return 'outline';
+    default:
+      return 'secondary';
   }
+};
 
-  const block = blocks[0]; // TODO: randomly picking first item - need to change later
+// The click-to-cycle button only toggles between the "started" and "not
+// started" state of a task; other markers have no such counterpart.
+const NEXT_MARKER: Record<string, string> = {
+  TODO: 'DOING',
+  DOING: 'TODO',
+  NOW: 'LATER',
+  LATER: 'NOW',
+};
 
-  const statusUpdate = (marker: string) => {
-    switch (marker) {
-      case 'TODO':
-      case 'LATER':
-      case 'DOING':
-      case 'NOW':
-        setChecked(false);
-        setStatus(marker);
-        break;
-      case 'DONE':
-        setChecked(true);
-        setStatus(marker);
-        break;
-      case 'CANCELED':
-        setChecked(true);
-        setStatus(marker);
-        break;
-    }
-  };
-
-  const processEvent = (message: {
-    type: string;
-    uuid: string;
-    status: string;
-    marker: string;
-    msg?: string;
-  }) => {
-    if (
-      message.type === 'change-block-marker-result' &&
-      message.uuid === block.uuid &&
-      message.status === 'success'
-    ) {
-      statusUpdate(message.marker);
-    }
-  };
+/**
+ * Checkbox + status badge of one task block. Each block owns its state, and
+ * changes go to the background through request/response messaging, so this
+ * works the same in the content script and in the popup.
+ */
+const BlockMarker = ({ uuid, marker }: { uuid: string; marker: string }) => {
+  const [status, setStatus] = React.useState(marker);
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState('');
 
   useEffect(() => {
-    browser.runtime.onMessage.addListener(processEvent);
-    statusUpdate(block.marker);
+    setStatus(marker);
+    setError('');
+  }, [marker, uuid]);
 
-    return () => {
-      browser.runtime.onMessage.removeListener(processEvent);
-    };
-  }, [block.marker, block.uuid]);
-
-  const updateBlock = (marker: string) => {
-    browser.runtime.sendMessage({
-      type: 'change-block-marker',
-      marker: marker,
-      uuid: block.uuid
-    });
-  };
-
-  const handleStatusChange = () => {
-    let marker = '';
-    if (status === 'TODO') {
-      marker = 'DOING';
-    } else if (status === 'DOING') {
-      marker = 'TODO';
-    } else if (status === 'NOW') {
-      marker = 'LATER';
-    } else if (status === 'LATER') {
-      marker = 'NOW';
-    }
-    updateBlock(marker);
-  };
-
-  const handleCheckChange = (checkedState: boolean) => {
-    const marker = checkedState ? 'DONE' : 'TODO';
-    updateBlock(marker);
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'TODO':
-        return 'secondary';
-      case 'DOING':
-        return 'default';
-      case 'NOW':
-        return 'destructive';
-      case 'LATER':
-        return 'outline';
-      case 'DONE':
-        return 'secondary';
-      case 'CANCELED':
-        return 'outline';
-      default:
-        return 'secondary';
+  const updateBlock = async (newMarker: string) => {
+    if (!newMarker || pending) return;
+    setPending(true);
+    setError('');
+    try {
+      const result = await sendMessage('logseq:changeBlockMarker', {
+        uuid,
+        marker: newMarker,
+      });
+      if (result.status === 'success') {
+        setStatus(result.marker);
+      } else {
+        setError(result.msg || 'Failed to change the task status.');
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to change the task status.',
+      );
+    } finally {
+      setPending(false);
     }
   };
 
-  const renderMarker = (marker: string) => {
-    if (!marker) return null;
-
-    return (
+  return (
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <Checkbox
-          checked={checked}
-          onCheckedChange={handleCheckChange}
+          checked={CHECKED_MARKERS.includes(status)}
+          disabled={pending}
+          onCheckedChange={(checked) =>
+            updateBlock(checked === true ? 'DONE' : 'TODO')
+          }
           className="h-4 w-4"
         />
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleStatusChange}
+          disabled={pending}
+          onClick={() => updateBlock(NEXT_MARKER[status])}
           className="h-6 px-2 py-0"
         >
           <Badge variant={getStatusVariant(status)} className="text-xs">
@@ -137,8 +106,21 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
           </Badge>
         </Button>
       </div>
-    );
-  };
+      {error && (
+        <span role="alert" className="text-xs text-destructive">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  const block = blocks[0]; // TODO: randomly picking first item - need to change later
 
   const renderBlockLink = (block: LogseqBlockType) => {
     if (!block.uuid) return null;
@@ -182,7 +164,9 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
           {blocks.map((blockItem) => (
             <li key={blockItem.uuid} className="group">
               <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                {blockItem.marker && renderMarker(blockItem.marker)}
+                {blockItem.marker && (
+                  <BlockMarker uuid={blockItem.uuid} marker={blockItem.marker} />
+                )}
                 <div
                   className={cn(
                     "flex-1 text-sm prose prose-sm max-w-none",

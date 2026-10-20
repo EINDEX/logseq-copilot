@@ -52,45 +52,11 @@ export default defineBackground({
     });
 
     onMessage('logseq:changeBlockMarker', async ({ data }) => {
-      const result = await changeBlockMarker(data.uuid, data.marker);
-      return result;
-    });
-
-    const changeBlockMarker = async (uuid: string, marker: string) => {
-      const tab = await getCurrentTab();
-      if (!tab) {
-        return {
-          type: 'change-block-marker-result',
-          uuid,
-          status: 'error',
-          marker,
-          msg: 'No active tab found',
-        };
-      }
+      // The sender (content script or popup) updates its UI from this return
+      // value, so report the service's real outcome.
       const logseqService = await getLogseqService();
-      const result = await logseqService.changeBlockMarker(uuid, marker);
-
-      // Send result to content script
-      await sendMessage(
-        'content:blockMarkerChanged',
-        {
-          type: 'change-block-marker-result',
-          uuid,
-          status: 'success',
-          marker,
-          msg: result.msg,
-        },
-        { tabId: tab.id! },
-      );
-
-      return {
-        type: 'change-block-marker-result',
-        uuid,
-        status: 'success',
-        marker,
-        msg: result.msg,
-      };
-    };
+      return await logseqService.changeBlockMarker(data.uuid, data.marker);
+    });
 
     const getCurrentTab = async () => {
       const tab = await browser.tabs.query({
