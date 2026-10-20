@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { Liquid } from 'liquidjs';
+import TurndownService from 'turndown';
 
 const engine = new Liquid();
 
@@ -104,8 +105,6 @@ function linkProcess(src: string) {
 }
 
 export const buildTurndownService = () => {
-  const TurndownService = require('turndown');
-
   const turndownService = new TurndownService({
     bulletListMarker: '*',
     codeBlockStyle: 'fenced',
