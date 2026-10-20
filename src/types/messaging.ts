@@ -1,5 +1,5 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
-import { LogseqSearchResult } from './logseqBlock';
+import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 
 // Define all message types for cross-context communication
@@ -16,27 +16,16 @@ export interface MessagingProtocol {
 
   'logseq:clipPage': () => void;
 
-  'logseq:changeBlockMarker': (data: { uuid: string; marker: string }) => {
-    type: string;
+  'logseq:changeBlockMarker': (data: {
     uuid: string;
-    status: string;
     marker: string;
-    msg?: string;
-  };
+  }) => ChangeBlockMarkerResult;
 
   'app:openOptions': () => void;
 
   'app:openPage': (data: { url: string }) => void;
 
   // Content script messages
-  'content:blockMarkerChanged': (data: {
-    type: string;
-    uuid: string;
-    status: string;
-    marker: string;
-    msg?: string;
-  }) => void;
-
   'content:quickCapture': () => void;
 
   'content:quickCaptureWithSelection': () => void;

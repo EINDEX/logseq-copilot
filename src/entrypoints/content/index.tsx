@@ -51,11 +51,6 @@ export default defineContentScript({
       document.dispatchEvent(event);
     });
 
-    onMessage('content:blockMarkerChanged', async (message) => {
-      // Handle block marker change result
-      console.debug('Block marker changed:', message.data);
-    });
-
     async function getEngine() {
       // Get enabled search engines from storage
       const enabledEngines = await searchEngineConfig.getValue();
