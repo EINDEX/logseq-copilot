@@ -38,6 +38,10 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: '{dbe73d0a-f6b8-474a-ad39-0d46a07e4525}',
+        // MV3 host_permissions are only granted at install time from 127 on.
+        strict_min_version: '127.0',
+        // Data only goes to the user's own Logseq API server.
+        data_collection_permissions: { required: ['none'] },
       },
     },
   }),
