@@ -32,6 +32,9 @@ const capture = async () => {
       // Add temporary highlight for immediate feedback, then persist it.
       const highlightManager = HighlightManager.getInstance();
       highlightManager.addTemporaryHighlight(range);
+      // Only saving needs the restored highlight state; the clip above must
+      // not wait for a slow restore.
+      await highlightManager.ready;
       const savedHighlight = await highlightManager.addHighlight(range);
 
       // Notify the sidebar of the new highlight

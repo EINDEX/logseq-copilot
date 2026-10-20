@@ -11,7 +11,7 @@ export class HighlightManager {
   private static instance: HighlightManager | null = null;
   private highlights: HighlightRegistry;
   private highlightMap: Map<string, Highlight> = new Map();
-  private isInitialized = false;
+  private readyPromise: Promise<void> | null = null;
   private clickEventListener: ((event: MouseEvent) => void) | null = null;
 
   private constructor() {
@@ -195,13 +195,28 @@ export class HighlightManager {
   }
 
   /**
-   * Initialize the highlight manager and restore saved highlights
+   * Resolves when the saved highlights have been restored (or restoring
+   * failed or is unsupported: it never rejects). Resolves immediately when
+   * initialize() has not been called, so nothing can wait on it forever.
+   * Callers that need the restored highlight state await this; everything
+   * else must not, so a slow restore never blocks the content script.
    */
-  async initialize(): Promise<void> {
-    if (this.isInitialized) {
-      return;
-    }
+  get ready(): Promise<void> {
+    return this.readyPromise ?? Promise.resolve();
+  }
 
+  /**
+   * Start restoring saved highlights. Idempotent; returns the same promise as
+   * `ready`. Callers should not await it on the startup path.
+   */
+  initialize(): Promise<void> {
+    if (!this.readyPromise) {
+      this.readyPromise = this.restoreOnInit();
+    }
+    return this.readyPromise;
+  }
+
+  private async restoreOnInit(): Promise<void> {
     if (!HighlightManager.isSupported()) {
       log.warn('[HighlightManager] CSS Highlight API not supported');
       return;
@@ -209,7 +224,6 @@ export class HighlightManager {
 
     try {
       await this.restoreHighlights();
-      this.isInitialized = true;
       log.debug('[HighlightManager] Initialized and restored highlights');
     } catch (error) {
       log.error('[HighlightManager] Failed to initialize:', error);
@@ -317,6 +331,9 @@ export class HighlightManager {
    */
   async removeHighlight(highlightId: string): Promise<boolean> {
     try {
+      // A restore still in flight would otherwise re-display it afterwards.
+      await this.ready;
+
       // Remove from display
       const highlightName = this.getHighlightNameById(highlightId);
       if (highlightName) {
@@ -356,6 +373,8 @@ export class HighlightManager {
    */
   async clearPageHighlights(): Promise<boolean> {
     try {
+      await this.ready;
+
       const pageHighlights = await HighlightService.getCurrentPageHighlights();
 
       for (const highlight of pageHighlights) {
@@ -397,6 +416,9 @@ export class HighlightManager {
    */
   async scrollToHighlight(highlightId: string): Promise<boolean> {
     try {
+      // The highlight map is filled by the restore.
+      await this.ready;
+
       // Find the highlight in our map
       const highlight = this.highlightMap.get(highlightId);
       if (!highlight) {
@@ -626,7 +648,7 @@ export class HighlightManager {
       }
 
       this.highlightMap.clear();
-      this.isInitialized = false;
+      this.readyPromise = null;
 
       log.debug('[HighlightManager] Cleaned up');
     } catch (error) {

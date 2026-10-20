@@ -36,10 +36,9 @@ export default defineContentScript({
   // 2. Set cssInjectionMode
 
   async main(ctx) {
-    // Initialize highlight manager to restore saved highlights
-    const highlightManager = HighlightManager.getInstance();
-    await highlightManager.initialize();
-
+    // Register every message handler first, synchronously: nothing awaited
+    // before this point, so a shortcut pressed while the page is still
+    // starting up (or restoring highlights) is never dropped.
     // Setup message listeners for background script communication
     onMessage('content:quickCapture', async (message) => {
       // QuickCapture subscribes to the in-memory content event bus
@@ -129,70 +128,82 @@ export default defineContentScript({
       }
     }
 
-    const searchEngine = await getEngine();
+    const mountUi = async () => {
+      const searchEngine = await getEngine();
 
-    await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-    if (searchEngine) {
-      run(searchEngine);
-      searchEngine.reload(() => run(searchEngine));
-    }
+      if (searchEngine) {
+        run(searchEngine);
+        searchEngine.reload(() => run(searchEngine));
+      }
 
-    const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
-    if (!enableClipNoteFloatButton) return;
-    // Executed when content script is loaded, can be async
-    const popupUi = await createShadowRootUi(ctx, {
-      name: 'logseq-copilot-popup',
-      position: 'inline',
-      anchor: 'body',
-      onMount: async (container) => {
-        // Container is a body, and React warns when creating a root on the body, so create a wrapper div
-        const app = document.createElement('div');
-        app.id = 'logseq-copilot-popup';
-        container.append(app);
+      const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
+      if (!enableClipNoteFloatButton) return;
+      // Executed when content script is loaded, can be async
+      const popupUi = await createShadowRootUi(ctx, {
+        name: 'logseq-copilot-popup',
+        position: 'inline',
+        anchor: 'body',
+        onMount: async (container) => {
+          // Container is a body, and React warns when creating a root on the body, so create a wrapper div
+          const app = document.createElement('div');
+          app.id = 'logseq-copilot-popup';
+          container.append(app);
 
 
-        return mountQuickCapture(app);
-      },
-      onRemove: async (root) => {
-        // Unmount the root when the UI is removed
-        if (root) {
-          const toUnmount = await root
-          toUnmount?.unmount()
-        }
-      },
-    });
+          return mountQuickCapture(app);
+        },
+        onRemove: async (root) => {
+          // Unmount the root when the UI is removed
+          if (root) {
+            const toUnmount = await root
+            toUnmount?.unmount()
+          }
+        },
+      });
 
-    if (popupUi) {
-      // 4. Mount the UI
-      popupUi.mount();
-    }
+      if (popupUi) {
+        // 4. Mount the UI
+        popupUi.mount();
+      }
 
-    // Mount the highlights sidebar
-    const sidebarUi = await createShadowRootUi(ctx, {
-      name: 'logseq-copilot-highlights-sidebar',
-      position: 'inline',
-      anchor: 'body',
-      onMount: async (container) => {
-        const app = document.createElement('div');
-        app.id = 'logseq-copilot-highlights-sidebar';
-        container.append(app);
+      // Mount the highlights sidebar
+      const sidebarUi = await createShadowRootUi(ctx, {
+        name: 'logseq-copilot-highlights-sidebar',
+        position: 'inline',
+        anchor: 'body',
+        onMount: async (container) => {
+          const app = document.createElement('div');
+          app.id = 'logseq-copilot-highlights-sidebar';
+          container.append(app);
 
-        const root = createRoot(app);
-        root.render(<HighlightsSidebarContainer />);
-        return root;
-      },
-      onRemove: async (root) => {
-        if (root) {
-          const toUnmount = await root;
-          toUnmount?.unmount();
-        }
-      },
-    });
+          const root = createRoot(app);
+          root.render(<HighlightsSidebarContainer />);
+          return root;
+        },
+        onRemove: async (root) => {
+          if (root) {
+            const toUnmount = await root;
+            toUnmount?.unmount();
+          }
+        },
+      });
 
-    if (sidebarUi) {
-      sidebarUi.mount();
-    }
+      if (sidebarUi) {
+        sidebarUi.mount();
+      }
+    };
+
+    // Mount the UI without blocking the handlers above, then restore saved
+    // highlights in the background. Do not await the restore here: it can be
+    // slow, and the things that need it (saving a highlight after a clip,
+    // scrolling to or removing one) await HighlightManager.ready themselves.
+    const uiMounted = mountUi().catch((error) =>
+      log.error('[content] Failed to mount the UI', error),
+    );
+    void HighlightManager.getInstance().initialize();
+    await uiMounted;
 
   },
 })
