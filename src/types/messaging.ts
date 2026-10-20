@@ -12,6 +12,12 @@ export interface MessagingProtocol {
     options?: { fuzzy?: boolean };
   }) => LogseqResponseType<LogseqSearchResult>;
 
+  'logseq:hybridSearch': (data: {
+    url: string;
+    query: string;
+    options?: { fuzzy?: boolean };
+  }) => LogseqResponseType<LogseqSearchResult>;
+
   'logseq:clipWithSelection': (data: string) => void;
 
   'logseq:clipPage': () => void;

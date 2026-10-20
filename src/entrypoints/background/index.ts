@@ -10,6 +10,8 @@ import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
 import { templates } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
+import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
+import type { LogseqBlockType } from '@/types/logseqBlock';
 
 export default defineBackground({
   // Set manifest options
@@ -31,10 +33,78 @@ export default defineBackground({
       return searchRes;
     });
 
+    onMessage('logseq:hybridSearch', async ({ data }) => {
+      const logseqService = await getLogseqService();
+
+      // Apply recall rules processing
+      const recallProcessor = RecallRuleProcessor.getInstance();
+      const searchContext = await recallProcessor.processSearchContext(
+        data.url,
+      );
+
+      // Perform both URL search and query search. Errors (LogseqError) are
+      // thrown and reach the sender as a readable message.
+      const urlSearchRes = await logseqService.urlSearch(
+        searchContext.processedUrl,
+        data.options,
+      );
+      const querySearchRes = await logseqService.search(data.query);
+
+      // Combine results, prioritizing URL-based results; drop duplicate blocks
+      const seenUuids = new Set<string>();
+      const blocks = [
+        ...(urlSearchRes.response?.blocks || []),
+        ...(querySearchRes.response?.blocks || []),
+      ].filter((block: LogseqBlockType) => {
+        if (seenUuids.has(block.uuid)) return false;
+        seenUuids.add(block.uuid);
+        return true;
+      });
+      const pages = [
+        ...(urlSearchRes.response?.pages || []),
+        ...(querySearchRes.response?.pages || []),
+      ];
+
+      // Filter results based on recall rules
+      const filteredBlocks = recallProcessor.filterResults(
+        blocks,
+        searchContext,
+      );
+
+      return {
+        status: urlSearchRes.status,
+        msg: urlSearchRes.msg,
+        response: {
+          blocks: filteredBlocks,
+          pages,
+          graph: urlSearchRes.response?.graph || querySearchRes.response?.graph,
+        },
+        count: filteredBlocks.length + pages.length,
+      };
+    });
+
     onMessage('logseq:urlSearch', async ({ data }) => {
       const logseqService = await getLogseqService();
-      const url = new URL(data.url);
-      const searchRes = await logseqService.urlSearch(url, data.options);
+
+      // Apply recall rules processing
+      const recallProcessor = RecallRuleProcessor.getInstance();
+      const searchContext = await recallProcessor.processSearchContext(
+        data.url,
+      );
+
+      // Use processed URL for search
+      const searchRes = await logseqService.urlSearch(
+        searchContext.processedUrl,
+        data.options,
+      );
+
+      // Filter results based on recall rules
+      if (searchRes.response?.blocks) {
+        searchRes.response.blocks = recallProcessor.filterResults(
+          searchRes.response.blocks,
+          searchContext,
+        );
+      }
       return searchRes;
     });
 
@@ -145,10 +215,25 @@ export default defineBackground({
 
     const badgeSearch = async (url: string | undefined, tabId: number) => {
       if (!url) return;
-      const searchURL = new URL(url);
+
+      // Apply recall rules processing
+      const recallProcessor = RecallRuleProcessor.getInstance();
+      const searchContext = await recallProcessor.processSearchContext(url);
+
       const logseqService = await getLogseqService();
-      const searchRes = await logseqService.urlSearch(searchURL);
-      const resultCount = searchRes.count ? searchRes.count!.toString() : '';
+      const searchRes = await logseqService.urlSearch(
+        searchContext.processedUrl,
+      );
+
+      // Count the results left after the recall rules filter
+      let count: number = searchRes.count || 0;
+      if (searchRes.response?.blocks) {
+        count = recallProcessor.filterResults(
+          searchRes.response.blocks,
+          searchContext,
+        ).length;
+      }
+      const resultCount = count ? count.toString() : '';
       await setExtensionBadge(resultCount, tabId);
     };
 

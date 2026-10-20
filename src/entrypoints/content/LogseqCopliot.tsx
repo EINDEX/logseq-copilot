@@ -37,7 +37,17 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
       setErrorMessage('');
 
       try {
-        const result = await sendMessage('logseq:search', query);
+        // Use hybrid search with both URL and query to apply recall rules
+        const currentUrl = window.location.href;
+        console.debug('[LogseqCopilot] Performing hybrid search:', { url: currentUrl, query });
+
+        const result = await sendMessage('logseq:hybridSearch', {
+          url: currentUrl,
+          query: query,
+          options: { fuzzy: true }
+        });
+
+        console.debug('[LogseqCopilot] Search result:', result);
 
         if (result.msg === 'success') {
           setState('success');
@@ -56,6 +66,22 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
     };
 
     performSearch();
+
+    // Re-search when URL changes (for SPAs and hash routing)
+    const handleLocationChange = () => {
+      performSearch();
+    };
+
+    // Listen for popstate events (back/forward navigation)
+    window.addEventListener('popstate', handleLocationChange);
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, [query]);
 
   const handleOpenOptions = () => {
