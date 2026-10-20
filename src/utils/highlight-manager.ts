@@ -1,5 +1,6 @@
 import { HighlightService } from './highlight-service';
 import log from './logger';
+import { contentEvents } from './content-events';
 import type { HighlightData } from '@/types/highlight';
 
 /**
@@ -48,6 +49,9 @@ export class HighlightManager {
    * Handle click events on highlights
    */
   private async handleHighlightClick(event: MouseEvent): Promise<void> {
+    // Ignore synthetic clicks dispatched by page scripts.
+    if (!event.isTrusted) return;
+
     // Skip if the click was on UI elements (like buttons)
     const target = event.target as Element;
     if (!target) return;
@@ -104,18 +108,12 @@ export class HighlightManager {
           // Prevent text selection when clicking on highlights
           event.preventDefault();
 
-          // Dispatch custom event to show comment popup
-          const commentEvent = new CustomEvent('showHighlightComment', {
-            detail: {
-              highlightId: highlightData.id,
-              highlightData: highlightData,
-              clickPosition: { x: event.clientX, y: event.clientY },
-            },
+          // Notify the comment popup through the in-memory content-script
+          // event bus (not a DOM event, which page scripts could forge).
+          contentEvents.emit('showHighlightComment', {
+            highlightData,
+            clickPosition: { x: event.clientX, y: event.clientY },
           });
-          document.dispatchEvent(commentEvent);
-          console.log(
-            '[HighlightManager] Dispatched showHighlightComment event',
-          );
           break;
         }
       } else {
@@ -335,9 +333,8 @@ export class HighlightManager {
       if (result.success) {
         log.debug(`[HighlightManager] Removed highlight ${highlightId}`);
         
-        // Dispatch event to notify sidebar of removed highlight
-        const event = new CustomEvent('highlightRemoved', { detail: { highlightId } });
-        document.dispatchEvent(event);
+        // Notify the sidebar of the removed highlight
+        contentEvents.emit('highlightRemoved', { highlightId });
         
         return true;
       } else {

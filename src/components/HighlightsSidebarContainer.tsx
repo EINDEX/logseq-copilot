@@ -3,6 +3,7 @@ import { ThemedHighlightsSidebar } from './HighlightsSidebar';
 import { HighlightsSidebarToggle } from './HighlightsSidebarToggle';
 import { HighlightService } from '@/utils/highlight-service';
 import { ThemeProvider } from './ThemeProvider';
+import { contentEvents } from '@/utils/content-events';
 
 export function HighlightsSidebarContainer() {
     const [isOpen, setIsOpen] = useState(false);
@@ -15,18 +16,15 @@ export function HighlightsSidebarContainer() {
         // Listen for highlight changes
         const interval = setInterval(loadHighlightCount, 5000); // Check every 5 seconds
 
-        // Listen for custom events when highlights are added/removed
-        const handleHighlightChanged = () => {
-            loadHighlightCount();
-        };
-
-        document.addEventListener('highlightAdded', handleHighlightChanged);
-        document.addEventListener('highlightRemoved', handleHighlightChanged);
+        // Refresh when highlights are added/removed (in-memory content-script
+        // event bus, not DOM events that page scripts could forge)
+        const offAdded = contentEvents.on('highlightAdded', () => loadHighlightCount());
+        const offRemoved = contentEvents.on('highlightRemoved', () => loadHighlightCount());
 
         return () => {
             clearInterval(interval);
-            document.removeEventListener('highlightAdded', handleHighlightChanged);
-            document.removeEventListener('highlightRemoved', handleHighlightChanged);
+            offAdded();
+            offRemoved();
         };
     }, []);
 

@@ -8,6 +8,7 @@ import { sendMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemedHighlightCommentPopup } from '@/components/HighlightCommentPopup';
 import type { HighlightData } from '@/types/highlight';
+import { contentEvents } from '@/utils/content-events';
 import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
 
@@ -32,10 +33,9 @@ const capture = async () => {
       highlightManager.addTemporaryHighlight(range);
       const savedHighlight = await highlightManager.addHighlight(range);
 
-      // Dispatch event to notify sidebar of new highlight
+      // Notify the sidebar of the new highlight
       if (savedHighlight) {
-        const event = new CustomEvent('highlightAdded', { detail: savedHighlight });
-        document.dispatchEvent(event);
+        contentEvents.emit('highlightAdded', savedHighlight);
       }
     } catch (error) {
       console.debug('[QuickCapture] Failed to save highlight', error);
@@ -98,23 +98,24 @@ const QuickCapture = () => {
     document.addEventListener('mouseup', clicked);
     document.addEventListener('mousedown', clicked);
 
-    // Listen for highlight comment popup events
-    const handleShowHighlightComment = (event: CustomEvent) => {
-      console.log('[QuickCapture] Received showHighlightComment event:', event.detail);
-      const { highlightId, highlightData, clickPosition } = event.detail;
-      setCommentPopup({
-        show: true,
-        highlightData,
-        position: clickPosition
-      });
-    };
-
-    document.addEventListener('showHighlightComment', handleShowHighlightComment as EventListener);
+    // HighlightManager asks for the comment popup through the in-memory
+    // content-script event bus; DOM events on document could be forged by
+    // page scripts.
+    const offShowHighlightComment = contentEvents.on(
+      'showHighlightComment',
+      ({ highlightData, clickPosition }) => {
+        setCommentPopup({
+          show: true,
+          highlightData,
+          position: clickPosition,
+        });
+      },
+    );
 
     return () => {
       document.removeEventListener('mouseup', clicked);
       document.removeEventListener('mousedown', clicked);
-      document.removeEventListener('showHighlightComment', handleShowHighlightComment as EventListener);
+      offShowHighlightComment();
     };
   }, []);
 
