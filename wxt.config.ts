@@ -5,6 +5,11 @@ import path from 'path';
 
 export default defineConfig({
   srcDir: 'src',
+  // E2E builds (WXT_E2E=true, open shadow roots) get their own output folder
+  // so they can never be zipped or published by mistake.
+  ...(process.env.WXT_E2E === 'true' && {
+    outDirTemplate: '{{browser}}-mv{{manifestVersion}}{{modeSuffix}}-e2e',
+  }),
   // Firefox defaults to MV2 in WXT; the store listing has always been MV3.
   manifestVersion: 3,
   manifest: ({ browser }) => ({
