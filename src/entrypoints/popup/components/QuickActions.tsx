@@ -22,7 +22,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     hasGraph = false,
 }) => {
     const openNewTab = () => {
-        browser.tabs.create({ url: 'chrome://newtab/' });
+        // No url opens the browser's own new tab page (chrome://newtab/ is
+        // Chromium-only and invalid in Firefox).
+        browser.tabs.create({});
         window.close();
     };
 

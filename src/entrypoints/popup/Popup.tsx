@@ -125,7 +125,12 @@ export default function Popup() {
 
         if (tab) {
           setCurrentTab(tab);
-          if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('moz-extension://')) {
+          if (
+            tab.url &&
+            !['chrome://', 'about:', 'moz-extension://', 'chrome-extension://'].some(
+              (prefix) => tab.url!.startsWith(prefix),
+            )
+          ) {
             await searchPage(tab.url);
           }
         }
