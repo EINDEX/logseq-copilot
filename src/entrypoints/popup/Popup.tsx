@@ -8,7 +8,6 @@ import { LogseqBlock } from '@/components/LogseqBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 import { sendMessage } from '@/types/messaging';
@@ -192,13 +191,10 @@ export default function Popup() {
 
       {/* Current Page Info */}
       {currentTab && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="truncate" title={currentTab.title}>
-              {currentTab.title}
-            </span>
-          </div>
-          <Separator className="mt-2" />
+        <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="truncate" title={currentTab.title}>
+            {currentTab.title}
+          </span>
         </div>
       )}
 
@@ -213,7 +209,7 @@ export default function Popup() {
       />
 
       {/* Content */}
-      <div className="overflow-y-auto max-h-[400px]">
+      <div className="mt-3 overflow-y-auto max-h-[400px] border-t pt-3">
         <SearchResults
           searchResult={logseqSearchResult}
           isLoading={isLoading}

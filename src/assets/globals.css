@@ -171,14 +171,6 @@
   box-sizing: border-box;
 }
 
-#logseq-copilot-highlights-sidebar .highlights-sidebar-card {
-  transition: all 0.2s ease-in-out;
-}
-
-#logseq-copilot-highlights-sidebar .highlights-sidebar-card:hover {
-  transform: translateY(-1px);
-}
-
 /* Responsive styles for smaller screens */
 @media (max-width: 768px) {
   #logseq-copilot-highlights-sidebar .highlights-sidebar {

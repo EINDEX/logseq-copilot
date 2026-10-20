@@ -180,7 +180,7 @@ export function HighlightCommentPopup({
       return (
     <div ref={popupRef} style={popupStyle} data-highlight-popup>
       <Card className="border-0 shadow-none">
-                <CardHeader className="pb-3">
+                <CardHeader className="px-4 pt-4 pb-3">
                     <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-sm font-medium">
                             Highlight Comment
@@ -196,24 +196,19 @@ export function HighlightCommentPopup({
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 px-4 pb-4">
                     {/* Highlighted text */}
-                    <div className="text-sm bg-muted/50 p-2 rounded border-l-4 border-primary/50">
-                        "{truncateText(highlightData.range.textContent)}"
-                    </div>
+                    <p className="border-l-2 border-highlight pl-3 text-sm leading-relaxed">
+                        {truncateText(highlightData.range.textContent)}
+                    </p>
 
                     {/* Metadata */}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{formatDate(highlightData.createdAt)}</span>
-                        {highlightData.color && (
-                            <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                                {highlightData.color}
-                            </Badge>
-                        )}
                         {highlightData.tags && highlightData.tags.length > 0 && (
                             <div className="flex gap-1">
                                 {highlightData.tags.map(tag => (
-                                    <Badge key={tag} variant="outline" className="h-4 px-1.5 py-0">
+                                    <Badge key={tag} variant="secondary" className="h-4 px-1.5 py-0 font-normal">
                                         {tag}
                                     </Badge>
                                 ))}
@@ -283,15 +278,13 @@ export function HighlightCommentPopup({
                         )}
                     </div>
 
-                    <Separator />
-
                     {/* Actions */}
                     <div className="flex justify-end gap-2">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={handleDeleteHighlight}
-                            className="h-7 px-3 text-destructive hover:text-destructive"
+                            className="h-7 px-2 text-muted-foreground hover:text-destructive"
                         >
                             <IconTrash className="h-3 w-3 mr-1" />
                             Delete
