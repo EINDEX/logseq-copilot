@@ -1,5 +1,6 @@
 import { getLogseqCopliotConfig } from '@/config';
 import { log } from '@/utils';
+import { buildLogseqOrigin } from '@/utils/connection';
 
 export type LogseqPageResponse = {
   name: string;
@@ -18,8 +19,8 @@ export default class LogseqClientBase {
   baseFetch = async (method: string, args: any[]) => {
     log.debug(`Logseq Method ${method}, Args -> \n`, args);
     const config = await getLogseqCopliotConfig();
-    const endPoint = new URL(config.logseqHost);
-    const apiUrl = new URL(`${endPoint.origin}/api`);
+    const origin = buildLogseqOrigin(config.logseqHostName, config.logseqPort);
+    const apiUrl = new URL(`${origin}/api`);
     const resp = await fetch(apiUrl, {
       mode: 'cors',
       method: 'POST',

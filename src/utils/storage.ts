@@ -2,7 +2,6 @@ import { storage } from '#imports';
 
 export type LogseqCopliotConfig = {
   version: string;
-  logseqHost: string;
   logseqHostName: string;
   logseqPort: number;
   logseqAuthToken: string;
@@ -227,6 +226,9 @@ export const versionItem = storage.defineItem<string>('local:version', {
   fallback: '',
 });
 
+// Legacy (pre hostname/port split) full-URL key. Not part of the config any
+// more: logseqHostName + logseqPort are the single source of truth, and
+// upgrade.ts migrates and removes this key.
 export const logseqHostItem = storage.defineItem<string>('local:logseqHost', {
   fallback: 'http://localhost:12315',
 });
@@ -283,7 +285,6 @@ export const getLogseqCopliotConfig =
   async (): Promise<LogseqCopliotConfig> => {
     const [
       version,
-      logseqHost,
       logseqHostName,
       logseqPort,
       logseqAuthToken,
@@ -293,7 +294,6 @@ export const getLogseqCopliotConfig =
       clipNoteTemplate,
     ] = await Promise.all([
       versionItem.getValue(),
-      logseqHostItem.getValue(),
       logseqHostNameItem.getValue(),
       logseqPortItem.getValue(),
       logseqAuthTokenItem.getValue(),
@@ -305,7 +305,6 @@ export const getLogseqCopliotConfig =
 
     return {
       version,
-      logseqHost,
       logseqHostName,
       logseqPort,
       logseqAuthToken,
@@ -326,9 +325,6 @@ export const saveLogseqCopliotConfig = async (
 
   if (updates.version !== undefined) {
     updatePromises.push(versionItem.setValue(updates.version));
-  }
-  if (updates.logseqHost !== undefined) {
-    updatePromises.push(logseqHostItem.setValue(updates.logseqHost));
   }
   if (updates.logseqHostName !== undefined) {
     updatePromises.push(logseqHostNameItem.setValue(updates.logseqHostName));
@@ -366,7 +362,6 @@ export const saveLogseqCopliotConfig = async (
 // Export individual storage items for direct access if needed
 export const storageItems = {
   version: versionItem,
-  logseqHost: logseqHostItem,
   logseqHostName: logseqHostNameItem,
   logseqPort: logseqPortItem,
   logseqAuthToken: logseqAuthTokenItem,

@@ -1,5 +1,5 @@
 import { getLogseqCopliotConfig } from '@/utils/storage';
-import { blockRending, versionCompare } from '@/utils/utils';
+import { blockRending } from '@/utils/utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
 import { changeOptionsHostToHostNameAndPort } from './upgrade';
@@ -220,13 +220,12 @@ export default defineBackground({
     browser.runtime.onInstalled.addListener(async (event) => {
       // Run migration for both install and update events
       await SearchEngineConfigMigration.runMigrations();
+      // Idempotent, so it is safe on every install/update (version gating via
+      // versionCompare was unreliable).
+      await changeOptionsHostToHostNameAndPort();
 
       if (event.reason === 'install') {
         browser.runtime.openOptionsPage();
-      } else if (event.reason === 'update') {
-        if (versionCompare(event.previousVersion!, '1.10.19') < 0) {
-          changeOptionsHostToHostNameAndPort();
-        }
       }
     });
 
