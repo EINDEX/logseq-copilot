@@ -43,14 +43,17 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
       setErrorMessage('');
 
       try {
-        // Use hybrid search with both URL and query to apply recall rules
+        // Search engine result pages: search by keyword only. A URL search
+        // would recall every block that mentions the engine's own host. The
+        // URL is still sent so the recall rules (page scope, keyword
+        // filters) matching this page apply to the results.
         const currentUrl = window.location.href;
         lastSearchedUrl = currentUrl;
 
         const result = await sendMessage('logseq:hybridSearch', {
           url: currentUrl,
           query: query,
-          options: { fuzzy: true }
+          keywordOnly: true,
         });
 
         if (result.msg === 'success') {

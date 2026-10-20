@@ -171,4 +171,35 @@ describe('logseq:hybridSearch', () => {
     expect(result.response.pages.map((p) => p.name)).toEqual(['Homework']);
     expect(result.count).toBe(2);
   });
+
+  test('keywordOnly skips the URL search but still applies the recall rules', async () => {
+    await fakeBrowser.storage.local.set({ recallRulesConfig: [rule] });
+    const page = (id: number, name: string) => ({ id, uuid: `p${id}`, name, originalName: name });
+    service.search.mockResolvedValue({
+      status: 200,
+      msg: 'success',
+      response: {
+        blocks: [
+          { uuid: 'b1', content: 'a', page: page(1, 'Work') },
+          { uuid: 'b2', content: 'b', page: page(2, 'Homework') },
+        ],
+        pages: [page(1, 'Work'), page(2, 'Homework')],
+        graph: 'g',
+      },
+    });
+
+    const result = await sendMessage('logseq:hybridSearch', {
+      url: 'https://example.com/a',
+      query: 'q',
+      keywordOnly: true,
+    });
+
+    expect(service.urlSearch).not.toHaveBeenCalled();
+    expect(service.search).toHaveBeenCalledWith('q');
+    expect(result.status).toBe(200);
+    expect(result.response.graph).toBe('g');
+    expect(result.response.blocks.map((b) => b.uuid)).toEqual(['b2']);
+    expect(result.response.pages.map((p) => p.name)).toEqual(['Homework']);
+    expect(result.count).toBe(2);
+  });
 });

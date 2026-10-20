@@ -43,7 +43,11 @@ describe('LogseqCopliot re-search on URL changes', () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(sendMessage).toHaveBeenCalledWith(
       'logseq:hybridSearch',
-      expect.objectContaining({ query: 'q' }),
+      expect.objectContaining({
+        url: window.location.href,
+        query: 'q',
+        keywordOnly: true,
+      }),
     );
   });
 
