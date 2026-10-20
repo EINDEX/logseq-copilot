@@ -6,14 +6,18 @@ import path from 'path';
 
 export default defineConfig({
   srcDir: 'src',
-  manifest: {
+  // Firefox defaults to MV2 in WXT; the store listing has always been MV3.
+  manifestVersion: 3,
+  manifest: ({ browser }) => ({
     version: version,
     name: 'Logseq Copilot',
     description:
       'Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.',
-    author: {
-      email: 'eindex.lee@gmail.com',
-    },
+    // Firefox requires a string here; Chromium browsers take { email }.
+    author:
+      browser === 'firefox'
+        ? 'eindex.lee@gmail.com'
+        : { email: 'eindex.lee@gmail.com' },
     permissions: ['storage', 'activeTab', 'contextMenus'],
     host_permissions: ['<all_urls>'],
     commands: {
@@ -36,7 +40,7 @@ export default defineConfig({
         id: '{dbe73d0a-f6b8-474a-ad39-0d46a07e4525}',
       },
     },
-  },
+  }),
   modules: ['@wxt-dev/module-react'],
   alias: {
     '@/*': path.resolve(__dirname, './src/*'),

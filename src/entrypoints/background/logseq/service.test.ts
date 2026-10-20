@@ -5,7 +5,11 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { logseqAuthTokenItem, logseqHostItem } from '@/utils/storage';
+import {
+  logseqAuthTokenItem,
+  logseqHostNameItem,
+  logseqPortItem,
+} from '@/utils/storage';
 // tool.ts and the services import each other; load tool.ts first like the app does.
 import './tool';
 import LogseqService from './normal/service';
@@ -38,7 +42,8 @@ const stubApi = (handler: Handler) => {
 
 beforeEach(async () => {
   fakeBrowser.reset();
-  await logseqHostItem.setValue('http://127.0.0.1:12315');
+  await logseqHostNameItem.setValue('127.0.0.1');
+  await logseqPortItem.setValue(12315);
   await logseqAuthTokenItem.setValue('token');
   vi.spyOn(console, 'info').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -92,7 +97,7 @@ describe.each(flavours)('connection failures (%s graph)', (_name, create) => {
   });
 
   test('an invalid host is reported as "cannot connect"', async () => {
-    await logseqHostItem.setValue('not a url');
+    await logseqHostNameItem.setValue('not a url');
     const err = await create().getGraph().catch((e: unknown) => e);
     expect((err as Error).message).toBe(CannotConnectWithLogseq.msg);
   });

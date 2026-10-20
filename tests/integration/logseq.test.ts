@@ -5,7 +5,11 @@
  */
 import { beforeAll, describe, expect, inject, test } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { logseqAuthTokenItem, logseqHostItem } from '@/utils/storage';
+import {
+  logseqAuthTokenItem,
+  logseqHostNameItem,
+  logseqPortItem,
+} from '@/utils/storage';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import LogseqDBService from '@/entrypoints/background/logseq/db/service';
 import LogseqService from '@/entrypoints/background/logseq/normal/service';
@@ -35,7 +39,9 @@ const api = async (method: string, args: unknown[] = []) => {
 
 beforeAll(async () => {
   fakeBrowser.reset();
-  await logseqHostItem.setValue(inject('logseqApi'));
+  const apiUrl = new URL(inject('logseqApi'));
+  await logseqHostNameItem.setValue(apiUrl.hostname);
+  await logseqPortItem.setValue(Number(apiUrl.port));
   await logseqAuthTokenItem.setValue(inject('logseqToken'));
 });
 
@@ -112,7 +118,10 @@ describe(`extension services (${variant})`, () => {
 
   test('client.appendBlock writes into a page (clip note path)', async () => {
     const marker = `clip-${Date.now()}`;
-    const block = await service.client.appendBlock(TEST_PAGE, `Clipped ${marker}`);
+    const block = await service.client.appendBlock(
+      TEST_PAGE,
+      `Clipped ${marker}`,
+    );
     expect(block?.uuid).toBeTruthy();
 
     const { body } = await api('logseq.Editor.getBlock', [block.uuid]);

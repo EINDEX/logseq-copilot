@@ -7,6 +7,7 @@ import { log } from '@/utils';
 import { useSettings } from '@/hooks/use-settings';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import { settings } from '@/utils/storage';
+import { isValidLogseqHostName, isValidLogseqPort } from '@/utils/connection';
 
 export const LogseqConnectOptions = () => {
   const { settings: logseqConfig, loading: settingsLoading, updateSettings } = useSettings();
@@ -38,11 +39,15 @@ export const LogseqConnectOptions = () => {
       return;
     }
 
-    try {
-      if (logseqConfig.logseqHost) new URL(`http://${logseqConfig.logseqHost}`);
-    } catch (error) {
+    if (!isValidLogseqHostName(logseqConfig.logseqHostName)) {
       setConnected(false);
       setButtonMessage('Logseq Host is not a valid hostname!');
+      return;
+    }
+
+    if (!isValidLogseqPort(logseqConfig.logseqPort)) {
+      setConnected(false);
+      setButtonMessage('Logseq Port must be between 1 and 65535!');
       return;
     }
 
