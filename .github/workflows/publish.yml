@@ -25,17 +25,26 @@ jobs:
       - uses: actions/setup-node@v4
         name: Use Node.js
         with:
-          node-version: 18.x
+          node-version: 22.x
           cache: 'pnpm'
 
       - run: pnpm install
 
-      - run: pnpm run build
-        env:
-          VERSION: ${{ github.ref_name }}
+      - name: Typecheck
+        run: pnpm typecheck
 
       - name: Testing
-        run: pnpm run test
+        run: pnpm test
+
+      # The extension version comes from package.json (WXT names zips after it).
+      - name: Read extension version
+        id: version
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        run: |
+          pnpm zip
+          pnpm zip:firefox
 
       - name: Firefox Upload & release
         run: pnpm publish:firefox
@@ -48,7 +57,7 @@ jobs:
         if: matrix.platform == 'chrome'
         uses: mnao305/chrome-extension-upload@v4.0.1
         with:
-          file-path: build/chrome-${{ github.ref_name }}.zip
+          file-path: .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
           extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
           client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
           client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -58,7 +67,6 @@ jobs:
         run: pnpm publish:edge
         if: matrix.platform == 'edge'
         env:
-          VERSION: ${{ github.ref_name }}
           EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
           EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
           EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
@@ -69,6 +77,5 @@ jobs:
         if: matrix.platform == 'github'
         with:
           files: |
-            build/chrome-${{ github.ref_name }}.zip
-            build/edge-${{ github.ref_name }}.zip
-            build/firefox-${{ github.ref_name }}.zip
+            .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
+            .output/logseq-copliot-${{ steps.version.outputs.value }}-firefox.zip
