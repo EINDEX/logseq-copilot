@@ -23,13 +23,55 @@ export interface ProcessedSearchContext {
   appliedRules: RecallRuleConfig[];
 }
 
-/** A block page is a page object on current services; older shapes used a name. */
-type ResultPage = string | { name?: string; originalName?: string } | undefined;
+/**
+ * The page a result belongs to. Current services attach a page object; a bare
+ * id (or an object without a name) is an unresolved reference.
+ */
+export type ResultPage =
+  | string
+  | number
+  | { name?: string; originalName?: string; title?: string; id?: number }
+  | undefined
+  | null;
 
-const pageNameOf = (page: ResultPage): string => {
-  if (!page) return '';
-  if (typeof page === 'string') return page;
-  return page.originalName || page.name || '';
+/** The page's display name, or undefined when it cannot be determined. */
+export const pageNameOf = (page: ResultPage): string | undefined => {
+  if (page === undefined || page === null || typeof page === 'number') {
+    return undefined;
+  }
+  const name =
+    typeof page === 'string'
+      ? page
+      : page.title || page.originalName || page.name;
+  return name && name.trim() ? name : undefined;
+};
+
+const normalizePageName = (name: string) => name.trim().toLowerCase();
+
+/**
+ * Whether a page passes the restrictToPages / excludePages scope. Page names
+ * are compared exactly after trimming and lower-casing (excluding "Work" does
+ * not hide "Homework"). While a scope rule is active, a page whose name is
+ * unknown is rejected (fail closed) so excluded content cannot slip through.
+ */
+export const pageInScope = (
+  page: ResultPage,
+  scope: ProcessedSearchContext['searchScope'],
+): boolean => {
+  const restrict = (scope.restrictToPages ?? [])
+    .map(normalizePageName)
+    .filter(Boolean);
+  const exclude = (scope.excludePages ?? [])
+    .map(normalizePageName)
+    .filter(Boolean);
+  if (restrict.length === 0 && exclude.length === 0) return true;
+
+  const name = pageNameOf(page);
+  if (name === undefined) return false;
+  const normalized = normalizePageName(name);
+
+  if (restrict.length > 0 && !restrict.includes(normalized)) return false;
+  return !exclude.includes(normalized);
 };
 
 export class RecallRuleProcessor {
@@ -306,31 +348,10 @@ export class RecallRuleProcessor {
       });
     }
 
-    // Filter by page restrictions
-    if (
-      context.searchScope.restrictToPages &&
-      context.searchScope.restrictToPages.length > 0
-    ) {
-      filteredResults = filteredResults.filter((result) => {
-        const page = pageNameOf(result.page);
-        return context.searchScope.restrictToPages!.some((allowedPage) =>
-          page.includes(allowedPage),
-        );
-      });
-    }
-
-    // Filter by page exclusions
-    if (
-      context.searchScope.excludePages &&
-      context.searchScope.excludePages.length > 0
-    ) {
-      filteredResults = filteredResults.filter((result) => {
-        const page = pageNameOf(result.page);
-        return !context.searchScope.excludePages!.some((excludedPage) =>
-          page.includes(excludedPage),
-        );
-      });
-    }
+    // Filter by page restrictions / exclusions (exact names, fail closed)
+    filteredResults = filteredResults.filter((result) =>
+      pageInScope(result.page, context.searchScope),
+    );
 
     // Sort by priority (include keywords first)
     if (context.includeKeywords.length > 0) {
