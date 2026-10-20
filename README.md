@@ -78,7 +78,7 @@ Logseq Copilot is an open-source project and welcomes contributions from anyone 
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=eindex/logseq-copilot&type=Date)](https://star-history.com/#eindex/logseq-copilot&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=eindex/logseq-copilot&type=Date)](https://star-history.dera.page/#eindex/logseq-copilot&Date)
 
 ## License
 

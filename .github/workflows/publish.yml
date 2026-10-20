@@ -89,7 +89,7 @@ jobs:
       # AMO needs the human readable sources for bundled code; `pnpm zip:firefox`
       # writes them next to the extension zip.
       - name: Firefox Upload & release
-        run: pnpm publish:firefox --upload-source-code ".output/logseq-copliot-${{ steps.version.outputs.value }}-sources.zip"
+        run: pnpm publish:firefox --upload-source-code ".output/logseq-copilot-${{ steps.version.outputs.value }}-sources.zip"
         if: matrix.platform == 'firefox'
         env:
           WEB_EXT_API_KEY: ${{ secrets.FIREFOX_WEB_EXT_API_KEY }}
@@ -99,7 +99,7 @@ jobs:
         if: matrix.platform == 'chrome'
         uses: mnao305/chrome-extension-upload@v7.0.0
         with:
-          file-path: .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
+          file-path: .output/logseq-copilot-${{ steps.version.outputs.value }}-chrome.zip
           extension-id: 'hihgfcgbmnbomabfdbajlbpnacndeihl'
           publisher-id: ${{ secrets.CHROME_PUBLISHER_ID }}
           client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -122,5 +122,5 @@ jobs:
           # publishing from a manually pushed tag.
           tag_name: ${{ steps.tag.outputs.value }}
           files: |
-            .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
-            .output/logseq-copliot-${{ steps.version.outputs.value }}-firefox.zip
+            .output/logseq-copilot-${{ steps.version.outputs.value }}-chrome.zip
+            .output/logseq-copilot-${{ steps.version.outputs.value }}-firefox.zip

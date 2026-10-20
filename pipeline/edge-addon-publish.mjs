@@ -15,7 +15,7 @@ const client = new EdgeAddonsAPI({
 
 try {
   const operationID = await client.submit({
-    filePath: `.output/logseq-copliot-${version}-chrome.zip`,
+    filePath: `.output/logseq-copilot-${version}-chrome.zip`,
     notes: 'release note is here https://github.com/EINDEX/logseq-copilot/releases',
   });
 
