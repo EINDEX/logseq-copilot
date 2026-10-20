@@ -42,7 +42,7 @@ export default class LogseqService implements LogseqServiceInterface {
 
   public async search(query: string) {
     const graph = await this.getGraph();
-    console.debug(`Normal Graph Name: ${graph}`);
+    console.debug(`Markdown Graph Name: ${graph}`);
     const resp = {
       msg: 'success',
       status: 200,

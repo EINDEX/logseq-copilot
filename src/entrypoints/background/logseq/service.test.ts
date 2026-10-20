@@ -12,7 +12,7 @@ import {
 } from '@/utils/storage';
 // tool.ts and the services import each other; load tool.ts first like the app does.
 import './tool';
-import LogseqService from './normal/service';
+import LogseqService from './markdown/service';
 import LogseqDBService from './db/service';
 import {
   CannotConnectWithLogseq,

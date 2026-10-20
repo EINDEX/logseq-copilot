@@ -12,7 +12,7 @@ import {
 } from '@/utils/storage';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import LogseqDBService from '@/entrypoints/background/logseq/db/service';
-import LogseqService from '@/entrypoints/background/logseq/normal/service';
+import LogseqService from '@/entrypoints/background/logseq/markdown/service';
 import { LogseqServiceInterface } from '@/entrypoints/background/logseq/interfaces';
 
 const variant = inject('logseqVariant');

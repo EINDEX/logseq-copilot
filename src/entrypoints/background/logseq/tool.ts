@@ -3,7 +3,7 @@ import { LogseqBlockType } from '@/types/logseqBlock';
 import { marked } from 'marked';
 import LogseqClient from './client';
 import LogseqDBService from './db/service';
-import LogseqService from './normal/service';
+import LogseqService from './markdown/service';
 import { LogseqServiceInterface } from './interfaces';
 
 const client = new LogseqClient();

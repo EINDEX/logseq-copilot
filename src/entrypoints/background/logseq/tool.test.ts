@@ -14,7 +14,7 @@ vi.mock('./client', () => ({
 import { marked } from 'marked';
 import { getLogseqService, markMatches, renderBlock } from './tool';
 import LogseqDBService from './db/service';
-import LogseqService from './normal/service';
+import LogseqService from './markdown/service';
 
 const render = (content: string, query?: string) =>
   renderBlock({ content } as LogseqBlockType, 'g', query).html;

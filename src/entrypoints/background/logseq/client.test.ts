@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import NormalClient from './normal/client';
+import MarkdownClient from './markdown/client';
 import DBClient from './db/client';
 import { escapeQueryString } from './client';
 
@@ -12,7 +12,7 @@ describe('escapeQueryString', () => {
 });
 
 describe.each([
-  ['normal', NormalClient],
+  ['markdown', MarkdownClient],
   ['db', DBClient],
 ])('%s client find()', (_name, Client) => {
   test('escapes quotes in the query string', async () => {
