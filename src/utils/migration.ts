@@ -202,10 +202,3 @@ export class SearchEngineConfigMigration {
     }
   }
 }
-
-/**
- * Auto-run migrations on import
- */
-SearchEngineConfigMigration.runMigrations().catch((error) => {
-  console.error('Failed to run search engine migrations:', error);
-});

@@ -2,7 +2,10 @@ import { getLogseqCopliotConfig } from '@/utils/storage';
 import { blockRending, versionCompare } from '@/utils/utils';
 import { debounce } from '@/utils';
 import { format } from 'date-fns';
-import { changeOptionsHostToHostNameAndPort } from './upgrade';
+import {
+  changeOptionsHostToHostNameAndPort,
+  migrateLegacyClipSettingsToTemplates,
+} from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
 import { templates } from '@/utils/storage';
@@ -219,6 +222,9 @@ export default defineBackground({
 
     browser.runtime.onInstalled.addListener(async (event) => {
       // Run migration for both install and update events
+      await migrateLegacyClipSettingsToTemplates().catch((err) =>
+        console.error('Failed to migrate legacy clip settings:', err),
+      );
       await SearchEngineConfigMigration.runMigrations();
 
       if (event.reason === 'install') {
