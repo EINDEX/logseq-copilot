@@ -1,9 +1,27 @@
 name: Publish
 
+# Normally called by release-please.yml once a release is created. It can also
+# be run by hand: push a `v*` tag, or start it from the Actions tab with the
+# tag to publish (the tag must already exist).
 on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag to publish, e.g. v2.0.0'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to publish, e.g. v2.0.0'
+        required: true
+        type: string
   push:
     tags:
-      - '*'
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   publish:
@@ -15,6 +33,9 @@ jobs:
     environment: 'publish'
     steps:
       - uses: actions/checkout@v7
+        with:
+          # workflow_call/workflow_dispatch run on a branch ref, not the tag.
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
@@ -78,6 +99,9 @@ jobs:
         uses: softprops/action-gh-release@v3
         if: matrix.platform == 'github'
         with:
+          # Attaches to the release release-please created; creates it when
+          # publishing from a manually pushed tag.
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
             .output/logseq-copliot-${{ steps.version.outputs.value }}-firefox.zip
