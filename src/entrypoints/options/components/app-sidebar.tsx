@@ -1,4 +1,4 @@
-import { Settings, Search, FileText, Bot } from "lucide-react"
+import { Settings, Search, FileText } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -23,11 +23,7 @@ const items = [
     url: "/search-engine",
     icon: Search,
   },
-  {
-    title: "AI Configuration",
-    url: "/ai-config",
-    icon: Bot,
-  },
+  // "AI Configuration" (/ai-config) is hidden for now: no feature uses it yet.
   {
     title: "Templates",
     url: "/templates",
