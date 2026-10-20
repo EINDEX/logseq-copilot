@@ -95,8 +95,10 @@ export default defineConfig({
 				{
 					tag: 'script',
 					attrs: {
-						'data-domain': 'logseq-copilot.eindex.me',
-						src: 'https://t.eindex.me/js/script.file-downloads.hash.outbound-links.pageview-props.revenue.tagged-events.js',
+						src: 'https://a.eindex.me/api/script.js',
+						'data-site-id': '3',
+						'data-tracking-errors': 'true',
+						'data-session-replay': 'true',
 						defer: true,
 					},
 				},

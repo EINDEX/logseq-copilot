@@ -1,11 +1,11 @@
 {
-  "name": "logseq-copliot",
-  "version": "1.6.0",
-  "description": "Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.",
-  "license": "MIT",
+  "name": "logseq-copilot",
+  "version": "1.15.2",
+  "description": "Connect to the Logseq API and use your notes while browsing.",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eindex/logseq-copliot.git"
+    "url": "https://github.com/EINDEX/logseq-copilot.git"
   },
   "scripts": {
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
@@ -14,12 +14,9 @@
     "docs:build": "cd docs && npm run build",
     "docs:preview": "cd docs && npm run preview",
     "publish:edge": "node pipeline/edge-addon-publish.mjs",
-    "publish:firefox": "web-ext sign -s .output/firefox-mv3",
-    "version:generate": "node scripts/generate-version.mjs",
-    "version:dev": "node scripts/generate-version.mjs --dev",
-    "version:check": "node scripts/generate-version.mjs --dry-run",
+    "publish:firefox": "web-ext sign -s .output/firefox-mv3 --channel listed --approval-timeout 0",
+    "version:dev": "node scripts/dev-version.mjs",
     "version:reset": "git checkout HEAD -- package.json",
-    "prebuild": "node scripts/generate-version.mjs --dry-run",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "build": "wxt build",
@@ -66,7 +63,7 @@
     "tw-animate-css": "^1.3.4"
   },
   "devDependencies": {
-    "@plasmohq/edge-addons-api": "^1.5.0",
+    "@plasmohq/edge-addons-api": "^2.0.0",
     "@playwright/test": "1.64.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.10",
@@ -95,7 +92,6 @@
     "react-refresh-typescript": "^2.0.10",
     "sass": "^1.89.2",
     "sass-loader": "^13.3.3",
-    "semver": "^7.7.2",
     "source-map-loader": "^3.0.2",
     "style-loader": "^3.3.4",
     "tailwindcss": "^4.1.10",
@@ -103,6 +99,7 @@
     "type-fest": "^3.13.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7",
+    "web-ext": "^10.8.0",
     "wxt": "^0.20.7"
   },
   "pnpm": {

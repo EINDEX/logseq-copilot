@@ -1,0 +1,50 @@
+name: Release Please
+
+# Keeps a release PR up to date from conventional commits. Merging that PR
+# bumps package.json, updates CHANGELOG.md, tags vX.Y.Z and creates the GitHub
+# release, then this workflow calls publish.yml to ship the stores.
+#
+# Tags/releases made with the default GITHUB_TOKEN do not trigger other
+# workflows (so publish.yml's `push: tags` never fires for them); that is why
+# publish.yml is called here instead of relying on the tag.
+#
+# Config: release-please-config.json, .release-please-manifest.json.
+# To try this on another branch (e.g. `wxt`), change `branches` below; the
+# release PR targets the branch that was pushed.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
