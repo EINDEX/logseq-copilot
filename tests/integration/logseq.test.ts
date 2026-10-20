@@ -19,12 +19,6 @@ const variant = inject('logseqVariant');
 const isDB = variant === 'db';
 const TEST_PAGE = 'Copilot Test Page';
 
-// Known extension bug on DB graphs: LogseqDBService reads `block.content` /
-// `block.marker`, while 2.x blocks expose `title` and keep the task status in a
-// property. `test.fails` keeps CI green and turns red once fixed, so the marker
-// can be removed.
-const failsOnDB = isDB ? test.fails : test;
-
 const api = async (method: string, args: unknown[] = []) => {
   const resp = await fetch(`${inject('logseqApi')}/api`, {
     method: 'POST',
@@ -103,6 +97,13 @@ describe(`extension services (${variant})`, () => {
     expect(hello).toBeDefined();
     expect(hello.html).toMatch(/^<p>.*copilot.*<\/p>$/i);
     expect(hello.page?.name?.toLowerCase()).toBe(TEST_PAGE.toLowerCase());
+    if (isDB) {
+      // The page hit is resolved through logseq.Editor.getPage.
+      const page = result.response.pages.find(
+        (p: any) => p?.name === TEST_PAGE.toLowerCase(),
+      );
+      expect(page?.originalName).toBe(TEST_PAGE);
+    }
   });
 
   test('urlSearch finds blocks mentioning the URL', async () => {
@@ -142,7 +143,7 @@ describe(`extension services (${variant})`, () => {
       return value;
     };
 
-    failsOnDB('cycles TODO -> DONE -> TODO and changes the block', async () => {
+    test.skipIf(isDB)('cycles TODO -> DONE -> TODO and changes the block', async () => {
       const text = `marker-cycle-${Date.now()}`;
       const created = await service.client.appendBlock(TEST_PAGE, `TODO ${text}`);
       expect(created?.uuid).toBeTruthy();
@@ -166,6 +167,37 @@ describe(`extension services (${variant})`, () => {
       );
       expect(afterTodo.content).toContain(`TODO ${text}`);
       expect(afterTodo.marker).toBe('TODO');
+    });
+
+    // DB graphs keep the task state in the `logseq.property/status` property
+    // instead of a TODO/DONE prefix in the block text.
+    test.skipIf(!isDB)('cycles the status property TODO -> DONE -> TODO', async () => {
+      const text = `marker-cycle-${Date.now()}`;
+      const created = await service.client.appendBlock(TEST_PAGE, text);
+      expect(created?.uuid).toBeTruthy();
+
+      const statusOf = async () =>
+        (await readBlock(created.uuid))[':logseq.property/status']?.ident;
+
+      const done = await service.changeBlockMarker(created.uuid, 'DONE');
+      expect(done).toMatchObject({ status: 'success', marker: 'DONE' });
+      expect(
+        await eventually(statusOf, (v) => v === ':logseq.property/status.done'),
+      ).toBe(':logseq.property/status.done');
+      // The block text is untouched, the badge marker is derived from the status.
+      const rendered = await service.getBlock(created.uuid, 'Demo');
+      expect(rendered.content).toContain(text);
+      expect(rendered.marker).toBe('DONE');
+
+      const todo = await service.changeBlockMarker(created.uuid, 'TODO');
+      expect(todo).toMatchObject({ status: 'success', marker: 'TODO' });
+      expect(
+        await eventually(statusOf, (v) => v === ':logseq.property/status.todo'),
+      ).toBe(':logseq.property/status.todo');
+
+      const refused = await service.changeBlockMarker(created.uuid, 'NOW');
+      expect(refused.status).toBe('failed');
+      expect(await statusOf()).toBe(':logseq.property/status.todo');
     });
 
     test.skipIf(isDB)('refuses a scheduled task and leaves it untouched', async () => {

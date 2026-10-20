@@ -6,7 +6,33 @@ import {
 import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
-import { throwIfClientError } from '../error';
+import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
+
+const STATUS_PROPERTY = ':logseq.property/status';
+const STATUS_IDENT_PREFIX = `${STATUS_PROPERTY}.`;
+
+// Marker -> title of the built-in status choice (Backlog, Todo, Doing,
+// In Review, Done, Canceled). Logseq clears the property for unknown titles,
+// so only markers with an exact counterpart are accepted.
+const STATUS_TITLE_BY_MARKER: Record<string, string> = {
+  TODO: 'Todo',
+  DOING: 'Doing',
+  DONE: 'Done',
+  CANCELED: 'Canceled',
+  CANCELLED: 'Canceled',
+};
+
+/**
+ * DB graphs keep the task state in the `logseq.property/status` property, e.g.
+ * `{ ident: ':logseq.property/status.todo', title: 'Todo' }`, not as a text
+ * prefix. Returns the equivalent file-graph style marker (TODO, DONE, ...).
+ */
+export const getBlockMarker = (block: any): string => {
+  const ident = block?.[STATUS_PROPERTY]?.ident;
+  return typeof ident === 'string' && ident.startsWith(STATUS_IDENT_PREFIX)
+    ? ident.slice(STATUS_IDENT_PREFIX.length).toUpperCase()
+    : '';
+};
 
 // Logseq 2.0.x returns `uuid`; older builds nested it as `block/uuid: {uuid}`.
 const getItemUuid = (item: any): string =>
@@ -45,6 +71,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
       graph: graphName,
     };
 
+    // Block hits carry `page?: null` (not `false`), only pages have `true`.
     response.pages = await Promise.all(
       resp.blocks
         .filter((item: any) => item['page?'] === true)
@@ -54,13 +81,17 @@ export default class LogseqDBService implements LogseqServiceInterface {
           });
         }),
     );
-    response.blocks = await Promise.all(
+    // Hits that cannot be read as a block (e.g. already deleted) are skipped.
+    const blocks = await Promise.all(
       resp.blocks
-        .filter((item: any) => item['page?'] === false)
+        .filter((item: any) => item['page?'] !== true)
         .map(
           async (item: any) =>
-            await this.getBlock(getItemUuid(item), graphName, query),
+            await this.findBlock(getItemUuid(item), graphName, query),
         ),
+    );
+    response.blocks = blocks.filter(
+      (block): block is LogseqBlockType => block !== null,
     );
 
     return response;
@@ -83,11 +114,38 @@ export default class LogseqDBService implements LogseqServiceInterface {
     query?: string,
     includeChildren: boolean = false,
   ) {
+    const block = await this.findBlock(blockUuid, graph, query, includeChildren);
+    if (block === null) {
+      throw new LogseqError(NoSearchingResult);
+    }
+    return block;
+  }
+
+  private async findBlock(
+    blockUuid: string,
+    graph: string,
+    query?: string,
+    includeChildren: boolean = false,
+  ): Promise<LogseqBlockType | null> {
     const block = await this.client.getBlockViaUuid(blockUuid, {
       includeChildren,
     });
-    block.page = await this.client.getPage(block.page);
-    return renderBlock(block, graph, query);
+    if (!block) {
+      return null;
+    }
+    if (block.page) {
+      block.page = await this.client.getPage(block.page);
+    }
+    return this.render(block, graph, query);
+  }
+
+  // The status lives in a property, so the rendered text has no marker to cut
+  // out: render without it, then expose it for the status badge.
+  private render(block: LogseqBlockType, graph: string, query?: string) {
+    block.marker = '';
+    renderBlock(block, graph, query);
+    block.marker = getBlockMarker(block);
+    return block;
   }
 
   public async urlSearch(url: URL, opt: { fuzzy?: boolean } = { fuzzy: false }) {
@@ -123,7 +181,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
       msg: 'success',
       response: {
         blocks: blocks.map((block) => {
-          return renderBlock(block, graph, url.href);
+          return this.render(block, graph, url.href);
         }),
         graph: graph,
       },
@@ -135,31 +193,27 @@ export default class LogseqDBService implements LogseqServiceInterface {
     uuid: string,
     marker: string,
   ): Promise<ChangeBlockMarkerResult> {
-    const graph = await this.getGraph();
-    const block = await this.getBlock(uuid, graph);
+    const failed = (msg: string): ChangeBlockMarkerResult => ({
+      type: 'change-block-marker-result',
+      uuid: uuid,
+      status: 'failed',
+      marker: marker,
+      msg: msg,
+    });
 
-    if (block.content.includes('SCHEDULED:')) {
-      return {
-        type: 'change-block-marker-result',
-        uuid: uuid,
-        status: 'failed',
-        marker: marker,
-        msg: 'Not support scheduled task.',
-      };
+    const status = STATUS_TITLE_BY_MARKER[marker.toUpperCase()];
+    if (!status) {
+      return failed(`Not support marker ${marker} on a DB graph.`);
     }
-    block.content = block.content.replace(block.marker, marker);
+    const block = await this.client.getBlockViaUuid(uuid);
+    if (!block) {
+      return failed(`Block ${uuid} not found.`);
+    }
 
-    const result = await this.client.updateBlock(block);
-    console.debug(result);
+    const result = await this.client.setBlockStatus(uuid, status);
     // The HTTP API reports failures as a 200 response carrying `{ error }`.
     if (result && typeof result === 'object' && 'error' in result) {
-      return {
-        type: 'change-block-marker-result',
-        uuid: uuid,
-        status: 'failed',
-        marker: marker,
-        msg: String(result.error),
-      };
+      return failed(String(result.error));
     }
     return {
       type: 'change-block-marker-result',

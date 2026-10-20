@@ -61,13 +61,17 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   public getPage = async (
     pageIdenity: Partial<LogseqPageIdenity>,
   ): Promise<LogseqPageIdenity> => {
-    const resp: LogseqPageIdenity = await this.baseJson(
-      'get_page',
-      [pageIdenity.id || pageIdenity.uuid || pageIdenity.name],
-    );
-    return resp;
+    // The HTTP API resolves `logseq.<Ns>.<method>` to the SDK function
+    // `<ns>@<method>`. A bare `get_page` has no namespace, so Logseq 2.x answers
+    // it with HTTP 500 (`MethodNotExist: get_page`).
+    const resp = await this.baseJson('logseq.Editor.getPage', [
+      pageIdenity.id || pageIdenity.uuid || pageIdenity.name,
+    ]);
+    // DB pages carry their display name in `title`; `name` is lower-cased.
+    return resp && !resp.originalName && resp.title
+      ? { ...resp, originalName: resp.title }
+      : resp;
   };
-
 
   public search = async (query: string): Promise<LogseqSearchResponse> => {
     const resp = await this.baseJson('logseq.App.search', [query]);
@@ -145,6 +149,19 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
 
   public getVersion = async (): Promise<LogseqResponseType<string>> => {
     return await this.catchIssues(async () => await this.getVersionInternal());
+  };
+
+  /**
+   * Sets the task status of a DB-graph block. `status` must be the title of one
+   * of the built-in choices (Todo, Doing, Done, ...): Logseq silently clears the
+   * property for any other value.
+   */
+  public setBlockStatus = async (uuid: string, status: string) => {
+    return await this.baseJson('logseq.Editor.upsertBlockProperty', [
+      uuid,
+      'logseq.property/status',
+      status,
+    ]);
   };
 
   public updateBlock = async (block: LogseqBlockType) => {

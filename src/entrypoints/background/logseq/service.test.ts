@@ -114,7 +114,9 @@ describe.each(flavours)('connection failures (%s graph)', (_name, create) => {
   });
 });
 
-describe.each(flavours)('changeBlockMarker (%s graph)', (_name, create) => {
+// DB graphs keep the task state in a property; see db/service.test.ts.
+describe('changeBlockMarker (file graph)', () => {
+  const create = () => new LogseqService();
   const block = (content: string, marker = 'TODO') => ({
     uuid: 'u1',
     content,
@@ -126,9 +128,8 @@ describe.each(flavours)('changeBlockMarker (%s graph)', (_name, create) => {
     const updates: unknown[][] = [];
     stubApi((method, args) => {
       if (method.endsWith('getCurrentGraph')) return { name: 'g', path: '/g' };
-      if (method === 'logseq.Editor.getBlock' || method === 'get_block')
-        return block(opts.content);
-      if (method === 'logseq.Editor.getPage' || method === 'get_page')
+      if (method === 'logseq.Editor.getBlock') return block(opts.content);
+      if (method === 'logseq.Editor.getPage')
         return { id: 1, name: 'p', uuid: 'p1' };
       if (method === 'logseq.Editor.updateBlock') {
         updates.push(args);
