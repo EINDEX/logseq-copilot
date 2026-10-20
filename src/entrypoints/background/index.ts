@@ -188,27 +188,23 @@ export default defineBackground({
 
     const debounceBadgeSearch = debounce(badgeSearch, 1000);
 
-    try {
+    // Menus persist across service worker restarts, so create them only on
+    // install/update. Creating at every startup fails with "duplicate id"
+    // (reported via runtime.lastError, which try/catch cannot catch).
+    const createContextMenus = () => {
       browser.contextMenus.create({
         id: 'clip-with-selection',
         title: 'Clip "%s"',
         visible: true,
         contexts: ['selection'],
       });
-    } catch (error) {
-      console.log(error);
-    }
-
-    try {
       browser.contextMenus.create({
         id: 'clip-page',
         title: 'Clip page link',
         visible: true,
         contexts: ['page'],
       });
-    } catch (error) {
-      console.log(error);
-    }
+    };
 
     browser.contextMenus.onClicked.addListener((info, tab) => {
       if (info.menuItemId === 'clip-with-selection') {
@@ -221,6 +217,8 @@ export default defineBackground({
     });
 
     browser.runtime.onInstalled.addListener(async (event) => {
+      createContextMenus();
+
       // Run migration for both install and update events
       await migrateLegacyClipSettingsToTemplates().catch((err) =>
         console.error('Failed to migrate legacy clip settings:', err),
