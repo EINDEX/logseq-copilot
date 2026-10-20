@@ -1,0 +1,65 @@
+name: Integration
+
+# Runs the extension's Logseq client code against real Logseq desktop apps:
+# the file-graph release (0.10.x) and the DB-graph release (2.x).
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  logseq:
+    name: logseq ${{ matrix.variant }} ${{ matrix.version }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: file
+            version: 0.10.15
+          - variant: db
+            version: 2.0.2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        name: Use Node.js
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - name: Install Electron runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libsecret-1-0 libnss3 libgbm1 libasound2t64 libgtk-3-0t64
+
+      - name: Cache Logseq
+        uses: actions/cache@v4
+        with:
+          path: .logseq-bin/${{ matrix.variant }}-${{ matrix.version }}
+          key: logseq-${{ matrix.variant }}-${{ matrix.version }}
+
+      - name: Download Logseq
+        id: logseq
+        run: echo "bin=$(scripts/download-logseq.sh ${{ matrix.variant }} ${{ matrix.version }} .logseq-bin | tail -n 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Run integration tests
+        run: xvfb-run -a pnpm test:integration
+        env:
+          LOGSEQ_VARIANT: ${{ matrix.variant }}
+          LOGSEQ_BIN: ${{ steps.logseq.outputs.bin }}
+          LOGSEQ_DEBUG: ${{ runner.debug }}

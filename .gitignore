@@ -36,3 +36,4 @@ secrets.*.js
 .cursorrules
 
 chromium-profile
+.logseq-bin
