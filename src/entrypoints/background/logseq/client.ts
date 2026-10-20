@@ -1,5 +1,6 @@
 import { getLogseqCopliotConfig } from '@/config';
 import { log } from '@/utils';
+import { toLogseqError } from './error';
 
 export type LogseqPageResponse = {
   name: string;
@@ -18,23 +19,28 @@ export default class LogseqClientBase {
   baseFetch = async (method: string, args: any[]) => {
     log.debug(`Logseq Method ${method}, Args -> \n`, args);
     const config = await getLogseqCopliotConfig();
-    const endPoint = new URL(config.logseqHost);
-    const apiUrl = new URL(`${endPoint.origin}/api`);
-    const resp = await fetch(apiUrl, {
-      mode: 'cors',
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.logseqAuthToken}`,
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify({
-        method: method,
-        args: args,
-      }),
-    });
+    let resp: Response;
+    try {
+      const endPoint = new URL(config.logseqHost);
+      const apiUrl = new URL(`${endPoint.origin}/api`);
+      resp = await fetch(apiUrl, {
+        mode: 'cors',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.logseqAuthToken}`,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify({
+          method: method,
+          args: args,
+        }),
+      });
+    } catch (e) {
+      throw toLogseqError(e);
+    }
 
     if (resp.status !== 200) {
-      throw resp;
+      throw toLogseqError(resp);
     }
     return resp;
   };

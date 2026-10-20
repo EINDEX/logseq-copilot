@@ -1,13 +1,15 @@
-import { LogseqBlockType } from '@/types/logseqBlock';
+import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
 import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
+import { throwIfClientError } from '../error';
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
 
   public async getGraph() {
-    return (await this.client.getGraph()).name;
+    const graph = throwIfClientError(await this.client.getGraph());
+    return graph.name;
   }
 
   public async showMsg(message: string) {
@@ -15,7 +17,7 @@ export default class LogseqService implements LogseqServiceInterface {
   }
 
   public async getVersion() {
-    return ((await this.client.getVersion()) as any).version;
+    return (throwIfClientError(await this.client.getVersion()) as any).version;
   }
 
   private async searchGraph(graphName: string, query: string) {
@@ -110,7 +112,10 @@ export default class LogseqService implements LogseqServiceInterface {
     };
   }
 
-  public async changeBlockMarker(uuid: string, marker: string) {
+  public async changeBlockMarker(
+    uuid: string,
+    marker: string,
+  ): Promise<ChangeBlockMarkerResult> {
     const graph = await this.getGraph();
     const block = await this.getBlock(uuid, graph);
 
@@ -119,6 +124,7 @@ export default class LogseqService implements LogseqServiceInterface {
         type: 'change-block-marker-result',
         uuid: uuid,
         status: 'failed',
+        marker: marker,
         msg: 'Not support scheduled task.',
       };
     }
@@ -126,13 +132,14 @@ export default class LogseqService implements LogseqServiceInterface {
 
     const result = await this.client.updateBlock(block);
     console.debug(result);
-    // @ts-expect-error existing behavior: Object.hasOwnProperty ignores the 2nd argument
-    if (Object.hasOwnProperty(result, 'error')) {
+    // The HTTP API reports failures as a 200 response carrying `{ error }`.
+    if (result && typeof result === 'object' && 'error' in result) {
       return {
         type: 'change-block-marker-result',
         uuid: uuid,
         status: 'failed',
-        msg: 'error',
+        marker: marker,
+        msg: String(result.error),
       };
     }
     return {

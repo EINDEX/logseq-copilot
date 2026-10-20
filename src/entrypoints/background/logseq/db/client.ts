@@ -1,12 +1,6 @@
 import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 
-import {
-  CannotConnectWithLogseq,
-  LogseqVersionIsLower,
-  TokenNotCurrect,
-  UnknownIssues,
-  NoSearchingResult,
-} from '../error';
+import { LogseqError, LogseqVersionIsLower, toLogseqError } from '../error';
 import { LogseqClientInterface } from '../interfaces';
 import LogseqClientBase from '../client';
 
@@ -78,7 +72,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   public search = async (query: string): Promise<LogseqSearchResponse> => {
     const resp = await this.baseJson('logseq.App.search', [query]);
     if (resp.error) {
-      throw LogseqVersionIsLower;
+      throw new LogseqError(LogseqVersionIsLower);
     }
     return resp;
   };
@@ -110,18 +104,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
       return await func();
     } catch (e: any) {
       console.info(1, e);
-      if (e.status === 401) {
-        return TokenNotCurrect;
-      } else if (
-        e.toString() === 'TypeError: Failed to fetch' ||
-        e.toString().includes('Invalid URL')
-      ) {
-        return CannotConnectWithLogseq;
-      } else if (e === LogseqVersionIsLower || e === NoSearchingResult) {
-        return e;
-      } else {
-        return UnknownIssues;
-      }
+      return toLogseqError(e).info;
     }
   }
 

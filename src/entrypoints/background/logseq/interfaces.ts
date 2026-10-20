@@ -1,4 +1,4 @@
-import { LogseqBlockType } from '@/types/logseqBlock';
+import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
 
 export interface LogseqClientInterface {
   getGraph(): any;
@@ -26,5 +26,8 @@ export interface LogseqServiceInterface {
   urlSearch(url: URL, opt?: { fuzzy?: boolean }): any;
   showMsg(message: string): any;
   getVersion(): any;
-  changeBlockMarker(uuid: string, marker: string): any;
+  changeBlockMarker(
+    uuid: string,
+    marker: string,
+  ): Promise<ChangeBlockMarkerResult>;
 }
