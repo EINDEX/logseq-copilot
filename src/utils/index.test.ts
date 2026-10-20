@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { blockRending, logseqEscape } from './utils';
 
 describe('renderBlock', () => {
