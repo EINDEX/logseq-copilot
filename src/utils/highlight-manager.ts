@@ -1,5 +1,6 @@
 import { HighlightService } from './highlight-service';
 import log from './logger';
+import { caretRangeAtPoint } from './caret';
 import { contentEvents } from './content-events';
 import type { HighlightData } from '@/types/highlight';
 
@@ -71,10 +72,7 @@ export class HighlightManager {
       event.clientY,
     );
 
-    const clickedRange = document.caretRangeFromPoint(
-      event.clientX,
-      event.clientY,
-    );
+    const clickedRange = caretRangeAtPoint(event.clientX, event.clientY);
     if (!clickedRange) {
       console.log('[HighlightManager] No range found at click point');
       return;
