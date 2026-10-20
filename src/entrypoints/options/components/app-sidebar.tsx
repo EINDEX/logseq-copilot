@@ -15,6 +15,7 @@ import {
 
 import logo from "@/assets/img/logo.png"
 import { TemplatesSidebar } from "./templates-sidebar"
+import { version } from "../../../../package.json"
 
 // Menu items.
 const items = [
@@ -83,7 +84,7 @@ export function AppSidebar() {
         <TemplatesSidebar />
       </SidebarContent>
       <SidebarFooter>
-        <span className="text-sm text-muted-foreground">v1.0.0</span>
+        <span className="text-sm text-muted-foreground">v{version}</span>
       </SidebarFooter>
     </Sidebar>
   )
