@@ -229,9 +229,9 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                                         className={
                                             testUrl && formData.urlPattern
                                                 ? urlPatternResult === true
-                                                    ? 'border-green-500 bg-green-50'
+                                                    ? 'border-primary bg-primary/5'
                                                     : urlPatternResult === false
-                                                        ? 'border-red-500 bg-red-50'
+                                                        ? 'border-destructive bg-destructive/5'
                                                         : ''
                                                 : ''
                                         }
@@ -241,7 +241,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                                     </Button>
                                 </div>
                                 {testUrl && formData.urlPattern && (
-                                    <p className={`text-sm ${urlPatternResult ? 'text-green-600' : 'text-red-600'}`}>
+                                    <p className={`text-sm ${urlPatternResult ? 'text-primary' : 'text-destructive'}`}>
                                         {urlPatternResult ? '✓ 匹配成功' : '✗ 不匹配'}
                                     </p>
                                 )}

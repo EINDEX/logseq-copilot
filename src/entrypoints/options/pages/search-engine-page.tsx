@@ -97,11 +97,11 @@ const SearchEnginePage: React.FC = () => {
                 <CardContent>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-primary" />
                             <span>{enabledCount} enabled</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-red-500" />
+                            <XCircle className="h-4 w-4 text-muted-foreground" />
                             <span>{totalCount - enabledCount} disabled</span>
                         </div>
                     </div>
@@ -228,7 +228,7 @@ const SearchEnginePage: React.FC = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => handleRemoveCustomEngine(engine.id)}
-                                                className="text-red-600 hover:text-red-700"
+                                                className="text-destructive hover:text-destructive"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

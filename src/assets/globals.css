@@ -3,7 +3,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
+/*
+ * Design tokens. Brand: Logseq teal (logo: #002b36 on #85c8c8).
+ * Light primary oklch(0.5 0.075 206) ~ #206f78: 5.6:1 with its foreground,
+ * 5.8:1 as text on white. Dark primary oklch(0.788 0.068 196) ~ #85c8c8:
+ * 7.9:1 with its #002b36 foreground, 10.5:1 as text on the background.
+ *
+ * `[data-theme-container]` is the ThemeProvider root of the in-page UI:
+ * inside a shadow root `:root` matches nothing, so the tokens are set there
+ * too. `.dark` comes later and wins at the same specificity.
+ */
+:root,
+[data-theme-container] {
   --radius: 0.65rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
@@ -11,8 +22,8 @@
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.705 0.213 47.604);
-  --primary-foreground: oklch(0.98 0.016 73.684);
+  --primary: oklch(0.5 0.075 206);
+  --primary-foreground: oklch(0.985 0.005 206);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
@@ -20,22 +31,26 @@
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.213 47.604);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --ring: oklch(0.5 0.075 206);
+  /* Marker color of a saved highlight (the page highlight is yellow). */
+  --highlight: oklch(0.88 0.16 95);
+  --chart-1: oklch(0.5 0.075 206);
+  --chart-2: oklch(0.65 0.09 196);
+  --chart-3: oklch(0.267 0.049 220);
+  --chart-4: oklch(0.788 0.068 196);
+  --chart-5: oklch(0.72 0.12 75);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.705 0.213 47.604);
-  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+  --sidebar-primary: oklch(0.5 0.075 206);
+  --sidebar-primary-foreground: oklch(0.985 0.005 206);
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.213 47.604);
+  --sidebar-ring: oklch(0.5 0.075 206);
+  --logo-filter: none;
 }
 
 .dark {
@@ -45,8 +60,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.646 0.222 41.116);
-  --primary-foreground: oklch(0.98 0.016 73.684);
+  --primary: oklch(0.788 0.068 196);
+  --primary-foreground: oklch(0.267 0.049 220);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -54,22 +69,25 @@
   --accent: oklch(0.274 0.006 286.033);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.646 0.222 41.116);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --ring: oklch(0.788 0.068 196);
+  --highlight: oklch(0.8 0.14 95);
+  --chart-1: oklch(0.788 0.068 196);
+  --chart-2: oklch(0.65 0.09 196);
+  --chart-3: oklch(0.88 0.04 196);
+  --chart-4: oklch(0.5 0.075 206);
+  --chart-5: oklch(0.78 0.12 75);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.646 0.222 41.116);
-  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+  --sidebar-primary: oklch(0.788 0.068 196);
+  --sidebar-primary-foreground: oklch(0.267 0.049 220);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.646 0.222 41.116);
+  --sidebar-ring: oklch(0.788 0.068 196);
+  --logo-filter: invert(1);
 }
 
 @theme inline {
@@ -92,6 +110,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-highlight: var(--highlight);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -117,6 +136,12 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* In-page UI: the <body> WXT creates inside the shadow root sits outside
+     the ThemeProvider container (and gets the light tokens from :host), so
+     it must not paint over the host page. */
+  :host body {
+    background-color: transparent;
   }
 }
 
@@ -169,30 +194,4 @@
 /* Ensure sidebar doesn't interfere with page content */
 body {
   transition: margin-right 0.3s ease-in-out;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  #logseq-copilot-highlights-sidebar {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --border: #404040;
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-  }
-}
-
-/* Light mode support */
-@media (prefers-color-scheme: light) {
-  #logseq-copilot-highlights-sidebar {
-    --background: #ffffff;
-    --foreground: #0a0a0a;
-    --muted: #f5f5f5;
-    --muted-foreground: #737373;
-    --border: #e5e5e5;
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-  }
 }

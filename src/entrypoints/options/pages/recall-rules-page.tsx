@@ -132,6 +132,7 @@ const RecallRulesPage: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(rule)}
+                        aria-label={`Edit ${rule.name}`}
                         className="h-8 w-8 p-0"
                     >
                         <Edit className="h-4 w-4" />
@@ -140,6 +141,7 @@ const RecallRulesPage: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(rule.id, rule.name)}
+                        aria-label={`Delete ${rule.name}`}
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -181,7 +183,7 @@ const RecallRulesPage: React.FC = () => {
                     <div className="space-y-2 text-sm">
                         {rule.queryProcessing.excludeKeywords.length > 0 && (
                             <div>
-                                <span className="font-medium text-red-600">排除关键词：</span>
+                                <span className="font-medium text-muted-foreground">排除关键词：</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                     {rule.queryProcessing.excludeKeywords.map((keyword, index) => (
                                         <Badge key={index} variant="destructive" className="text-xs">
@@ -193,7 +195,7 @@ const RecallRulesPage: React.FC = () => {
                         )}
                         {rule.queryProcessing.includeKeywords.length > 0 && (
                             <div>
-                                <span className="font-medium text-green-600">优先关键词：</span>
+                                <span className="font-medium text-muted-foreground">优先关键词：</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                     {rule.queryProcessing.includeKeywords.map((keyword, index) => (
                                         <Badge key={index} variant="default" className="text-xs">
@@ -220,7 +222,7 @@ const RecallRulesPage: React.FC = () => {
                             onInput={(e) => {
                                 const input = e.target as HTMLInputElement;
                                 const isMatch = testRulePattern(rule.urlPattern, input.value);
-                                input.className = `w-full px-2 py-1 border rounded text-xs ${input.value ? (isMatch ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-300'
+                                input.className = `w-full px-2 py-1 border rounded text-xs ${input.value ? (isMatch ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5') : 'border-input'
                                     }`;
                             }}
                         />
@@ -294,19 +296,19 @@ const RecallRulesPage: React.FC = () => {
                 <CardContent>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
-                            <div className="text-2xl font-bold text-green-600">
+                            <div className="text-2xl font-bold text-primary">
                                 {enabledRules.length}
                             </div>
                             <p className="text-sm text-muted-foreground">启用的规则</p>
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-gray-600">
+                            <div className="text-2xl font-bold text-muted-foreground">
                                 {disabledRules.length}
                             </div>
                             <p className="text-sm text-muted-foreground">禁用的规则</p>
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-blue-600">
+                            <div className="text-2xl font-bold">
                                 {recallRules.length}
                             </div>
                             <p className="text-sm text-muted-foreground">总规则数</p>
@@ -321,7 +323,7 @@ const RecallRulesPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <CheckCircle className="h-5 w-5 text-primary" />
                                 启用的规则 ({enabledRules.length})
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
@@ -353,7 +355,7 @@ const RecallRulesPage: React.FC = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <XCircle className="h-5 w-5 text-gray-600" />
+                            <XCircle className="h-5 w-5 text-muted-foreground" />
                             禁用的规则 ({disabledRules.length})
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">

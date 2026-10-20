@@ -260,7 +260,7 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
                                                  {filteredHighlights.map((highlight) => (
                              <Card
                                  key={highlight.id}
-                                 className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-400 highlights-sidebar-card"
+                                 className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-highlight highlights-sidebar-card"
                                  onClick={() => handleHighlightClick(highlight)}
                              >
                                 <CardContent className="p-4">
