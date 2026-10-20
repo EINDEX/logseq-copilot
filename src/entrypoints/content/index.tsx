@@ -140,8 +140,9 @@ export default defineContentScript({
         searchEngine.reload(() => run(searchEngine));
       }
 
+      // Highlights (restore, comment popup, sidebar) do not depend on the
+      // floating clip button; the option only controls the button itself.
       const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
-      if (!enableClipNoteFloatButton) return;
       // Executed when content script is loaded, can be async
       const popupUi = await createShadowRootUi(ctx, {
         name: 'logseq-copilot-popup',
@@ -155,7 +156,9 @@ export default defineContentScript({
           container.append(app);
 
 
-          return mountQuickCapture(app);
+          return mountQuickCapture(app, {
+            showFloatButton: enableClipNoteFloatButton,
+          });
         },
         onRemove: async (root) => {
           // Unmount the root when the UI is removed
