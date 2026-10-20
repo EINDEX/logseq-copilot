@@ -24,9 +24,19 @@ workflows, so `on: push: tags` in `publish.yml` never fires for release-please.
 
 ## Publishing by hand
 
-- Push a `v*` tag, or
+- Push a `vX.Y.Z` tag, or
 - Actions > Publish > Run workflow, with the existing tag (for example to retry
   one store after fixing a secret).
+
+`publish.yml` rejects anything that is not an existing `vX.Y.Z` tag and always
+builds `refs/tags/<tag>`, never a branch or SHA.
+
+Recommended repository settings, because this job holds the store secrets:
+
+- Environment `publish` > deployment branches and tags: allow only `v*` tags
+  and `main` (`main` is the ref seen when release-please calls the workflow).
+- Settings > Rules > Rulesets: protect `v*` tags (restrict creation, updates
+  and deletion to maintainers).
 
 ## First release: 2.0.0
 

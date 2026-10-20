@@ -32,10 +32,29 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'publish'
     steps:
+      # Only ever build and publish an existing vX.Y.Z tag: the dispatch input is
+      # free text, and this job holds the store secrets. The first checkout is
+      # just the workflow's own ref, so git can ask the remote about the tag.
       - uses: actions/checkout@v7
         with:
-          # workflow_call/workflow_dispatch run on a branch ref, not the tag.
-          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Validate release tag
+        id: tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$TAG' is not a vX.Y.Z release tag"
+            exit 1
+          fi
+          git ls-remote --exit-code --tags origin "refs/tags/$TAG"
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.value }}
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
@@ -101,7 +120,7 @@ jobs:
         with:
           # Attaches to the release release-please created; creates it when
           # publishing from a manually pushed tag.
-          tag_name: ${{ inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.value }}
           files: |
             .output/logseq-copliot-${{ steps.version.outputs.value }}-chrome.zip
             .output/logseq-copliot-${{ steps.version.outputs.value }}-firefox.zip
