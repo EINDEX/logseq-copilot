@@ -14,6 +14,10 @@ export type LogseqResponseType<T> = {
   count?: number;
 };
 
+/** Escape text for use inside a double-quoted string of a Logseq query. */
+export const escapeQueryString = (text: string) =>
+  text.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+
 export default class LogseqClientBase {
   baseFetch = async (method: string, args: any[]) => {
     log.debug(`Logseq Method ${method}, Args -> \n`, args);
