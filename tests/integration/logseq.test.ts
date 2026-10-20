@@ -15,11 +15,6 @@ const variant = inject('logseqVariant');
 const isDB = variant === 'db';
 const TEST_PAGE = 'Copilot Test Page';
 
-// Known extension bugs on DB graphs: LogseqDBService expects search results
-// keyed by `block/uuid`, but Logseq 2.x returns `uuid`. `test.fails` keeps CI
-// green and turns red once fixed, so the marker can be removed.
-const failsOnDB = isDB ? test.fails : test;
-
 const api = async (method: string, args: unknown[] = []) => {
   const resp = await fetch(`${inject('logseqApi')}/api`, {
     method: 'POST',
@@ -85,7 +80,7 @@ describe(`extension services (${variant})`, () => {
     expect(version).toMatch(isDB ? /^2\./ : /^0\.10\./);
   });
 
-  failsOnDB('search finds seeded blocks and renders html', async () => {
+  test('search finds seeded blocks and renders html', async () => {
     const result = await service.search('copilot');
     expect(result.status).toBe(200);
     const blocks = result.response.blocks;
@@ -98,7 +93,7 @@ describe(`extension services (${variant})`, () => {
     expect(hello.page?.name?.toLowerCase()).toBe(TEST_PAGE.toLowerCase());
   });
 
-  failsOnDB('urlSearch finds blocks mentioning the URL', async () => {
+  test('urlSearch finds blocks mentioning the URL', async () => {
     const result = await service.urlSearch(
       new URL('https://example.com/copilot/article'),
     );

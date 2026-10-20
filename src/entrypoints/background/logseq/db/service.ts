@@ -3,6 +3,13 @@ import LogseqClient from './client';
 import { renderBlock } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 
+// Logseq 2.0.x returns `uuid`; older builds nested it as `block/uuid: {uuid}`.
+const getItemUuid = (item: any): string =>
+  item.uuid ??
+  (typeof item['block/uuid'] === 'string'
+    ? item['block/uuid']
+    : item['block/uuid']?.uuid);
+
 export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
 
@@ -37,7 +44,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
         .filter((item: any) => item['page?'] === true)
         .map(async (item: any) => {
           return await this.client.getPage({
-            uuid: item['block/uuid']['uuid'],
+            uuid: getItemUuid(item),
           });
         }),
     );
@@ -46,7 +53,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
         .filter((item: any) => item['page?'] === false)
         .map(
           async (item: any) =>
-            await this.getBlock(item['block/uuid']['uuid'], graphName, query),
+            await this.getBlock(getItemUuid(item), graphName, query),
         ),
     );
 
