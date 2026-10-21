@@ -142,8 +142,10 @@
   :host body {
     background-color: transparent;
   }
-  /* Search keyword marks in results, tinted like the page highlights. */
-  [data-theme-container] mark {
+  /* Search keyword marks in results (popup and in-page UI; this sheet only
+     loads on extension pages and in our shadow roots), tinted like the page
+     highlights. */
+  mark {
     background-color: color-mix(in oklab, var(--highlight) 50%, transparent);
     color: inherit;
     border-radius: 2px;
