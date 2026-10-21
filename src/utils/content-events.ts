@@ -12,6 +12,8 @@ import log from './logger';
 export type ContentEventMap = {
   highlightAdded: HighlightData;
   highlightRemoved: { highlightId: string };
+  // A highlight was edited elsewhere (e.g. its note, in the browser sidebar).
+  highlightUpdated: HighlightData;
   showHighlightComment: {
     highlightData: HighlightData;
     clickPosition: { x: number; y: number };

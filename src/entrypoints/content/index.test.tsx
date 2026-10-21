@@ -2,6 +2,9 @@
  * Content script startup. Restoring saved highlights can be slow, and it must
  * not delay the message handlers: a clip shortcut pressed meanwhile has to
  * clip at once. Only saving the highlight for that clip waits for the restore.
+ *
+ * What the browser sidebar needs from the page (scrolling to a highlight,
+ * following its edits) does not depend on the clip float button either.
  */
 import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
@@ -159,5 +162,46 @@ describe('content script startup', () => {
 
     await expect(HighlightManager.getInstance().ready).resolves.toBeUndefined();
     expect(save).toHaveBeenCalledTimes(1);
+  });
+  describe('for the browser sidebar', () => {
+    it('handles scrollToHighlight from the start, whatever the float button setting', async () => {
+      const scroll = vi
+        .spyOn(HighlightManager.prototype, 'scrollToHighlight')
+        .mockResolvedValue(true);
+      vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
+        new Promise(() => {}),
+      );
+
+      // Not awaited: it is still waiting for the restore and the UI.
+      void (contentScript as any).main({});
+
+      // Registered synchronously, before any await, so before the float button
+      // setting is even read.
+      expect(messaging.handlers.has('content:scrollToHighlight')).toBe(true);
+      const handler = messaging.handlers.get('content:scrollToHighlight')!;
+
+      await expect(handler({ data: { id: 'h1' } })).resolves.toBe(true);
+      expect(scroll).toHaveBeenCalledWith('h1');
+
+      scroll.mockResolvedValue(false);
+      await expect(handler({ data: { id: 'gone' } })).resolves.toBe(false);
+      expect(scroll).toHaveBeenLastCalledWith('gone');
+    });
+
+    it('follows highlights changed in other contexts from the start, whatever the float button setting', async () => {
+      await fakeBrowser.storage.local.set({ highlights: [saved] });
+      const removed = vi.fn();
+      const off = contentEvents.on('highlightRemoved', removed);
+
+      void (contentScript as any).main({});
+      await HighlightManager.getInstance().ready;
+
+      await fakeBrowser.storage.local.set({ highlights: [] });
+
+      await vi.waitFor(() =>
+        expect(removed).toHaveBeenCalledWith({ highlightId: 'h1' }),
+      );
+      off();
+    });
   });
 });

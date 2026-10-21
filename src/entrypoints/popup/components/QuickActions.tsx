@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, RefreshCw, Settings, ExternalLink, Search, BookOpen } from 'lucide-react';
+import { Plus, RefreshCw, Settings, ExternalLink, Search, BookOpen, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { browser } from 'wxt/browser';
@@ -9,8 +9,11 @@ interface QuickActionsProps {
     onRefresh: () => void;
     onOpenSettings: () => void;
     onOpenLogseq: () => void;
+    onOpenSidebar: () => void;
     isLoading?: boolean;
     hasGraph?: boolean;
+    /** The window to open the sidebar in is known. */
+    canOpenSidebar?: boolean;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
@@ -18,8 +21,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     onRefresh,
     onOpenSettings,
     onOpenLogseq,
+    onOpenSidebar,
     isLoading = false,
     hasGraph = false,
+    canOpenSidebar = false,
 }) => {
     const openNewTab = () => {
         // No url opens the browser's own new tab page (chrome://newtab/ is
@@ -68,6 +73,17 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                         Open Graph
                     </Button>
                 )}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onOpenSidebar}
+                    disabled={!canOpenSidebar}
+                    title="Open highlights sidebar"
+                    className="flex items-center gap-2"
+                >
+                    <PanelRight className="w-4 h-4" />
+                    Highlights
+                </Button>
                 <Button
                     variant="ghost"
                     size="sm"

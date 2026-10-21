@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 import { sendMessage } from '@/types/messaging';
+import { openSidebar } from '@/utils/sidebar';
+import log from '@/utils/logger';
 import { QuickActions } from './components/QuickActions';
 import { SearchResults } from './components/SearchResults';
 
@@ -117,6 +119,17 @@ export default function Popup() {
     window.close();
   };
 
+  // The window is known from the tab query at mount, before the click: the
+  // browser opens the sidebar only while the click is still a user action, so
+  // nothing may be awaited before openSidebar.
+  const windowId = currentTab?.windowId;
+  const openHighlightsSidebar = () => {
+    if (windowId === undefined) return;
+    openSidebar(windowId)
+      .then(() => window.close())
+      .catch((err) => log.error('Failed to open the highlights sidebar:', err));
+  };
+
   useEffect(() => {
     const initializePopup = async () => {
       try {
@@ -208,6 +221,8 @@ export default function Popup() {
         onRefresh={searchCurrentPage}
         onOpenSettings={openSettingsPage}
         onOpenLogseq={openLogseqGraph}
+        onOpenSidebar={openHighlightsSidebar}
+        canOpenSidebar={windowId !== undefined}
         isLoading={isLoading}
         hasGraph={!!logseqSearchResult?.graph}
       />

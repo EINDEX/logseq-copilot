@@ -43,6 +43,12 @@ export interface MessagingProtocol {
   'content:quickCaptureWithSelection': () => void;
 
   'content:quickCapturePage': () => void;
+
+  /**
+   * Sent by the browser sidebar to one tab: scroll the highlight to the middle
+   * of the viewport. Resolves to false when the page has no such highlight.
+   */
+  'content:scrollToHighlight': (data: { id: string }) => boolean;
 }
 
 // Create the messaging instance

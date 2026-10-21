@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { HighlightList } from '@/components/HighlightList';
 import {
     IconHighlight,
     IconSearch,
@@ -12,17 +12,14 @@ import {
     IconX,
     IconChevronLeft,
     IconChevronRight,
-    IconTrash,
     IconEdit,
-    IconCalendar,
-    IconGlobe,
     IconEye,
     IconEyeOff
 } from '@tabler/icons-react';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import type { HighlightData } from '@/types/highlight';
-import { zIndex } from '@/entrypoints/content/QuickCapture';
+import { zIndex } from '@/utils/z-index';
 import { sendMessage } from '@/types/messaging';
 import log from '@/utils/logger';
 
@@ -124,7 +121,10 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
         }
     };
 
-        const handleHighlightClick = async (highlight: HighlightData) => {
+    const handleHighlightClick = async (highlightId: string) => {
+        const highlight = highlights.find(h => h.id === highlightId);
+        if (!highlight) return;
+
         try {
             // Update last accessed time
             await HighlightService.updateLastAccessed(highlight.id);
@@ -143,29 +143,6 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
         } catch (error) {
             log.error('Failed to handle highlight click:', error);
         }
-    };
-
-    const formatDate = (timestamp: number) => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffHours < 1) return 'Just now';
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-        });
-    };
-
-    const truncateText = (text: string, maxLength: number = 100) => {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
     };
 
     const sidebarStyles: React.CSSProperties = {
@@ -240,107 +217,45 @@ export function HighlightsSidebar({ isOpen, onClose }: HighlightsSidebarProps) {
                     <div className="text-center text-muted-foreground py-8">
                         Loading highlights...
                     </div>
-                ) : filteredHighlights.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                        {highlights.length === 0 ? (
-                            <>
-                                <IconHighlight className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>No highlights yet</p>
-                                <p className="text-xs mt-1">Select text on any page to create highlights</p>
-                            </>
-                        ) : (
-                            <>
-                                <IconSearch className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>No highlights match your search</p>
-                            </>
-                        )}
-                    </div>
                 ) : (
-                    <div className="space-y-3">
-                                                 {filteredHighlights.map((highlight) => (
-                             <Card
-                                 key={highlight.id}
-                                 className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-400 highlights-sidebar-card"
-                                 onClick={() => handleHighlightClick(highlight)}
-                             >
-                                <CardContent className="p-4">
-                                    {/* Highlight text */}
-                                    <div className="mb-2">
-                                        <p className="text-sm font-medium text-foreground leading-relaxed">
-                                            "{truncateText(highlight.range.textContent, 120)}"
-                                        </p>
-                                    </div>
-
-                                    {/* Note if exists */}
-                                    {highlight.note && (
-                                        <div className="mb-2 p-2 bg-muted rounded text-xs">
-                                            <p className="text-muted-foreground">
-                                                {truncateText(highlight.note, 80)}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Metadata */}
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <IconGlobe className="h-3 w-3" />
-                                            <span className="truncate max-w-32">
-                                                {highlight.hostname}
-                                            </span>
-                                            <IconCalendar className="h-3 w-3 ml-1" />
-                                            <span>{formatDate(highlight.createdAt)}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Tags if exists */}
-                                    {highlight.tags && highlight.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-2">
-                                            {highlight.tags.slice(0, 3).map((tag) => (
-                                                <Badge key={tag} variant="secondary" className="text-xs">
-                                                    {tag}
-                                                </Badge>
-                                            ))}
-                                            {highlight.tags.length > 3 && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    +{highlight.tags.length - 3}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Actions */}
-                                    <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleToggleVisibility(highlight.id);
-                                            }}
-                                            className="h-6 w-6 p-0"
-                                        >
-                                            {hiddenHighlights.has(highlight.id) ? (
-                                                <IconEyeOff className="h-3 w-3" />
-                                            ) : (
-                                                <IconEye className="h-3 w-3" />
-                                            )}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteHighlight(highlight.id);
-                                            }}
-                                            className="h-6 w-6 p-0 text-destructive"
-                                        >
-                                            <IconTrash className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                    <HighlightList
+                        highlights={filteredHighlights}
+                        onSelect={handleHighlightClick}
+                        onDelete={handleDeleteHighlight}
+                        renderActions={(highlight) => (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleVisibility(highlight.id);
+                                }}
+                                className="h-6 w-6 p-0"
+                            >
+                                {hiddenHighlights.has(highlight.id) ? (
+                                    <IconEyeOff className="h-3 w-3" />
+                                ) : (
+                                    <IconEye className="h-3 w-3" />
+                                )}
+                            </Button>
+                        )}
+                        empty={
+                            <div className="text-center text-muted-foreground py-8">
+                                {highlights.length === 0 ? (
+                                    <>
+                                        <IconHighlight className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                        <p>No highlights yet</p>
+                                        <p className="text-xs mt-1">Select text on any page to create highlights</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <IconSearch className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                        <p>No highlights match your search</p>
+                                    </>
+                                )}
+                            </div>
+                        }
+                    />
                 )}
             </div>
 

@@ -1,4 +1,4 @@
-import { HighlightService } from './highlight-service';
+import { HighlightService, watchHighlights } from './highlight-service';
 import log from './logger';
 import { caretRangeAtPoint } from './caret';
 import { contentEvents } from './content-events';
@@ -13,6 +13,7 @@ export class HighlightManager {
   private highlightMap: Map<string, Highlight> = new Map();
   private readyPromise: Promise<void> | null = null;
   private clickEventListener: ((event: MouseEvent) => void) | null = null;
+  private stopSync: (() => void) | null = null;
 
   private constructor() {
     this.highlights = CSS.highlights;
@@ -211,6 +212,9 @@ export class HighlightManager {
    */
   initialize(): Promise<void> {
     if (!this.readyPromise) {
+      // Listen before the restore reads storage: an edit made meanwhile is
+      // applied once the restore is done (see syncWith).
+      this.startSync();
       this.readyPromise = this.restoreOnInit();
     }
     return this.readyPromise;
@@ -237,8 +241,17 @@ export class HighlightManager {
     try {
       const pageHighlights = await HighlightService.getCurrentPageHighlights();
 
+      const restored: string[] = [];
       for (const highlightData of pageHighlights) {
-        await this.displayHighlight(highlightData);
+        if (await this.displayHighlight(highlightData, { touch: false })) {
+          restored.push(highlightData.id);
+        }
+      }
+
+      // One write for the whole restore. Touching each highlight as it was
+      // displayed rewrote the whole stored array once for every one of them.
+      if (restored.length > 0) {
+        await HighlightService.updateLastAccessed(restored);
       }
 
       log.debug(
@@ -250,9 +263,13 @@ export class HighlightManager {
   }
 
   /**
-   * Display a highlight on the page
+   * Display a highlight on the page. Updates its last accessed time unless
+   * `touch` is false (a caller that displays many of them does that once).
    */
-  async displayHighlight(highlightData: HighlightData): Promise<boolean> {
+  async displayHighlight(
+    highlightData: HighlightData,
+    { touch = true }: { touch?: boolean } = {},
+  ): Promise<boolean> {
     try {
       const range = HighlightService.deserializeRange(highlightData.range);
       if (!range) {
@@ -279,8 +296,9 @@ export class HighlightManager {
       // Inject CSS for this specific highlight if not already done
       this.injectHighlightCSS(highlightName, highlightData.color || 'yellow');
 
-      // Update last accessed time
-      await HighlightService.updateLastAccessed(highlightData.id);
+      if (touch) {
+        await HighlightService.updateLastAccessed(highlightData.id);
+      }
 
       log.debug(`[HighlightManager] Displayed highlight ${highlightData.id}`);
       return true;
@@ -334,13 +352,7 @@ export class HighlightManager {
       // A restore still in flight would otherwise re-display it afterwards.
       await this.ready;
 
-      // Remove from display
-      const highlightName = this.getHighlightNameById(highlightId);
-      if (highlightName) {
-        this.highlights.delete(highlightName);
-      }
-
-      this.highlightMap.delete(highlightId);
+      this.forgetHighlight(highlightId);
 
       // Remove from storage
       const result = await HighlightService.deleteHighlight(highlightId);
@@ -412,49 +424,33 @@ export class HighlightManager {
   }
 
   /**
-   * Scroll to a specific highlight on the page
+   * Scroll to a specific highlight on the page. Resolves to false if the page
+   * has no such highlight.
    */
   async scrollToHighlight(highlightId: string): Promise<boolean> {
     try {
       // The highlight map is filled by the restore.
       await this.ready;
 
-      // Find the highlight in our map
-      const highlight = this.highlightMap.get(highlightId);
-      if (!highlight) {
-        log.warn(`[HighlightManager] Highlight ${highlightId} not found in map`);
+      // Without the CSS Highlight API (or if the restore could not show this
+      // one) nothing is displayed, so work the range out from what is saved.
+      const displayed = this.highlightMap.get(highlightId);
+      const range =
+        (displayed && (Array.from(displayed)[0] as Range | undefined)) ||
+        (await this.getSavedRange(highlightId));
+      if (!range) {
+        log.warn(`[HighlightManager] Highlight ${highlightId} not found on the page`);
         return false;
       }
 
-      // Get the first range from the highlight
-      const ranges = Array.from(highlight);
-      if (ranges.length === 0) {
-        log.warn(`[HighlightManager] No ranges found for highlight ${highlightId}`);
-        return false;
-      }
-
-      const firstRange = ranges[0];
-      
-      // Get the container element
-      const startContainer = firstRange.startContainer;
-      const element = startContainer.nodeType === Node.TEXT_NODE 
-        ? startContainer.parentElement 
-        : startContainer as Element;
-
-      if (!element) {
-        log.warn(`[HighlightManager] No element found for highlight ${highlightId}`);
-        return false;
-      }
-
-      // Scroll the element into view with smooth behavior
-      element.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center',
-        inline: 'nearest'
-      });
+      this.centerRange(range);
 
       // Flash the highlight to indicate it's been found
-      await this.flashHighlight(highlightId);
+      if (displayed) {
+        await this.flashHighlight(highlightId);
+      } else {
+        this.pulseRange(range);
+      }
 
       log.debug(`[HighlightManager] Scrolled to highlight ${highlightId}`);
       return true;
@@ -462,6 +458,67 @@ export class HighlightManager {
       log.error(`[HighlightManager] Failed to scroll to highlight ${highlightId}:`, error);
       return false;
     }
+  }
+
+  /**
+   * Work out the range of a saved highlight of this page from its XPath and
+   * offsets.
+   */
+  private async getSavedRange(highlightId: string): Promise<Range | null> {
+    const pageHighlights = await HighlightService.getCurrentPageHighlights();
+    const saved = pageHighlights.find((h) => h.id === highlightId);
+    return saved ? HighlightService.deserializeRange(saved.range) : null;
+  }
+
+  /**
+   * The element that holds the start of a range
+   */
+  private getRangeElement(range: Range): Element | null {
+    const container = range.startContainer;
+    return container.nodeType === Node.TEXT_NODE
+      ? container.parentElement
+      : (container as Element);
+  }
+
+  /**
+   * Scroll the range to the middle of the viewport. Scrolling its element
+   * into view first moves any scrollable container around it too; the page is
+   * then scrolled by what is left, which matters when the element is taller
+   * than the range.
+   */
+  private centerRange(range: Range): void {
+    this.getRangeElement(range)?.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'instant',
+    });
+
+    const rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+
+    window.scrollBy({
+      top: rect.top + rect.height / 2 - window.innerHeight / 2,
+      behavior: 'smooth',
+    });
+  }
+
+  /**
+   * Brief visual feedback for a range that is not painted by the CSS
+   * Highlight API: pulse an outline around its element, in the color of the
+   * flash. An animation leaves the page's DOM, styles and selection alone.
+   */
+  private pulseRange(range: Range): void {
+    const element = this.getRangeElement(range);
+    if (typeof element?.animate !== 'function') return;
+
+    const outline = (color: string) => ({
+      outline: `2px solid ${color}`,
+      outlineOffset: '2px',
+    });
+    element.animate(
+      [outline('rgba(59, 130, 246, 0.8)'), outline('transparent')],
+      { duration: 1000, easing: 'ease-out' },
+    );
   }
 
   /**
@@ -579,11 +636,77 @@ export class HighlightManager {
   }
 
   /**
+   * Stop displaying a highlight. Never writes storage.
+   */
+  private forgetHighlight(highlightId: string): void {
+    const highlightName = this.getHighlightNameById(highlightId);
+    if (highlightName) {
+      this.highlights.delete(highlightName);
+    }
+
+    this.highlightMap.delete(highlightId);
+  }
+
+  /**
+   * Keep the page in line with the saved highlights when another context (the
+   * browser sidebar, the options page) changes them. Idempotent.
+   */
+  private startSync(): void {
+    if (this.stopSync) return;
+    this.stopSync = watchHighlights((current, previous) => {
+      void this.syncWith(current, previous);
+    });
+  }
+
+  /**
+   * Apply a change of the saved highlights to this page: stop displaying the
+   * ones that are gone, and tell the comment popup about edited notes. It must
+   * never write storage: that would change the highlights again and call this
+   * again.
+   */
+  private async syncWith(
+    current: HighlightData[],
+    previous: HighlightData[],
+  ): Promise<void> {
+    try {
+      // The restore may still be displaying a highlight that is gone by now.
+      await this.ready;
+
+      const href = window.location.href;
+      const savedIds = new Set(current.map((h) => h.id));
+
+      // Gone with this change: saved before, not any more. It concerns this
+      // page if it is saved for its URL, or if it is displayed here (not
+      // matched on the URL alone: a single page app may have navigated since
+      // the highlights were restored).
+      for (const { id, url } of previous) {
+        if (savedIds.has(id)) continue;
+        if (url !== href && !this.highlightMap.has(id)) continue;
+
+        this.forgetHighlight(id);
+        contentEvents.emit('highlightRemoved', { highlightId: id });
+      }
+
+      // Edited: the note is what the comment popup shows.
+      const before = new Map(previous.map((h) => [h.id, h]));
+      for (const highlight of current) {
+        if (highlight.url !== href) continue;
+        const old = before.get(highlight.id);
+        if (old && old.note !== highlight.note) {
+          contentEvents.emit('highlightUpdated', highlight);
+        }
+      }
+    } catch (error) {
+      log.error('[HighlightManager] Failed to sync highlights:', error);
+    }
+  }
+
+  /**
    * Find highlight name by ID
    */
   private getHighlightNameById(highlightId: string): string | null {
     const highlightName = `logseq-highlight-${highlightId}`;
-    return this.highlights.has(highlightName) ? highlightName : null;
+    return this.highlights?.has(highlightName) ? highlightName : null;
   }
 
   /**
@@ -636,6 +759,9 @@ export class HighlightManager {
         document.removeEventListener('click', this.clickEventListener);
         this.clickEventListener = null;
       }
+
+      this.stopSync?.();
+      this.stopSync = null;
 
       // Clear all registered highlights
       for (const [name] of this.highlights) {

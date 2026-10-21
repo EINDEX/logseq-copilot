@@ -55,6 +55,12 @@ export default defineContentScript({
       contentEvents.emit('quickCapturePage', undefined);
     });
 
+    // From the browser sidebar: scroll to a highlight of this page. The
+    // manager waits for the restore itself.
+    onMessage('content:scrollToHighlight', async (message) => {
+      return HighlightManager.getInstance().scrollToHighlight(message.data.id);
+    });
+
     async function getEngine() {
       // Get enabled search engines from storage
       const enabledEngines = await searchEngineConfig.getValue();

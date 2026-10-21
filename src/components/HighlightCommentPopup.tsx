@@ -9,7 +9,7 @@ import type { HighlightData } from '@/types/highlight';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { zIndex } from '@/entrypoints/content/QuickCapture';
+import { zIndex } from '@/utils/z-index';
 import log from '@/utils/logger';
 
 interface HighlightCommentPopupProps {
@@ -227,7 +227,11 @@ export function HighlightCommentPopup({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setIsEditing(true)}
+                                    onClick={() => {
+                                        // The note may have changed since the popup opened
+                                        setComment(highlightData.note || '');
+                                        setIsEditing(true);
+                                    }}
                                     className="h-6 px-2"
                                 >
                                     <IconEdit className="h-3 w-3 mr-1" />

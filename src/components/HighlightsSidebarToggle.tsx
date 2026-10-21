@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { IconHighlight, IconX } from '@tabler/icons-react';
-import { zIndex } from '@/entrypoints/content/QuickCapture';
+import { zIndex } from '@/utils/z-index';
 
 interface HighlightsSidebarToggleProps {
     isOpen: boolean;

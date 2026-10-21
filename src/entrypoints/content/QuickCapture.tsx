@@ -9,13 +9,13 @@ import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemedHighlightCommentPopup } from '@/components/HighlightCommentPopup';
 import type { HighlightData } from '@/types/highlight';
 import { contentEvents } from '@/utils/content-events';
+import { zIndex } from '@/utils/z-index';
 import '@/assets/globals.css';
 import scssStyles from './index.module.scss';
 import log from '@/utils/logger';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
-export const zIndex = '2147483647';
 
 const capture = async () => {
   const selection = getSelection();
@@ -62,21 +62,26 @@ contentEvents.on('quickCapture', capture);
 contentEvents.on('quickCaptureWithSelection', capture);
 contentEvents.on('quickCapturePage', clipPage);
 
+type CommentPopupState = {
+  show: boolean;
+  highlightData: HighlightData | null;
+  position: { x: number; y: number };
+};
+
+const closedCommentPopup: CommentPopupState = {
+  show: false,
+  highlightData: null,
+  position: { x: 0, y: 0 },
+};
+
 const QuickCapture = () => {
   const [position, setPostion] = useState({
     x: 0,
     y: 0,
   });
   const [show, setShow] = useState(false);
-  const [commentPopup, setCommentPopup] = useState<{
-    show: boolean;
-    highlightData: HighlightData | null;
-    position: { x: number; y: number };
-  }>({
-    show: false,
-    highlightData: null,
-    position: { x: 0, y: 0 }
-  });
+  const [commentPopup, setCommentPopup] =
+    useState<CommentPopupState>(closedCommentPopup);
 
 
 
@@ -116,11 +121,30 @@ const QuickCapture = () => {
         });
       },
     );
+    // The popup stays open while the highlight is edited or deleted in the
+    // browser sidebar: show the new note, or close it.
+    const offHighlightUpdated = contentEvents.on('highlightUpdated', (updated) => {
+      setCommentPopup((popup) =>
+        popup.highlightData?.id === updated.id
+          ? { ...popup, highlightData: updated }
+          : popup,
+      );
+    });
+    const offHighlightRemoved = contentEvents.on(
+      'highlightRemoved',
+      ({ highlightId }) => {
+        setCommentPopup((popup) =>
+          popup.highlightData?.id === highlightId ? closedCommentPopup : popup,
+        );
+      },
+    );
 
     return () => {
       document.removeEventListener('mouseup', clicked);
       document.removeEventListener('mousedown', clicked);
       offShowHighlightComment();
+      offHighlightUpdated();
+      offHighlightRemoved();
     };
   }, []);
 
@@ -140,11 +164,7 @@ const QuickCapture = () => {
   };
 
   const handleCommentPopupClose = () => {
-    setCommentPopup({
-      show: false,
-      highlightData: null,
-      position: { x: 0, y: 0 }
-    });
+    setCommentPopup(closedCommentPopup);
   };
 
   const handleCommentUpdate = (updatedHighlight: HighlightData) => {

@@ -11,6 +11,7 @@ import { SearchEngineConfigMigration } from '@/utils/migration';
 import { templates } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
+import { openSidebar } from '@/utils/sidebar';
 import type { LogseqBlockType } from '@/types/logseqBlock';
 import log from '@/utils/logger';
 
@@ -261,10 +262,31 @@ export default defineBackground({
         visible: true,
         contexts: ['page'],
       });
+      browser.contextMenus.create({
+        id: 'open-highlights-sidebar',
+        title: 'Open highlights sidebar',
+        visible: true,
+        contexts: ['page', 'selection'],
+      });
+    };
+
+    // Call it first in the handler of a menu item or command: the browser opens
+    // the sidebar only while the user action is still alive, so nothing may be
+    // awaited before it.
+    const openHighlightsSidebar = (tab: Browser.tabs.Tab | undefined) => {
+      if (tab?.windowId === undefined) {
+        log.warn('[background] No tab to open the highlights sidebar for');
+        return;
+      }
+      openSidebar(tab.windowId).catch((err) =>
+        log.error('Failed to open the highlights sidebar:', err),
+      );
     };
 
     browser.contextMenus.onClicked.addListener((info, tab) => {
-      if (info.menuItemId === 'clip-with-selection') {
+      if (info.menuItemId === 'open-highlights-sidebar') {
+        openHighlightsSidebar(tab);
+      } else if (info.menuItemId === 'clip-with-selection') {
         sendMessage('content:quickCaptureWithSelection', undefined, {
           tabId: tab!.id!,
         });
@@ -291,7 +313,9 @@ export default defineBackground({
     });
 
     browser.commands.onCommand.addListener((command, tab) => {
-      if (command === 'clip' && tab !== undefined) {
+      if (command === 'open-sidebar') {
+        openHighlightsSidebar(tab);
+      } else if (command === 'clip' && tab !== undefined) {
         sendMessage('content:quickCapture', undefined, { tabId: tab.id! });
       }
     });
