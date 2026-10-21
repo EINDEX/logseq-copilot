@@ -4,7 +4,7 @@ import {
   LogseqPageIdenity,
 } from '@/types/logseqBlock';
 import LogseqClient from './client';
-import { renderBlock } from '../tool';
+import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
@@ -41,6 +41,20 @@ const getItemUuid = (item: any): string =>
   (typeof item['block/uuid'] === 'string'
     ? item['block/uuid']
     : item['block/uuid']?.uuid);
+
+/**
+ * DB graphs store page refs and tags by uuid: `content` / `title` read
+ * `[[6ad8…]]` and `#[[6ad8…]]`, `fullTitle` has the page names. Use the
+ * readable text (older 2.x builds without `fullTitle` keep `content`).
+ */
+export const useReadableContent = <T extends { content?: string; fullTitle?: string } | null | undefined>(
+  block: T,
+): T => {
+  if (block && typeof block.fullTitle === 'string' && block.fullTitle) {
+    block.content = block.fullTitle;
+  }
+  return block;
+};
 
 export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -137,6 +151,10 @@ export default class LogseqDBService implements LogseqServiceInterface {
     if (block.page) {
       block.page = await this.client.getPage(block.page);
     }
+    useReadableContent(block);
+    await resolveBlockRefs(block, async (uuid) =>
+      useReadableContent(await this.client.getBlockViaUuid(uuid)),
+    );
     return this.render(block, graph, query);
   }
 

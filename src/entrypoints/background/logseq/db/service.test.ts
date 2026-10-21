@@ -123,6 +123,36 @@ describe('LogseqDBService block rendering', () => {
     expect(response.blocks[0].html).toContain('example.com/a');
   });
 
+  test('renders page refs and tags by name (fullTitle), not by uuid', async () => {
+    const { service } = makeService([blockHit('b1')], {
+      content: 'see [[6ad82bf6-7f31-44da-a3c0-c83e5567b87d]] #[[6ad82bf7-3cf8-45bf-9e99-0c10feda6f7b]]',
+      fullTitle: 'see [[Another Page]] #reading',
+    });
+    const block = await service.getBlock('b1', 'Demo');
+    expect(block.content).toBe('see [[Another Page]] #reading');
+    expect(block.html).toContain('page=Another%20Page">Another Page</a>');
+    expect(block.html).toContain('page=reading">#reading</a>');
+    expect(block.html).not.toContain('6ad82bf6');
+  });
+
+  test('keeps content when the build has no fullTitle', async () => {
+    const { service } = makeService([blockHit('b1')], { content: 'plain text' });
+    const block = await service.getBlock('b1', 'Demo');
+    expect(block.html).toBe('<p>plain text</p>');
+  });
+
+  test('block refs show the readable text of the referenced block', async () => {
+    const ref = '65f0c0de-0000-4000-8000-000000000001';
+    const { service, client } = makeService([blockHit('b1')]);
+    client.getBlockViaUuid.mockImplementation(async (uuid: string) =>
+      uuid === ref
+        ? ({ uuid, content: 'on [[6ad8]]', fullTitle: 'on [[Target Page]]' } as any)
+        : ({ uuid, content: `see ((${ref}))`, page: { id: 1 } } as any),
+    );
+    const block = await service.getBlock('b1', 'Demo');
+    expect(block.html).toContain('>on [[Target Page]]</a>');
+  });
+
   test('getBlock rejects for a missing block', async () => {
     const { service, client } = makeService([]);
     client.getBlockViaUuid.mockResolvedValue(null as any);
