@@ -246,7 +246,17 @@ async function seedBlocks(
   for (const block of blocks) {
     const opts = block.id ? { customUUID: block.id } : {};
     const marker = block.content.match(/^(TODO|DOING|DONE|CANCELED) /);
-    const content = marker ? block.content.slice(marker[0].length) : block.content;
+    // `tags:: A, B` becomes class tags on the block (not inline in the title).
+    const tags: string[] = [];
+    const text = block.content
+      .split('\n')
+      .filter((line) => {
+        const match = line.match(/^tags:: (.+)$/);
+        if (match) tags.push(...match[1].split(',').map((t) => t.trim()));
+        return !match;
+      })
+      .join('\n');
+    const content = marker ? text.slice(marker[0].length) : text;
     const created = parent
       ? await callApi('logseq.Editor.insertBlock', [
           previous ?? parent,
@@ -263,6 +273,13 @@ async function seedBlocks(
       ]);
     }
     previous = created.uuid;
+    for (const name of tags) {
+      const tag =
+        (await callApi('logseq.Editor.getTag', [name])) ??
+        (await callApi('logseq.Editor.createTag', [name]));
+      if (!tag?.uuid) throw new Error(`could not create tag ${name}: ${JSON.stringify(tag)}`);
+      await callApi('logseq.Editor.addBlockTag', [created.uuid, tag.uuid]);
+    }
     await seedBlocks(callApi, page, block.children, created.uuid);
   }
 }
