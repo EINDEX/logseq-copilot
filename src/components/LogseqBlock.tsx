@@ -3,7 +3,6 @@ import { LogseqBlockType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { sendMessage } from '@/types/messaging';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader } from './ui/card';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { IconExternalLink } from '@tabler/icons-react';
@@ -148,23 +147,20 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <LogseqPageLink graph={graph} page={block.page} />
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <ul className="space-y-2">
+    // A flat group (page title + its blocks), no card: the popup and the
+    // search engine sidebar list several of them with dividers.
+    <div className="w-full space-y-1">
+      <LogseqPageLink graph={graph} page={block.page} className="px-2 text-muted-foreground" />
+      <ul className="space-y-0.5">
           {blocks.map((blockItem) => (
             <li key={blockItem.uuid} className="group">
-              <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+              <div className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-accent/60 transition-colors">
                 {blockItem.marker && (
                   <BlockMarker uuid={blockItem.uuid} marker={blockItem.marker} />
                 )}
                 <div
                   className={cn(
-                    "flex-1 text-sm prose prose-sm max-w-none",
+                    "min-w-0 flex-1 text-sm prose prose-sm max-w-none",
                     "prose-p:my-0 prose-pre:my-1 prose-img:my-1",
                     "prose-a:no-underline hover:prose-a:underline",
                     "prose-img:max-w-full prose-img:max-h-96",
@@ -173,14 +169,13 @@ export const LogseqBlock = ({ graph, blocks }: LogseqBlockProps) => {
                   )}
                   dangerouslySetInnerHTML={{ __html: blockItem.html }}
                 />
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   {renderBlockLink(blockItem)}
                 </div>
               </div>
             </li>
           ))}
-        </ul>
-      </CardContent>
-    </Card>
+      </ul>
+    </div>
   );
 };

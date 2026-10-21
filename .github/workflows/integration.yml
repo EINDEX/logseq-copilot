@@ -1,7 +1,8 @@
 name: Integration
 
-# Runs the extension's Logseq client code against real Logseq desktop apps:
-# the file-graph release (0.10.x) and the DB-graph release (2.x).
+# Runs the extension's Logseq client code (job `logseq`) and the built
+# extension in Chromium and Firefox (job `e2e`) against real Logseq desktop
+# apps: the file-graph release (0.10.x) and the DB-graph release (2.x).
 
 on:
   push:
@@ -27,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         name: Install pnpm
         with:
           version: 9
@@ -71,4 +72,89 @@ jobs:
         with:
           name: logseq-${{ matrix.variant }}-failure
           path: logseq-setup-failure.png
+          if-no-files-found: ignore
+
+  e2e:
+    # The built extension in Playwright's Chromium and Firefox against the
+    # same Logseq releases. See tests/e2e/README.md.
+    name: e2e ${{ matrix.browser }} ${{ matrix.variant }} ${{ matrix.version }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+        variant: [file, db]
+        include:
+          - variant: file
+            version: 0.10.15
+          - variant: db
+            version: 2.0.2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        name: Use Node.js
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - name: Install Electron runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libsecret-1-0 libnss3 libgbm1 libasound2t64 libgtk-3-0t64
+
+      - name: Install Playwright ${{ matrix.browser }}
+        # Chromium: the full build (extensions need it, not the headless shell).
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser == 'chromium' && '--no-shell' || '' }} ${{ matrix.browser }}
+
+      - name: Cache Logseq
+        uses: actions/cache@v4
+        with:
+          path: .logseq-bin/${{ matrix.variant }}-${{ matrix.version }}
+          key: logseq-${{ matrix.variant }}-${{ matrix.version }}
+
+      - name: Download Logseq
+        id: logseq
+        run: echo "bin=$(scripts/download-logseq.sh ${{ matrix.variant }} ${{ matrix.version }} .logseq-bin | tail -n 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Run E2E tests
+        # Builds the packaged and the E2E extension for this browser, then
+        # runs its Playwright project. Playwright's globalTimeout (20 min)
+        # stops a stuck run before this.
+        run: xvfb-run -a pnpm test:e2e:${{ matrix.browser }}
+        timeout-minutes: 22
+        env:
+          LOGSEQ_VARIANT: ${{ matrix.variant }}
+          LOGSEQ_BIN: ${{ steps.logseq.outputs.bin }}
+          LOGSEQ_DEBUG: ${{ runner.debug }}
+
+      - name: Upload Playwright traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.browser }}-${{ matrix.variant }}-failure
+          path: |
+            test-results/e2e
+            playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload UI screenshots
+        # tests/e2e/ui-screenshots.spec.ts, file graph only; uploaded on every
+        # run for UI review.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-${{ matrix.variant }}
+          path: test-results/ui-screenshots
           if-no-files-found: ignore

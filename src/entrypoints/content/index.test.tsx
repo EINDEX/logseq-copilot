@@ -28,6 +28,7 @@ vi.mock('@/assets/globals.css', () => ({}));
 vi.mock('./index.module.scss', () => ({ default: {} }));
 vi.mock('../../assets/img/logo.png', () => ({ default: '' }));
 
+import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
@@ -199,5 +200,41 @@ describe('content script startup', () => {
       );
       off();
     });
+  });
+});
+
+describe('content script UI mounting', () => {
+  const mountedNames = () =>
+    vi.mocked(createShadowRootUi).mock.calls.map(([, options]) => options.name);
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    messaging.handlers.clear();
+    vi.mocked(createShadowRootUi).mockClear();
+    (globalThis as any).CSS = { highlights: new Map() };
+    (globalThis as any).Highlight = class {
+      add() {}
+      clear() {}
+    };
+    HighlightManager.getInstance().cleanup();
+    vi.restoreAllMocks();
+    vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockResolvedValue(
+      [],
+    );
+  });
+
+  // The highlights list lives in the browser sidebar: the page only gets the
+  // comment popup (and the float button, when it is on).
+  it('mounts the highlight UI (comment popup) with the default config, where the float button is off', async () => {
+    await (contentScript as any).main({});
+
+    expect(new Set(mountedNames())).toEqual(new Set(['logseq-copilot-popup']));
+  });
+
+  it('mounts the highlight UI as well when the float button is on', async () => {
+    await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: true });
+    await (contentScript as any).main({});
+
+    expect(new Set(mountedNames())).toEqual(new Set(['logseq-copilot-popup']));
   });
 });

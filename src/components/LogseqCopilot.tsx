@@ -3,7 +3,6 @@ import { IconExternalLink } from '@tabler/icons-react';
 import { LogseqBlock } from './LogseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { Button } from './ui/button';
-import { Card } from './ui/card';
 import { Separator } from './ui/separator';
 import { LogseqBlockType } from '@/types/logseqBlock';
 
@@ -31,13 +30,13 @@ const LogseqCopilot = ({ graph, pages, blocks }: LogseqCopilotProps) => {
     if (pages.length === 0) return <></>;
     return (
       <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {pages.slice(0, 8).map((page) => {
             if (!page) return null;
             return (
-              <Card key={page.uuid} className="p-2 hover:bg-accent/50 transition-colors">
+              <div key={page.uuid} className="max-w-full rounded-md bg-muted px-2 py-1 hover:bg-accent transition-colors">
                 <LogseqPageLink graph={graph} page={page} />
-              </Card>
+              </div>
             );
           })}
         </div>
@@ -54,7 +53,7 @@ const LogseqCopilot = ({ graph, pages, blocks }: LogseqCopilotProps) => {
     if (blocks.length === 0) return <></>;
 
     return (
-      <div className="space-y-2">
+      <div className="divide-y [&>*]:py-2 [&>*:first-child]:pt-0">
         {Object.entries(groupedBlocks).map(([pageName, pageBlocks]) => (
           <LogseqBlock
             key={pageName}
@@ -67,12 +66,12 @@ const LogseqCopilot = ({ graph, pages, blocks }: LogseqCopilotProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {renderPages()}
       {pages.length > 0 && blocks.length > 0 && <Separator />}
       {renderBlocks()}
 
-      <div className="flex justify-center pt-2">
+      <div className="flex justify-center border-t pt-3">
         <Button
           variant="outline"
           size="sm"

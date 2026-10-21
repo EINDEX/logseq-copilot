@@ -15,58 +15,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     useEffect(() => {
         log.debug('[ThemeProvider] Theme changed:', theme, 'isDark:', isDark);
-
-        // Apply theme class to the container
-        const applyTheme = () => {
-            // Find all shadow roots that contain our components
-            const shadowRoots = document.querySelectorAll('[data-wxt-shadow-root]');
-            log.debug('[ThemeProvider] Found shadow roots:', shadowRoots.length);
-
-            shadowRoots.forEach((shadowHost, index) => {
-                const shadowRoot = (shadowHost as any).shadowRoot;
-                if (shadowRoot) {
-                    log.debug(`[ThemeProvider] Processing shadow root ${index + 1}`);
-
-                    // Apply theme class to shadow root's first child (usually the container)
-                    const container = shadowRoot.querySelector('[data-theme-container]');
-                    if (container) {
-                        log.debug(`[ThemeProvider] Applying theme to container:`, container);
-                        container.classList.toggle('dark', isDark);
-                        log.debug(`[ThemeProvider] Container classes after update:`, Array.from(container.classList));
-                        
-                        // Log computed styles to verify theme application
-                        const computedStyle = getComputedStyle(container);
-                        log.debug('[ThemeProvider] Container computed background:', computedStyle.getPropertyValue('--background'));
-                        log.debug('[ThemeProvider] Container computed foreground:', computedStyle.getPropertyValue('--foreground'));
-                    } else {
-                        log.debug(`[ThemeProvider] No theme container found in shadow root ${index + 1}`);
-                        // Log all elements in shadow root for debugging
-                        const allElements = shadowRoot.querySelectorAll('*');
-                        log.debug(`[ThemeProvider] Elements in shadow root ${index + 1}:`, Array.from<Element>(allElements).map(el => el.tagName + (el.className ? '.' + el.className : '')));
-                    }
-                }
-            });
-        };
-
-        // Apply theme immediately
-        applyTheme();
-
-        // Also apply to any future shadow roots
-        const observer = new MutationObserver((mutations) => {
-            log.debug('[ThemeProvider] DOM mutations detected, reapplying theme');
-            applyTheme();
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
-
-        return () => {
-            observer.disconnect();
-        };
     }, [isDark, theme]);
 
+    // The `dark` class is rendered by React on our own container, inside the
+    // shadow root. Nothing looks the container up through `host.shadowRoot`,
+    // so this works the same with open and closed shadow roots.
     return (
         <div data-theme-container className={isDark ? 'dark' : ''}>
             {children}

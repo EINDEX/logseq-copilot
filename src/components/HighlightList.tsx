@@ -1,15 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  IconCalendar,
-  IconCheck,
-  IconEdit,
-  IconGlobe,
-  IconTrash,
-} from '@tabler/icons-react';
+import { IconCheck, IconEdit, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
 import log from '@/utils/logger';
 
@@ -81,7 +74,10 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
   };
 
   return (
-    <div className="mb-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="mt-1.5 space-y-2 pl-3.5"
+      onClick={(e) => e.stopPropagation()}
+    >
       <Textarea
         autoFocus
         value={draft}
@@ -132,20 +128,17 @@ export function HighlightList({
   }
 
   return (
-    <div className="space-y-3">
+    <ul className="-mx-2 divide-y">
       {highlights.map((highlight) => (
-        <Card
-          key={highlight.id}
-          className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-400"
-          onClick={() => onSelect(highlight.id)}
-        >
-          <CardContent className="p-4">
-            {/* Highlight text */}
-            <div className="mb-2">
-              <p className="text-sm font-medium text-foreground leading-relaxed">
-                "{truncateText(highlight.range.textContent, 120)}"
-              </p>
-            </div>
+        <li key={highlight.id} className="py-1">
+          <div
+            className="group cursor-pointer rounded-md px-2 py-2 transition-colors hover:bg-accent/60"
+            onClick={() => onSelect(highlight.id)}
+          >
+            {/* Highlight text, marked like the highlight on the page */}
+            <p className="border-l-2 border-highlight pl-3 text-sm leading-relaxed text-foreground">
+              {truncateText(highlight.range.textContent, 120)}
+            </p>
 
             {/* Note if exists */}
             {editingId === highlight.id ? (
@@ -159,72 +152,69 @@ export function HighlightList({
               />
             ) : (
               highlight.note && (
-                <div className="mb-2 p-2 bg-muted rounded text-xs">
-                  <p className="text-muted-foreground">
-                    {truncateText(highlight.note, 80)}
-                  </p>
-                </div>
+                <p className="mt-1.5 pl-3.5 text-xs text-muted-foreground">
+                  {truncateText(highlight.note, 80)}
+                </p>
               )
             )}
 
-            {/* Metadata */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <IconGlobe className="h-3 w-3" />
+            {/* Metadata, tags and actions */}
+            <div className="mt-1.5 flex items-center justify-between gap-2 pl-3.5 text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <span className="truncate max-w-32">{highlight.hostname}</span>
-                <IconCalendar className="h-3 w-3 ml-1" />
+                <span aria-hidden>·</span>
                 <span>{formatDate(highlight.createdAt)}</span>
-              </div>
-            </div>
-
-            {/* Tags if exists */}
-            {highlight.tags && highlight.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {highlight.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
+                {highlight.tags?.slice(0, 3).map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="px-1.5 py-0 text-xs font-normal"
+                  >
                     {tag}
                   </Badge>
                 ))}
-                {highlight.tags.length > 3 && (
-                  <Badge variant="secondary" className="text-xs">
+                {highlight.tags && highlight.tags.length > 3 && (
+                  <Badge
+                    variant="secondary"
+                    className="px-1.5 py-0 text-xs font-normal"
+                  >
                     +{highlight.tags.length - 3}
                   </Badge>
                 )}
               </div>
-            )}
-
-            {/* Actions: shown on hover, and while a button has keyboard focus */}
-            <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 transition-opacity">
-              {onUpdateNote && (
+              {/* Shown on hover, and while a button has keyboard focus */}
+              <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 transition-opacity">
+                {onUpdateNote && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Edit note"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(highlight.id);
+                    }}
+                    className="h-6 w-6 p-0"
+                  >
+                    <IconEdit className="h-3 w-3" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label="Edit note"
+                  aria-label="Delete highlight"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setEditingId(highlight.id);
+                    onDelete(highlight.id);
                   }}
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 hover:text-destructive"
                 >
-                  <IconEdit className="h-3 w-3" />
+                  <IconTrash className="h-3 w-3" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Delete highlight"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(highlight.id);
-                }}
-                className="h-6 w-6 p-0 text-destructive"
-              >
-                <IconTrash className="h-3 w-3" />
-              </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

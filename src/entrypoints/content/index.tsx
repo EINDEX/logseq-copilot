@@ -10,6 +10,7 @@ import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
 import log from '@/utils/logger';
+import { shadowRootMode } from '@/utils/shadow-mode';
 
 export default defineContentScript({
   // Set manifest options
@@ -109,6 +110,7 @@ export default defineContentScript({
         // Executed when content script is loaded, can be async
         const searchEngineUi = await createShadowRootUi(ctx, {
           name: 'logseq-copilot-search-engine',
+          mode: shadowRootMode,
           position: 'inline',
           anchor: container,
           append: 'first',
@@ -143,11 +145,13 @@ export default defineContentScript({
         searchEngine.reload(() => run(searchEngine));
       }
 
+      // Highlights (restore, comment popup) do not depend on the floating
+      // clip button; the option only controls the button itself.
       const { enableClipNoteFloatButton } = await getLogseqCopliotConfig();
-      if (!enableClipNoteFloatButton) return;
       // Executed when content script is loaded, can be async
       const popupUi = await createShadowRootUi(ctx, {
         name: 'logseq-copilot-popup',
+        mode: shadowRootMode,
         position: 'inline',
         anchor: 'body',
         onMount: async (container) => {
@@ -157,7 +161,9 @@ export default defineContentScript({
           container.append(app);
 
 
-          return mountQuickCapture(app);
+          return mountQuickCapture(app, {
+            showFloatButton: enableClipNoteFloatButton,
+          });
         },
         onRemove: async (root) => {
           // Unmount the root when the UI is removed

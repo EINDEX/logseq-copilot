@@ -280,9 +280,9 @@ export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
     fallback: [
       {
         id: 'default-spa',
-        name: '单页应用默认规则',
+        name: 'Single-page apps',
         enabled: true,
-        description: '针对使用hash路由的单页应用，忽略URL hash片段',
+        description: 'Ignores the URL hash (#...) on single-page apps that route with it.',
         urlPattern: '.*',
         queryProcessing: {
           ignoreHashFragments: true,
@@ -306,7 +306,7 @@ export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
         id: 'github-pr',
         name: 'GitHub Pull Request',
         enabled: false,
-        description: '针对GitHub PR页面，只搜索代码和项目相关内容',
+        description: 'Focuses GitHub pull requests and issues on code and project notes.',
         urlPattern: 'github\\.com.*/(pull|issues)/',
         queryProcessing: {
           ignoreHashFragments: true,

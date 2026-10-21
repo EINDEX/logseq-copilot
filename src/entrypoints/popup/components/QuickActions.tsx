@@ -1,7 +1,6 @@
 import React from 'react';
 import { Plus, RefreshCw, Settings, ExternalLink, Search, BookOpen, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { browser } from 'wxt/browser';
 
 interface QuickActionsProps {
@@ -34,7 +33,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     };
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-1">
             {/* Primary Actions */}
             <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -57,8 +56,6 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                     Refresh
                 </Button>
             </div>
-
-            <Separator />
 
             {/* Secondary Actions */}
             <div className="grid grid-cols-2 gap-2">

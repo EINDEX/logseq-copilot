@@ -1,8 +1,8 @@
 /**
  * What the content script does with the saved highlights: restore them once
  * per page load, follow changes made in other contexts (the browser sidebar,
- * the options page) without ever writing storage itself, and scroll to one on
- * request.
+ * the options page) without ever writing storage itself, scroll to one on
+ * request, and color them for the theme of the host page.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
@@ -493,6 +493,89 @@ describe('HighlightManager', () => {
         await deleteHighlight('a');
         await vi.waitFor(() => expect(removed).toEqual(['a']));
       });
+    });
+  });
+
+  /**
+   * `::highlight()` paints text in the page document, so the light/dark
+   * variant has to follow the host page theme. It cannot key off the extension
+   * UI's own `[data-theme-container].dark`: that element lives in a shadow
+   * root, which a stylesheet in document.head does not reach.
+   */
+  describe('highlight colors', () => {
+    const data = highlight('h1');
+
+    const resetPageTheme = () => {
+      document.documentElement.className = '';
+      document.documentElement.removeAttribute('data-theme');
+    };
+
+    const injectedCss = () =>
+      document.querySelector(`style[data-highlight="${name(data.id)}"]`)
+        ?.textContent ?? '';
+
+    /** Selectors of the `::highlight(...)` rules in the injected stylesheet. */
+    const highlightSelectors = () =>
+      [...injectedCss().matchAll(/([^{}]+)\{[^}]*\}/g)].map((m) => m[1].trim());
+
+    /** Does a selector's originating element exist in the page document? */
+    const matchesInPage = (selector: string) =>
+      document.querySelector(selector.replace(/::highlight\([^)]*\)$/, '*')) !==
+      null;
+
+    const darkSelector = () => highlightSelectors().find((s) => /dark/.test(s));
+
+    beforeEach(resetPageTheme);
+    afterEach(resetPageTheme);
+
+    it('does not key the dark rule off an element in the extension shadow root', async () => {
+      await manager().displayHighlight(data);
+
+      expect(injectedCss()).not.toContain('data-theme-container');
+    });
+
+    it('applies the dark color when the host page is dark', async () => {
+      document.documentElement.classList.add('dark');
+      await manager().displayHighlight(data);
+
+      const dark = darkSelector();
+      expect(dark).toBeDefined();
+      expect(matchesInPage(dark!)).toBe(true);
+    });
+
+    it('does not apply the dark color when the host page is light', async () => {
+      document.documentElement.classList.add('light');
+      await manager().displayHighlight(data);
+
+      const dark = darkSelector();
+      expect(dark).toBeDefined();
+      expect(matchesInPage(dark!)).toBe(false);
+    });
+
+    it('follows the page when its theme changes', async () => {
+      document.documentElement.classList.add('light');
+      await manager().displayHighlight(data);
+      const dark = darkSelector()!;
+      expect(matchesInPage(dark)).toBe(false);
+
+      document.documentElement.classList.replace('light', 'dark');
+      await flush();
+      expect(matchesInPage(dark)).toBe(true);
+
+      document.documentElement.classList.replace('dark', 'light');
+      await flush();
+      expect(matchesInPage(dark)).toBe(false);
+    });
+
+    it('removes its marker from the page on cleanup', async () => {
+      document.documentElement.classList.add('dark');
+      await manager().displayHighlight(data);
+      const dark = darkSelector()!;
+      expect(matchesInPage(dark)).toBe(true);
+
+      manager().cleanup();
+
+      expect(matchesInPage(dark)).toBe(false);
     });
   });
 });

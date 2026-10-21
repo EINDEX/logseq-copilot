@@ -58,8 +58,8 @@ describe('HighlightList', () => {
         />,
       );
 
-      expect(screen.getByText('"text of a"')).not.toBeNull();
-      expect(screen.getByText('"text of b"')).not.toBeNull();
+      expect(screen.getByText('text of a')).not.toBeNull();
+      expect(screen.getByText('text of b')).not.toBeNull();
       expect(screen.getByText('my note')).not.toBeNull();
       expect(screen.getByText('example.com')).not.toBeNull();
       expect(screen.getByText('other.example')).not.toBeNull();
@@ -81,7 +81,7 @@ describe('HighlightList', () => {
         />,
       );
 
-      expect(screen.getByText(`"${'x'.repeat(120)}..."`)).not.toBeNull();
+      expect(screen.getByText(`${'x'.repeat(120)}...`)).not.toBeNull();
       expect(screen.getByText(`${'n'.repeat(80)}...`)).not.toBeNull();
     });
 
@@ -140,7 +140,7 @@ describe('HighlightList', () => {
   });
 
   describe('selecting and deleting', () => {
-    it('selects a highlight by its id when its card is clicked', () => {
+    it('selects a highlight by its id when its row is clicked', () => {
       const onSelect = vi.fn();
       render(
         <HighlightList
@@ -150,7 +150,7 @@ describe('HighlightList', () => {
         />,
       );
 
-      fireEvent.click(screen.getByText('"text of b"'));
+      fireEvent.click(screen.getByText('text of b'));
 
       expect(onSelect).toHaveBeenCalledTimes(1);
       expect(onSelect).toHaveBeenCalledWith('b');

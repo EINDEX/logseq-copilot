@@ -1,5 +1,5 @@
 import { buildTurndownService } from '@/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
 import logo from '../../assets/img/logo.png';
@@ -11,7 +11,8 @@ import type { HighlightData } from '@/types/highlight';
 import { contentEvents } from '@/utils/content-events';
 import { zIndex } from '@/utils/z-index';
 import '@/assets/globals.css';
-import scssStyles from './index.module.scss';
+// Content-script only rules (search keyword highlight).
+import './index.module.scss';
 import log from '@/utils/logger';
 
 
@@ -57,6 +58,127 @@ contentEvents.on('quickCapture', capture);
 contentEvents.on('quickCaptureWithSelection', capture);
 contentEvents.on('quickCapturePage', clipPage);
 
+/** Outer size of the floating button in CSS px (img + padding + border). */
+export const FLOAT_BUTTON_SIZE = 32;
+const FLOAT_BUTTON_ICON = 22;
+const FLOAT_BUTTON_GAP = 6;
+
+/**
+ * Page coordinates for the floating button: just after the end of the
+ * selection, vertically centred on its last line, so it never covers the
+ * selected text. Falls back to below the end of the selection when there is
+ * no room on the right, and to the pointer when the selection has no box.
+ */
+const floatButtonPosition = (selection: Selection, event: MouseEvent) => {
+  const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  const rects = range ? Array.from(range.getClientRects()) : [];
+  const last = rects.filter((r) => r.width > 0 || r.height > 0).pop();
+  if (!last) return { x: event.pageX + 10, y: event.pageY + 10 };
+
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  let x = last.right + FLOAT_BUTTON_GAP;
+  let y = last.top + last.height / 2 - FLOAT_BUTTON_SIZE / 2;
+  if (x + FLOAT_BUTTON_SIZE > viewportWidth - FLOAT_BUTTON_GAP) {
+    x = Math.max(FLOAT_BUTTON_GAP, last.right - FLOAT_BUTTON_SIZE);
+    y = last.bottom + FLOAT_BUTTON_GAP;
+  }
+  return { x: x + window.scrollX, y: y + window.scrollY };
+};
+
+/**
+ * The floating clip button that follows a text selection. Only rendered when
+ * the "floating button" option is on.
+ *
+ * Sizes are inline px (and on the img itself): the button lives in a shadow
+ * root on any host page, and must not depend on a stylesheet class or on the
+ * page's rem size. Without them the logo showed at its intrinsic 192px.
+ */
+const FloatButton = () => {
+  const [position, setPostion] = useState({
+    x: 0,
+    y: 0,
+  });
+  const [show, setShow] = useState(false);
+
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  const clicked = (event: MouseEvent) => {
+    const selection = getSelection();
+    const haveSelection = selection && selection.toString().trim().length > 0;
+    const target = event.target;
+    // On `document`, a click inside our shadow root is retargeted to its host.
+    // Elements outside it (SVG ones included, whose `className` is not a
+    // string) are matched by selector.
+    const root = buttonRef.current?.getRootNode();
+    const isButton =
+      (root instanceof ShadowRoot && target === root.host) ||
+      (target instanceof Element && target.closest('.quickCapture') !== null);
+    if (isButton) {
+      if (event.type === "mouseup") {
+        setShow(false);
+      }
+      return;
+    }
+    if (haveSelection && event.type === "mouseup") {
+      setShow(true);
+      setPostion(floatButtonPosition(selection, event));
+    } else {
+      setShow(false)
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('mouseup', clicked);
+    document.addEventListener('mousedown', clicked);
+
+    return () => {
+      document.removeEventListener('mouseup', clicked);
+      document.removeEventListener('mousedown', clicked);
+    };
+  }, []);
+
+  const styles = (): React.CSSProperties => {
+    return {
+      display: show ? 'block' : 'none',
+      position: 'absolute',
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      zIndex: zIndex,
+      boxSizing: 'border-box',
+      width: `${FLOAT_BUTTON_SIZE}px`,
+      height: `${FLOAT_BUTTON_SIZE}px`,
+      padding: `${(FLOAT_BUTTON_SIZE - FLOAT_BUTTON_ICON - 2) / 2}px`,
+      lineHeight: 0,
+      background: 'var(--background)',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      cursor: 'pointer',
+    };
+  };
+
+  return (
+    <div ref={buttonRef} style={styles()} title="Clip to Logseq">
+      <img
+        className="quickCapture"
+        src={logo}
+        onClick={capture}
+        alt={'clip-button'}
+        width={FLOAT_BUTTON_ICON}
+        height={FLOAT_BUTTON_ICON}
+        draggable={false}
+        style={{
+          display: 'block',
+          width: `${FLOAT_BUTTON_ICON}px`,
+          height: `${FLOAT_BUTTON_ICON}px`,
+          maxWidth: 'none',
+          borderRadius: '9999px',
+        }}
+      />
+    </div>
+  );
+};
+
 type CommentPopupState = {
   show: boolean;
   highlightData: HighlightData | null;
@@ -69,40 +191,15 @@ const closedCommentPopup: CommentPopupState = {
   position: { x: 0, y: 0 },
 };
 
-const QuickCapture = () => {
-  const [position, setPostion] = useState({
-    x: 0,
-    y: 0,
-  });
-  const [show, setShow] = useState(false);
+/**
+ * The highlight comment popup. Always available, independent of the floating
+ * button option: clicking a restored highlight opens it.
+ */
+const HighlightComment = () => {
   const [commentPopup, setCommentPopup] =
     useState<CommentPopupState>(closedCommentPopup);
 
-
-
-  const clicked = (event: MouseEvent) => {
-    const selection = getSelection();
-    const haveSelection = selection && selection.toString().trim().length > 0;
-    const target = event.target as HTMLElement;
-    const isButton = target && target.className && target.className.includes("quickCapture")
-    if (isButton) {
-      if (event.type === "mouseup") {
-        setShow(false);
-      }
-      return;
-    }
-    if (haveSelection && event.type === "mouseup") {
-      setShow(true);
-      setPostion({ x: event.pageX + 10, y: event.pageY + 10 });
-    } else {
-      setShow(false)
-    }
-  };
-
   useEffect(() => {
-    document.addEventListener('mouseup', clicked);
-    document.addEventListener('mousedown', clicked);
-
     // HighlightManager asks for the comment popup through the in-memory
     // content-script event bus; DOM events on document could be forged by
     // page scripts.
@@ -135,28 +232,11 @@ const QuickCapture = () => {
     );
 
     return () => {
-      document.removeEventListener('mouseup', clicked);
-      document.removeEventListener('mousedown', clicked);
       offShowHighlightComment();
       offHighlightUpdated();
       offHighlightRemoved();
     };
   }, []);
-
-  const styles = (): React.CSSProperties => {
-    return {
-      display: show ? 'block' : 'none',
-      position: 'absolute',
-      left: `${position.x}px`,
-      top: `${position.y}px`,
-      zIndex: zIndex,
-      background: 'var(--background, #fff)',
-      border: '1px solid var(--border, #e5e7eb)',
-      borderRadius: '8px',
-      padding: '4px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    };
-  };
 
   const handleCommentPopupClose = () => {
     setCommentPopup(closedCommentPopup);
@@ -172,46 +252,47 @@ const QuickCapture = () => {
     log.debug('Highlight deleted:', highlightId);
   };
 
+  if (!commentPopup.show || !commentPopup.highlightData) return null;
+
+  return (
+    <ThemedHighlightCommentPopup
+      highlightData={commentPopup.highlightData}
+      position={commentPopup.position}
+      onClose={handleCommentPopupClose}
+      onUpdate={handleCommentUpdate}
+      onDelete={handleCommentDelete}
+    />
+  );
+};
+
+interface QuickCaptureProps {
+  /** Show the floating clip button (the `enableClipNoteFloatButton` option). */
+  showFloatButton?: boolean;
+}
+
+const QuickCapture = ({ showFloatButton = true }: QuickCaptureProps) => {
   return (
     <>
-      <div className={scssStyles.popupButton} style={styles()}>
-        <img
-          className={`${scssStyles.popupButton} quickCapture`}
-          src={logo}
-          onClick={capture}
-          alt={'clip-button'}
-          style={{
-            filter: 'var(--logo-filter, none)',
-            opacity: 0.8,
-          }}
-        />
-      </div>
-
-      {/* Comment Popup */}
-      {commentPopup.show && commentPopup.highlightData && (
-        <ThemedHighlightCommentPopup
-          highlightData={commentPopup.highlightData}
-          position={commentPopup.position}
-          onClose={handleCommentPopupClose}
-          onUpdate={handleCommentUpdate}
-          onDelete={handleCommentDelete}
-        />
-      )}
+      {showFloatButton && <FloatButton />}
+      <HighlightComment />
     </>
   );
 };
 
-const ThemedQuickCapture = () => {
+const ThemedQuickCapture = (props: QuickCaptureProps) => {
   return (
     <ThemeProvider>
-      <QuickCapture />
+      <QuickCapture {...props} />
     </ThemeProvider>
   );
 };
 
-const mountQuickCapture = (contrainer: Container) => {
+const mountQuickCapture = (
+  contrainer: Container,
+  props: QuickCaptureProps = {},
+) => {
   const root = createRoot(contrainer);
-  root.render(<ThemedQuickCapture />);
+  root.render(<ThemedQuickCapture {...props} />);
   return root;
 };
 

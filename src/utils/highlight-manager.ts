@@ -3,6 +3,22 @@ import log from './logger';
 import { caretRangeAtPoint } from './caret';
 import { contentEvents } from './content-events';
 import type { HighlightData } from '@/types/highlight';
+import { detectTheme, setupThemeChangeListeners } from './theme-detection';
+
+/**
+ * Attribute on the page's <html> element that carries the host page theme for
+ * the highlight stylesheet. `::highlight()` paints text in the page document,
+ * so its dark variant cannot depend on the extension UI's own theme container,
+ * which lives inside a shadow root.
+ */
+const PAGE_THEME_ATTRIBUTE = 'data-logseq-copilot-theme';
+
+/** Page highlight tint: Logseq teal (#85c8c8), see injectHighlightCSS. */
+const BRAND_HIGHLIGHT = {
+  light: 'rgba(133, 200, 200, 0.5)',
+  dark: 'rgba(133, 200, 200, 0.35)',
+  flash: 'rgba(133, 200, 200, 0.85)',
+};
 
 /**
  * Manages highlights display and restoration on web pages
@@ -14,6 +30,7 @@ export class HighlightManager {
   private readyPromise: Promise<void> | null = null;
   private clickEventListener: ((event: MouseEvent) => void) | null = null;
   private stopSync: (() => void) | null = null;
+  private stopThemeSync: (() => void) | null = null;
 
   private constructor() {
     this.highlights = CSS.highlights;
@@ -472,7 +489,7 @@ export class HighlightManager {
       outlineOffset: '2px',
     });
     element.animate(
-      [outline('rgba(59, 130, 246, 0.8)'), outline('transparent')],
+      [outline(BRAND_HIGHLIGHT.flash), outline('transparent')],
       { duration: 1000, easing: 'ease-out' },
     );
   }
@@ -488,14 +505,7 @@ export class HighlightManager {
       // Temporarily change the highlight style to create a flash effect
       const flashCSS = `
         ::highlight(${highlightName}) {
-          background-color: rgba(59, 130, 246, 0.6) !important;
-          animation: highlight-flash 1s ease-out;
-        }
-        
-        @keyframes highlight-flash {
-          0% { background-color: rgba(59, 130, 246, 0.8); }
-          50% { background-color: rgba(59, 130, 246, 0.4); }
-          100% { background-color: rgba(255, 255, 0, 0.3); }
+          background-color: ${BRAND_HIGHLIGHT.flash} !important;
         }
       `;
 
@@ -532,6 +542,9 @@ export class HighlightManager {
    */
   private injectHighlightCSS(highlightName: string, color: string): void {
     try {
+      // The dark rule below matches on the page theme attribute.
+      this.startThemeSync();
+
       // Check if CSS for this highlight already exists
       const existingStyle = document.querySelector(
         `style[data-highlight="${highlightName}"]`,
@@ -545,11 +558,11 @@ export class HighlightManager {
       style.setAttribute('data-highlight', highlightName);
 
       // Define color mappings
+      // The default ('yellow', the stored value of every highlight so far)
+      // is the brand teal: dark text keeps >= 11:1 on light pages, light
+      // text >= 6:1 on dark ones.
       const colorMap: Record<string, { light: string; dark: string }> = {
-        yellow: {
-          light: 'rgba(255, 255, 0, 0.4)',
-          dark: 'rgba(255, 255, 0, 0.25)',
-        },
+        yellow: BRAND_HIGHLIGHT,
         green: { light: 'rgba(0, 255, 0, 0.4)', dark: 'rgba(0, 255, 0, 0.25)' },
         blue: { light: 'rgba(0, 0, 255, 0.4)', dark: 'rgba(0, 0, 255, 0.25)' },
         pink: {
@@ -571,7 +584,7 @@ export class HighlightManager {
           color: inherit;
         }
         
-        [data-theme-container].dark ::highlight(${highlightName}) {
+        :root[${PAGE_THEME_ATTRIBUTE}="dark"] ::highlight(${highlightName}) {
           background-color: ${colors.dark};
           color: inherit;
         }
@@ -658,6 +671,22 @@ export class HighlightManager {
   }
 
   /**
+   * Keep the page theme attribute (see PAGE_THEME_ATTRIBUTE) in sync with the
+   * host page theme. Idempotent.
+   */
+  private startThemeSync(): void {
+    if (this.stopThemeSync) return;
+    const apply = (theme: string) =>
+      document.documentElement.setAttribute(PAGE_THEME_ATTRIBUTE, theme);
+    apply(detectTheme());
+    const stopListening = setupThemeChangeListeners(apply);
+    this.stopThemeSync = () => {
+      stopListening();
+      document.documentElement.removeAttribute(PAGE_THEME_ATTRIBUTE);
+    };
+  }
+
+  /**
    * Find highlight name by ID
    */
   private getHighlightNameById(highlightId: string): string | null {
@@ -728,6 +757,9 @@ export class HighlightManager {
           this.highlights.delete(name);
         }
       }
+
+      this.stopThemeSync?.();
+      this.stopThemeSync = null;
 
       this.highlightMap.clear();
       this.readyPromise = null;

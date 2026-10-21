@@ -84,7 +84,7 @@ const deferred = <T,>() => {
   return { promise, resolve };
 };
 
-const text = (value: string) => screen.queryByText(`"${value}"`);
+const text = (value: string) => screen.queryByText(value);
 const notice = () => screen.queryByRole('status')?.textContent ?? null;
 
 describe('sidepanel App', () => {
@@ -137,7 +137,7 @@ describe('sidepanel App', () => {
 
       render(<App />);
 
-      expect(await screen.findByText('"text of a"')).not.toBeNull();
+      expect(await screen.findByText('text of a')).not.toBeNull();
       expect(text('text of b')).not.toBeNull();
       expect(text('text of elsewhere')).toBeNull();
       expect(text('text of other-hash')).toBeNull();
@@ -149,7 +149,7 @@ describe('sidepanel App', () => {
 
       render(<App />);
 
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
       expect(screen.getByText('Page one')).not.toBeNull();
       expect(screen.getByText('2')).not.toBeNull();
     });
@@ -172,7 +172,7 @@ describe('sidepanel App', () => {
       expect(screen.getByText('Loading highlights...')).not.toBeNull();
 
       reading.resolve([tabs[1]]);
-      expect(await screen.findByText('"text of a"')).not.toBeNull();
+      expect(await screen.findByText('text of a')).not.toBeNull();
       expect(screen.queryByText('Loading highlights...')).toBeNull();
     });
 
@@ -219,10 +219,10 @@ describe('sidepanel App', () => {
     it('shows highlights added and deleted elsewhere while it is open', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await changeStorage([highlight('a'), highlight('b')]);
-      expect(await screen.findByText('"text of b"')).not.toBeNull();
+      expect(await screen.findByText('text of b')).not.toBeNull();
       expect(screen.getByText('2')).not.toBeNull();
 
       await changeStorage([highlight('b')]);
@@ -233,7 +233,7 @@ describe('sidepanel App', () => {
     it('shows a note changed elsewhere', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await changeStorage([highlight('a', { note: 'written elsewhere' })]);
 
@@ -243,7 +243,7 @@ describe('sidepanel App', () => {
     it('is not moved by highlights of other pages', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await changeStorage([
         highlight('a'),
@@ -257,7 +257,7 @@ describe('sidepanel App', () => {
     it('keeps the latest read when an older one finishes last', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       const slow = deferred<Record<string, unknown>>();
       vi.spyOn(fakeBrowser.storage.local, 'get').mockImplementationOnce(
@@ -265,7 +265,7 @@ describe('sidepanel App', () => {
       );
       await changeStorage([highlight('a'), highlight('b')]);
       await changeStorage([highlight('a'), highlight('b'), highlight('c')]);
-      await screen.findByText('"text of c"');
+      await screen.findByText('text of c');
 
       // What the slow read saw is out of date by now.
       await act(async () => slow.resolve({ highlights: [highlight('a')] }));
@@ -280,7 +280,7 @@ describe('sidepanel App', () => {
         highlight('b', { url: 'https://two.example/article' }),
       ]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       const slow = deferred<Record<string, unknown>>();
       vi.spyOn(fakeBrowser.storage.local, 'get').mockImplementationOnce(
@@ -292,7 +292,7 @@ describe('sidepanel App', () => {
         highlight('b', { url: 'https://two.example/article' }),
       ]);
       await switchTo(2);
-      await screen.findByText('"text of b"');
+      await screen.findByText('text of b');
 
       await act(async () =>
         slow.resolve({ highlights: [highlight('a'), highlight('a2')] }),
@@ -309,11 +309,11 @@ describe('sidepanel App', () => {
         highlight('b', { url: 'https://two.example/article' }),
       ]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await switchTo(2);
 
-      expect(await screen.findByText('"text of b"')).not.toBeNull();
+      expect(await screen.findByText('text of b')).not.toBeNull();
       expect(text('text of a')).toBeNull();
       expect(screen.getByText('Page two')).not.toBeNull();
     });
@@ -322,7 +322,7 @@ describe('sidepanel App', () => {
       tabs[2] = makeTab({ id: 2, url: 'about:blank', title: 'Blank' });
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await switchTo(2);
       expect(
@@ -331,7 +331,7 @@ describe('sidepanel App', () => {
       expect(text('text of a')).toBeNull();
 
       await switchTo(1);
-      expect(await screen.findByText('"text of a"')).not.toBeNull();
+      expect(await screen.findByText('text of a')).not.toBeNull();
     });
 
     it('lists the highlights of the page the tab navigates to', async () => {
@@ -340,7 +340,7 @@ describe('sidepanel App', () => {
         highlight('next', { url: 'https://one.example/next' }),
       ]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       await act(async () => {
         await fakeBrowser.tabs.onUpdated.trigger(
@@ -350,7 +350,7 @@ describe('sidepanel App', () => {
         );
       });
 
-      expect(await screen.findByText('"text of next"')).not.toBeNull();
+      expect(await screen.findByText('text of next')).not.toBeNull();
       expect(text('text of a')).toBeNull();
     });
   });
@@ -359,7 +359,7 @@ describe('sidepanel App', () => {
     it('deletes a highlight from storage, and from the list', async () => {
       await seed([highlight('a'), highlight('b')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       fireEvent.click(
         screen.getAllByRole('button', { name: 'Delete highlight' })[0],
@@ -378,7 +378,7 @@ describe('sidepanel App', () => {
         highlight('elsewhere', { url: 'https://two.example/article' }),
       ]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       fireEvent.click(screen.getByRole('button', { name: 'Delete highlight' }));
 
@@ -390,7 +390,7 @@ describe('sidepanel App', () => {
     it('tells the user when the highlight could not be deleted', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
       vi.spyOn(fakeBrowser.storage.local, 'set').mockRejectedValue(
         new Error('storage is full'),
       );
@@ -408,7 +408,7 @@ describe('sidepanel App', () => {
     it('saves a note to storage and shows it', async () => {
       await seed([highlight('a'), highlight('b', { note: 'keep me' })]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
       fireEvent.click(screen.getAllByRole('button', { name: 'Edit note' })[0]);
       fireEvent.change(screen.getByLabelText('Note'), {
@@ -429,7 +429,7 @@ describe('sidepanel App', () => {
     it('keeps the editor open and tells the user when the note could not be saved', async () => {
       await seed([highlight('a')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
       vi.spyOn(fakeBrowser.storage.local, 'set').mockRejectedValue(
         new Error('storage is full'),
       );
@@ -452,9 +452,9 @@ describe('sidepanel App', () => {
     it('asks the page of the active tab to scroll to it', async () => {
       await seed([highlight('a'), highlight('b')]);
       render(<App />);
-      await screen.findByText('"text of a"');
+      await screen.findByText('text of a');
 
-      fireEvent.click(screen.getByText('"text of b"'));
+      fireEvent.click(screen.getByText('text of b'));
 
       await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
       expect(sendMessage).toHaveBeenCalledWith(
@@ -470,7 +470,7 @@ describe('sidepanel App', () => {
       render(<App />);
       await screen.findByText('No highlights on this page');
       await switchTo(2);
-      fireEvent.click(await screen.findByText('"text of b"'));
+      fireEvent.click(await screen.findByText('text of b'));
 
       await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
       expect(sendMessage).toHaveBeenCalledWith(
@@ -488,7 +488,7 @@ describe('sidepanel App', () => {
       );
       await seed([highlight('a')]);
       render(<App />);
-      fireEvent.click(await screen.findByText('"text of a"'));
+      fireEvent.click(await screen.findByText('text of a'));
 
       await waitFor(() =>
         expect(notice()).toBe('Reload the page to jump to highlights'),
@@ -501,7 +501,7 @@ describe('sidepanel App', () => {
       sendMessage.mockResolvedValue(false);
       await seed([highlight('a')]);
       render(<App />);
-      fireEvent.click(await screen.findByText('"text of a"'));
+      fireEvent.click(await screen.findByText('text of a'));
 
       await waitFor(() =>
         expect(notice()).toBe("Couldn't find this highlight on the page"),
@@ -515,18 +515,18 @@ describe('sidepanel App', () => {
         highlight('b', { url: 'https://two.example/article' }),
       ]);
       render(<App />);
-      fireEvent.click(await screen.findByText('"text of a"'));
+      fireEvent.click(await screen.findByText('text of a'));
       await waitFor(() => expect(notice()).not.toBeNull());
 
-      fireEvent.click(screen.getByText('"text of a"'));
+      fireEvent.click(screen.getByText('text of a'));
       await waitFor(() => expect(notice()).toBeNull());
 
       sendMessage.mockResolvedValueOnce(false);
-      fireEvent.click(screen.getByText('"text of a"'));
+      fireEvent.click(screen.getByText('text of a'));
       await waitFor(() => expect(notice()).not.toBeNull());
 
       await switchTo(2);
-      await screen.findByText('"text of b"');
+      await screen.findByText('text of b');
       expect(notice()).toBeNull();
     });
   });
