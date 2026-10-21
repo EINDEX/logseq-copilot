@@ -7,7 +7,11 @@ import {
 } from '@/utils/storage';
 // tool must load first: tool.ts and db/service.ts import each other.
 import '../tool';
-import LogseqDBService, { getBlockMarker } from './service';
+import LogseqDBService, {
+  getBlockMarker,
+  getBlockTags,
+  resolveUuidRefs,
+} from './service';
 
 const makeService = (searchBlocks: any[], block: any = {}) => {
   const service = new LogseqDBService();
@@ -157,6 +161,147 @@ describe('LogseqDBService block rendering', () => {
     const { service, client } = makeService([]);
     client.getBlockViaUuid.mockResolvedValue(null as any);
     await expect(service.getBlock('nope', 'Demo')).rejects.toThrow();
+  });
+});
+
+// Tag entities as Logseq 2.0.2 `logseq.Editor.getBlock` returns them in `tags`.
+const BOOK = {
+  id: 245,
+  ident: ':user.class/Book-x1',
+  uuid: '6ad833fe-0000-4000-8000-00000000b00c',
+  title: 'Book',
+  name: 'book',
+};
+const TASK = {
+  id: 140,
+  ident: ':logseq.class/Task',
+  uuid: '00000002-1282-1814-5700-000000000000',
+  title: 'Task',
+  name: 'task',
+};
+const READING = {
+  id: 250,
+  ident: ':user.class/reading-x2',
+  uuid: '6ad833fe-9c7c-4000-8000-000000000250',
+  title: 'reading',
+  name: 'reading',
+};
+
+describe('getBlockTags', () => {
+  test('lists class tags by title, not by uuid', () => {
+    expect(getBlockTags({ title: 'notes on a book', tags: [BOOK] })).toEqual(['Book']);
+  });
+
+  test('leaves out tags written inline in the title', () => {
+    const block = {
+      rawTitle: `about #[[${READING.uuid}]] and more`,
+      fullTitle: 'about #reading and more',
+      tags: [READING, BOOK],
+    };
+    expect(getBlockTags(block)).toEqual(['Book']);
+  });
+
+  test('leaves out #Task when the checkbox shows the status', () => {
+    const task = {
+      title: 'write it',
+      tags: [TASK, BOOK],
+      ':logseq.property/status': { ident: ':logseq.property/status.todo' },
+    };
+    expect(getBlockTags(task)).toEqual(['Book']);
+    // Without a status there is no checkbox: keep the tag, like Logseq.
+    expect(getBlockTags({ title: 'x', tags: [TASK] })).toEqual(['Task']);
+  });
+
+  test('leaves out internal and hide-from-node classes', () => {
+    const block = {
+      title: 'x',
+      tags: [
+        { ident: ':logseq.class/Page', title: 'Page' },
+        { ident: ':logseq.class/Tag', title: 'Tag' },
+        { ident: ':user.class/Hidden', title: 'Hidden', ':logseq.property.class/hide-from-node': true },
+        BOOK,
+      ],
+    };
+    expect(getBlockTags(block)).toEqual(['Book']);
+  });
+
+  test('ignores ids and missing tags', () => {
+    expect(getBlockTags({ title: 'x', tags: [{ id: 3 }, 7] })).toEqual([]);
+    expect(getBlockTags({ title: 'x' })).toEqual([]);
+    expect(getBlockTags(null)).toEqual([]);
+  });
+});
+
+describe('resolveUuidRefs', () => {
+  const A = '6ad833fd-0000-4000-8000-00000000000a';
+  const B = '6ad833fe-0000-4000-8000-00000000000b';
+  const C = '6ad833fe-0000-4000-8000-00000000000c';
+  const names: Record<string, string> = { [A]: 'Another Page', [B]: 'reading', [C]: 'Multi Word Tag' };
+
+  test('replaces page refs and tags with page names', async () => {
+    const getName = vi.fn(async (uuid: string) => names[uuid]);
+    const text = await resolveUuidRefs(`see [[${A}]], #[[${B}]], #[[${C}]] and [[${A}]]`, getName);
+    expect(text).toBe('see [[Another Page]], #reading, #[[Multi Word Tag]] and [[Another Page]]');
+    expect(getName).toHaveBeenCalledTimes(3);
+  });
+
+  test('never shows a uuid for a page that cannot be read', async () => {
+    const text = await resolveUuidRefs(`see [[${A}]] #[[${B}]]`, async (uuid) => {
+      if (uuid === A) throw new Error('gone');
+      return undefined;
+    });
+    expect(text).toBe('see [[Untitled]] #Untitled');
+  });
+
+  test('leaves text without uuid refs alone', async () => {
+    const getName = vi.fn();
+    expect(await resolveUuidRefs('see [[Page]] #tag', getName)).toBe('see [[Page]] #tag');
+    expect(getName).not.toHaveBeenCalled();
+  });
+});
+
+describe('LogseqDBService tags and refs', () => {
+  test('a block gets its end-of-block tags as names', async () => {
+    const { service } = makeService([blockHit('b1')], {
+      content: 'showcase reading notes',
+      fullTitle: 'showcase reading notes',
+      rawTitle: 'showcase reading notes',
+      tags: [BOOK],
+    });
+    const { response } = await service.search('showcase');
+    expect(response.blocks[0].tagNames).toEqual(['Book']);
+    expect(response.blocks[0].html).not.toContain(BOOK.uuid);
+  });
+
+  test('a task block hides #Task', async () => {
+    const { service } = makeService([blockHit('b1')], {
+      content: 'write the report',
+      fullTitle: 'write the report',
+      tags: [TASK],
+      ':logseq.property/status': { ident: ':logseq.property/status.todo' },
+    });
+    const block = await service.getBlock('b1', 'Demo');
+    expect(block.marker).toBe('TODO');
+    expect(block.tagNames).toEqual([]);
+  });
+
+  test('without fullTitle, uuid refs are resolved through getPage once per page', async () => {
+    const ref = '6ad833fd-0000-4000-8000-00000000000a';
+    const { service, client } = makeService([blockHit('b1'), blockHit('b2')], {
+      content: `see [[${ref}]] and #[[${ref}]]`,
+    });
+    client.getPage.mockImplementation(async (p: any) =>
+      p.uuid === ref
+        ? ({ uuid: ref, name: 'another page', originalName: 'Another Page' } as any)
+        : ({ id: p.id, name: 'p' } as any),
+    );
+    const { response } = await service.search('see');
+    for (const block of response.blocks) {
+      expect(block.html).toContain('page=Another%20Page">Another Page</a>');
+      expect(block.html).not.toContain(ref);
+    }
+    // One read for the shared page ({id: 1}) and one for the ref, for two blocks.
+    expect(client.getPage).toHaveBeenCalledTimes(2);
   });
 });
 
