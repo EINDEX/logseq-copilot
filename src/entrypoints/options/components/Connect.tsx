@@ -6,19 +6,47 @@ import React, { useEffect } from 'react';
 import { log } from '@/utils';
 import { useSettings } from '@/hooks/use-settings';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
-import { settings } from '@/utils/storage';
+import type { LogseqCopliotConfig } from '@/utils/storage';
 import { isValidLogseqHostName, isValidLogseqPort } from '@/utils/connection';
+
+/** Wait this long after the last edit before checking the connection. */
+export const CHECK_DEBOUNCE_MS = 600;
+
+/**
+ * Why the connection settings cannot be checked yet, or null when they can.
+ * An empty token is the "not configured yet" state, not an error.
+ */
+const validateConnection = (
+  config: Pick<LogseqCopliotConfig, 'logseqHostName' | 'logseqPort' | 'logseqAuthToken'>,
+): string | null => {
+  if (!isValidLogseqHostName(config.logseqHostName)) {
+    return 'Logseq Host is not a valid hostname!';
+  }
+  if (!isValidLogseqPort(config.logseqPort)) {
+    return 'Logseq Port must be between 1 and 65535!';
+  }
+  if (!config.logseqAuthToken) {
+    return 'Auth Token is missing';
+  }
+  return null;
+};
 
 export const LogseqConnectOptions = () => {
   const { settings: logseqConfig, loading: settingsLoading, updateSettings } = useSettings();
   const [loading, setLoading] = React.useState(true);
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
+  const [notice, setNotice] = React.useState('');
+  const [graph, setGraph] = React.useState<string | null>(null);
   const [showToken, setShowToken] = React.useState(false);
+  // Only the newest check may update the state; older ones are stale.
+  const latestCheck = React.useRef(0);
+  const checkedOnce = React.useRef(false);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!logseqConfig) return;
     const { name, value } = e.target;
+    setNotice('');
     updateSettings({ [name]: value });
   };
 
@@ -28,101 +56,110 @@ export const LogseqConnectOptions = () => {
     if (port === '' || parseInt(port) < 0) {
       port = '0'
     }
+    setNotice('');
     updateSettings({ logseqPort: parseInt(port) });
   }
 
   const triggerShowToken = () => setShowToken(!showToken);
 
+  /**
+   * Ask Logseq for its version (and graph) with the current settings.
+   *
+   * `showToast` additionally calls `showMsg`, which pops a toast inside
+   * Logseq. Only an explicit click on the button does that: the automatic
+   * check follows every edit and must not spam Logseq.
+   */
+  const checkConnection = async (showToast: boolean): Promise<boolean> => {
+    const check = ++latestCheck.current;
+    const isStale = () => check !== latestCheck.current;
+    setLoading(true);
+    try {
+      const service = await getLogseqService();
+      if (showToast) {
+        const resp = await service.showMsg('Logseq Copilot Connect!');
+        if (resp.msg !== 'success') {
+          if (isStale()) return false;
+          setConnected(false);
+          setGraph(null);
+          setButtonMessage(resp.msg || 'Connection failed');
+          return false;
+        }
+      }
+      const version = await service.getVersion();
+      const graphName: string | null = await service.getGraph().catch(() => null);
+      if (isStale()) return false;
+      setConnected(true);
+      setGraph(graphName || null);
+      setButtonMessage(`Connected to Logseq v${version}!`);
+      return true;
+    } catch (error) {
+      log.error('Connection check failed:', error);
+      if (isStale()) return false;
+      setConnected(false);
+      setGraph(null);
+      setButtonMessage(
+        error instanceof Error && error.message ? error.message : 'Connection error',
+      );
+      return false;
+    } finally {
+      if (!isStale()) setLoading(false);
+    }
+  };
+
+  // The settings are already saved on every change (updateSettings), so
+  // "Connect" only tests them and keeps the user on this page.
   const save = async () => {
     if (!logseqConfig) {
       setButtonMessage('Configuration is not loaded yet!');
       return;
     }
 
-    if (!isValidLogseqHostName(logseqConfig.logseqHostName)) {
+    const invalid = validateConnection(logseqConfig);
+    if (invalid) {
       setConnected(false);
-      setButtonMessage('Logseq Host is not a valid hostname!');
+      setButtonMessage(invalid);
       return;
     }
 
-    if (!isValidLogseqPort(logseqConfig.logseqPort)) {
-      setConnected(false);
-      setButtonMessage('Logseq Port must be between 1 and 65535!');
-      return;
-    }
-
-    try {
-      // 配置已经通过 updateSettings 自动保存，不需要手动调用 settings.setValue
-      log.info('Configuration saved!');
-
-      if (await checkConnection()) { // 使用当前已保存的配置进行连接检查
-        const service = await getLogseqService();
-        const graph = await service.getGraph();
-        log.info(`Logseq Graph -> ${graph}`);
-        if (graph) {
-          window.location.href = `logseq://graph/${graph}`;
-        } else {
-          setButtonMessage('Connected, but no graph found or specified.');
-        }
-      } else {
-        setButtonMessage('Connection failed. Check console.');
-      }
-    } catch (error) {
-      log.error("Save operation failed:", error);
-      setButtonMessage('Save failed. Check console.');
-      setLoading(false); // 确保在错误时停止加载
+    setNotice('');
+    if (await checkConnection(true)) {
+      setNotice('Settings saved and connected to Logseq.');
     }
   };
 
+  const logseqHostName = logseqConfig?.logseqHostName;
+  const logseqPort = logseqConfig?.logseqPort;
+  const logseqAuthToken = logseqConfig?.logseqAuthToken;
 
+  // Check the connection when the settings load and, debounced, after the
+  // host, port or token change. Depends on the three values, not on the
+  // settings object, which is replaced on every storage reload.
   useEffect(() => {
-    if (settingsLoading || !logseqConfig) return;
+    if (settingsLoading || logseqHostName === undefined) return;
 
-    const initializeConnection = async () => {
-      log.debug('config', logseqConfig);
-      if (logseqConfig.logseqAuthToken === '') {
-        setLoading(false);
-        return;
-      }
-
-      await checkConnection();
-    };
-
-    initializeConnection();
-  }, [settingsLoading, logseqConfig]);
-
-  const checkConnection = async (currentConfig?: typeof logseqConfig): Promise<boolean> => {
-    const configToUse = currentConfig || logseqConfig;
-    if (!configToUse || !configToUse.logseqAuthToken) { // 确保有 token 才尝试连接
+    const invalid = validateConnection({
+      logseqHostName,
+      logseqPort: logseqPort as number,
+      logseqAuthToken: logseqAuthToken ?? '',
+    });
+    if (invalid) {
+      latestCheck.current++; // drop a check that is still running
       setLoading(false);
       setConnected(false);
-      setButtonMessage('Auth Token is missing');
-      return false;
+      setGraph(null);
+      // Nothing is wrong with an empty token yet; the user has not started.
+      setButtonMessage(logseqAuthToken ? invalid : 'Connect');
+      return;
     }
 
+    const delay = checkedOnce.current ? CHECK_DEBOUNCE_MS : 0;
+    checkedOnce.current = true;
     setLoading(true);
-    try {
-      // getLogseqService 会内部获取配置，不需要传递参数
-      const service = await getLogseqService();
-      const resp = await service.showMsg('Logseq Copilot Connect!');
-      const connectStatus = resp.msg === 'success';
-      setConnected(connectStatus);
-      if (connectStatus) {
-        const version = await service.getVersion();
-        setButtonMessage(`Connected to Logseq v${version}!`);
-      } else {
-        setButtonMessage(resp.msg || 'Connection failed');
-      }
-      return connectStatus;
-    } catch (error) {
-      log.error('Connection check failed:', error);
-      setConnected(false);
-      setButtonMessage('Connection error');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+    const timer = setTimeout(() => {
+      void checkConnection(false);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [settingsLoading, logseqHostName, logseqPort, logseqAuthToken]);
 
   return (
     <Card>
@@ -181,7 +218,23 @@ export const LogseqConnectOptions = () => {
             {loading ? 'Connecting...' : buttonMessage}
           </Button>
 
-          <div className="col-span-3 text-right">
+          {notice && (
+            <p role="status" className="col-span-3 text-sm text-primary">
+              {notice}
+            </p>
+          )}
+
+          <div className="col-span-3 flex items-center justify-between">
+            {connected && graph ? (
+              <a
+                className="text-sm text-primary hover:underline"
+                href={`logseq://graph/${graph}`}
+              >
+                Open {graph} in Logseq
+              </a>
+            ) : (
+              <span />
+            )}
             <a
               className={`text-sm hover:underline ${!connected ? 'text-destructive' : 'text-primary'}`}
               href="https://logseq-copilot.eindex.me/doc/setup"

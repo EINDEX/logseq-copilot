@@ -3,6 +3,15 @@ import log from './logger';
 import { caretRangeAtPoint } from './caret';
 import { contentEvents } from './content-events';
 import type { HighlightData } from '@/types/highlight';
+import { detectTheme, setupThemeChangeListeners } from './theme-detection';
+
+/**
+ * Attribute on the page's <html> element that carries the host page theme for
+ * the highlight stylesheet. `::highlight()` paints text in the page document,
+ * so its dark variant cannot depend on the extension UI's own theme container,
+ * which lives inside a shadow root.
+ */
+const PAGE_THEME_ATTRIBUTE = 'data-logseq-copilot-theme';
 
 /**
  * Manages highlights display and restoration on web pages
@@ -13,6 +22,7 @@ export class HighlightManager {
   private highlightMap: Map<string, Highlight> = new Map();
   private readyPromise: Promise<void> | null = null;
   private clickEventListener: ((event: MouseEvent) => void) | null = null;
+  private stopThemeSync: (() => void) | null = null;
 
   private constructor() {
     this.highlights = CSS.highlights;
@@ -519,6 +529,9 @@ export class HighlightManager {
    */
   private injectHighlightCSS(highlightName: string, color: string): void {
     try {
+      // The dark rule below matches on the page theme attribute.
+      this.startThemeSync();
+
       // Check if CSS for this highlight already exists
       const existingStyle = document.querySelector(
         `style[data-highlight="${highlightName}"]`,
@@ -558,7 +571,7 @@ export class HighlightManager {
           color: inherit;
         }
         
-        [data-theme-container].dark ::highlight(${highlightName}) {
+        :root[${PAGE_THEME_ATTRIBUTE}="dark"] ::highlight(${highlightName}) {
           background-color: ${colors.dark};
           color: inherit;
         }
@@ -576,6 +589,22 @@ export class HighlightManager {
         error,
       );
     }
+  }
+
+  /**
+   * Keep the page theme attribute (see PAGE_THEME_ATTRIBUTE) in sync with the
+   * host page theme. Idempotent.
+   */
+  private startThemeSync(): void {
+    if (this.stopThemeSync) return;
+    const apply = (theme: string) =>
+      document.documentElement.setAttribute(PAGE_THEME_ATTRIBUTE, theme);
+    apply(detectTheme());
+    const stopListening = setupThemeChangeListeners(apply);
+    this.stopThemeSync = () => {
+      stopListening();
+      document.documentElement.removeAttribute(PAGE_THEME_ATTRIBUTE);
+    };
   }
 
   /**
@@ -646,6 +675,9 @@ export class HighlightManager {
           this.highlights.delete(name);
         }
       }
+
+      this.stopThemeSync?.();
+      this.stopThemeSync = null;
 
       this.highlightMap.clear();
       this.readyPromise = null;

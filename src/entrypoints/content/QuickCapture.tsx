@@ -62,34 +62,30 @@ contentEvents.on('quickCapture', capture);
 contentEvents.on('quickCaptureWithSelection', capture);
 contentEvents.on('quickCapturePage', clipPage);
 
-const QuickCapture = () => {
+/**
+ * The floating clip button that follows a text selection. Only rendered when
+ * the "floating button" option is on.
+ */
+const FloatButton = () => {
   const [position, setPostion] = useState({
     x: 0,
     y: 0,
   });
   const [show, setShow] = useState(false);
-  const [commentPopup, setCommentPopup] = useState<{
-    show: boolean;
-    highlightData: HighlightData | null;
-    position: { x: number; y: number };
-  }>({
-    show: false,
-    highlightData: null,
-    position: { x: 0, y: 0 }
-  });
-
-
 
   const buttonRef = useRef<HTMLDivElement>(null);
 
   const clicked = (event: MouseEvent) => {
     const selection = getSelection();
     const haveSelection = selection && selection.toString().trim().length > 0;
-    const target = event.target as HTMLElement;
+    const target = event.target;
     // On `document`, a click inside our shadow root is retargeted to its host.
+    // Elements outside it (SVG ones included, whose `className` is not a
+    // string) are matched by selector.
     const root = buttonRef.current?.getRootNode();
-    const isButton = (root instanceof ShadowRoot && target === root.host) ||
-      (target && target.className && target.className.includes("quickCapture"))
+    const isButton =
+      (root instanceof ShadowRoot && target === root.host) ||
+      (target instanceof Element && target.closest('.quickCapture') !== null);
     if (isButton) {
       if (event.type === "mouseup") {
         setShow(false);
@@ -108,24 +104,9 @@ const QuickCapture = () => {
     document.addEventListener('mouseup', clicked);
     document.addEventListener('mousedown', clicked);
 
-    // HighlightManager asks for the comment popup through the in-memory
-    // content-script event bus; DOM events on document could be forged by
-    // page scripts.
-    const offShowHighlightComment = contentEvents.on(
-      'showHighlightComment',
-      ({ highlightData, clickPosition }) => {
-        setCommentPopup({
-          show: true,
-          highlightData,
-          position: clickPosition,
-        });
-      },
-    );
-
     return () => {
       document.removeEventListener('mouseup', clicked);
       document.removeEventListener('mousedown', clicked);
-      offShowHighlightComment();
     };
   }, []);
 
@@ -143,6 +124,53 @@ const QuickCapture = () => {
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     };
   };
+
+  return (
+    <div ref={buttonRef} className={scssStyles.popupButton} style={styles()}>
+      <img
+        className={`${scssStyles.popupButton} quickCapture`}
+        src={logo}
+        onClick={capture}
+        alt={'clip-button'}
+        style={{
+          filter: 'var(--logo-filter, none)',
+          opacity: 0.8,
+        }}
+      />
+    </div>
+  );
+};
+
+/**
+ * The highlight comment popup. Always available, independent of the floating
+ * button option: clicking a restored highlight opens it.
+ */
+const HighlightComment = () => {
+  const [commentPopup, setCommentPopup] = useState<{
+    show: boolean;
+    highlightData: HighlightData | null;
+    position: { x: number; y: number };
+  }>({
+    show: false,
+    highlightData: null,
+    position: { x: 0, y: 0 }
+  });
+
+  useEffect(() => {
+    // HighlightManager asks for the comment popup through the in-memory
+    // content-script event bus; DOM events on document could be forged by
+    // page scripts.
+    return contentEvents.on(
+      'showHighlightComment',
+      ({ highlightData, clickPosition }) => {
+        setCommentPopup({
+          show: true,
+          highlightData,
+          position: clickPosition,
+        });
+      },
+    );
+  }, []);
 
   const handleCommentPopupClose = () => {
     setCommentPopup({
@@ -162,46 +190,47 @@ const QuickCapture = () => {
     log.debug('Highlight deleted:', highlightId);
   };
 
+  if (!commentPopup.show || !commentPopup.highlightData) return null;
+
+  return (
+    <ThemedHighlightCommentPopup
+      highlightData={commentPopup.highlightData}
+      position={commentPopup.position}
+      onClose={handleCommentPopupClose}
+      onUpdate={handleCommentUpdate}
+      onDelete={handleCommentDelete}
+    />
+  );
+};
+
+interface QuickCaptureProps {
+  /** Show the floating clip button (the `enableClipNoteFloatButton` option). */
+  showFloatButton?: boolean;
+}
+
+const QuickCapture = ({ showFloatButton = true }: QuickCaptureProps) => {
   return (
     <>
-      <div ref={buttonRef} className={scssStyles.popupButton} style={styles()}>
-        <img
-          className={`${scssStyles.popupButton} quickCapture`}
-          src={logo}
-          onClick={capture}
-          alt={'clip-button'}
-          style={{
-            filter: 'var(--logo-filter, none)',
-            opacity: 0.8,
-          }}
-        />
-      </div>
-
-      {/* Comment Popup */}
-      {commentPopup.show && commentPopup.highlightData && (
-        <ThemedHighlightCommentPopup
-          highlightData={commentPopup.highlightData}
-          position={commentPopup.position}
-          onClose={handleCommentPopupClose}
-          onUpdate={handleCommentUpdate}
-          onDelete={handleCommentDelete}
-        />
-      )}
+      {showFloatButton && <FloatButton />}
+      <HighlightComment />
     </>
   );
 };
 
-const ThemedQuickCapture = () => {
+const ThemedQuickCapture = (props: QuickCaptureProps) => {
   return (
     <ThemeProvider>
-      <QuickCapture />
+      <QuickCapture {...props} />
     </ThemeProvider>
   );
 };
 
-const mountQuickCapture = (contrainer: Container) => {
+const mountQuickCapture = (
+  contrainer: Container,
+  props: QuickCaptureProps = {},
+) => {
   const root = createRoot(contrainer);
-  root.render(<ThemedQuickCapture />);
+  root.render(<ThemedQuickCapture {...props} />);
   return root;
 };
 

@@ -25,6 +25,7 @@ vi.mock('@/assets/globals.css', () => ({}));
 vi.mock('./index.module.scss', () => ({ default: {} }));
 vi.mock('../../assets/img/logo.png', () => ({ default: '' }));
 
+import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
@@ -159,5 +160,49 @@ describe('content script startup', () => {
 
     await expect(HighlightManager.getInstance().ready).resolves.toBeUndefined();
     expect(save).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('content script UI mounting', () => {
+  const mountedNames = () =>
+    vi.mocked(createShadowRootUi).mock.calls.map(([, options]) => options.name);
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    messaging.handlers.clear();
+    vi.mocked(createShadowRootUi).mockClear();
+    (globalThis as any).CSS = { highlights: new Map() };
+    (globalThis as any).Highlight = class {
+      add() {}
+      clear() {}
+    };
+    HighlightManager.getInstance().cleanup();
+    vi.restoreAllMocks();
+    vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockResolvedValue(
+      [],
+    );
+  });
+
+  it('mounts the highlight UI (comment popup and sidebar) with the default config, where the float button is off', async () => {
+    await (contentScript as any).main({});
+
+    expect(mountedNames()).toEqual(
+      expect.arrayContaining([
+        'logseq-copilot-popup',
+        'logseq-copilot-highlights-sidebar',
+      ]),
+    );
+  });
+
+  it('mounts the highlight UI as well when the float button is on', async () => {
+    await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: true });
+    await (contentScript as any).main({});
+
+    expect(mountedNames()).toEqual(
+      expect.arrayContaining([
+        'logseq-copilot-popup',
+        'logseq-copilot-highlights-sidebar',
+      ]),
+    );
   });
 });
