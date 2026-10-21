@@ -20,6 +20,8 @@
 - Referenced block target, quoted by a block reference
   id:: 65f0c0de-0000-4000-8000-000000000001
 - showcase block reference ((65f0c0de-0000-4000-8000-000000000001))
+- showcase reading notes on a book, tagged with a class
+  tags:: Book
 - showcase properties block
   type:: article
   source:: https://example.com/source

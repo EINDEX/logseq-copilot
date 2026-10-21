@@ -276,6 +276,15 @@ test.describe('UI screenshots', () => {
       // Everything: all results, every long block unfolded.
       await clickAll(host, /^Show all/i);
       await clickAll(host, /^Show more/i);
+      // Page refs and tags read by name; DB class tags follow the block text.
+      const text = await host.locator('.lc-results').first().innerText();
+      expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/);
+      expect(text).toContain('Another Page');
+      if (logseqInfo().variant === 'db') {
+        await expect(host.locator('.lc-block-tag', { hasText: '#Book' })).toBeVisible();
+        // Inline tags are not repeated after the text, #Task is not shown.
+        await expect(host.locator('.lc-block-tag', { hasText: /#(reading|Task)$/ })).toHaveCount(0);
+      }
       await shoot(host, `search-sidebar-rich-expanded${variantSuffix()}`, scheme);
       // Hover toolbar of a task: the TODO -> DOING switch and "open block".
       const task = host.locator('[data-marker="TODO"]').first();
