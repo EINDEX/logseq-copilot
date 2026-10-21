@@ -109,6 +109,17 @@ describe('LogseqResultList', () => {
       `logseq://graph/g?block-id=${b.uuid}`,
     );
   });
+
+  test('DB class tags follow the text as links to the tag page', async () => {
+    const el = await render({
+      graph: 'g',
+      blocks: [block({ tagNames: ['Book', 'Multi Word'] }), block()],
+    });
+    const tags = Array.from(el.querySelectorAll('.lc-block-tags a'));
+    expect(tags.map((a) => a.textContent)).toEqual(['#Book', '#Multi Word']);
+    expect(tags[1].getAttribute('href')).toBe('logseq://graph/g?page=Multi%20Word');
+    expect(el.querySelectorAll('.lc-block-tags')).toHaveLength(1);
+  });
 });
 
 describe('task rendering (like Logseq)', () => {
