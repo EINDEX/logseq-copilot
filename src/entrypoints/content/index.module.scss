@@ -7,14 +7,14 @@
 
 /* Highlight styles for search results and temporary highlights */
 ::highlight(copilot-highlight) {
-  background-color: rgba(255, 192, 4, 0.5);
-  color: black;
+  background-color: rgba(133, 200, 200, 0.5);
+  color: inherit;
 }
 
 /* Dark mode highlight adjustment */
 [data-theme-container]:global(.dark) ::highlight(copilot-highlight) {
-  background-color: rgba(255, 192, 4, 0.3);
-  color: white;
+  background-color: rgba(133, 200, 200, 0.35);
+  color: inherit;
 }
 
 /* Persistent highlights are registered per highlight by the HighlightManager
