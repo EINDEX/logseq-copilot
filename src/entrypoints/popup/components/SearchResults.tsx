@@ -1,8 +1,8 @@
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
-import { LogseqBlock } from '@/components/LogseqBlock';
+import { LogseqResultList } from '@/components/LogseqResultList';
 import { Button } from '@/components/ui/button';
-import { BookOpen, ExternalLink, Plus, RefreshCw } from 'lucide-react';
+import { BookOpen, Plus, RefreshCw } from 'lucide-react';
 
 interface SearchResultsProps {
     searchResult: LogseqSearchResult | undefined;
@@ -69,9 +69,6 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         );
     }
 
-    const displayedBlocks = searchResult.blocks.slice(0, maxResults);
-    const hasMoreResults = searchResult.blocks.length > maxResults;
-
     return (
         <div className="space-y-2">
             {/* Results Header */}
@@ -80,35 +77,15 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                 <span>{searchResult.blocks.length}</span>
             </div>
 
-            {/* Results List */}
-            <div className="-mx-2 divide-y [&>*]:py-2">
-                {displayedBlocks.map((block) => (
-                    <LogseqBlock
-                        key={block.uuid}
-                        graph={searchResult.graph}
-                        blocks={[block]}
-                        isPopUp={true}
-                    />
-                ))}
+            {/* Results grouped by page; the rest behind "Show all" */}
+            <div className="-mx-1.5">
+                <LogseqResultList
+                    graph={searchResult.graph}
+                    blocks={searchResult.blocks}
+                    pages={searchResult.pages}
+                    initialCount={maxResults}
+                />
             </div>
-
-            {/* More Results */}
-            {hasMoreResults && (
-                <div className="border-t pt-2 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">
-                        {searchResult.blocks.length - maxResults} more results available
-                    </p>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onOpenLogseq}
-                        className="w-full"
-                    >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open in Logseq
-                    </Button>
-                </div>
-            )}
         </div>
     );
-}; 
+};

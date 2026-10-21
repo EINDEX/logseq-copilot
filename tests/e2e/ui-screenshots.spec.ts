@@ -52,6 +52,7 @@ const shoot = async (
     await target.mouse.move(VIEWPORT.width - 1, VIEWPORT.height - 1);
     await target.screenshot({ ...options, fullPage: true });
   } else {
+    await target.page().mouse.move(0, 0);
     await target.screenshot(options);
   }
 };
@@ -276,6 +277,11 @@ test.describe('UI screenshots', () => {
       await clickAll(host, /^Show all/i);
       await clickAll(host, /^Show more/i);
       await shoot(host, `search-sidebar-rich-expanded${variantSuffix()}`, scheme);
+      // Hover toolbar of a task: the TODO -> DOING switch and "open block".
+      const task = host.locator('[data-marker="TODO"]').first();
+      await expect(task).toBeVisible();
+      await task.hover();
+      await task.screenshot({ path: file(`search-sidebar-task-hover${variantSuffix()}`, scheme), animations: 'disabled' });
     }
   });
 

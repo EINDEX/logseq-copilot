@@ -28,7 +28,7 @@ describe('LogseqPageLink Component', () => {
 
         const link = screen.getByRole('link');
         expect(link).toBeTruthy();
-        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Test Page');
+        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Test%20Page');
     });
 
     it('should display page originalName when available', () => {
@@ -65,7 +65,7 @@ describe('LogseqPageLink Component', () => {
         render(<LogseqPageLink graph="test-graph" page={pageWithSpaces} />);
 
         const link = screen.getByRole('link');
-        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Page With Spaces');
+        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Page%20With%20Spaces');
         expect(screen.getByText('Page With Spaces')).toBeTruthy();
     });
 
@@ -79,7 +79,7 @@ describe('LogseqPageLink Component', () => {
         render(<LogseqPageLink graph="test-graph" page={pageWithSpecialChars} />);
 
         const link = screen.getByRole('link');
-        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Page/With-Special_Characters');
+        expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Page%2FWith-Special_Characters');
         expect(screen.getByText('Page/With-Special_Characters')).toBeTruthy();
     });
 
@@ -87,26 +87,23 @@ describe('LogseqPageLink Component', () => {
         render(<LogseqPageLink graph="my-special-graph" page={mockPage} />);
 
         const link = screen.getByRole('link');
-        expect(link.getAttribute('href')).toBe('logseq://graph/my-special-graph?page=Test Page');
+        expect(link.getAttribute('href')).toBe('logseq://graph/my-special-graph?page=Test%20Page');
     });
 
-    it('should apply truncate class to text span', () => {
+    it('should truncate the page name (lc-page-name, text-overflow: ellipsis)', () => {
         render(<LogseqPageLink {...defaultProps} />);
 
         const pageText = screen.getByText('Test Page');
         expect(pageText).toBeTruthy();
-        expect(Array.from(pageText!.classList)).toEqual(expect.arrayContaining(['truncate']));
+        expect(Array.from(pageText!.classList)).toEqual(expect.arrayContaining(['lc-page-name']));
     });
 
     it('should have correct CSS classes for styling', () => {
         render(<LogseqPageLink {...defaultProps} />);
 
         const link = screen.getByRole('link');
-        expect(Array.from(link!.classList)).toEqual(expect.arrayContaining(['flex', 'items-center', 'gap-1.5']));
-        expect(Array.from(link!.classList)).toEqual(expect.arrayContaining(['text-sm', 'font-medium']));
-        expect(Array.from(link!.classList)).toEqual(expect.arrayContaining(['text-foreground', 'hover:text-primary']));
-        expect(Array.from(link!.classList)).toEqual(expect.arrayContaining(['transition-colors']));
-        expect(Array.from(link!.classList)).toEqual(expect.arrayContaining(['no-underline', 'hover:underline']));
+        // Styled by components/logseq-results.css (px units for shadow roots).
+        expect(Array.from(link!.classList)).toEqual(['lc-page-title']);
     });
 
     it('should accept custom className prop', () => {
@@ -186,7 +183,7 @@ describe('LogseqPageLink Component', () => {
             render(<LogseqPageLink graph="test-graph" page={whitespacePage} />);
 
             const link = screen.getByRole('link');
-            expect(link.getAttribute('href')).toBe(`logseq://graph/test-graph?page=${whitespacePageName}`);
+            expect(link.getAttribute('href')).toBe(`logseq://graph/test-graph?page=${encodeURIComponent(whitespacePageName)}`);
         });
 
         it('should handle unicode characters in page name', () => {
@@ -199,7 +196,7 @@ describe('LogseqPageLink Component', () => {
             render(<LogseqPageLink graph="test-graph" page={unicodePage} />);
 
             const link = screen.getByRole('link');
-            expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=测试页面 🚀');
+            expect(link.getAttribute('href')).toBe(`logseq://graph/test-graph?page=${encodeURIComponent('测试页面 🚀')}`);
             expect(screen.getByText('测试页面 🚀')).toBeTruthy();
         });
     });

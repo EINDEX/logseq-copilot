@@ -1,0 +1,428 @@
+/*
+ * Search results (search engine sidebar and popup).
+ *
+ * Plain CSS in px: the sidebar lives in a shadow root on any site, where
+ * `rem` is the host page's root font size and `:host` cannot change it.
+ * Colors come from the design tokens of globals.css, so light and dark follow
+ * the ThemeProvider. Dense and calm: 13px text, 12px secondary, weight and
+ * muted color for hierarchy, hairline dividers, hover backgrounds instead of
+ * boxes.
+ *
+ * Tasks copy Logseq's own block title (frontend/components/block.cljs,
+ * `block-checkbox` / `marker-switch`, and the `.form-checkbox`,
+ * `.block-marker`, `.done`/`.canceled` CSS): a filled square checkbox, the
+ * marker as small bold text that switches TODO<->DOING / LATER<->NOW, DONE
+ * checked with the text struck through and faded, CANCELED struck through
+ * without a checkbox.
+ */
+
+.lc-results {
+  --lc-fg: var(--foreground);
+  --lc-muted: var(--muted-foreground);
+  --lc-hairline: color-mix(in oklab, var(--foreground) 9%, transparent);
+  --lc-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --lc-subtle: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --lc-accent: var(--primary);
+  --lc-indent: 16px;
+  font-family: var(--lc-font, inherit);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--lc-fg);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.lc-results *,
+.lc-results *::before,
+.lc-results *::after {
+  box-sizing: border-box;
+}
+
+/* Text and icon buttons: no chrome until hover or keyboard focus. */
+.lc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--lc-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.lc-button:hover {
+  background: var(--lc-hover);
+  color: var(--lc-fg);
+}
+.lc-button:focus-visible,
+.lc-link:focus-visible,
+.lc-page-title:focus-visible,
+.lc-checkbox:focus-visible,
+.lc-marker:focus-visible,
+.lc-content a:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--lc-accent) 60%, transparent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+.lc-button svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.lc-icon-button {
+  width: 24px;
+  padding: 0;
+  justify-content: center;
+}
+
+.lc-link {
+  color: var(--lc-muted);
+  text-decoration: none;
+}
+.lc-link:hover {
+  color: var(--lc-fg);
+  text-decoration: underline;
+}
+
+/* Page group: the page title row, then its blocks. */
+.lc-group + .lc-group {
+  margin-top: 6px;
+}
+
+.lc-page-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: var(--lc-fg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.lc-page-title:hover {
+  background: var(--lc-hover);
+}
+.lc-page-title svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--lc-muted);
+}
+.lc-page-title .lc-page-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-blocks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lc-blocks .lc-blocks {
+  margin-left: var(--lc-indent);
+}
+
+/* One block: a bullet, the content, an "open" button on hover. */
+.lc-block-row {
+  position: relative;
+  min-height: 28px;
+  padding: 4px 28px 4px 26px;
+  border-radius: 5px;
+}
+.lc-block-row:hover,
+.lc-block-row:has(:focus-visible) {
+  background: var(--lc-hover);
+}
+.lc-block-row::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--lc-muted) 70%, transparent);
+}
+.lc-actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+  border-radius: 5px;
+  opacity: 0;
+}
+.lc-block-row:hover .lc-actions,
+.lc-actions:has(:focus-visible) {
+  opacity: 1;
+}
+/* More than the open button overlays the text: give the toolbar a surface. */
+.lc-actions:has(> :nth-child(2)) {
+  background: var(--popover);
+  box-shadow: 0 0 0 1px var(--lc-hairline), 0 2px 6px rgb(0 0 0 / 0.08);
+}
+
+/* Long blocks are folded to seven lines, with a fade instead of a cut. */
+.lc-clamp {
+  position: relative;
+}
+.lc-clamp[data-folded='true'] {
+  max-height: 140px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+.lc-fold {
+  height: 20px;
+  margin: 2px 0 0 -6px;
+}
+
+/* Task controls, floated so the text wraps around them like in Logseq. */
+.lc-task {
+  /* Above the text box: the block box of the text spans the float, and a
+     faded (DONE) text is a stacking context painted over it. */
+  position: relative;
+  z-index: 1;
+  float: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  margin-right: 6px;
+}
+.lc-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--foreground) 16%, transparent);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.lc-checkbox:hover {
+  transform: scale(1.1);
+}
+.lc-checkbox[data-state='checked'] {
+  background: var(--lc-accent);
+}
+.lc-checkbox:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.lc-checkbox svg {
+  width: 10px;
+  height: 10px;
+}
+/* Logseq `.block-marker`: 85% size, weight 650, faded until hovered. */
+.lc-marker {
+  margin: 0 2px 0 0;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--lc-fg);
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.lc-marker:hover {
+  opacity: 1;
+  color: var(--lc-accent);
+  background: var(--lc-hover);
+}
+.lc-marker:disabled {
+  cursor: progress;
+}
+/* TODO / LATER show only the checkbox: their switch to DOING / NOW sits in
+   the hover toolbar. DOING / NOW keep their marker in front of the text. */
+.lc-actions .lc-marker {
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 5px;
+}
+
+.lc-status {
+  margin-right: 4px;
+  font-size: 11px;
+  font-weight: 650;
+  opacity: 0.7;
+}
+.lc-block-row[data-marker='DONE'] .lc-content,
+.lc-block-row[data-marker='CANCELED'] .lc-content,
+.lc-block-row[data-marker='CANCELLED'] .lc-content {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.lc-task-error {
+  clear: both;
+  display: block;
+  color: var(--destructive);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Rendered markdown of a block. */
+.lc-content {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.lc-content > :first-child {
+  margin-top: 0;
+}
+.lc-content > :last-child {
+  margin-bottom: 0;
+}
+.lc-content p,
+.lc-content ul,
+.lc-content ol,
+.lc-content blockquote,
+.lc-content pre,
+.lc-content table,
+.lc-content img {
+  margin: 4px 0;
+}
+.lc-content h1,
+.lc-content h2,
+.lc-content h3,
+.lc-content h4,
+.lc-content h5,
+.lc-content h6 {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.lc-content ul,
+.lc-content ol {
+  padding-left: 18px;
+}
+.lc-content ul {
+  list-style: disc;
+}
+.lc-content ol {
+  list-style: decimal;
+}
+.lc-content strong {
+  font-weight: 600;
+}
+.lc-content a {
+  color: var(--lc-accent);
+  text-decoration: none;
+}
+.lc-content a:hover {
+  text-decoration: underline;
+}
+.lc-content a.logseq-tag {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.lc-content a.logseq-tag:hover {
+  opacity: 1;
+}
+.lc-content a.logseq-block-ref {
+  color: inherit;
+  border-bottom: 1px solid color-mix(in oklab, var(--lc-accent) 55%, transparent);
+}
+.lc-content a.logseq-block-ref:hover {
+  color: var(--lc-accent);
+  text-decoration: none;
+}
+.lc-content .logseq-asset {
+  color: var(--lc-muted);
+  font-size: 12px;
+}
+.lc-content .logseq-asset::before {
+  content: 'Image: ';
+}
+.lc-content code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--lc-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+}
+.lc-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: var(--lc-subtle);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre;
+}
+.lc-content pre code {
+  padding: 0;
+  background: transparent;
+  overflow-wrap: normal;
+}
+.lc-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 18px;
+}
+.lc-content th,
+.lc-content td {
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid var(--lc-hairline);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: normal;
+}
+.lc-content th {
+  color: var(--lc-muted);
+  font-weight: 600;
+}
+.lc-content img {
+  display: block;
+  max-width: 100%;
+  max-height: 112px;
+  height: auto;
+  border-radius: 4px;
+}
+.lc-content blockquote {
+  padding-left: 8px;
+  border-left: 2px solid var(--lc-hairline);
+  color: var(--lc-muted);
+}
+.lc-content hr {
+  border: 0;
+  border-top: 1px solid var(--lc-hairline);
+}
+.lc-content mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--highlight) 45%, transparent);
+  color: inherit;
+}
+
+/* "Show all" / "Show fewer" under the list. */
+.lc-more {
+  margin: 4px 0 0;
+}
