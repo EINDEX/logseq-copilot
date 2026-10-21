@@ -42,19 +42,82 @@ const getItemUuid = (item: any): string =>
     ? item['block/uuid']
     : item['block/uuid']?.uuid);
 
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const UUID_REF_RE = new RegExp(`(#?)\\[\\[(${UUID})\\]\\]`, 'gi');
+
 /**
- * DB graphs store page refs and tags by uuid: `content` / `title` read
- * `[[6ad8…]]` and `#[[6ad8…]]`, `fullTitle` has the page names. Use the
- * readable text (older 2.x builds without `fullTitle` keep `content`).
+ * DB graphs store page refs and tags by uuid: `content` / `title` /
+ * `rawTitle` read `[[6ad8…]]` and `#[[6ad8…]]`, `fullTitle` has the page
+ * names. Use the readable text (older 2.x builds without `fullTitle` keep
+ * `content`, see resolveUuidRefs).
  */
-export const useReadableContent = <T extends { content?: string; fullTitle?: string } | null | undefined>(
+export const useReadableContent = <T extends { content?: string; fullTitle?: string; rawTitle?: string } | null | undefined>(
   block: T,
 ): T => {
   if (block && typeof block.fullTitle === 'string' && block.fullTitle) {
+    if (typeof block.rawTitle !== 'string') block.rawTitle = block.content;
     block.content = block.fullTitle;
   }
   return block;
 };
+
+/**
+ * Replace the `[[uuid]]` / `#[[uuid]]` placeholders left in `content` (no
+ * `fullTitle`) with page names, read through `getName` (cached by the
+ * caller). A page that cannot be read shows as "Untitled", never as a uuid.
+ */
+export const resolveUuidRefs = async (
+  content: string,
+  getName: (uuid: string) => Promise<string | undefined>,
+) => {
+  const uuids = [...new Set([...content.matchAll(UUID_REF_RE)].map((m) => m[2]))];
+  if (uuids.length === 0) return content;
+  const names = new Map<string, string>();
+  await Promise.all(
+    uuids.map(async (uuid) => {
+      names.set(uuid, (await getName(uuid).catch(() => undefined)) || 'Untitled');
+    }),
+  );
+  return content.replace(UUID_REF_RE, (_match, hash: string, uuid: string) => {
+    const name = names.get(uuid)!;
+    return hash && /^[^\s#,.!?;:()[\]{}"'<>]+$/.test(name) ? `#${name}` : `${hash}[[${name}]]`;
+  });
+};
+
+/**
+ * Built-in classes Logseq never shows on a block (`internal-tags` in
+ * logseq.db.frontend.class: Page, Property, Tag, Root, Asset).
+ */
+const INTERNAL_TAGS = new Set([
+  ':logseq.class/Page',
+  ':logseq.class/Property',
+  ':logseq.class/Tag',
+  ':logseq.class/Root',
+  ':logseq.class/Asset',
+]);
+
+/**
+ * The tags Logseq DB shows after a block (`tags-cp` in
+ * frontend/components/block.cljs): the block's classes (`tags`) without the
+ * internal ones, those marked `hide-from-node`, and those written inline in
+ * the title (`#[[uuid]]`, already rendered in the text). #Task is left out
+ * too when the block has a status: the checkbox already says it is a task.
+ */
+export const getBlockTags = (block: any, marker = getBlockMarker(block)): string[] => {
+  const tags: any[] = Array.isArray(block?.tags) ? block.tags : [];
+  const raw = String(block?.rawTitle ?? block?.title ?? '');
+  return tags
+    .filter((tag) => tag && typeof tag === 'object')
+    .filter((tag) => !INTERNAL_TAGS.has(tag.ident))
+    .filter((tag) => !tag[':logseq.property.class/hide-from-node'])
+    .filter((tag) => !(tag.uuid && raw.includes(`[[${tag.uuid}]]`)))
+    .filter((tag) => !(marker && tag.ident === ':logseq.class/Task'))
+    .map((tag) => String(tag.title ?? tag.fullTitle ?? tag.name ?? ''))
+    .filter(Boolean);
+};
+
+/** Per-search cache: the same page is read once, not once per block. */
+type PageCache = Map<string, Promise<LogseqPageIdenity>>;
 
 export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -74,6 +137,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
   private async searchGraph(graphName: string, query: string) {
     const resp: any = await this.client.search(query);
+    const cache: PageCache = new Map();
     const response: {
       blocks: LogseqBlockType[];
       pages: LogseqPageIdenity[];
@@ -102,7 +166,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
         .filter((item: any) => item['page?'] !== true)
         .map(
           async (item: any) =>
-            await this.findBlock(getItemUuid(item), graphName, query),
+            await this.findBlock(getItemUuid(item), graphName, query, false, cache),
         ),
     );
     response.blocks = blocks.filter(
@@ -136,11 +200,32 @@ export default class LogseqDBService implements LogseqServiceInterface {
     return block;
   }
 
+  private getPageCached(page: Partial<LogseqPageIdenity>, cache: PageCache) {
+    const key = String(page.id ?? page.uuid ?? page.name);
+    if (!cache.has(key)) cache.set(key, this.client.getPage(page));
+    return cache.get(key)!;
+  }
+
+  /** Readable text of a DB block: names for page refs, never uuids. */
+  private async readable<T extends any>(block: T, cache: PageCache): Promise<T> {
+    const b = block as any;
+    if (!b) return block;
+    useReadableContent(b);
+    if (typeof b.content === 'string') {
+      b.content = await resolveUuidRefs(b.content, async (uuid) => {
+        const page: any = await this.getPageCached({ uuid }, cache);
+        return page?.originalName ?? page?.title ?? page?.name;
+      });
+    }
+    return block;
+  }
+
   private async findBlock(
     blockUuid: string,
     graph: string,
     query?: string,
     includeChildren: boolean = false,
+    cache: PageCache = new Map(),
   ): Promise<LogseqBlockType | null> {
     const block = await this.client.getBlockViaUuid(blockUuid, {
       includeChildren,
@@ -149,11 +234,11 @@ export default class LogseqDBService implements LogseqServiceInterface {
       return null;
     }
     if (block.page) {
-      block.page = await this.client.getPage(block.page);
+      block.page = await this.getPageCached(block.page, cache);
     }
-    useReadableContent(block);
+    await this.readable(block, cache);
     await resolveBlockRefs(block, async (uuid) =>
-      useReadableContent(await this.client.getBlockViaUuid(uuid)),
+      this.readable(await this.client.getBlockViaUuid(uuid), cache),
     );
     return this.render(block, graph, query);
   }
@@ -164,6 +249,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
     block.marker = '';
     renderBlock(block, graph, query);
     block.marker = getBlockMarker(block);
+    block.tagNames = getBlockTags(block, block.marker);
     return block;
   }
 
