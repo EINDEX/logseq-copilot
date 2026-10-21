@@ -29,7 +29,10 @@
     "typecheck": "tsc --noEmit",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "build:e2e": "WXT_E2E=true wxt build",
-    "test:e2e": "wxt build && pnpm build:e2e && pnpm test:e2e:run",
+    "build:e2e:firefox": "WXT_E2E=true wxt build -b firefox",
+    "test:e2e": "pnpm build && pnpm build:e2e && pnpm build:firefox && pnpm build:e2e:firefox && pnpm test:e2e:run",
+    "test:e2e:chromium": "pnpm build && pnpm build:e2e && pnpm test:e2e:run --project=chromium",
+    "test:e2e:firefox": "pnpm build:firefox && pnpm build:e2e:firefox && pnpm test:e2e:run --project=firefox",
     "test:e2e:run": "playwright test -c tests/e2e/playwright.config.ts"
   },
   "dependencies": {

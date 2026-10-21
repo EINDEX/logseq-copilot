@@ -147,7 +147,7 @@ test.describe('UI screenshots', () => {
     await page.goto('https://example.com/copilot/article');
 
     for (const scheme of SCHEMES) {
-      const popup = await ext.openPopup(page);
+      const popup = (await ext.openPopup(page)).page!;
       await setScheme(popup, scheme);
       await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
       await shoot(popup.locator('#app-container > *').first(), 'popup', scheme);

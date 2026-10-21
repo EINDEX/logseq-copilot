@@ -2,28 +2,31 @@ import { expect, test } from './fixtures';
 import { googleUrl } from './pages';
 
 test.describe('options: connection', () => {
-  test('entering host, port and token connects and saves them', async ({ page, ext, logseq }) => {
+  test('entering host, port and token connects and saves them', async ({ ext, logseq }) => {
     // Start unconfigured: wrong port and no token.
     await ext.setStorage({ logseqHostName: 'localhost', logseqPort: 1, logseqAuthToken: '' });
-    await page.goto(ext.url('options.html#/settings'));
+    const options = await ext.openPage('options.html#/settings');
+    // Edits made before the settings have loaded are dropped (Connect.tsx
+    // ignores onChange until then), so wait for the stored host to show.
+    await expect.poll(() => options.inputValue('input[name="logseqHostName"]')).toBe('localhost');
 
-    await page.locator('input[name="logseqHostName"]').fill(logseq.host);
-    await page.locator('input[name="logseqPort"]').fill(String(logseq.port));
-    await page.locator('input[name="logseqAuthToken"]').fill(logseq.token);
+    await options.fill('input[name="logseqHostName"]', logseq.host);
+    await options.fill('input[name="logseqPort"]', String(logseq.port));
+    await options.fill('input[name="logseqAuthToken"]', logseq.token);
 
     // Every change is saved and re-checked right away.
-    await expect(page.getByRole('button', { name: `Connected to Logseq v${logseq.version}!` })).toBeVisible();
-    expect(await ext.getStorage('logseqHostName')).toBe(logseq.host);
-    expect(await ext.getStorage('logseqPort')).toBe(logseq.port);
-    expect(await ext.getStorage('logseqAuthToken')).toBe(logseq.token);
+    await expect.poll(() => ext.getStorage('logseqHostName')).toBe(logseq.host);
+    await expect.poll(() => ext.getStorage('logseqPort')).toBe(logseq.port);
+    await expect.poll(() => ext.getStorage('logseqAuthToken')).toBe(logseq.token);
+    // The check (debounced) uses the values above: the starting ones (port 1,
+    // no token) cannot connect.
+    await options.expectButton(`Connected to Logseq v${logseq.version}!`);
   });
 
-  test('a wrong token shows a readable error', async ({ page, ext }) => {
+  test('a wrong token shows a readable error', async ({ ext }) => {
     await ext.connect({ token: 'wrong-token' });
-    await page.goto(ext.url('options.html#/settings'));
-    await expect(
-      page.getByRole('button', { name: /Token not correct, Please checking your Logseq Authorization Setting/ }),
-    ).toBeVisible();
+    const options = await ext.openPage('options.html#/settings');
+    await options.expectButton(/Token not correct, Please checking your Logseq Authorization Setting/);
   });
 });
 
@@ -35,16 +38,15 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
     await expect(sidebar.getByText('another page mentioning copilot')).toBeVisible();
 
-    const options = await page.context().newPage();
-    await options.goto(ext.url('options.html#/recall-rules'));
-    await options.getByRole('button', { name: 'Add rule' }).first().click();
-    await options.locator('#name').fill('E2E exclude Another Page');
-    await options.locator('#urlPattern').fill('google\\.com');
+    const options = await ext.openPage('options.html#/recall-rules');
+    await options.clickButton('Add rule');
+    await options.fill('#name', 'E2E exclude Another Page');
+    await options.fill('#urlPattern', 'google\\.com');
     // Second "Page name" input: "Exclude these pages" (the first is "Only search these pages").
-    const excludeInput = options.getByPlaceholder('Page name').nth(1);
-    await excludeInput.fill('Another Page');
-    await excludeInput.press('Enter');
-    await options.getByRole('button', { name: 'Save rule' }).click();
+    const pageNameInput = 'input[placeholder="Page name"]';
+    await options.fill(pageNameInput, 'Another Page', 1);
+    await options.press(pageNameInput, 'Enter', 1);
+    await options.clickButton('Save rule');
     await expect
       .poll(async () =>
         ((await ext.getStorage('recallRulesConfig')) ?? []).some((r: any) =>
@@ -59,4 +61,3 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('another page mentioning copilot')).toHaveCount(0);
   });
 });
-

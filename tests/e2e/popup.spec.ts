@@ -6,9 +6,9 @@ test.describe('popup', () => {
     await page.goto('https://example.com/copilot/article');
 
     const popup = await ext.openPopup(page);
-    await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+    await popup.expectText('Reading notes from https://example.com/copilot/article');
     // The current page title comes from the target tab, not the popup.
-    await expect(popup.getByText('Fixture /copilot/article')).toBeVisible();
+    await popup.expectText('Fixture /copilot/article');
   });
 
   test('checking a task in the popup marks it DONE in Logseq', async ({ page, ext, logseq }) => {
@@ -23,17 +23,17 @@ test.describe('popup', () => {
     // blocks asynchronously: reopen the popup until the block shows up.
     let popup = await ext.openPopup(page);
     await expect(async () => {
-      if (!(await popup.getByText(id).isVisible())) {
+      if (!(await popup.hasText(id))) {
         await popup.close();
         popup = await ext.openPopup(page);
       }
-      await expect(popup.getByText(id)).toBeVisible({ timeout: 5_000 });
+      await popup.expectText(id, { timeout: 5_000 });
     }).toPass({ timeout: 60_000 });
 
-    const checkbox = popup.getByRole('checkbox');
-    await expect(checkbox).not.toBeChecked();
-    await checkbox.click();
-    await expect(checkbox).toBeChecked();
+    const checkbox = '[role="checkbox"]';
+    expect(await popup.isChecked(checkbox)).toBe(false);
+    await popup.click(checkbox);
+    await expect.poll(() => popup.isChecked(checkbox)).toBe(true);
     await expect.poll(() => logseq.taskMarker(uuid)).toBe('DONE');
   });
 });
