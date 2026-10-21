@@ -45,7 +45,10 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
     });
 
     const [testUrl, setTestUrl] = useState('');
-    const [newKeyword, setNewKeyword] = useState('');
+    // One draft per list input: a shared draft made typing in one keyword
+    // input fill the other one too.
+    const [newExcludeKeyword, setNewExcludeKeyword] = useState('');
+    const [newIncludeKeyword, setNewIncludeKeyword] = useState('');
     const [newPathSegment, setNewPathSegment] = useState('');
     const [newRestrictPage, setNewRestrictPage] = useState('');
     const [newExcludePage, setNewExcludePage] = useState('');
@@ -309,7 +312,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             Exclude keywords
                             {help('Results that contain these keywords are filtered out.')}
                         </Label>
-                        {listInput(newKeyword, setNewKeyword, 'queryProcessing', 'excludeKeywords', 'Keyword to exclude')}
+                        {listInput(newExcludeKeyword, setNewExcludeKeyword, 'queryProcessing', 'excludeKeywords', 'Keyword to exclude')}
                         {chips(formData.queryProcessing.excludeKeywords, 'queryProcessing', 'excludeKeywords')}
                     </div>
                     <div className="space-y-2">
@@ -317,7 +320,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             Prefer keywords
                             {help('Results that contain these keywords are shown first.')}
                         </Label>
-                        {listInput(newKeyword, setNewKeyword, 'queryProcessing', 'includeKeywords', 'Keyword to prefer')}
+                        {listInput(newIncludeKeyword, setNewIncludeKeyword, 'queryProcessing', 'includeKeywords', 'Keyword to prefer')}
                         {chips(formData.queryProcessing.includeKeywords, 'queryProcessing', 'includeKeywords')}
                     </div>
                     <div className="space-y-2">
