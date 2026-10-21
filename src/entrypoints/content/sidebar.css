@@ -1,0 +1,102 @@
+/*
+ * Search engine sidebar frame (the results inside: components/
+ * logseq-results.css). No box of its own: it fills the host's right column
+ * and sits in it like a native module, px units only (shadow root).
+ */
+.lc-sidebar {
+  display: block;
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.lc-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 0 0 6px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.lc-logo {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+}
+.lc-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--lc-fg);
+}
+.lc-count {
+  flex: none;
+  color: var(--lc-muted);
+}
+.lc-spacer {
+  flex: 1;
+}
+
+.lc-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  color: var(--lc-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+.lc-message-icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex: none;
+  color: var(--destructive);
+}
+.lc-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lc-accent);
+  font: inherit;
+  cursor: pointer;
+}
+.lc-inline-link:hover {
+  text-decoration: underline;
+}
+
+.lc-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 6px;
+}
+.lc-skeleton span {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--lc-subtle);
+  animation: lc-pulse 1.4s ease-in-out infinite;
+}
+@keyframes lc-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.lc-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 6px 0;
+  border-top: 1px solid var(--lc-hairline);
+  color: var(--lc-muted);
+  font-size: 12px;
+  line-height: 16px;
+}

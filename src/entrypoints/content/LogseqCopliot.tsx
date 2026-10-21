@@ -1,17 +1,14 @@
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
-import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
-import LogseqCopilot from '@/components/LogseqCopilot';
-import { browser } from 'wxt/browser';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { IconSettings, IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
+import { LogseqResultList } from '@/components/LogseqResultList';
+import { IconSettings, IconAlertCircle } from '@tabler/icons-react';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { sendMessage, onMessage } from '@/types/messaging';
+import { sendMessage } from '@/types/messaging';
 import log from '@/utils/logger';
+import logo from '@/assets/img/logo.png';
 import '@/assets/globals.css';
+import '@/components/logseq-results.css';
+import './sidebar.css';
 
 // Import theme test function for debugging
 if (import.meta.env.DEV) {
@@ -23,6 +20,8 @@ if (import.meta.env.DEV) {
 
 type LogseqCopliotProps = {
   query: string;
+  /** Font family of the element the sidebar is mounted in (host page). */
+  hostFont?: string;
 };
 
 type LoadingState = 'loading' | 'success' | 'error' | 'disconnected';
@@ -30,7 +29,7 @@ type LoadingState = 'loading' | 'success' | 'error' | 'disconnected';
 // Minimum delay between URL-change re-searches.
 const RESEARCH_DEBOUNCE_MS = 500;
 
-const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
+const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   const [state, setState] = React.useState<LoadingState>('loading');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [logseqSearchResult, setLogseqSearchResult] = React.useState<LogseqSearchResult>();
@@ -105,188 +104,112 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
     sendMessage('app:openOptions');
   };
 
-  const handleOpenLogseq = () => {
-    if (logseqSearchResult?.graph) {
-      window.open(`logseq://graph/${logseqSearchResult.graph}`, '_blank');
-    }
-  };
+  const graphUrl = logseqSearchResult?.graph
+    ? `logseq://graph/${encodeURIComponent(logseqSearchResult.graph)}`
+    : undefined;
 
-  const renderLoadingState = () => (
-    <Card className="w-full max-w-sm bg-card border-border shadow-sm">
-      <CardHeader className="px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-4 rounded" />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Skeleton className="h-16 w-full rounded-lg" />
-          <Skeleton className="h-16 w-full rounded-lg" />
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const blocks = logseqSearchResult?.blocks ?? [];
+  const pages = (logseqSearchResult?.pages ?? []).filter(Boolean);
+  const total = blocks.filter((block) => block.html).length;
 
-  const renderErrorState = () => (
-    <Card className="w-full max-w-sm border-destructive/50 bg-card shadow-sm">
-      <CardHeader className="px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-card-foreground">
-            <IconAlertCircle className="h-4 w-4 text-destructive" />
-            Connection Issue
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleOpenOptions}
-            className="h-6 w-6 p-0"
-          >
-            <IconSettings className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4">
-        <p className="text-sm text-muted-foreground">
-          {errorMessage || 'Unable to connect to Logseq. Please check your configuration.'}
-        </p>
-        <Button
-          onClick={handleOpenOptions}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          Configure Connection
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
-  const renderSuccessState = () => {
-    if (!logseqSearchResult) return null;
-
-    const { graph, blocks, pages } = logseqSearchResult;
-    const totalResults = blocks.length + pages.length;
-
-    if (totalResults === 0) {
-      return (
-        <Card className="w-full max-w-sm bg-card border-border shadow-sm">
-          <CardHeader className="px-4 pt-4 pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium text-card-foreground">
-                  {graph}
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">
-                  Connected
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleOpenOptions}
-                className="h-6 w-6 p-0"
-              >
-                <IconSettings className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4">
-            <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground mb-3">
-                No results found for this search.
-              </p>
-              <Button
-                onClick={handleOpenLogseq}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <IconExternalLink className="h-4 w-4" />
-                Open Logseq
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return (
-      <Card className="w-full max-w-sm bg-card border-border shadow-sm">
-        <CardHeader className="px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-sm font-medium text-card-foreground">
-                {graph}
-              </CardTitle>
-              <Badge variant="secondary" className="text-xs">
-                {totalResults} results
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleOpenOptions}
-              className="h-6 w-6 p-0"
-            >
-              <IconSettings className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <LogseqCopilot
-            graph={graph}
-            blocks={blocks}
-            pages={pages}
-          />
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderFooter = () => (
-    <div className="flex justify-between items-center text-xs text-muted-foreground mt-3 px-1">
-      <a
-        href="https://github.com/EINDEX/logseq-copilot/issues"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hover:text-foreground transition-colors"
+  const header = (
+    <div className="lc-header">
+      <img className="lc-logo" src={logo} alt="" />
+      <span className="lc-title">{logseqSearchResult?.graph || 'Logseq'}</span>
+      {state === 'success' && total > 0 && (
+        <span className="lc-count">
+          {total} {total === 1 ? 'result' : 'results'}
+        </span>
+      )}
+      <span className="lc-spacer" />
+      <button
+        type="button"
+        className="lc-button lc-icon-button"
+        title="Logseq Copilot settings"
+        aria-label="Logseq Copilot settings"
+        onClick={handleOpenOptions}
       >
-        Feedback
-      </a>
+        <IconSettings />
+      </button>
+    </div>
+  );
+
+  const loading = (
+    <div className="lc-skeleton" aria-busy="true" aria-label="Searching Logseq">
+      <span style={{ width: '40%' }} />
+      <span style={{ width: '92%' }} />
+      <span style={{ width: '76%' }} />
+    </div>
+  );
+
+  const error = (
+    <div className="lc-message" role="status">
+      <IconAlertCircle className="lc-message-icon" />
       <span>
-        powered by{' '}
-        <a
-          href="https://logseq-copilot.eindex.me/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-foreground transition-colors"
-        >
-          Logseq Copilot
-        </a>
+        {errorMessage || 'Unable to connect to Logseq.'}{' '}
+        <button type="button" className="lc-inline-link" onClick={handleOpenOptions}>
+          Check the connection
+        </button>
       </span>
     </div>
   );
 
-  return (
-    <div className="flex flex-col w-full max-w-sm gap-2 pb-4">
-      {state === 'loading' && renderLoadingState()}
-      {state === 'error' && renderErrorState()}
-      {state === 'success' && renderSuccessState()}
-      {renderFooter()}
+  const results =
+    total === 0 && pages.length === 0 ? (
+      <div className="lc-message">No notes found for this search.</div>
+    ) : (
+      <LogseqResultList graph={logseqSearchResult!.graph} blocks={blocks} pages={pages} />
+    );
+
+  const footer = (
+    <div className="lc-footer">
+      {graphUrl && (
+        <>
+          <a className="lc-link" href={graphUrl}>
+            Open in Logseq
+          </a>
+          <span aria-hidden>·</span>
+        </>
+      )}
+      <a
+        className="lc-link"
+        href="https://github.com/EINDEX/logseq-copilot/issues"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Feedback
+      </a>
+      <span className="lc-spacer" />
+      <a
+        className="lc-link"
+        href="https://logseq-copilot.eindex.me/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Logseq Copilot
+      </a>
     </div>
+  );
+
+  return (
+    <section
+      className="lc-results lc-sidebar"
+      aria-label="Notes from Logseq"
+      style={hostFont ? ({ '--lc-font': hostFont } as React.CSSProperties) : undefined}
+    >
+      {header}
+      {state === 'loading' && loading}
+      {state === 'error' && error}
+      {state === 'success' && logseqSearchResult && results}
+      {footer}
+    </section>
   );
 };
 
-export const LogseqCopliot = ({ query }: LogseqCopliotProps) => {
+export const LogseqCopliot = ({ query, hostFont }: LogseqCopliotProps) => {
   return (
     <ThemeProvider>
-      <LogseqCopliotContent query={query} />
+      <LogseqCopliotContent query={query} hostFont={hostFont} />
     </ThemeProvider>
   );
 };
