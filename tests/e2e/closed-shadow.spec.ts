@@ -9,11 +9,7 @@ test('packaged build mounts every in-page UI in a closed shadow root', async ({ 
   await ext.connect({ enableClipNoteFloatButton: true });
   await page.goto(googleUrl('copilot'));
 
-  const hosts = [
-    'logseq-copilot-search-engine',
-    'logseq-copilot-popup',
-    'logseq-copilot-highlights-sidebar',
-  ];
+  const hosts = ['logseq-copilot-search-engine', 'logseq-copilot-popup'];
   for (const host of hosts) {
     await expect(page.locator(host)).toBeAttached();
   }

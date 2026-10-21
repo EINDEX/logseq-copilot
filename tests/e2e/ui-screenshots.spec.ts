@@ -1,8 +1,8 @@
 /**
  * UI screenshots for review, not a visual regression test: every options
- * page, the popup and the in-page UI (search engine sidebar, page highlight
- * and float button, highlight comment popup, highlights sidebar) in light and
- * dark, against the seeded Logseq. The tests only assert that the key
+ * page, the popup, the browser sidebar page and the in-page UI (search engine
+ * sidebar, page highlight and float button, highlight comment popup) in light
+ * and dark, against the seeded Logseq. The tests only assert that the key
  * elements are visible.
  *
  * Output: test-results/ui-screenshots/<name>-<light|dark>.png (uploaded by
@@ -168,7 +168,7 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('page highlight, float button, comment popup and highlights sidebar', async ({ page, ext, articles }) => {
+  test('page highlight, float button and comment popup', async ({ page, ext, articles }) => {
     const id = nonce('shot');
     const url = `https://example.com/e2e/${id}`;
     articles.set(url, {
@@ -194,7 +194,6 @@ test.describe('UI screenshots', () => {
     await page.reload();
     await expect.poll(() => page.evaluate(() => CSS.highlights.size)).toBeGreaterThan(0);
     const popupHost = page.locator('logseq-copilot-popup');
-    const sidebarHost = page.locator('logseq-copilot-highlights-sidebar');
 
     for (const scheme of SCHEMES) {
       await setPageTheme(page, scheme);
@@ -221,12 +220,21 @@ test.describe('UI screenshots', () => {
       await shoot(popup, 'highlight-popup', scheme);
       await page.keyboard.press('Escape');
       await expect(popup).toHaveCount(0);
+    }
+  });
 
-      await expectTheme(sidebarHost, scheme);
-      await sidebarHost.locator('[title="Open highlights"]').click();
-      await expect(sidebarHost.getByText('highlights on this page')).toBeVisible();
-      await shoot(page, 'highlights-sidebar', scheme);
-      await sidebarHost.locator('[title="Close highlights"]').click();
+  test('browser sidebar page', async ({ page, ext }) => {
+    // The real sidebar (Chrome side panel, Firefox sidebar) follows the active
+    // tab of its window and is not exposed to Playwright. Opened as an
+    // ordinary tab, the page is that active tab itself, so it shows the state
+    // for a page that cannot have highlights. It is as narrow as a sidebar.
+    await page.setViewportSize({ width: 400, height: 720 });
+
+    for (const scheme of SCHEMES) {
+      await setScheme(page, scheme);
+      await page.goto(ext.url('sidepanel.html'));
+      await expect(page.getByText("Highlights aren't available on this page")).toBeVisible();
+      await shoot(page.locator('#app > *').first(), 'sidepanel', scheme);
     }
   });
 });

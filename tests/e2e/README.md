@@ -51,7 +51,8 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
   `isChecked`, ...). Chromium backs it with Playwright locators; Firefox runs
   the same steps as DOM scripts in the page's console actor (untrusted
   events: `click()`, the native value setter plus `input`, synthetic key
-  events). Only `popup.spec.ts` and `options.spec.ts` use it.
+  events). Only `popup.spec.ts`, `options.spec.ts` and the highlight sync case
+  in `highlight.spec.ts` use it.
 - **Extension config**: written to `chrome.storage.local` from the background
   context (`logseqHostName`, `logseqPort`, `logseqAuthToken`,
   `enableClipNoteFloatButton`).

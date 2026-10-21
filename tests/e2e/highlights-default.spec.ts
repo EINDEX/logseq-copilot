@@ -1,7 +1,7 @@
 /**
  * Highlights with the default configuration: the floating clip button is OFF
- * (enableClipNoteFloatButton defaults to false), yet highlights are restored,
- * clicking one opens the comment popup and the highlights sidebar is mounted.
+ * (enableClipNoteFloatButton defaults to false), yet highlights are restored
+ * and clicking one opens the comment popup.
  */
 import type { Page } from '@playwright/test';
 import { expect, nonce, test } from './fixtures';
@@ -44,8 +44,7 @@ test.describe('highlights with the default configuration', () => {
 
     await ext.connect(); // enableClipNoteFloatButton: false
     await page.goto(url);
-    // The sidebar and the popup host are mounted, the float button is not.
-    await expect(page.locator('logseq-copilot-highlights-sidebar')).toBeAttached();
+    // The popup host is mounted, the float button is not.
     await expect(page.locator('logseq-copilot-popup')).toBeAttached();
     await expect(page.locator('logseq-copilot-popup img.quickCapture')).toHaveCount(0);
 
