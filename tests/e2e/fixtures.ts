@@ -102,6 +102,8 @@ export interface ExtPage {
   /** Checked state of a checkbox (`aria-checked` or `checked`). */
   isChecked: (selector: string) => Promise<boolean>;
   close: () => Promise<void>;
+  /** The underlying Playwright page (Chromium only; Firefox extension pages are driven over RDP). */
+  page?: Page;
 }
 
 export interface Extension {
@@ -356,6 +358,7 @@ function playwrightExtPage(page: Page): ExtPage {
     click: (selector) => page.locator(selector).click(),
     isChecked: (selector) => page.locator(selector).isChecked(),
     close: () => page.close(),
+    page,
   };
 }
 

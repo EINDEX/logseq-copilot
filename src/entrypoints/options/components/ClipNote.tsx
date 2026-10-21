@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '@/hooks/use-settings';
+import { PageSection } from './page-layout';
 
 import React, { useEffect } from 'react';
 import { browser } from 'wxt/browser';
@@ -33,46 +33,38 @@ export const ClipNoteOptions = () => {
 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Clip Note</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-[200px_1fr] gap-4 items-center">
-          <Label htmlFor="floating-button">Floating Button</Label>
-          <Switch
-            id="floating-button"
-            checked={logseqConfig?.enableClipNoteFloatButton || false}
-            onCheckedChange={(checked) => updateConfig('enableClipNoteFloatButton', checked)}
-          />
+    <PageSection title="Clip Note">
+      <div className="grid items-center gap-4 sm:grid-cols-[200px_1fr]">
+        <Label htmlFor="floating-button">Floating Button</Label>
+        <Switch
+          id="floating-button"
+          checked={logseqConfig?.enableClipNoteFloatButton || false}
+          onCheckedChange={(checked) => updateConfig('enableClipNoteFloatButton', checked)}
+        />
 
-          <Label htmlFor="clip-shortcut">Clip Shortcuts</Label>
+        <Label htmlFor="clip-shortcut">Clip Shortcuts</Label>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Input
             id="clip-shortcut"
             name="clip-shortcut"
             value={clipShortCut}
             readOnly={true}
+            className="w-48"
           />
-
-          <div className="col-span-2 text-right">
-            <a
-              href="https://www.makeuseof.com/open-browser-extensions-keyboard-shortcut/"
-              className="text-sm text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Guide to change Shortcut for Extension/Add-ons
-            </a>
-          </div>
-
-          <div className="col-span-2">
-            <p className="text-sm text-muted-foreground">
-              Clip location and custom page settings are now configured per template. 
-              Go to Templates → Select a template to configure these settings.
-            </p>
-          </div>
+          <a
+            href="https://www.makeuseof.com/open-browser-extensions-keyboard-shortcut/"
+            className="text-sm text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Guide to change Shortcut for Extension/Add-ons
+          </a>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Clip location and custom page settings are now configured per template.
+        Go to Templates → Select a template to configure these settings.
+      </p>
+    </PageSection>
   );
 };

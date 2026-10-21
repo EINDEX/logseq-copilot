@@ -1,23 +1,15 @@
 import React from 'react';
 import { LogseqConnectOptions } from '../components/Connect';
 import { ClipNoteOptions } from '../components/ClipNote';
+import { PageLayout } from '../components/page-layout';
 
 const SettingsPage: React.FC = () => {
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Settings</h1>
-                <p className="text-muted-foreground mt-2">
-                    Configure your Logseq Copilot extension settings.
-                </p>
-            </div>
-
-            <div className="grid gap-6 w-full">
-                <LogseqConnectOptions />
-                <ClipNoteOptions />
-            </div>
-        </div>
+        <PageLayout title="Settings" description="Configure your Logseq Copilot extension settings.">
+            <LogseqConnectOptions />
+            <ClipNoteOptions />
+        </PageLayout>
     );
 };
 
-export default SettingsPage; 
+export default SettingsPage;

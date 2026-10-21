@@ -1,27 +1,28 @@
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { useTemplate } from '@/hooks/use-templates';
 import { TemplateItemV1 } from '@/utils/storage';
+import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
+
+const VARIABLES = [
+    ['{{title}}', 'Page title'],
+    ['{{url}}', 'Page URL'],
+    ['{{content}}', 'Selected content'],
+    ['{{date}}', 'Current date'],
+    ['{{time}}', 'Current time'],
+    ['{{dt}}', 'Date/time object'],
+] as const;
 
 const TemplateEditPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { template, updateTemplate, loading } = useTemplate(id!);
 
     if (loading) {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-muted-foreground">Loading template...</div>
-                </div>
-            </div>
-        );
+        return <PageLoading title="Edit Template">Loading template...</PageLoading>;
     }
 
     if (!template) {
@@ -49,131 +50,101 @@ const TemplateEditPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Edit Template</h1>
-                <p className="text-muted-foreground mt-2">
-                    Configure your template settings, clip location, and content.
-                </p>
-            </div>
+        <PageLayout
+            title="Edit Template"
+            description="Configure your template settings, clip location, and content."
+        >
+            <PageSection title="Template Name">
+                <div className="space-y-2">
+                    <Label htmlFor="template-name">Name</Label>
+                    <Input
+                        id="template-name"
+                        value={template.name}
+                        onChange={handleNameChange}
+                        placeholder="Enter template name"
+                    />
+                </div>
+            </PageSection>
 
-            <div className="grid gap-6 w-full">
-                {/* Template Name */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Template Name</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            <Label htmlFor="template-name">Name</Label>
-                            <Input
-                                id="template-name"
-                                value={template.name}
-                                onChange={handleNameChange}
-                                placeholder="Enter template name"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+            <PageSection
+                title="Clip Location"
+                description="Choose where clips using this template will be saved."
+            >
+                <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-3">
+                        <Label>Location</Label>
+                        <RadioGroup
+                            value={template.clipNoteLocation || 'journal'}
+                            onValueChange={handleLocationChange}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="journal" id="journal" />
+                                <Label htmlFor="journal">Journal</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="currentPage" id="currentPage" />
+                                <Label htmlFor="currentPage">Current Page</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="customPage" id="customPage" />
+                                <Label htmlFor="customPage">Custom Page</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
 
-                {/* Clip Location Settings */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Clip Location</CardTitle>
+                    <div className="space-y-2">
+                        <Label htmlFor="custom-page-name">Custom Page Name</Label>
+                        <Input
+                            id="custom-page-name"
+                            disabled={template.clipNoteLocation !== 'customPage'}
+                            value={template.clipNoteCustomPage || ''}
+                            onChange={handleCustomPageChange}
+                            placeholder="Enter custom page name"
+                        />
                         <p className="text-sm text-muted-foreground">
-                            Choose where clips using this template will be saved.
+                            Only used when "Custom Page" is selected as the location.
                         </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="space-y-3">
-                                <Label>Location</Label>
-                                <RadioGroup
-                                    value={template.clipNoteLocation || 'journal'}
-                                    onValueChange={handleLocationChange}
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="journal" id="journal" />
-                                        <Label htmlFor="journal">Journal</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="currentPage" id="currentPage" />
-                                        <Label htmlFor="currentPage">Current Page</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="customPage" id="customPage" />
-                                        <Label htmlFor="customPage">Custom Page</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
+                    </div>
+                </div>
+            </PageSection>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="custom-page-name">Custom Page Name</Label>
-                                <Input
-                                    id="custom-page-name"
-                                    disabled={template.clipNoteLocation !== 'customPage'}
-                                    value={template.clipNoteCustomPage || ''}
-                                    onChange={handleCustomPageChange}
-                                    placeholder="Enter custom page name"
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    Only used when "Custom Page" is selected as the location.
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <PageSection
+                title="Template Content"
+                description="Define the content structure for clips using this template."
+            >
+                <div className="space-y-2">
+                    <Label htmlFor="template-content">Content</Label>
+                    <Textarea
+                        id="template-content"
+                        className="min-h-48 font-mono text-sm"
+                        value={template.content}
+                        onChange={handleContentChange}
+                        placeholder="Enter your template content here..."
+                    />
+                </div>
 
-                {/* Template Content */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Template Content</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            Define the content structure for clips using this template.
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="template-content">Content</Label>
-                                <Textarea
-                                    id="template-content"
-                                    className="min-h-48"
-                                    value={template.content}
-                                    onChange={handleContentChange}
-                                    placeholder="Enter your template content here..."
-                                />
+                <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Available Variables</h3>
+                    <dl className="grid gap-x-6 gap-y-1.5 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+                        {VARIABLES.map(([name, label]) => (
+                            <div key={name} className="flex gap-2">
+                                <dt><code className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">{name}</code></dt>
+                                <dd>{label}</dd>
                             </div>
+                        ))}
+                    </dl>
+                </div>
 
-                            <Separator />
-
-                            <div className="space-y-2">
-                                <h4 className="text-sm font-medium">Available Variables</h4>
-                                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                    <div><code>{'{{title}}'}</code> - Page title</div>
-                                    <div><code>{'{{url}}'}</code> - Page URL</div>
-                                    <div><code>{'{{content}}'}</code> - Selected content</div>
-                                    <div><code>{'{{date}}'}</code> - Current date</div>
-                                    <div><code>{'{{time}}'}</code> - Current time</div>
-                                    <div><code>{'{{dt}}'}</code> - Date/time object</div>
-                                </div>
-                            </div>
-
-                            <div className="pt-2">
-                                <a
-                                    href="https://liquidjs.com/tutorials/intro-to-liquid.html"
-                                    className="text-sm text-primary hover:underline"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Learn more about LiquidJS template syntax →
-                                </a>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                <a
+                    href="https://liquidjs.com/tutorials/intro-to-liquid.html"
+                    className="inline-block text-sm text-primary hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Learn more about LiquidJS template syntax →
+                </a>
+            </PageSection>
+        </PageLayout>
     );
 };
 

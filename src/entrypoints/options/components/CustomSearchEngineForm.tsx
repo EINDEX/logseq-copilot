@@ -161,9 +161,9 @@ const CustomSearchEngineForm: React.FC<CustomSearchEngineFormProps> = ({
                                 value={formData.name}
                                 onChange={(e) => handleInputChange('name', e.target.value)}
                                 placeholder="e.g., Custom Search"
-                                className={errors.name ? 'border-red-500' : ''}
+                                className={errors.name ? 'border-destructive' : ''}
                             />
-                            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                            {errors.name && <p className="text-destructive text-sm mt-1">{errors.name}</p>}
                         </div>
 
                         <div>
@@ -207,9 +207,9 @@ const CustomSearchEngineForm: React.FC<CustomSearchEngineFormProps> = ({
                             value={formData.urlPattern}
                             onChange={(e) => handleInputChange('urlPattern', e.target.value)}
                             placeholder="e.g., search.example.com or .*\.search\.com"
-                            className={errors.urlPattern ? 'border-red-500' : ''}
+                            className={errors.urlPattern ? 'border-destructive' : ''}
                         />
-                        {errors.urlPattern && <p className="text-red-500 text-sm mt-1">{errors.urlPattern}</p>}
+                        {errors.urlPattern && <p className="text-destructive text-sm mt-1">{errors.urlPattern}</p>}
                     </div>
 
                     <div>
@@ -231,9 +231,9 @@ const CustomSearchEngineForm: React.FC<CustomSearchEngineFormProps> = ({
                             value={formData.querySelector}
                             onChange={(e) => handleInputChange('querySelector', e.target.value)}
                             placeholder="e.g., ?q or #search-input"
-                            className={errors.querySelector ? 'border-red-500' : ''}
+                            className={errors.querySelector ? 'border-destructive' : ''}
                         />
-                        {errors.querySelector && <p className="text-red-500 text-sm mt-1">{errors.querySelector}</p>}
+                        {errors.querySelector && <p className="text-destructive text-sm mt-1">{errors.querySelector}</p>}
                     </div>
 
                     <div>
@@ -254,9 +254,9 @@ const CustomSearchEngineForm: React.FC<CustomSearchEngineFormProps> = ({
                             value={formData.elementSelector}
                             onChange={(e) => handleInputChange('elementSelector', e.target.value)}
                             placeholder="e.g., #sidebar or .results-container"
-                            className={errors.elementSelector ? 'border-red-500' : ''}
+                            className={errors.elementSelector ? 'border-destructive' : ''}
                         />
-                        {errors.elementSelector && <p className="text-red-500 text-sm mt-1">{errors.elementSelector}</p>}
+                        {errors.elementSelector && <p className="text-destructive text-sm mt-1">{errors.elementSelector}</p>}
                     </div>
 
                     <div>

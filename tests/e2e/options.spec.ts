@@ -34,14 +34,14 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('another page mentioning copilot')).toBeVisible();
 
     const options = await ext.openPage('options.html#/recall-rules');
-    await options.clickButton('添加规则');
+    await options.clickButton('Add rule');
     await options.fill('#name', 'E2E exclude Another Page');
     await options.fill('#urlPattern', 'google\\.com');
-    // Second "page name" input: 排除搜索页面 (the first is 限制搜索页面).
-    const pageNameInput = 'input[placeholder="输入页面名称"]';
+    // Second "Page name" input: "Exclude these pages" (the first is "Only search these pages").
+    const pageNameInput = 'input[placeholder="Page name"]';
     await options.fill(pageNameInput, 'Another Page', 1);
     await options.press(pageNameInput, 'Enter', 1);
-    await options.clickButton('保存规则');
+    await options.clickButton('Save rule');
     await expect
       .poll(async () =>
         ((await ext.getStorage('recallRulesConfig')) ?? []).some((r: any) =>

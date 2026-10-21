@@ -112,14 +112,14 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
   };
 
   const renderLoadingState = () => (
-    <Card className="w-full max-w-sm bg-card border-border">
-      <CardHeader className="pb-3">
+    <Card className="w-full max-w-sm bg-card border-border shadow-sm">
+      <CardHeader className="px-4 pt-4 pb-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-4 rounded" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-4 pb-4">
         <div className="space-y-2">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
@@ -134,8 +134,8 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
   );
 
   const renderErrorState = () => (
-    <Card className="w-full max-w-sm border-destructive/50 bg-card">
-      <CardHeader className="pb-3">
+    <Card className="w-full max-w-sm border-destructive/50 bg-card shadow-sm">
+      <CardHeader className="px-4 pt-4 pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-card-foreground">
             <IconAlertCircle className="h-4 w-4 text-destructive" />
@@ -151,7 +151,7 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-4 pb-4">
         <p className="text-sm text-muted-foreground">
           {errorMessage || 'Unable to connect to Logseq. Please check your configuration.'}
         </p>
@@ -175,8 +175,8 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
 
     if (totalResults === 0) {
       return (
-        <Card className="w-full max-w-sm bg-card border-border">
-          <CardHeader className="pb-3">
+        <Card className="w-full max-w-sm bg-card border-border shadow-sm">
+          <CardHeader className="px-4 pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">
@@ -196,7 +196,7 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 px-4 pb-4">
             <div className="text-center py-6">
               <p className="text-sm text-muted-foreground mb-3">
                 No results found for this search.
@@ -217,8 +217,8 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
     }
 
     return (
-      <Card className="w-full max-w-sm bg-card border-border">
-        <CardHeader className="pb-3">
+      <Card className="w-full max-w-sm bg-card border-border shadow-sm">
+        <CardHeader className="px-4 pt-4 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle className="text-sm font-medium text-card-foreground">
@@ -238,7 +238,7 @@ const LogseqCopliotContent = ({ query }: LogseqCopliotProps) => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-4">
           <LogseqCopilot
             graph={graph}
             blocks={blocks}
