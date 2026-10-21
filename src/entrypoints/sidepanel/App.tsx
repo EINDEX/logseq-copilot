@@ -20,6 +20,17 @@ const hostnameOf = (url: string) => {
   }
 };
 
+/** A centered message, for when there is nothing to list. */
+function EmptyState({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="py-8 text-center">
+      <IconHighlight className="mx-auto mb-2 h-8 w-8 text-muted-foreground/60" />
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
 /**
  * The highlights of the page in the active tab, in the browser sidebar (Chrome
  * and Edge side panel, Firefox sidebar). It only holds what it can read again
@@ -92,17 +103,16 @@ export default function App() {
   let content: ReactNode;
   if (tabLoading || (url && highlights === null)) {
     content = (
-      <div className="py-8 text-center text-muted-foreground">
+      <p className="py-10 text-center text-sm text-muted-foreground">
         Loading highlights...
-      </div>
+      </p>
     );
   } else if (!url || !highlights) {
     content = (
-      <div className="py-8 text-center text-muted-foreground">
-        <IconHighlight className="mx-auto mb-3 h-12 w-12 opacity-50" />
-        <p>Highlights aren't available on this page</p>
-        <p className="mt-1 text-xs">Open a web page to see its highlights</p>
-      </div>
+      <EmptyState
+        title="Highlights aren't available on this page"
+        hint="Open a web page to see its highlights"
+      />
     );
   } else {
     content = (
@@ -112,13 +122,10 @@ export default function App() {
         onDelete={handleDelete}
         onUpdateNote={handleUpdateNote}
         empty={
-          <div className="py-8 text-center text-muted-foreground">
-            <IconHighlight className="mx-auto mb-3 h-12 w-12 opacity-50" />
-            <p>No highlights on this page</p>
-            <p className="mt-1 text-xs">
-              Select text and clip it to create a highlight
-            </p>
-          </div>
+          <EmptyState
+            title="No highlights on this page"
+            hint="Select text and clip it to create a highlight"
+          />
         }
       />
     );
@@ -138,7 +145,7 @@ export default function App() {
         </div>
         {tab && (
           <div
-            className="mt-1 truncate text-xs text-muted-foreground"
+            className="mt-1 truncate text-sm text-muted-foreground"
             title={tab.title}
           >
             {tab.title || (tab.url && hostnameOf(tab.url))}
@@ -149,7 +156,7 @@ export default function App() {
       {notice && (
         <div
           role="status"
-          className="border-b bg-accent/50 px-4 py-2 text-xs text-muted-foreground"
+          className="border-b bg-accent/50 px-4 py-2 text-sm text-muted-foreground"
         >
           {notice}
         </div>
