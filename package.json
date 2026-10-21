@@ -1,6 +1,6 @@
 {
   "name": "logseq-copilot",
-  "version": "1.15.2",
+  "version": "2.0.0",
   "description": "Connect to the Logseq API and use your notes while browsing.",
   "license": "GPL-3.0-only",
   "repository": {
