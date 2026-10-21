@@ -16,6 +16,14 @@ const selectParagraph = (page: Page) =>
 
 const registeredHighlights = (page: Page) => page.evaluate(() => CSS.highlights.size);
 
+/**
+ * Theme attribute on the document element. Not `locator('html')`: Playwright
+ * locators pierce open shadow roots (the E2E build), and the in-page UI
+ * hosts have their own <html> inside.
+ */
+const pageTheme = (page: Page) =>
+  page.evaluate(() => document.documentElement.getAttribute('data-logseq-copilot-theme'));
+
 /** Background color painted on the highlighted paragraph text. */
 const highlightColor = (page: Page, highlightId: string) =>
   page.evaluate(
@@ -73,16 +81,15 @@ test.describe('highlights with the default configuration', () => {
     const highlightId: string = (await stored())[0].id;
     await expect.poll(() => registeredHighlights(page)).toBeGreaterThan(0);
 
-    const html = page.locator('html');
     await page.evaluate(() => document.documentElement.classList.add('light'));
-    await expect(html).toHaveAttribute('data-logseq-copilot-theme', 'light');
+    await expect.poll(() => pageTheme(page)).toBe('light');
     await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(133, 200, 200, 0.5)');
 
     await page.evaluate(() => {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
     });
-    await expect(html).toHaveAttribute('data-logseq-copilot-theme', 'dark');
+    await expect.poll(() => pageTheme(page)).toBe('dark');
     await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(133, 200, 200, 0.35)');
   });
 });

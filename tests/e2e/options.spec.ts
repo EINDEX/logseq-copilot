@@ -6,16 +6,21 @@ test.describe('options: connection', () => {
     // Start unconfigured: wrong port and no token.
     await ext.setStorage({ logseqHostName: 'localhost', logseqPort: 1, logseqAuthToken: '' });
     const options = await ext.openPage('options.html#/settings');
+    // Edits made before the settings have loaded are dropped (Connect.tsx
+    // ignores onChange until then), so wait for the stored host to show.
+    await expect.poll(() => options.inputValue('input[name="logseqHostName"]')).toBe('localhost');
 
     await options.fill('input[name="logseqHostName"]', logseq.host);
     await options.fill('input[name="logseqPort"]', String(logseq.port));
     await options.fill('input[name="logseqAuthToken"]', logseq.token);
 
     // Every change is saved and re-checked right away.
+    await expect.poll(() => ext.getStorage('logseqHostName')).toBe(logseq.host);
+    await expect.poll(() => ext.getStorage('logseqPort')).toBe(logseq.port);
+    await expect.poll(() => ext.getStorage('logseqAuthToken')).toBe(logseq.token);
+    // The check (debounced) uses the values above: the starting ones (port 1,
+    // no token) cannot connect.
     await options.expectButton(`Connected to Logseq v${logseq.version}!`);
-    expect(await ext.getStorage('logseqHostName')).toBe(logseq.host);
-    expect(await ext.getStorage('logseqPort')).toBe(logseq.port);
-    expect(await ext.getStorage('logseqAuthToken')).toBe(logseq.token);
   });
 
   test('a wrong token shows a readable error', async ({ ext }) => {

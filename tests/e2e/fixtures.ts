@@ -95,6 +95,8 @@ export interface ExtPage {
   expectButton: (name: string | RegExp) => Promise<void>;
   /** Click the first visible button whose accessible name matches. */
   clickButton: (name: string | RegExp) => Promise<void>;
+  /** Current value of the first input matching the CSS selector ('' if none). */
+  inputValue: (selector: string) => Promise<string>;
   /** Fill the `nth` element matching the CSS selector. */
   fill: (selector: string, value: string, nth?: number) => Promise<void>;
   press: (selector: string, key: 'Enter', nth?: number) => Promise<void>;
@@ -252,11 +254,12 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     | { op: 'fill'; selector: string; nth: number; value: string }
     | { op: 'press'; selector: string; nth: number; key: string }
     | { op: 'click'; selector: string }
-    | { op: 'isChecked'; selector: string };
+    | { op: 'isChecked'; selector: string }
+    | { op: 'value'; selector: string };
   const run = (action: Action) =>
     addon.client.evaluate(
       target.consoleActor,
-      (a: Action): boolean | null => {
+      (a: Action): boolean | string | null => {
         const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
         const matches = (s: string) => {
           if ('re' in a && a.re) return new RegExp(a.re[0], a.re[1]).test(norm(s));
@@ -301,6 +304,8 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
             el?.click();
             return !!el;
           }
+          case 'value':
+            return document.querySelector<HTMLInputElement>(a.selector)?.value ?? '';
           case 'isChecked': {
             const el = document.querySelector<HTMLInputElement>(a.selector);
             if (!el) return null;
@@ -326,6 +331,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     hasText: async (text) => !!(await run({ op: 'hasText', ...textArg(text) })),
     expectButton: (name) => until(`expectButton ${name}`, { op: 'button', ...textArg(name), click: false }),
     clickButton: (name) => until(`clickButton ${name}`, { op: 'button', ...textArg(name), click: true }),
+    inputValue: async (selector) => String(await run({ op: 'value', selector })),
     fill: (selector, value, nth = 0) => until(`fill ${selector}`, { op: 'fill', selector, nth, value }),
     press: (selector, key, nth = 0) => until(`press ${selector}`, { op: 'press', selector, nth, key }),
     click: (selector) => until(`click ${selector}`, { op: 'click', selector }),
@@ -334,7 +340,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
       const deadline = Date.now() + 15_000;
       for (;;) {
         const checked = await run({ op: 'isChecked', selector });
-        if (checked !== null) return checked;
+        if (checked !== null) return checked === true;
         if (Date.now() > deadline) throw new Error(`isChecked: no ${selector} in ${target.url}`);
         await sleep(200);
       }
@@ -353,6 +359,7 @@ function playwrightExtPage(page: Page): ExtPage {
     hasText: (text) => page.getByText(text).isVisible(),
     expectButton: (name) => expect(page.getByRole('button', { name })).toBeVisible(),
     clickButton: (name) => page.getByRole('button', { name }).first().click(),
+    inputValue: (selector) => page.locator(selector).first().inputValue(),
     fill: (selector, value, nth = 0) => page.locator(selector).nth(nth).fill(value),
     press: (selector, key, nth = 0) => page.locator(selector).nth(nth).press(key),
     click: (selector) => page.locator(selector).click(),
