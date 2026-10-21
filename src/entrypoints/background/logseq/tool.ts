@@ -224,6 +224,8 @@ const parseIsolated = (
     marked.use(<marked.MarkedExtension>{
       gfm: true,
       tables: true,
+      // Logseq shows every line of a block on its own line.
+      breaks: true,
       walkTokens: query ? highlightTokens(query) : undefined,
       extensions: logseqExtensions(graphName, query, refTitles),
       renderer: assetImageRenderer as any,

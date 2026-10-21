@@ -133,6 +133,12 @@ describe('renderBlock Logseq syntax', () => {
     expect(render('<span class="foo">x</span>', 'foo')).not.toContain('<mark>');
   });
 
+  test('lines of a multi-line block stay on their own lines', () => {
+    expect(render('first line\nsecond **line**')).toBe(
+      '<p>first line<br>second <strong>line</strong></p>',
+    );
+  });
+
   test('properties are hidden, the rest of the block stays', () => {
     expect(render('title\ntype:: article\nsource:: x')).toBe('<p>title</p>');
   });
