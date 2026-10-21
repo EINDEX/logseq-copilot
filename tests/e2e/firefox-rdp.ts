@@ -94,7 +94,15 @@ export class RdpClient {
    * self-contained and its result JSON-serializable.
    */
   async evaluate<R, A>(consoleActor: string, fn: (arg: A) => R | Promise<R>, arg?: A): Promise<R> {
-    const text = `(async () => JSON.stringify(await (${fn.toString()})(${JSON.stringify(arg)}) ?? null))()`;
+    // A rejected promise is not reported as an exception by evaluateJSAsync
+    // (only as an unhandled rejection), so errors travel back as data.
+    const text = `(async () => {
+      try {
+        return JSON.stringify({ value: (await (${fn.toString()})(${JSON.stringify(arg)})) ?? null });
+      } catch (e) {
+        return JSON.stringify({ error: String((e && e.message) || e) });
+      }
+    })()`;
     let resultID: string | undefined;
     const early: Packet[] = [];
     let done: ((p: Packet) => void) | undefined;
@@ -125,7 +133,10 @@ export class RdpClient {
       if (json?.type === 'longString') {
         json = (await this.request(json.actor, 'substring', { start: 0, end: json.length })).substring;
       }
-      return typeof json === 'string' ? JSON.parse(json) : (undefined as R);
+      if (typeof json !== 'string') throw new Error(`evaluate returned no result: ${JSON.stringify(packet.result)}`);
+      const { value, error } = JSON.parse(json);
+      if (error !== undefined) throw new Error(`evaluate threw: ${error}`);
+      return value;
     } finally {
       clearTimeout(timer);
       off();
