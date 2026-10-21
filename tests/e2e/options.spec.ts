@@ -2,28 +2,26 @@ import { expect, test } from './fixtures';
 import { googleUrl } from './pages';
 
 test.describe('options: connection', () => {
-  test('entering host, port and token connects and saves them', async ({ page, ext, logseq }) => {
+  test('entering host, port and token connects and saves them', async ({ ext, logseq }) => {
     // Start unconfigured: wrong port and no token.
     await ext.setStorage({ logseqHostName: 'localhost', logseqPort: 1, logseqAuthToken: '' });
-    await page.goto(ext.url('options.html#/settings'));
+    const options = await ext.openPage('options.html#/settings');
 
-    await page.locator('input[name="logseqHostName"]').fill(logseq.host);
-    await page.locator('input[name="logseqPort"]').fill(String(logseq.port));
-    await page.locator('input[name="logseqAuthToken"]').fill(logseq.token);
+    await options.fill('input[name="logseqHostName"]', logseq.host);
+    await options.fill('input[name="logseqPort"]', String(logseq.port));
+    await options.fill('input[name="logseqAuthToken"]', logseq.token);
 
     // Every change is saved and re-checked right away.
-    await expect(page.getByRole('button', { name: `Connected to Logseq v${logseq.version}!` })).toBeVisible();
+    await options.expectButton(`Connected to Logseq v${logseq.version}!`);
     expect(await ext.getStorage('logseqHostName')).toBe(logseq.host);
     expect(await ext.getStorage('logseqPort')).toBe(logseq.port);
     expect(await ext.getStorage('logseqAuthToken')).toBe(logseq.token);
   });
 
-  test('a wrong token shows a readable error', async ({ page, ext }) => {
+  test('a wrong token shows a readable error', async ({ ext }) => {
     await ext.connect({ token: 'wrong-token' });
-    await page.goto(ext.url('options.html#/settings'));
-    await expect(
-      page.getByRole('button', { name: /Token not correct, Please checking your Logseq Authorization Setting/ }),
-    ).toBeVisible();
+    const options = await ext.openPage('options.html#/settings');
+    await options.expectButton(/Token not correct, Please checking your Logseq Authorization Setting/);
   });
 });
 
@@ -35,16 +33,15 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
     await expect(sidebar.getByText('another page mentioning copilot')).toBeVisible();
 
-    const options = await page.context().newPage();
-    await options.goto(ext.url('options.html#/recall-rules'));
-    await options.getByRole('button', { name: '添加规则' }).first().click();
-    await options.locator('#name').fill('E2E exclude Another Page');
-    await options.locator('#urlPattern').fill('google\\.com');
+    const options = await ext.openPage('options.html#/recall-rules');
+    await options.clickButton('添加规则');
+    await options.fill('#name', 'E2E exclude Another Page');
+    await options.fill('#urlPattern', 'google\\.com');
     // Second "page name" input: 排除搜索页面 (the first is 限制搜索页面).
-    const excludeInput = options.getByPlaceholder('输入页面名称').nth(1);
-    await excludeInput.fill('Another Page');
-    await excludeInput.press('Enter');
-    await options.getByRole('button', { name: '保存规则' }).click();
+    const pageNameInput = 'input[placeholder="输入页面名称"]';
+    await options.fill(pageNameInput, 'Another Page', 1);
+    await options.press(pageNameInput, 'Enter', 1);
+    await options.clickButton('保存规则');
     await expect
       .poll(async () =>
         ((await ext.getStorage('recallRulesConfig')) ?? []).some((r: any) =>
@@ -59,4 +56,3 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('another page mentioning copilot')).toHaveCount(0);
   });
 });
-
