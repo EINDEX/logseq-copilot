@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { IconArrowUpRight, IconCheck } from '@tabler/icons-react';
 import { LogseqBlockType } from '@/types/logseqBlock';
-import LogseqPageLink from './LogseqPage';
+import LogseqPageLink, { pageUrl } from './LogseqPage';
 import { sendMessage } from '@/types/messaging';
 import './logseq-results.css';
 
@@ -180,6 +180,15 @@ export const LogseqBlockRow = ({
             </span>
           )}
           <div className="lc-content" dangerouslySetInnerHTML={{ __html: block.html }} />
+          {block.tagNames && block.tagNames.length > 0 && (
+            <div className="lc-block-tags">
+              {block.tagNames.map((name) => (
+                <a key={name} className="lc-block-tag" href={pageUrl(graph, name)}>
+                  #{name}
+                </a>
+              ))}
+            </div>
+          )}
         </Foldable>
         {error && (
           <span role="alert" className="lc-task-error">

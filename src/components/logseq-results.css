@@ -284,6 +284,29 @@
   line-height: 16px;
 }
 
+/* DB graphs: the block's class tags, after the text like in Logseq. */
+.lc-block-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  margin-top: 2px;
+}
+.lc-block-tag {
+  color: var(--lc-muted);
+  font-size: 12px;
+  line-height: 16px;
+  text-decoration: none;
+}
+.lc-block-tag:hover {
+  color: var(--lc-accent);
+  text-decoration: underline;
+}
+.lc-block-tag:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--lc-accent) 60%, transparent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
 /* Rendered markdown of a block. */
 .lc-content {
   overflow-wrap: anywhere;
