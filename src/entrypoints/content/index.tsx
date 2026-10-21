@@ -80,10 +80,10 @@ export default defineContentScript({
       }
     }
 
-    const mount = async (container: Element, query: string) => {
+    const mount = async (container: Element, query: string, hostFont: string) => {
       const root = createRoot(container);
 
-      root.render(<LogseqCopliot query={query} />);
+      root.render(<LogseqCopliot query={query} hostFont={hostFont} />);
       return root;
     };
 
@@ -109,10 +109,12 @@ export default defineContentScript({
           position: 'inline',
           anchor: container,
           append: 'first',
-          onMount: async (container) => {
+          onMount: async (uiContainer) => {
             const app = document.createElement('div');
-            container.append(app);
-            return mount(app, query);
+            uiContainer.append(app);
+            // Text in the sidebar uses the host page's font (Arial on
+            // Google, Segoe UI on Bing, ...); the shadow root resets it.
+            return mount(app, query, getComputedStyle(container).fontFamily);
           },
           onRemove: async (root) => {
             // Unmount the root when the UI is removed
@@ -124,7 +126,9 @@ export default defineContentScript({
         });
 
         if (searchEngineUi) {
-          // 4. Mount the UI
+          // 4. Mount the UI. The host element is inline by default; as a
+          // block it takes the full width of the host column.
+          searchEngineUi.shadowHost.style.display = 'block';
           searchEngineUi.mount();
         }
       }

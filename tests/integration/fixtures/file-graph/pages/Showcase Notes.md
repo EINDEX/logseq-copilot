@@ -1,0 +1,2 @@
+- A second page in the showcase, so results come from more than one page
+- showcase note about [[Rich Content Showcase]]

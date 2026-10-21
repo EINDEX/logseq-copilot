@@ -16,6 +16,12 @@ abstract class SearchingEngine {
   }
 }
 
+/** Google's right column (#rhs): width and gap to the results column. */
+const GOOGLE_RHS_WIDTH = 369;
+const GOOGLE_RHS_MARGIN = 76;
+/** Narrower than this, the sidebar goes above the results instead. */
+const GOOGLE_RHS_MIN_WIDTH = 300;
+
 class CustomSearchEngine extends SearchingEngine {
   private config: {
     id: string;
@@ -158,18 +164,21 @@ class CustomSearchEngine extends SearchingEngine {
 
       // Special handling for different search engines
       if (this.config.id === 'bing') {
+        // #b_context is a list of cards (li.b_ans); a plain item keeps the
+        // full rail width without the card frame.
         container = document.createElement('li');
-        container.className = 'b_ans';
+        container.className = 'logseq-copilot-custom-container';
+        Object.assign((container as HTMLElement).style, {
+          listStyle: 'none',
+          margin: '0 0 16px',
+          padding: '0',
+        });
       } else if (this.config.id === 'ecosia') {
         container = document.createElement('article');
         container.className = 'logseq-copilot-custom-container';
       } else {
         container = document.createElement('div');
         container.className = 'logseq-copilot-custom-container';
-
-        if (this.config.id === 'duckduckgo') {
-          (container as HTMLElement).style.marginLeft = '8px';
-        }
       }
 
       switch (this.config.insertPosition) {
@@ -201,20 +210,36 @@ class CustomSearchEngine extends SearchingEngine {
     }
   }
 
+  /**
+   * Google: first thing in the right column (#rhs, 369px) when there is one.
+   * Most result pages have none: then a column of the same width and gap
+   * next to the results (#center_col), or, when the window has no room for
+   * it, the top of the results column.
+   */
   private handleGoogleElement(): Element {
     const container = document.createElement('div');
     const asideElement = document.getElementById('rhs');
 
-    const hasAside = !!asideElement;
-
-    if (hasAside) {
+    if (asideElement) {
       asideElement.insertBefore(container, asideElement.firstChild);
-    } else {
-      const noAsideElement = document.getElementById('center_col');
-      noAsideElement?.parentNode?.appendChild(container);
-      container.id = 'rhs';
-      container.style.width = '372px';
+      return container;
     }
+
+    const centerCol = document.getElementById('center_col');
+    const room = centerCol
+      ? document.documentElement.clientWidth - centerCol.getBoundingClientRect().right
+      : 0;
+    if (centerCol && room < GOOGLE_RHS_MARGIN + GOOGLE_RHS_MIN_WIDTH) {
+      centerCol.insertBefore(container, centerCol.firstChild);
+      return container;
+    }
+
+    centerCol?.parentNode?.appendChild(container);
+    Object.assign(container.style, {
+      flex: '0 0 auto',
+      width: `${Math.min(GOOGLE_RHS_WIDTH, room - GOOGLE_RHS_MARGIN)}px`,
+      marginLeft: `${GOOGLE_RHS_MARGIN}px`,
+    });
     return container;
   }
 

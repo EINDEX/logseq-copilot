@@ -5,15 +5,21 @@
  * dark, against the seeded Logseq. The tests only assert that the key
  * elements are visible.
  *
+ * The search engine sidebar is taken on the Google (empty right column,
+ * knowledge panel, no right column, narrow window), Bing and DuckDuckGo
+ * fixture pages, with the rich content of the fixture graph (`showcase`,
+ * folded and unfolded) and with many results (`bulkitem`, first page and
+ * all); the popup also with the rich content.
+ *
  * Output: test-results/ui-screenshots/<name>-<light|dark>.png (uploaded by
  * CI as the `ui-screenshots-<variant>` artifact on every run). Runs on
- * Chromium with the file graph only, so the matrix does not take the same
- * pictures twice.
+ * Chromium only; most pictures with the file graph only, so the matrix does
+ * not take the same pictures twice.
  */
 import path from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 import { expect, logseqInfo, nonce, test } from './fixtures';
-import { googleUrl } from './pages';
+import { bingUrl, duckDuckGoUrl, googleUrl, type GoogleRightColumn } from './pages';
 
 const OUT_DIR = path.resolve(__dirname, '../../test-results/ui-screenshots');
 const VIEWPORT = { width: 1440, height: 900 };
@@ -21,7 +27,14 @@ const SCHEMES = ['light', 'dark'] as const;
 type Scheme = (typeof SCHEMES)[number];
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'screenshots are taken on Chromium only');
-test.skip(() => logseqInfo().variant !== 'file', 'screenshots are taken with the file graph only');
+/**
+ * Most screenshots are taken with the file graph only; the rich content and
+ * many results ones run for both graph types (`-db` suffix), since the DB
+ * graph returns different fields.
+ */
+const fileGraphOnly = () =>
+  test.skip(logseqInfo().variant !== 'file', 'taken with the file graph only');
+const variantSuffix = () => (logseqInfo().variant === 'db' ? '-db' : '');
 
 const file = (name: string, scheme: Scheme) => path.join(OUT_DIR, `${name}-${scheme}.png`);
 
@@ -39,6 +52,7 @@ const shoot = async (
     await target.mouse.move(VIEWPORT.width - 1, VIEWPORT.height - 1);
     await target.screenshot({ ...options, fullPage: true });
   } else {
+    await target.page().mouse.move(0, 0);
     await target.screenshot(options);
   }
 };
@@ -47,16 +61,56 @@ const shoot = async (
 const setScheme = (page: Page, scheme: Scheme) => page.emulateMedia({ colorScheme: scheme });
 
 /**
- * Host page theme for the in-page UI: theme-detection reads the html class
- * and, on Google, the body background.
+ * Host page theme for the in-page UI: theme-detection reads the html class,
+ * the body class on Bing and DuckDuckGo and, on Google, the body background.
+ * The fixture pages switch their own colors on `html.dark`.
  */
-const setPageTheme = (page: Page, scheme: Scheme) =>
-  page.evaluate((dark) => {
-    document.documentElement.classList.toggle('dark', dark);
-    document.documentElement.classList.toggle('light', !dark);
-    document.body.style.background = dark ? 'rgb(32, 33, 36)' : 'rgb(255, 255, 255)';
-    document.body.style.color = dark ? 'rgb(232, 234, 237)' : 'rgb(32, 33, 36)';
-  }, scheme === 'dark');
+const setPageTheme = (
+  page: Page,
+  scheme: Scheme,
+  colors = { background: 'rgb(32, 33, 36)', color: 'rgb(232, 234, 237)' },
+) =>
+  page.evaluate(
+    ({ dark, colors }) => {
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.classList.toggle('light', !dark);
+      document.body.classList.toggle('dark', dark);
+      document.body.style.background = dark ? colors.background : 'rgb(255, 255, 255)';
+      document.body.style.color = dark ? colors.color : '';
+    },
+    { dark: scheme === 'dark', colors },
+  );
+
+/** The search engines with a fixture page, their mount point and dark colors. */
+const ENGINES = [
+  {
+    name: 'google',
+    url: (q: string, rhs?: GoogleRightColumn) => googleUrl(q, rhs),
+    host: '#rhs logseq-copilot-search-engine',
+    dark: { background: 'rgb(32, 33, 36)', color: 'rgb(232, 234, 237)' },
+  },
+  {
+    name: 'bing',
+    url: (q: string) => bingUrl(q),
+    host: '#b_context logseq-copilot-search-engine',
+    dark: { background: 'rgb(27, 26, 25)', color: 'rgb(255, 255, 255)' },
+  },
+  {
+    name: 'duckduckgo',
+    url: (q: string) => duckDuckGoUrl(q),
+    host: '.js-react-sidebar logseq-copilot-search-engine',
+    dark: { background: 'rgb(28, 28, 28)', color: 'rgb(238, 238, 238)' },
+  },
+] as const;
+
+/** Click every visible button named `name` (e.g. all "Show more" toggles). */
+const clickAll = async (host: Locator, name: RegExp) => {
+  for (let i = 0; i < 50; i++) {
+    const button = host.getByRole('button', { name }).first();
+    if (!(await button.isVisible().catch(() => false))) return;
+    await button.click();
+  }
+};
 
 const expectTheme = (host: Locator, scheme: Scheme) =>
   scheme === 'dark'
@@ -109,6 +163,7 @@ test.describe('UI screenshots', () => {
   });
 
   test('options pages', async ({ page, ext }) => {
+    fileGraphOnly();
     await ext.connect();
     await ext.setStorage({ highlights: seededHighlights() });
 
@@ -143,6 +198,7 @@ test.describe('UI screenshots', () => {
   });
 
   test('popup with results', async ({ page, ext }) => {
+    fileGraphOnly();
     await ext.connect();
     await page.goto('https://example.com/copilot/article');
 
@@ -155,20 +211,107 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('search engine sidebar', async ({ page, ext }) => {
+  test('popup with rich content', async ({ page, ext }) => {
     await ext.connect();
-    await page.goto(googleUrl('copilot'));
-    const host = page.locator('#rhs logseq-copilot-search-engine');
-    await expect(host.getByText('Hello from copilot integration test')).toBeVisible();
+    await page.goto('https://example.com/copilot/article');
 
+    for (const scheme of SCHEMES) {
+      const popup = (await ext.openPopup(page)).page!;
+      await setScheme(popup, scheme);
+      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+      await popup.getByPlaceholder(/Search in your Logseq graph/).fill('showcase');
+      await popup.getByPlaceholder(/Search in your Logseq graph/).press('Enter');
+      await expect(popup.getByText('showcase parent block')).toBeVisible();
+      await shoot(popup.locator('#app-container > *').first(), `popup-rich${variantSuffix()}`, scheme);
+      await popup.close();
+    }
+  });
+
+  test('search engine sidebar on Google, Bing and DuckDuckGo', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    const cases = [
+      ...ENGINES.map((engine) => ({ engine, name: engine.name, url: engine.url('copilot') })),
+      { engine: ENGINES[0], name: 'google-panel', url: googleUrl('copilot', 'panel') },
+      // No right column: the sidebar makes its own column next to the results.
+      { engine: { ...ENGINES[0], host: 'logseq-copilot-search-engine' }, name: 'google-no-rhs', url: googleUrl('copilot', 'none') },
+    ];
+    for (const { engine, name, url } of cases) {
+      await page.goto(url);
+      const host = page.locator(engine.host);
+      await expect(host.getByText('Hello from copilot integration test')).toBeVisible();
+      for (const scheme of SCHEMES) {
+        await setPageTheme(page, scheme, engine.dark);
+        await expectTheme(host, scheme);
+        await shoot(page, `search-sidebar-${name}`, scheme);
+      }
+    }
+  });
+
+  test('search engine sidebar in a narrow window', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await page.goto(googleUrl('copilot', 'none'));
+    const host = page.locator('logseq-copilot-search-engine');
+    await expect(host.getByText('Hello from copilot integration test')).toBeVisible();
     for (const scheme of SCHEMES) {
       await setPageTheme(page, scheme);
       await expectTheme(host, scheme);
-      await shoot(page.locator('#main'), 'search-sidebar', scheme);
+      await shoot(page, 'search-sidebar-google-narrow', scheme);
+    }
+  });
+
+  test('search engine sidebar with rich content', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto(googleUrl('showcase'));
+    const host = page.locator(ENGINES[0].host);
+    await expect(host.getByText('showcase finished task').or(host.getByText('showcase parent block')).first()).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await page.reload();
+      await expect(host.getByText('showcase parent block')).toBeVisible();
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-sidebar-rich${variantSuffix()}`, scheme);
+      // Everything: all results, every long block unfolded.
+      await clickAll(host, /^Show all/i);
+      await clickAll(host, /^Show more/i);
+      // Page refs and tags read by name; DB class tags follow the block text.
+      const text = await host.locator('.lc-results').first().innerText();
+      expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/);
+      expect(text).toContain('Another Page');
+      if (logseqInfo().variant === 'db') {
+        await expect(host.locator('.lc-block-tag', { hasText: '#Book' })).toBeVisible();
+        // Inline tags are not repeated after the text, #Task is not shown.
+        await expect(host.locator('.lc-block-tag', { hasText: /#(reading|Task)$/ })).toHaveCount(0);
+      }
+      await shoot(host, `search-sidebar-rich-expanded${variantSuffix()}`, scheme);
+      // Hover toolbar of a task: the TODO -> DOING switch and "open block".
+      const task = host.locator('[data-marker="TODO"]').first();
+      await expect(task).toBeVisible();
+      await task.hover();
+      await task.screenshot({ path: file(`search-sidebar-task-hover${variantSuffix()}`, scheme), animations: 'disabled' });
+    }
+  });
+
+  test('search engine sidebar with many results', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto(googleUrl('bulkitem'));
+    const host = page.locator(ENGINES[0].host);
+    await expect(host.getByText(/bulkitem \d+/).first()).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await page.reload();
+      await expect(host.getByText(/bulkitem \d+/).first()).toBeVisible();
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-sidebar-many${variantSuffix()}`, scheme);
+      await clickAll(host, /^Show all/i);
+      await shoot(host, `search-sidebar-many-all${variantSuffix()}`, scheme);
     }
   });
 
   test('page highlight, float button, comment popup and highlights sidebar', async ({ page, ext, articles }) => {
+    fileGraphOnly();
     const id = nonce('shot');
     const url = `https://example.com/e2e/${id}`;
     articles.set(url, {

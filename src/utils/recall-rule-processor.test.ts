@@ -166,7 +166,8 @@ describe('rule matching', () => {
     const ctx = await processor.processSearchContext('https://x.example/#/route');
     expect(ctx.appliedRules.map((r) => r.id)).toEqual(['default-spa']);
     expect(ctx.processedUrl.href).toBe('https://x.example/');
-    expect(ctx.resultFiltering.maxResults).toBe(10);
+    // The catch-all default rule must not limit the number of results.
+    expect(ctx.resultFiltering.maxResults).toBeUndefined();
   });
 
   it('re-reads rules from storage on every search', async () => {

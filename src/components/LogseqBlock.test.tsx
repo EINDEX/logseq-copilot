@@ -72,7 +72,8 @@ describe('LogseqBlock marker controls', () => {
     await flush();
 
     expect(handler).toHaveBeenCalledWith({ uuid: 'b1', marker: 'DONE' });
-    expect(el.textContent).toContain('DONE');
+    // Like Logseq, DONE is a checked box and struck-through text, no label.
+    expect(el.querySelector('[data-marker]')!.getAttribute('data-marker')).toBe('DONE');
     expect(
       el.querySelector('button[role="checkbox"]')!.getAttribute('aria-checked'),
     ).toBe('true');
@@ -88,7 +89,10 @@ describe('LogseqBlock marker controls', () => {
     await flush();
 
     expect(handler).toHaveBeenCalledWith({ uuid: 'b2', marker: 'TODO' });
-    expect(el.textContent).toContain('TODO');
+    expect(el.querySelector('[data-marker]')!.getAttribute('data-marker')).toBe('TODO');
+    expect(
+      el.querySelector('button[role="checkbox"]')!.getAttribute('aria-checked'),
+    ).toBe('false');
   });
 
   test('a failed change keeps the old status and shows the reason', async () => {
@@ -106,8 +110,10 @@ describe('LogseqBlock marker controls', () => {
     );
     await flush();
 
-    expect(el.textContent).toContain('TODO');
-    expect(el.textContent).not.toContain('DONE');
+    expect(el.querySelector('[data-marker]')!.getAttribute('data-marker')).toBe('TODO');
+    expect(
+      el.querySelector('button[role="checkbox"]')!.getAttribute('aria-checked'),
+    ).toBe('false');
     expect(el.querySelector('[role="alert"]')?.textContent).toBe(
       'Not support scheduled task.',
     );
@@ -136,9 +142,9 @@ describe('LogseqBlock marker controls', () => {
     await flush();
 
     expect(handler).toHaveBeenCalledWith({ uuid: 'b', marker: 'DONE' });
-    const items = el.querySelectorAll('li');
-    expect(items[0].textContent).toContain('TODO');
-    expect(items[1].textContent).toContain('DONE');
+    const rows = el.querySelectorAll('[data-marker]');
+    expect(rows[0].getAttribute('data-marker')).toBe('TODO');
+    expect(rows[1].getAttribute('data-marker')).toBe('DONE');
   });
 
   test('the status badge toggles DOING to TODO', async () => {

@@ -150,8 +150,8 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload UI screenshots
-        # tests/e2e/ui-screenshots.spec.ts, file graph only; uploaded on every
-        # run for UI review.
+        # tests/e2e/ui-screenshots.spec.ts (rich content and many results for
+        # both graph types, the rest file graph only); uploaded on every run.
         if: always()
         uses: actions/upload-artifact@v4
         with:
