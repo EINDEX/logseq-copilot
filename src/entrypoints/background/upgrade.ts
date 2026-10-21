@@ -1,6 +1,11 @@
 import { storage } from '#imports';
 import { saveLogseqCopliotConfig } from '@/config';
-import { templates, type TemplateItemV1 } from '@/utils/storage';
+import {
+  recallRulesConfig,
+  templates,
+  type RecallRuleConfig,
+  type TemplateItemV1,
+} from '@/utils/storage';
 
 const DEFAULT_PORTS: Record<string, number> = { 'http:': 80, 'https:': 443 };
 
@@ -98,4 +103,58 @@ export const migrateLegacyClipSettingsToTemplates = async () => {
   }
 
   await storage.setItem(CLIP_SETTINGS_MIGRATED_KEY, true);
+};
+
+/**
+ * The built-in recall rules used to ship with Chinese names and descriptions.
+ * Old value -> current English default, per rule id and field.
+ */
+const LEGACY_RECALL_RULE_COPY: Record<
+  string,
+  Partial<Record<'name' | 'description', [legacy: string, current: string]>>
+> = {
+  'default-spa': {
+    name: ['单页应用默认规则', 'Single-page apps'],
+    description: [
+      '针对使用hash路由的单页应用，忽略URL hash片段',
+      'Ignores the URL hash (#...) on single-page apps that route with it.',
+    ],
+  },
+  'github-pr': {
+    description: [
+      '针对GitHub PR页面，只搜索代码和项目相关内容',
+      'Focuses GitHub pull requests and issues on code and project notes.',
+    ],
+  },
+};
+
+/**
+ * Translate the built-in recall rules saved with the old Chinese copy.
+ * Idempotent: a field is only replaced while it still equals the old
+ * default, so names and descriptions the user edited are kept, and nothing
+ * is written when no rules are saved.
+ */
+export const migrateRecallRuleDefaultsToEnglish = async () => {
+  // The raw value: the typed item returns its fallback for a missing key.
+  const saved = await storage.getItem<RecallRuleConfig[]>(
+    'local:recallRulesConfig',
+  );
+  if (!Array.isArray(saved)) return;
+
+  let changed = false;
+  const migrated = saved.map((rule) => {
+    const copy = LEGACY_RECALL_RULE_COPY[rule.id];
+    if (!copy) return rule;
+    const next = { ...rule };
+    for (const field of ['name', 'description'] as const) {
+      const pair = copy[field];
+      if (pair && next[field] === pair[0]) {
+        next[field] = pair[1];
+        changed = true;
+      }
+    }
+    return next;
+  });
+
+  if (changed) await recallRulesConfig.setValue(migrated);
 };

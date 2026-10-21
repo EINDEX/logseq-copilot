@@ -10,7 +10,8 @@ import { ThemedHighlightCommentPopup } from '@/components/HighlightCommentPopup'
 import type { HighlightData } from '@/types/highlight';
 import { contentEvents } from '@/utils/content-events';
 import '@/assets/globals.css';
-import scssStyles from './index.module.scss';
+// Content-script only rules (search keyword highlight).
+import './index.module.scss';
 import log from '@/utils/logger';
 
 
@@ -62,9 +63,40 @@ contentEvents.on('quickCapture', capture);
 contentEvents.on('quickCaptureWithSelection', capture);
 contentEvents.on('quickCapturePage', clipPage);
 
+/** Outer size of the floating button in CSS px (img + padding + border). */
+export const FLOAT_BUTTON_SIZE = 32;
+const FLOAT_BUTTON_ICON = 22;
+const FLOAT_BUTTON_GAP = 6;
+
+/**
+ * Page coordinates for the floating button: just after the end of the
+ * selection, vertically centred on its last line, so it never covers the
+ * selected text. Falls back to below the end of the selection when there is
+ * no room on the right, and to the pointer when the selection has no box.
+ */
+const floatButtonPosition = (selection: Selection, event: MouseEvent) => {
+  const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  const rects = range ? Array.from(range.getClientRects()) : [];
+  const last = rects.filter((r) => r.width > 0 || r.height > 0).pop();
+  if (!last) return { x: event.pageX + 10, y: event.pageY + 10 };
+
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  let x = last.right + FLOAT_BUTTON_GAP;
+  let y = last.top + last.height / 2 - FLOAT_BUTTON_SIZE / 2;
+  if (x + FLOAT_BUTTON_SIZE > viewportWidth - FLOAT_BUTTON_GAP) {
+    x = Math.max(FLOAT_BUTTON_GAP, last.right - FLOAT_BUTTON_SIZE);
+    y = last.bottom + FLOAT_BUTTON_GAP;
+  }
+  return { x: x + window.scrollX, y: y + window.scrollY };
+};
+
 /**
  * The floating clip button that follows a text selection. Only rendered when
  * the "floating button" option is on.
+ *
+ * Sizes are inline px (and on the img itself): the button lives in a shadow
+ * root on any host page, and must not depend on a stylesheet class or on the
+ * page's rem size. Without them the logo showed at its intrinsic 192px.
  */
 const FloatButton = () => {
   const [position, setPostion] = useState({
@@ -94,7 +126,7 @@ const FloatButton = () => {
     }
     if (haveSelection && event.type === "mouseup") {
       setShow(true);
-      setPostion({ x: event.pageX + 10, y: event.pageY + 10 });
+      setPostion(floatButtonPosition(selection, event));
     } else {
       setShow(false)
     }
@@ -117,24 +149,35 @@ const FloatButton = () => {
       left: `${position.x}px`,
       top: `${position.y}px`,
       zIndex: zIndex,
-      background: 'var(--background, #fff)',
-      border: '1px solid var(--border, #e5e7eb)',
+      boxSizing: 'border-box',
+      width: `${FLOAT_BUTTON_SIZE}px`,
+      height: `${FLOAT_BUTTON_SIZE}px`,
+      padding: `${(FLOAT_BUTTON_SIZE - FLOAT_BUTTON_ICON - 2) / 2}px`,
+      lineHeight: 0,
+      background: 'var(--background)',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
-      padding: '4px',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      cursor: 'pointer',
     };
   };
 
   return (
-    <div ref={buttonRef} className={scssStyles.popupButton} style={styles()}>
+    <div ref={buttonRef} style={styles()} title="Clip to Logseq">
       <img
-        className={`${scssStyles.popupButton} quickCapture`}
+        className="quickCapture"
         src={logo}
         onClick={capture}
         alt={'clip-button'}
+        width={FLOAT_BUTTON_ICON}
+        height={FLOAT_BUTTON_ICON}
+        draggable={false}
         style={{
-          filter: 'var(--logo-filter, none)',
-          opacity: 0.8,
+          display: 'block',
+          width: `${FLOAT_BUTTON_ICON}px`,
+          height: `${FLOAT_BUTTON_ICON}px`,
+          maxWidth: 'none',
+          borderRadius: '9999px',
         }}
       />
     </div>

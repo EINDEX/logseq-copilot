@@ -13,6 +13,13 @@ import { detectTheme, setupThemeChangeListeners } from './theme-detection';
  */
 const PAGE_THEME_ATTRIBUTE = 'data-logseq-copilot-theme';
 
+/** Page highlight tint: Logseq teal (#85c8c8), see injectHighlightCSS. */
+const BRAND_HIGHLIGHT = {
+  light: 'rgba(133, 200, 200, 0.5)',
+  dark: 'rgba(133, 200, 200, 0.35)',
+  flash: 'rgba(133, 200, 200, 0.85)',
+};
+
 /**
  * Manages highlights display and restoration on web pages
  */
@@ -485,14 +492,7 @@ export class HighlightManager {
       // Temporarily change the highlight style to create a flash effect
       const flashCSS = `
         ::highlight(${highlightName}) {
-          background-color: rgba(59, 130, 246, 0.6) !important;
-          animation: highlight-flash 1s ease-out;
-        }
-        
-        @keyframes highlight-flash {
-          0% { background-color: rgba(59, 130, 246, 0.8); }
-          50% { background-color: rgba(59, 130, 246, 0.4); }
-          100% { background-color: rgba(255, 255, 0, 0.3); }
+          background-color: ${BRAND_HIGHLIGHT.flash} !important;
         }
       `;
 
@@ -545,11 +545,11 @@ export class HighlightManager {
       style.setAttribute('data-highlight', highlightName);
 
       // Define color mappings
+      // The default ('yellow', the stored value of every highlight so far)
+      // is the brand teal: dark text keeps >= 11:1 on light pages, light
+      // text >= 6:1 on dark ones.
       const colorMap: Record<string, { light: string; dark: string }> = {
-        yellow: {
-          light: 'rgba(255, 255, 0, 0.4)',
-          dark: 'rgba(255, 255, 0, 0.25)',
-        },
+        yellow: BRAND_HIGHLIGHT,
         green: { light: 'rgba(0, 255, 0, 0.4)', dark: 'rgba(0, 255, 0, 0.25)' },
         blue: { light: 'rgba(0, 0, 255, 0.4)', dark: 'rgba(0, 0, 255, 0.25)' },
         pink: {

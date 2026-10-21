@@ -76,13 +76,13 @@ test.describe('highlights with the default configuration', () => {
     const html = page.locator('html');
     await page.evaluate(() => document.documentElement.classList.add('light'));
     await expect(html).toHaveAttribute('data-logseq-copilot-theme', 'light');
-    await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(255, 255, 0, 0.4)');
+    await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(133, 200, 200, 0.5)');
 
     await page.evaluate(() => {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
     });
     await expect(html).toHaveAttribute('data-logseq-copilot-theme', 'dark');
-    await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(255, 255, 0, 0.25)');
+    await expect.poll(() => highlightColor(page, highlightId)).toBe('rgba(133, 200, 200, 0.35)');
   });
 });
