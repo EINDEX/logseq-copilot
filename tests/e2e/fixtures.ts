@@ -328,9 +328,14 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     press: (selector, key, nth = 0) => until(`press ${selector}`, { op: 'press', selector, nth, key }),
     click: (selector) => until(`click ${selector}`, { op: 'click', selector }),
     isChecked: async (selector) => {
-      const checked = await run({ op: 'isChecked', selector });
-      if (checked === null) throw new Error(`isChecked: no ${selector} in ${target.url}`);
-      return checked;
+      // Waits for the element, like Playwright's locator.isChecked().
+      const deadline = Date.now() + 15_000;
+      for (;;) {
+        const checked = await run({ op: 'isChecked', selector });
+        if (checked !== null) return checked;
+        if (Date.now() > deadline) throw new Error(`isChecked: no ${selector} in ${target.url}`);
+        await sleep(200);
+      }
     },
     close: async () => {
       await onClose();
