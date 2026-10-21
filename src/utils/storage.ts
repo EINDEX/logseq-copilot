@@ -297,8 +297,10 @@ export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
             days: 30,
           },
         },
+        // No maxResults: this rule matches every site, and a limit here
+        // capped every search (sidebar and popup) at 10 blocks. The result
+        // lists show the first 10 and the rest behind "Show all".
         resultFiltering: {
-          maxResults: 10,
           prioritizeRecent: false,
         },
       },
