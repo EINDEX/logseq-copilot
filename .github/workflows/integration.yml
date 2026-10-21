@@ -26,15 +26,15 @@ jobs:
             version: 2.0.2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           version: 9
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         name: Use Node.js
         with:
           node-version: 22.x
@@ -49,7 +49,7 @@ jobs:
             xvfb libsecret-1-0 libnss3 libgbm1 libasound2t64 libgtk-3-0t64
 
       - name: Cache Logseq
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .logseq-bin/${{ matrix.variant }}-${{ matrix.version }}
           key: logseq-${{ matrix.variant }}-${{ matrix.version }}
@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload setup screenshot
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logseq-${{ matrix.variant }}-failure
           path: logseq-setup-failure.png
@@ -90,15 +90,15 @@ jobs:
             version: 2.0.2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           version: 9
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         name: Use Node.js
         with:
           node-version: 22.x
@@ -116,7 +116,7 @@ jobs:
         run: pnpm exec playwright install --with-deps --no-shell chromium
 
       - name: Cache Logseq
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .logseq-bin/${{ matrix.variant }}-${{ matrix.version }}
           key: logseq-${{ matrix.variant }}-${{ matrix.version }}
@@ -137,7 +137,7 @@ jobs:
 
       - name: Upload Playwright traces and screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-${{ matrix.variant }}-failure
           path: |
@@ -149,7 +149,7 @@ jobs:
         # tests/e2e/ui-screenshots.spec.ts, file graph only; uploaded on every
         # run for UI review.
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-screenshots-${{ matrix.variant }}
           path: test-results/ui-screenshots
