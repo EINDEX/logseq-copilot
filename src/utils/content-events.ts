@@ -10,7 +10,6 @@ import log from './logger';
  * the content script's isolated JS world, so page scripts cannot reach it.
  */
 export type ContentEventMap = {
-  highlightAdded: HighlightData;
   highlightRemoved: { highlightId: string };
   // A highlight was edited elsewhere (e.g. its note, in the browser sidebar).
   highlightUpdated: HighlightData;

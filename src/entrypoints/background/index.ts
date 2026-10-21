@@ -273,7 +273,7 @@ export default defineBackground({
     // Call it first in the handler of a menu item or command: the browser opens
     // the sidebar only while the user action is still alive, so nothing may be
     // awaited before it.
-    const openHighlightsSidebar = (tab: Browser.tabs.Tab | undefined) => {
+    const openSidebarForTab = (tab: Browser.tabs.Tab | undefined) => {
       if (tab?.windowId === undefined) {
         log.warn('[background] No tab to open the highlights sidebar for');
         return;
@@ -285,7 +285,7 @@ export default defineBackground({
 
     browser.contextMenus.onClicked.addListener((info, tab) => {
       if (info.menuItemId === 'open-highlights-sidebar') {
-        openHighlightsSidebar(tab);
+        openSidebarForTab(tab);
       } else if (info.menuItemId === 'clip-with-selection') {
         sendMessage('content:quickCaptureWithSelection', undefined, {
           tabId: tab!.id!,
@@ -314,7 +314,7 @@ export default defineBackground({
 
     browser.commands.onCommand.addListener((command, tab) => {
       if (command === 'open-sidebar') {
-        openHighlightsSidebar(tab);
+        openSidebarForTab(tab);
       } else if (command === 'clip' && tab !== undefined) {
         sendMessage('content:quickCapture', undefined, { tabId: tab.id! });
       }

@@ -35,12 +35,7 @@ const capture = async () => {
       // Only saving needs the restored highlight state; the clip above must
       // not wait for a slow restore.
       await highlightManager.ready;
-      const savedHighlight = await highlightManager.addHighlight(range);
-
-      // Notify the sidebar of the new highlight
-      if (savedHighlight) {
-        contentEvents.emit('highlightAdded', savedHighlight);
-      }
+      await highlightManager.addHighlight(range);
     } catch (error) {
       log.debug('[QuickCapture] Failed to save highlight', error);
     }

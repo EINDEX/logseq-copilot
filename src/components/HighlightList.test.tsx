@@ -114,7 +114,7 @@ describe('HighlightList', () => {
       );
 
       expect(screen.getByText('Nothing here')).not.toBeNull();
-      expect(container.querySelector('.highlights-sidebar-card')).toBeNull();
+      expect(container.textContent).toBe('Nothing here');
     });
 
     it('shows nothing for no highlights when there is no empty state', () => {
@@ -174,41 +174,6 @@ describe('HighlightList', () => {
       expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDelete).toHaveBeenCalledWith('b');
       expect(onSelect).not.toHaveBeenCalled();
-    });
-
-    it('shows the extra actions of every highlight, before the others', () => {
-      const onSelect = vi.fn();
-      render(
-        <HighlightList
-          highlights={[highlight('a'), highlight('b')]}
-          onSelect={onSelect}
-          onDelete={noop}
-          renderActions={(h) => (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(`extra-${h.id}`);
-              }}
-            >
-              Extra {h.id}
-            </button>
-          )}
-        />,
-      );
-
-      const names = screen
-        .getAllByRole('button')
-        .map((b) => b.textContent || b.getAttribute('aria-label'));
-      expect(names).toEqual([
-        'Extra a',
-        'Delete highlight',
-        'Extra b',
-        'Delete highlight',
-      ]);
-
-      fireEvent.click(screen.getByText('Extra b'));
-      expect(onSelect).toHaveBeenCalledTimes(1);
-      expect(onSelect).toHaveBeenCalledWith('extra-b');
     });
 
     it('reveals the actions with the keyboard, not just the pointer', () => {

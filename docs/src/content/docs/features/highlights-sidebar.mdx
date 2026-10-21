@@ -1,131 +1,66 @@
 ---
 title: Highlights Sidebar
-description: View and manage all your highlights with the convenient sidebar feature.
+description: See and manage the highlights of the page you are reading in your browser's own sidebar.
 ---
-
-import { Badge } from '@astrojs/starlight/components';
 
 # Highlights Sidebar
 
-The Logseq Copilot extension includes a highlights sidebar that allows you to view and manage all your highlights while browsing. This sidebar provides quick access to your saved highlights with search and filtering capabilities.
+The highlights sidebar lists the highlights you saved on the page you are reading. From there you can jump to a highlight, edit its note, or delete it.
 
-## Features
+It opens in your browser's own sidebar: the **side panel** in Chrome and Edge, and the **sidebar** in Firefox. Nothing is drawn on top of the web page.
 
-### Sidebar Toggle
+## Opening the Sidebar
 
-- **Toggle Button**: A floating button appears on the right side of your browser window
-- **Highlight Count Badge** <Badge text="Live Updates" variant="note" />: Shows the number of highlights on the current page
-- **Smart Positioning**: Automatically adjusts position when sidebar is open/closed
+There are three ways to open it:
 
-### Sidebar Content
+1. **Popup button**: Click the Logseq Copilot icon in the toolbar, then click **Highlights**.
+2. **Right-click menu**: Right-click on the page, or on selected text, and choose **Open highlights sidebar**.
+3. **Keyboard shortcut**: Press your **Open highlights sidebar** shortcut. It has no default key, so you need to set one first.
 
-- **Current Page Highlights**: View highlights specific to the current webpage
-- **All Sites Highlights**: Browse highlights from all websites you've visited
-- **Search Function**: Find highlights by text content, notes, or page title
-- **Responsive Design**: Adapts to different screen sizes
+### Setting the Keyboard Shortcut
 
-## How to Use
+The shortcut is unbound by default, because any key combination can clash with the browser's own shortcuts or with another extension. Choose your own in the browser's shortcut settings:
 
-### Opening the Sidebar
+- **Chrome**: Open `chrome://extensions/shortcuts`, find Logseq Copilot, and set a key for **Open highlights sidebar**.
+- **Edge**: Open `edge://extensions/shortcuts` and do the same.
+- **Firefox**: Open `about:addons`, click the gear icon, choose **Manage Extension Shortcuts**, and set a key for **Open highlights sidebar** under Logseq Copilot.
 
-1. **Click the toggle button** on the right side of your screen
-2. **Use keyboard shortcut**:
-   - `Ctrl+Shift+H` (Windows/Linux)
-   - `Cmd+Shift+H` (Mac)
+:::note
+Browsers do not allow links to their settings pages. Copy the address into the address bar of a new tab.
+:::
 
-### Closing the Sidebar
+## What the Sidebar Shows
 
-You can close the sidebar in multiple ways:
+- **The page in the active tab**: The highlights saved for the exact address of that page, newest first. The header shows the page title and how many highlights it has.
+- **It follows the active tab**: Switch to another tab, or open another page in the same tab, and the list changes to match. The sidebar stays open, so you do not need to close and reopen it.
+- **Each highlight** shows the highlighted text, your note (if any), the site, when you created it, and its tags.
+- **A page without highlights** shows "No highlights on this page".
 
-1. **Click the X button** in the sidebar header
-2. **Click the toggle button** again
-3. **Press Escape key**
-4. **Use keyboard shortcut**: `Ctrl+Shift+H` or `Cmd+Shift+H`
+To close the sidebar, use the close button the browser gives its side panel or sidebar.
 
-### Viewing Highlights
+## Working with Highlights
 
-#### Filter Options
+Move the pointer over a highlight, or move to it with the keyboard, to show its buttons.
 
-- **This Page**: Shows only highlights from the current webpage
-- **All Sites**: Shows highlights from all websites (limited to recent 100 for performance)
+- **Locate it on the page**: Click the highlight. The page scrolls to the highlighted text and flashes it briefly.
+- **Edit the note**: Click the pencil button, type the note, then click **Save** (or press `Ctrl+Enter` / `Cmd+Enter`). Click **Cancel** or press `Escape` to drop your changes. If the comment popup of the same highlight is open on the page, it shows the new note.
+- **Delete it**: Click the trash button. The highlight is removed from the list and from the page right away. There is no confirmation and no undo.
 
-#### Search Function
+Highlights are created on the page itself by clipping a selection. See [Highlight Comments](/features/highlight-comments) for how to create them.
 
-Type in the search box to filter highlights by:
+## Pages Without Highlights
 
-- Highlighted text content
-- Your personal notes
-- Page titles
-
-### Interacting with Highlights
-
-#### Quick Actions
-
-- **Click on highlight text**: Jump to the highlight location on the page
-- **Edit notes**: Add or modify your personal notes for each highlight
-- **Delete highlights**: Remove highlights you no longer need
-- **Copy text**: Copy the highlighted text to your clipboard
-
-#### Highlight Details
-
-Each highlight shows:
-
-- The highlighted text content
-- Your personal notes (if any)
-- Creation date and time
-- Source page URL
-- Color coding (if used)
-
-## Tips for Better Organization
-
-### Using Search Effectively
-
-- **Search by keywords**: Find highlights containing specific terms
-- **Search by notes**: Locate highlights with specific annotations
-- **Search by page title**: Find all highlights from a particular website
-
-### Managing Large Collections
-
-- Use the **filter by current page** option to focus on relevant content
-- **Add meaningful notes** to make highlights easier to find later
-- **Delete outdated highlights** to keep your collection relevant
-
-### Keyboard Shortcuts <Badge text="Pro Tip" variant="tip" />
-
-- `Ctrl/Cmd+Shift+H`: Toggle sidebar
-- `Escape`: Close sidebar or cancel current action
-- `Enter`: Confirm edits when editing notes
-
-## Performance Considerations
-
-The sidebar is optimized for performance:
-
-- **Lazy loading**: Only loads highlights when needed
-- **Pagination**: Shows recent highlights first
-- **Search debouncing**: Waits for you to finish typing before searching
-- **Memory efficient**: Automatically manages memory usage
+Highlights work on web pages only, the ones whose address starts with `http://` or `https://`. On any other page, such as the new tab page, browser pages like `chrome://extensions` or `about:addons`, local files, or the pages of other extensions, the sidebar shows **Highlights aren't available on this page**. Open a web page and the list appears on its own.
 
 ## Troubleshooting
 
-### Common Issues
+**"Reload the page to jump to highlights"**:
 
-**Sidebar not appearing**:
+You clicked a highlight, but the page is not running the extension, so the extension could not scroll to the text. This usually means the page was already open when you installed or updated Logseq Copilot: the extension only attaches to a page when it loads. Reload the page and click the highlight again. On a page where the browser does not let extensions run at all, reloading does not help.
 
-- Check if the extension is enabled
-- Verify your browser permissions
-- Try refreshing the page
+**"Couldn't find this highlight on the page"**:
 
-**Highlights not loading**:
-
-- Ensure you're connected to Logseq
-- Check your internet connection
-- Verify the Logseq API server is running
-
-**Search not working**:
-
-- Make sure you have highlights to search
-- Try clearing the search and typing again
-- Check if your highlights have text content
+The extension could not find the highlighted text on the page, usually because the content of the page changed since you saved it. The highlight stays in the list, and you can still edit or delete it.
 
 ### Getting Help
 

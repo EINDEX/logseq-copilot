@@ -243,13 +243,13 @@ export class HighlightManager {
 
       const restored: string[] = [];
       for (const highlightData of pageHighlights) {
-        if (await this.displayHighlight(highlightData, { touch: false })) {
+        if (await this.displayHighlight(highlightData)) {
           restored.push(highlightData.id);
         }
       }
 
-      // One write for the whole restore. Touching each highlight as it was
-      // displayed rewrote the whole stored array once for every one of them.
+      // One write for the whole restore: a write rewrites the whole stored
+      // array, so touching the highlights one by one would repeat it for each.
       if (restored.length > 0) {
         await HighlightService.updateLastAccessed(restored);
       }
@@ -263,13 +263,9 @@ export class HighlightManager {
   }
 
   /**
-   * Display a highlight on the page. Updates its last accessed time unless
-   * `touch` is false (a caller that displays many of them does that once).
+   * Display a highlight on the page
    */
-  async displayHighlight(
-    highlightData: HighlightData,
-    { touch = true }: { touch?: boolean } = {},
-  ): Promise<boolean> {
+  async displayHighlight(highlightData: HighlightData): Promise<boolean> {
     try {
       const range = HighlightService.deserializeRange(highlightData.range);
       if (!range) {
@@ -295,10 +291,6 @@ export class HighlightManager {
 
       // Inject CSS for this specific highlight if not already done
       this.injectHighlightCSS(highlightName, highlightData.color || 'yellow');
-
-      if (touch) {
-        await HighlightService.updateLastAccessed(highlightData.id);
-      }
 
       log.debug(`[HighlightManager] Displayed highlight ${highlightData.id}`);
       return true;
@@ -360,7 +352,7 @@ export class HighlightManager {
       if (result.success) {
         log.debug(`[HighlightManager] Removed highlight ${highlightId}`);
         
-        // Notify the sidebar of the removed highlight
+        // Notify the comment popup of the removed highlight
         contentEvents.emit('highlightRemoved', { highlightId });
         
         return true;
@@ -376,42 +368,6 @@ export class HighlightManager {
         `[HighlightManager] Failed to remove highlight ${highlightId}:`,
         error,
       );
-      return false;
-    }
-  }
-
-  /**
-   * Clear all highlights from the current page
-   */
-  async clearPageHighlights(): Promise<boolean> {
-    try {
-      await this.ready;
-
-      const pageHighlights = await HighlightService.getCurrentPageHighlights();
-
-      for (const highlight of pageHighlights) {
-        const highlightName = this.getHighlightName(highlight);
-        this.highlights.delete(highlightName);
-        this.highlightMap.delete(highlight.id);
-      }
-
-      // Clear from storage
-      const result = await HighlightService.clearHighlights({
-        url: window.location.href,
-      });
-
-      if (result.success) {
-        log.debug('[HighlightManager] Cleared all page highlights');
-        return true;
-      } else {
-        log.error(
-          '[HighlightManager] Failed to clear page highlights:',
-          result.message,
-        );
-        return false;
-      }
-    } catch (error) {
-      log.error('[HighlightManager] Failed to clear page highlights:', error);
       return false;
     }
   }

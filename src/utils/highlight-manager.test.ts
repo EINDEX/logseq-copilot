@@ -194,19 +194,17 @@ describe('HighlightManager', () => {
       expect(set).not.toHaveBeenCalled();
     });
 
-    it('touches a single highlight by default, and none when told not to', async () => {
-      const touch = vi
-        .spyOn(HighlightService, 'updateLastAccessed')
-        .mockResolvedValue();
+    it('writes nothing when it shows a single highlight', async () => {
+      await seed([highlight('a')]);
+      const set = vi.spyOn(fakeBrowser.storage.local, 'set');
 
-      await manager().displayHighlight(highlight('a'));
-      expect(touch).toHaveBeenCalledTimes(1);
-      expect(touch).toHaveBeenCalledWith('a');
+      await expect(manager().displayHighlight(highlight('a'))).resolves.toBe(
+        true,
+      );
 
-      touch.mockClear();
-      await manager().displayHighlight(highlight('b'), { touch: false });
-      expect(touch).not.toHaveBeenCalled();
-      expect(registry.has(name('b'))).toBe(true);
+      expect(registry.has(name('a'))).toBe(true);
+      expect(set).not.toHaveBeenCalled();
+      expect((await stored())[0].lastAccessedAt).toBe(1);
     });
   });
 

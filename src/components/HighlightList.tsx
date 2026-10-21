@@ -14,10 +14,9 @@ import type { HighlightData } from '@/types/highlight';
 import log from '@/utils/logger';
 
 /**
- * The list of highlights shared by the in-page sidebar and the browser
- * sidebar. It only renders what it gets in props and never reads storage or
- * the page, so it runs in any context (a content script shadow root, an
- * extension page). Keep it free of imports from the content script entrypoint.
+ * The list of highlights shown in the browser sidebar. It only renders what it
+ * gets in props and never reads storage or the page, so it runs in an
+ * extension page. Keep it free of imports from the content script entrypoint.
  */
 interface HighlightListProps {
   highlights: HighlightData[];
@@ -26,8 +25,6 @@ interface HighlightListProps {
   onDelete: (id: string) => void;
   /** Lets the user edit notes in the list. Without it, notes are read-only. */
   onUpdateNote?: (id: string, note: string) => void | Promise<void>;
-  /** Extra buttons for a highlight, shown before the edit and delete ones. */
-  renderActions?: (highlight: HighlightData) => ReactNode;
   /** Shown instead of the list when there are no highlights. */
   empty?: ReactNode;
 }
@@ -126,7 +123,6 @@ export function HighlightList({
   onSelect,
   onDelete,
   onUpdateNote,
-  renderActions,
   empty,
 }: HighlightListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -140,7 +136,7 @@ export function HighlightList({
       {highlights.map((highlight) => (
         <Card
           key={highlight.id}
-          className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-400 highlights-sidebar-card"
+          className="group cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-yellow-400"
           onClick={() => onSelect(highlight.id)}
         >
           <CardContent className="p-4">
@@ -199,7 +195,6 @@ export function HighlightList({
 
             {/* Actions: shown on hover, and while a button has keyboard focus */}
             <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 transition-opacity">
-              {renderActions?.(highlight)}
               {onUpdateNote && (
                 <Button
                   variant="ghost"

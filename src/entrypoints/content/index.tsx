@@ -9,7 +9,6 @@ import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
-import { HighlightsSidebarContainer } from '@/components/HighlightsSidebarContainer';
 import log from '@/utils/logger';
 
 export default defineContentScript({
@@ -172,32 +171,6 @@ export default defineContentScript({
       if (popupUi) {
         // 4. Mount the UI
         popupUi.mount();
-      }
-
-      // Mount the highlights sidebar
-      const sidebarUi = await createShadowRootUi(ctx, {
-        name: 'logseq-copilot-highlights-sidebar',
-        position: 'inline',
-        anchor: 'body',
-        onMount: async (container) => {
-          const app = document.createElement('div');
-          app.id = 'logseq-copilot-highlights-sidebar';
-          container.append(app);
-
-          const root = createRoot(app);
-          root.render(<HighlightsSidebarContainer />);
-          return root;
-        },
-        onRemove: async (root) => {
-          if (root) {
-            const toUnmount = await root;
-            toUnmount?.unmount();
-          }
-        },
-      });
-
-      if (sidebarUi) {
-        sidebarUi.mount();
       }
     };
 

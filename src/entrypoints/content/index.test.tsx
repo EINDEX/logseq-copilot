@@ -97,8 +97,6 @@ describe('content script startup', () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       restore.promise,
     );
-    const added = vi.fn();
-    const off = contentEvents.on('highlightAdded', added);
 
     // Do not await main: the restore below never resolves until we say so.
     void (contentScript as any).main({});
@@ -128,8 +126,6 @@ describe('content script startup', () => {
     await flush();
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(added).toHaveBeenCalledWith(saved);
-    off();
   });
 
   it('clips the page at once while highlights are still restoring', async () => {

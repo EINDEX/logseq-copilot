@@ -123,7 +123,7 @@ export default function Popup() {
   // browser opens the sidebar only while the click is still a user action, so
   // nothing may be awaited before openSidebar.
   const windowId = currentTab?.windowId;
-  const openHighlightsSidebar = () => {
+  const openSidebarAndClose = () => {
     if (windowId === undefined) return;
     openSidebar(windowId)
       .then(() => window.close())
@@ -221,7 +221,7 @@ export default function Popup() {
         onRefresh={searchCurrentPage}
         onOpenSettings={openSettingsPage}
         onOpenLogseq={openLogseqGraph}
-        onOpenSidebar={openHighlightsSidebar}
+        onOpenSidebar={openSidebarAndClose}
         canOpenSidebar={windowId !== undefined}
         isLoading={isLoading}
         hasGraph={!!logseqSearchResult?.graph}
