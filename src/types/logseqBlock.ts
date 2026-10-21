@@ -13,6 +13,11 @@ export type LogseqBlockType = {
   format: string;
   marker: string;
   priority: string;
+  /** Entity id and parent entity id: nests results under their parent. */
+  id?: number;
+  parent?: { id: number };
+  /** Text of the blocks referenced as `((uuid))`, by uuid. */
+  refTitles?: Record<string, string>;
 };
 
 export type LogseqPageContentType = {

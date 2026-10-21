@@ -161,3 +161,78 @@ describe('changeBlockMarker (file graph)', () => {
     expect(updates).toEqual([]);
   });
 });
+
+describe('search (file graph)', () => {
+  const REF = '65f0c0de-0000-4000-8000-000000000001';
+  const hit = (n: number) => ({ 'block/uuid': `u${n}` });
+  const block = (uuid: string, content = `foo ${uuid}`) => ({
+    uuid,
+    content,
+    page: { id: 1 },
+    parent: { id: 1 },
+  });
+
+  const api = (opts: { hits: number; find?: unknown[] | Error }) => {
+    const calls: string[] = [];
+    stubApi((method, args) => {
+      calls.push(method);
+      if (method.endsWith('getCurrentGraph')) return { name: 'g', path: '/g' };
+      if (method === 'logseq.App.search')
+        return { blocks: Array.from({ length: opts.hits }, (_, i) => hit(i)), pages: [] };
+      if (method === 'logseq.Editor.getBlock') {
+        const uuid = args[0] as string;
+        return uuid === REF ? block(REF, 'the referenced block') : block(uuid);
+      }
+      if (method === 'logseq.Editor.getPage') return { id: 1, name: 'p', originalName: 'P', uuid: 'p1' };
+      if (method === 'logseq.DB.q') {
+        if (opts.find instanceof Error) return new Response('boom', { status: 500 });
+        return opts.find ?? [];
+      }
+      return null;
+    });
+    return calls;
+  };
+
+  test('below the API limit there is no full-text query', async () => {
+    const calls = api({ hits: 3 });
+    const { response } = await new LogseqService().search('foo');
+    expect(response.blocks).toHaveLength(3);
+    expect(calls).not.toContain('logseq.DB.q');
+  });
+
+  test('a full search API page is completed by a full-text query, without repeats', async () => {
+    const extra = Array.from({ length: 60 }, (_, i) => ({
+      ...block(`x${i}`),
+      page: { id: 2, name: 'other', originalName: 'Other' },
+    }));
+    api({ hits: 10, find: [block('u3'), ...extra] });
+    const { response } = await new LogseqService().search('foo');
+    const uuids = response.blocks.map((b: any) => b.uuid);
+    expect(uuids).toHaveLength(50);
+    expect(new Set(uuids).size).toBe(50);
+    expect(uuids.slice(0, 10)).toEqual(Array.from({ length: 10 }, (_, i) => `u${i}`));
+    // Blocks from the query keep their page name and get rendered.
+    expect(response.blocks[10].page.originalName).toBe('Other');
+    expect(response.blocks[10].html).toBe('<p><mark>foo</mark> x0</p>');
+  });
+
+  test('a failing full-text query keeps the search API results', async () => {
+    api({ hits: 10, find: new Error('boom') });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { response } = await new LogseqService().search('foo');
+    expect(response.blocks).toHaveLength(10);
+  });
+
+  test('block refs are rendered with the referenced text', async () => {
+    stubApi((method, args) => {
+      if (method.endsWith('getCurrentGraph')) return { name: 'g', path: '/g' };
+      if (method === 'logseq.App.search') return { blocks: [hit(1)], pages: [] };
+      if (method === 'logseq.Editor.getBlock')
+        return args[0] === REF ? block(REF, 'the referenced block') : block('u1', `see ((${REF}))`);
+      if (method === 'logseq.Editor.getPage') return { id: 1, name: 'p', uuid: 'p1' };
+      return null;
+    });
+    const { response } = await new LogseqService().search('foo');
+    expect(response.blocks[0].html).toContain('>the referenced block</a>');
+  });
+});
