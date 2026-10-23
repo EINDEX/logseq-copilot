@@ -1,5 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
-import { blockRending, logseqEscape } from './utils';
+import {
+  blockRending,
+  formatLogseqDate,
+  logseqEscape,
+  toDateFnsPattern,
+} from './utils';
 
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {
@@ -64,6 +69,14 @@ describe('renderBlock', () => {
       ['yyyy_MM_dd', '2021_08_19'],
       ['yyyyMMdd', '20210819'],
       ['yyyy年MM月dd日', '2021年08月19日'],
+      // Formats Logseq's cljs-time accepts but date-fns rejects (issue #77):
+      // `D` is the day of the month and `Y` is the year there.
+      ['MMMM D, YYYY', 'August 19, 2021'],
+      ['D/M/YYYY', '19/8/2021'],
+      ['DD.MM.YY', '19.08.21'],
+      ['YYYY-MM-DD', '2021-08-19'],
+      ['Do MMM YYYY', '19th Aug 2021'],
+      ["'Day' D, YYYY", 'Day 19, 2021'],
     ]);
 
     const clipNoteTemplate = '{{date}}';
@@ -144,6 +157,51 @@ describe('test logseq_copliot', () => {
     let result = logseqEscape(str);
     let expected = '\\{{a}}';
     expect(result).toEqual(expected);
+  });
+});
+
+describe('formatLogseqDate', () => {
+  // A single-digit day and month tell `D`/`d` and `M` apart from `DD`/`MM`.
+  const today = new Date(2026, 9, 23);
+  const earlier = new Date(2026, 0, 5);
+
+  test.each([
+    ['MMM do, yyyy', 'Oct 23rd, 2026', 'Jan 5th, 2026'],
+    ['yyyy-MM-dd', '2026-10-23', '2026-01-05'],
+    ['dd-MM-yyyy', '23-10-2026', '05-01-2026'],
+    ['yyyy/MM/dd', '2026/10/23', '2026/01/05'],
+    ['EEE, dd.MM.yyyy', 'Fri, 23.10.2026', 'Mon, 05.01.2026'],
+    // cljs-time spellings from issue #77 (`:journal/page-title-format`)
+    ['MMMM D, YYYY', 'October 23, 2026', 'January 5, 2026'],
+    ['YYYY-MM-DD', '2026-10-23', '2026-01-05'],
+    ['DD/MM/YYYY', '23/10/2026', '05/01/2026'],
+    ['Do MMMM YYYY', '23rd October 2026', '5th January 2026'],
+    ["'Day' D, YYYY", 'Day 23, 2026', 'Day 5, 2026'],
+  ])('renders %s', (pattern, expectedToday, expectedEarlier) => {
+    expect(formatLogseqDate(today, pattern)).toBe(expectedToday);
+    expect(formatLogseqDate(earlier, pattern)).toBe(expectedEarlier);
+  });
+
+  test('does not throw on the format from issue #77', () => {
+    expect(() => formatLogseqDate(today, 'MMMM D, YYYY')).not.toThrow();
+  });
+});
+
+describe('toDateFnsPattern', () => {
+  test.each([
+    ['MMMM D, YYYY', 'MMMM d, yyyy'],
+    ['DD-MM-YY', 'dd-MM-yy'],
+    ['Do MMM YYYY', 'do MMM yyyy'],
+    // patterns date-fns already reads the same way are untouched
+    ['MMM do, yyyy', 'MMM do, yyyy'],
+    ['EEE, dd.MM.yyyy', 'EEE, dd.MM.yyyy'],
+    ['yyyy年MM月dd日', 'yyyy年MM月dd日'],
+    // quoted literals are not rewritten
+    ["'D' D 'YYYY' YYYY", "'D' d 'YYYY' yyyy"],
+    ["'it''s' D", "'it''s' d"],
+    ["'at' D", "'at' d"],
+  ])('%s -> %s', (input, expected) => {
+    expect(toDateFnsPattern(input)).toBe(expected);
   });
 });
 

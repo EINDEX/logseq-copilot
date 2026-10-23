@@ -1,7 +1,6 @@
 import { getLogseqCopliotConfig } from '@/utils/storage';
-import { blockRending } from '@/utils/utils';
+import { blockRending, formatLogseqDate } from '@/utils/utils';
 import { debounce } from '@/utils';
-import { format } from 'date-fns';
 import {
   changeOptionsHostToHostNameAndPort,
   migrateLegacyClipSettingsToTemplates,
@@ -197,7 +196,7 @@ export default defineBackground({
           await logseqService.client.getCurrentPage();
         await logseqService.client.appendBlock(currentPage, block);
       } else {
-        const journalPage = format(now, resp['preferredDateFormat']);
+        const journalPage = formatLogseqDate(now, resp['preferredDateFormat']);
         await logseqService.client.appendBlock(journalPage, block);
       }
 

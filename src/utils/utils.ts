@@ -13,6 +13,25 @@ export const logseqTimeFormat = (date: Date): string => {
   return format(date, 'HH:mm');
 };
 
+/**
+ * Logseq renders `preferredDateFormat` (`:journal/page-title-format`) with
+ * cljs-time, where `D` is the day of the month and `Y` is the year. date-fns
+ * reads them as day-of-year and week-numbering year and throws a RangeError, so
+ * rewrite those two tokens to their date-fns equivalents. Single-quoted
+ * literals are left alone; every other token means the same in both libraries.
+ */
+export const toDateFnsPattern = (logseqPattern: string): string =>
+  logseqPattern.replace(/'(?:''|[^'])*(?:'|$)|D+|Y+/g, (match) =>
+    match.startsWith("'") ? match : match.toLowerCase(),
+  );
+
+/**
+ * Format a date the way Logseq names the journal page for it. Use it for both
+ * the journal page name and the `{{date}}` template variable so they agree.
+ */
+export const formatLogseqDate = (date: Date, logseqPattern: string): string =>
+  format(date, toDateFnsPattern(logseqPattern));
+
 const mappingVersionToNumbers = (version: string): Array<number> => {
   return version
     .split('.')
@@ -55,7 +74,7 @@ export function blockRending({
 }): string {
   const render = engine
     .parseAndRenderSync(clipNoteTemplate, {
-      date: format(time, preferredDateFormat),
+      date: formatLogseqDate(time, preferredDateFormat),
       content: logseqEscape(data),
       url: url,
       time: logseqTimeFormat(time),

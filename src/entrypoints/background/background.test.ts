@@ -3,7 +3,15 @@
  * the real webext-core client, so message names and payloads are checked on both
  * ends. Only the Logseq service is faked.
  */
-import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { sendMessage } from '@/types/messaging';
 import {
@@ -16,6 +24,10 @@ const service = vi.hoisted(() => ({
   changeBlockMarker: vi.fn(),
   search: vi.fn(),
   urlSearch: vi.fn(),
+  client: {
+    getUserConfig: vi.fn(),
+    appendBlock: vi.fn(),
+  },
 }));
 
 vi.mock('./logseq/tool', () => ({
@@ -201,5 +213,37 @@ describe('logseq:hybridSearch', () => {
     expect(result.response.blocks.map((b) => b.uuid)).toEqual(['b2']);
     expect(result.response.pages.map((p) => p.name)).toEqual(['Homework']);
     expect(result.count).toBe(2);
+  });
+});
+
+describe('logseq:clipPage', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(fakeBrowser.tabs.query).mockRestore();
+  });
+
+  // Issue #77: a cljs-time `:journal/page-title-format` such as "MMMM D, YYYY"
+  // made date-fns throw, so nothing was ever clipped.
+  test.each([
+    ['MMMM D, YYYY', 'October 23, 2026'],
+    ['MMM do, yyyy', 'Oct 23rd, 2026'],
+    ['yyyy-MM-dd', '2026-10-23'],
+    ['EEE, dd.MM.yyyy', 'Fri, 23.10.2026'],
+  ])('appends to the journal named by %s', async (preferredDateFormat, journal) => {
+    // Faking setTimeout keeps the debounced badge search from firing after the test.
+    vi.useFakeTimers({
+      now: new Date(2026, 9, 23, 12, 0, 0),
+      toFake: ['Date', 'setTimeout', 'clearTimeout'],
+    });
+    // fakeBrowser has no window to hold a tab, so serve the active tab directly.
+    vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([
+      { id: 1, url: 'https://example.com/', title: 'Example' } as any,
+    ]);
+    service.client.getUserConfig.mockResolvedValue({ preferredDateFormat });
+
+    await sendMessage('logseq:clipPage', undefined);
+
+    expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
+    expect(service.client.appendBlock.mock.calls[0][0]).toBe(journal);
   });
 });
