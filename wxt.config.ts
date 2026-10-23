@@ -2,6 +2,7 @@ import { defineConfig } from 'wxt';
 import { version } from './package.json';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { stripRegisteredProperties } from './src/utils/content-css';
 
 export default defineConfig({
   srcDir: 'src',
@@ -61,7 +62,28 @@ export default defineConfig({
     '@/*': path.resolve(__dirname, './src/*'),
   },
   vite: () => ({
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      {
+        // WXT lifts every @property rule of the content stylesheet into the
+        // <head> of the page the extension runs on. Keep Tailwind's from
+        // reaching the page; extension pages (assets/*.css) keep theirs.
+        name: 'logseq-copilot:content-css-no-page-globals',
+        // After Vite's own CSS plugin, which emits the stylesheet in this hook.
+        enforce: 'post',
+        generateBundle(_, bundle) {
+          for (const [fileName, file] of Object.entries(bundle)) {
+            if (
+              file.type === 'asset' &&
+              fileName.startsWith('content-scripts/') &&
+              fileName.endsWith('.css')
+            ) {
+              file.source = stripRegisteredProperties(file.source.toString());
+            }
+          }
+        },
+      },
+    ],
     optimizeDeps: {
       // rollupOptions: true
     },
