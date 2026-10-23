@@ -146,12 +146,22 @@ class CustomSearchEngine extends SearchingEngine {
         return this.handleGoogleElement();
       }
 
-      const targetElement = document.querySelector(this.config.elementSelector);
+      let targetElement = document.querySelector(this.config.elementSelector);
       if (!targetElement) {
         log.warn(
           `[CustomSearchEngine] Target element not found for ${this.config.name}`,
         );
         return null;
+      }
+
+      // Kagi collapses its right column to width: 0 unless ._0_right_sidebar
+      // has a child (`.right-content-box:not(:has(> ._0_right_sidebar > *))`).
+      // A card placed next to the sidebar does not count, so it would be
+      // squeezed into a zero-width box. Mount inside the sidebar instead.
+      // The stored selector still points at the box, so this lives here and
+      // also applies to settings saved by older versions.
+      if (this.config.id === 'kagi') {
+        targetElement = this.findKagiSidebar(targetElement) ?? targetElement;
       }
 
       let container: Element;
@@ -199,6 +209,12 @@ class CustomSearchEngine extends SearchingEngine {
       );
       return null;
     }
+  }
+
+  private findKagiSidebar(rightContentBox: Element): Element | undefined {
+    return Array.from(rightContentBox.children).find((child) =>
+      child.classList.contains('_0_right_sidebar'),
+    );
   }
 
   private handleGoogleElement(): Element {
