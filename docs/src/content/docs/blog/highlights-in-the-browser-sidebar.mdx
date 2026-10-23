@@ -1,0 +1,85 @@
+---
+title: Highlights in the browser sidebar
+description: How highlights are created in Logseq Copilot 2.0, how to open the highlights sidebar in Chrome, Edge and Firefox, what you can do there, and where the data is stored.
+lastUpdated: 2026-10-22
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Logseq Copilot 2.0 keeps the highlights of the page you are reading in your browser's own sidebar. In Chrome and Edge that is the side panel (the extension uses the `sidePanel` API). In Firefox it is the sidebar (`sidebar_action`). This post follows a highlight from creation to deletion. The reference version is on the [Highlights Sidebar](/features/highlights-sidebar) page.
+
+## Create a highlight
+
+A highlight is created when you clip a text selection.
+
+<Steps>
+
+1. Select text on a web page.
+
+2. Clip it in one of three ways:
+
+   - Right-click the selection and choose **Clip "…"**.
+   - Press the clip shortcut. The default is `Ctrl+Shift+U`, and you can change it in your browser's shortcut settings.
+   - Click the floating clip button that appears next to the selection. It is off by default. Turn on **Floating Button** under **Clip Note** in the extension's Settings.
+
+3. The text is marked on the page. Reload the page later and the saved highlights are marked again. Click a highlight on the page to open a small comment popup.
+
+</Steps>
+
+A clip with a selection does two separate things. The selected text is converted to Markdown and written to Logseq with your default template. And a highlight, with its position on the page, is saved in your browser.
+
+<Aside type="note">
+Clipping without a selection, the popup's **Quick Capture** button and the **Clip page link** menu item save a link to the page. They do not create a highlight.
+</Aside>
+
+## Open the sidebar
+
+There are three entry points.
+
+1. Click the toolbar icon, then **Highlights** in the popup.
+2. Right-click the page or a selection and choose **Open highlights sidebar**.
+3. Use the **Open highlights sidebar** command. It has no default key, so you bind your own.
+
+To bind the command:
+
+<Steps>
+
+1. Open the shortcut settings. In Chrome that is `chrome://extensions/shortcuts`. In Edge it is `edge://extensions/shortcuts`. In Firefox, open `about:addons`, click the gear icon and choose **Manage Extension Shortcuts**.
+
+2. Find Logseq Copilot and set a key for **Open highlights sidebar**.
+
+</Steps>
+
+<Aside type="note">
+Browsers only open a sidebar in response to a user action: a click, a menu item or a shortcut. That is why the extension cannot open it on its own when a page loads. Close it with the button the browser puts on the panel.
+</Aside>
+
+## The sidebar follows your tab
+
+The sidebar is tied to the browser window and shows the highlights of that window's active tab. Switch tabs, or navigate to another page, and the list updates. The sidebar stays open. In Edge the browser reloads the side panel on every tab switch, so the extension rebuilds the list from the active tab and from storage.
+
+The header shows the page title and the number of highlights. The list is newest first. Each entry shows the highlighted text (shortened to 120 characters), the note (shortened to 80), the site, when you made it, and up to three tags.
+
+Highlights belong to an exact URL. `https://example.com/post`, `https://example.com/post?ref=feed` and `https://example.com/post#intro` each have their own list.
+
+## Jump, edit, delete
+
+- **Jump to it.** Click an entry and the page scrolls to the highlight.
+- **Edit the note.** Hover over an entry, or tab to it, and click the pencil. Save with the button or `Ctrl+Enter` (`Cmd+Enter` on macOS). `Escape` drops your changes. If the comment popup for that highlight is open on the page, it shows the new note.
+- **Delete it.** Click the trash button. The highlight disappears from the list and the page. There is no confirmation and no undo.
+
+Two notices can appear when you click an entry. "Couldn't find this highlight on the page" means the text is no longer there, usually because the page changed. The entry stays in the list. "Reload the page to jump to highlights" means the tab has no content script, typically because it was already open when you installed or updated the extension. Reload the tab and click again.
+
+## Pages that do not have highlights
+
+Only `http` and `https` pages can have highlights. On the new tab page, on browser pages such as `chrome://extensions` or `about:addons`, on local files and on other extensions' pages, the sidebar says "Highlights aren't available on this page". Open a web page and the list appears.
+
+## Where the data is stored
+
+<Aside type="caution" title="Highlights stay in the browser">
+Highlights and their notes are stored in the browser's local extension storage. They are not sent to Logseq. The extension does not sync them between browsers or devices.
+</Aside>
+
+The clipped text becomes a block in Logseq, but a note you add to a highlight stays in the browser. Uninstalling the extension deletes the stored highlights.
+
+To see everything in one place, open the extension options and go to **Highlights**. That page lists the highlights from all sites, can export them as a JSON file with **Export All**, and can remove them all with **Clear All**. Export before you uninstall if you want to keep them.

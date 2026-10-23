@@ -1,0 +1,63 @@
+---
+title: Upgrading to 2.0
+description: What happens to your settings when Logseq Copilot updates from 1.x to 2.0, what to check afterwards, how file and DB graphs differ, and the known limits.
+lastUpdated: 2026-10-22
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+The update from 1.x to 2.0 installs like any other. Your settings are migrated automatically, so you do not need to export or re-enter anything. This guide lists what is migrated, what to check afterwards, and what is different.
+
+## What is migrated
+
+The migrations run in the extension's background script when the browser installs or updates the extension. Each one only acts when there is something to migrate, so running it again changes nothing.
+
+- **Connection (host, port, token).** 2.0 reads the same storage keys as 1.15.2, so these stay as they are. Very old installs may still hold a single `logseqHost` URL. If so, 2.0 splits it into host and port, then deletes the old key. It never overwrites a host or port you have already saved. A URL without a port gets the default port of its scheme (80 for `http`, 443 for `https`).
+- **Clip settings.** 1.x had one clip template, one location and one custom page. 2.0 has a list of templates, and the clip shortcut and the context menu use the first one. On update, your template, location and custom page are copied into the first template. This only happens if you have not edited the templates yet, meaning they are unset or still the single built-in default. The old keys stay in storage, but clipping no longer reads them. The copy runs once.
+- **Floating clip button.** The setting uses the same key as in 1.x and keeps its value.
+
+<Aside title="If you ran a development build" type="note">
+Search engine settings and the two built-in recall rules were also migrated for people who ran builds from the `wxt` branch. A built-in engine keeps its on/off state and gets its full definition. A custom engine that lacks a URL pattern, a query selector or an element selector is dropped. The built-in rules saved with Chinese names are translated to English, unless you edited those fields. 1.x did not store either setting.
+</Aside>
+
+## What to check afterwards
+
+<Steps>
+
+1. Open the extension options and go to **Settings**. The connection is checked as soon as the page loads. You should see "Connected to Logseq v…". The extension builds the API address as `http://<host>:<port>`, so the scheme of an old `https://` URL is not kept.
+
+2. Reload tabs that were already open during the update. The extension only attaches to a page when it loads, so an old tab does not run the new content script. If you click a highlight in the sidebar on such a tab, it shows "Reload the page to jump to highlights".
+
+3. Open **Templates** and look at the first template. It should contain your old clip template.
+
+4. If you want a key for the highlights sidebar, bind one. The **Open highlights sidebar** command has no default shortcut. The clip shortcut keeps its default, `Ctrl+Shift+U`.
+
+</Steps>
+
+## File graphs and DB graphs
+
+There is no setting for the graph type. On each request the extension asks Logseq whether the current graph is a DB graph, and uses the matching code. The connection fields are the same for both: Host, Port and Authorization Token. File graphs are Logseq 0.10.x. DB graphs are Logseq 2.x.
+
+The differences you can notice:
+
+- **Tasks.** On a file graph, toggling a task rewrites the marker in the block text, and blocks with a `SCHEDULED:` line are refused. On a DB graph, the task state is Logseq's status property. TODO, DOING, DONE and CANCELED can be toggled, and other markers are refused.
+- **URL lookup.** On a file graph the lookup also tries the URL with its query string and hash. On a DB graph it searches by host and path.
+
+## Highlights are new
+
+1.x marked the text you clipped, but only until you reloaded the page. It did not save highlights, so there is nothing to migrate. In 2.0 a highlight is saved when you clip a selection, and the list opens in the browser's own sidebar. See [Highlights in the browser sidebar](/blog/highlights-in-the-browser-sidebar).
+
+If you tried a development build, you may remember a sidebar drawn over the page, with a floating toggle and a `Ctrl/Cmd+Shift+H` shortcut. They are removed. The sidebar is the browser's own now.
+
+## Permissions
+
+The permission list is the same as in 1.15.2: `storage`, `activeTab`, `contextMenus` and access to all sites. 2.0 adds `sidePanel` on Chrome and Edge, which is what lets the side panel open. It does not trigger an install warning, so the update should not ask you to approve anything. The Firefox build declares that it collects no data.
+
+## Known limits
+
+- **Safari is not supported.** See [Installation](/installation).
+- **Firefox 127 or later is required.** Older Firefox versions cannot install 2.0.
+- **Highlights only work on `http` and `https` pages,** and only match the exact URL they were saved on.
+- **Highlights are stored in the browser only.** They are not written to Logseq.
+
+If something does not migrate the way this page says, open an issue on [GitHub](https://github.com/EINDEX/logseq-copilot/issues) or ask in [Discussions](https://github.com/EINDEX/logseq-copilot/discussions). The [2.0 announcement](/blog/logseq-copilot-2-0) has the full list of changes.

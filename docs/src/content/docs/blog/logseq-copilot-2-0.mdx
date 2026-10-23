@@ -1,0 +1,64 @@
+---
+title: Logseq Copilot 2.0
+description: What is new in Logseq Copilot 2.0, including tested file and DB graph support, Firefox 127 and later, highlights in the browser sidebar, recall rules, closed shadow roots and a new UI.
+lastUpdated: 2026-10-22
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Logseq Copilot 2.0 is a rebuild of the extension on [WXT](https://wxt.dev). It brings highlights you can manage in the browser's own sidebar, recall rules, a new look, and a stricter way of mounting the extension's UI in the pages you visit. This post covers what changed.
+
+<Aside type="tip" title="Coming from 1.x?">
+Your settings carry over. [Upgrading to 2.0](/blog/upgrading-to-2-0) lists what is migrated and what to check afterwards.
+</Aside>
+
+## File graphs and DB graphs
+
+Logseq Copilot works with file graphs (Logseq 0.10.x) and DB graphs (Logseq 2.x). It asks Logseq which kind of graph is open each time it searches, so there is no setting to switch. Move from one graph type to the other and the next search uses the right one.
+
+DB graph support already existed in 1.x. What 2.0 adds is coverage and fixes. CI now runs integration tests and browser end-to-end tests against a real Logseq. The end-to-end runs use 0.10.15 for file graphs and 2.0.2 for DB graphs. Along the way we fixed DB search, URL lookup and TODO toggling. On a DB graph a task's state is a property rather than text in the block, so the extension maps TODO, DOING, DONE and CANCELED onto Logseq's built-in statuses.
+
+## Firefox
+
+2.0 sets a minimum Firefox version: 127. MV3 host permissions are only granted at install time from 127 on, and the extension needs them on every site. The Firefox manifest now also declares that the extension collects no data.
+
+The end-to-end suite runs in Firefox as well as Chromium, against both graph types. 2.0 also removes Chromium-only assumptions, including how a click on a highlight is resolved to a text position. Safari is still not supported; see [Installation](/installation).
+
+## Highlights in the browser sidebar
+
+When you clip a text selection, the extension also saves it as a highlight on the page. The highlights of the page you are reading are listed in your browser's own sidebar: the side panel in Chrome and Edge, the sidebar in Firefox. The list follows the active tab and stays open when you switch tabs. Click a highlight to jump to it on the page, edit its note, or delete it.
+
+Highlights are stored in your browser only. They are not written to Logseq. The clipped text still goes to Logseq as before. [Highlights in the browser sidebar](/blog/highlights-in-the-browser-sidebar) walks through the whole workflow.
+
+## Recall rules
+
+Recall rules change how the extension searches your graph for pages that match a URL pattern. A rule can:
+
+- drop the URL hash or query string before searching, and ignore chosen path segments;
+- exclude or prefer keywords;
+- search only some Logseq pages, skip others, or limit journals to the last N days;
+- cap the number of results, or put recent ones first.
+
+Two rules ship by default. "Single-page apps" is on and ignores the URL hash. "GitHub Pull Request" is off and narrows results on pull request and issue pages. Add, edit and test rules under **Recall Rules** in the extension options. Rules apply to the notes lookup for the current page and to the count on the toolbar badge. When several rules match the same page, they are combined.
+
+Page scopes compare exact page names, ignoring case and surrounding spaces, so excluding "Work" does not hide "Homework". If a result's page name cannot be determined while a scope is active, the result is dropped instead of shown.
+
+## Privacy
+
+The extension draws some UI inside the pages you visit: search results next to your search engine, the clip button and the highlight comment popup. That UI lives in shadow roots. In packaged builds the roots are now closed, so a script on the page cannot reach into them through `element.shadowRoot`. Development and test builds keep them open, and a test checks that the packaged build exposes `shadowRoot === null`.
+
+Related changes: the content script no longer trusts DOM events that a page script could dispatch, and uses an in-memory channel instead. Closed roots do not change what the extension can access. It still has host access to all sites, as in 1.x, and sends data only to the Logseq API server you configure.
+
+## New UI
+
+The orange theme is replaced by Logseq teal, `#206f78` in light mode and `#85c8c8` in dark mode. The popup and the options pages follow your system's dark mode, and highlights on the page use the teal on both light and dark pages. The options pages are flat, with plain lists instead of nested cards, and are capped at a centered 768 px width. The built-in recall rules now have English names and descriptions.
+
+## Smaller changes
+
+- The popup searches the current tab as soon as it opens.
+- Connection and API failures show a readable message.
+- The options page checks the connection as you type, and shows the extension version in its sidebar.
+
+## Get it
+
+Install from the store for your browser on the [Installation](/installation) page, then follow the [Setup guide](/setup) if this is a fresh install. The code, release notes and issue tracker are on [GitHub](https://github.com/EINDEX/logseq-copilot). Questions and bug reports are welcome in [Discussions](https://github.com/EINDEX/logseq-copilot/discussions).
