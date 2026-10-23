@@ -5,9 +5,22 @@ description: Configure Logseq Copilot to connect with your Logseq instance.
 
 import { Steps } from '@astrojs/starlight/components';
 
-# Setup
-
 Let's set up **Logseq Copilot in less than 5 minutes**.
+
+Logseq Copilot talks to the **HTTP API server** of the Logseq desktop app, so you set up two things: the server in Logseq, then the connection in the extension.
+
+## Which Logseq?
+
+| Logseq | Graph type | Supported |
+| --- | --- | --- |
+| 0.10.x | File graph (Markdown or Org files on disk) | Yes |
+| 2.x | DB graph | Yes |
+
+There is no setting for the graph type. After you connect, the extension asks Logseq which kind of graph is open and uses the matching search. If you switch graphs in Logseq, the next search follows.
+
+:::note
+The screenshots below were taken in Logseq 2.x, and the extension's options page now has the new teal look. The steps are the same in Logseq 0.10.x, where Logseq's own menus can look a little different.
+:::
 
 ## Setup Logseq API Server
 
@@ -89,16 +102,17 @@ The `value` of `Authorization token` is a secret string. We suggest setting it t
 
 2. Enter your Logseq API server details:
 
-   - **Server URL**: Usually `http://localhost:12315`
+   - **Host**: Usually `localhost`
+   - **Port**: Usually `12315`
    - **Authorization Token**: The token you created earlier
 
    ![setting auth token](/screenshots/setting-auth-token.png)
 
-3. Click **Connect** to establish the connection.
+3. The extension saves the values as you type and checks the connection a moment after you stop typing. Click **Connect** to check it right away. Logseq also pops up a "Logseq Copilot Connect!" message.
 
    ![click connect](/screenshots/click-connect.png)
 
-4. You should see a success message when connected.
+4. You should see **Connected to Logseq v…!** on the button when it works. A link to open your graph in Logseq shows up next to it.
 
    ![success connected](/screenshots/success-connected.png)
 
@@ -109,17 +123,19 @@ The `value` of `Authorization token` is a secret string. We suggest setting it t
 To verify that everything is working correctly:
 
 1. **Check API Server Status**: Make sure the Logseq API server is running
-2. **Test Connection**: The extension should show "Connected" status
-3. **Try Highlighting**: Select some text on a webpage and see if the highlight option appears
+2. **Test Connection**: The Connect button on the Settings page should say "Connected to Logseq v…!"
+3. **Try a search**: Search for a word from one of your notes on Google. A Logseq panel with matching notes should show up next to the results.
+4. **Try the popup**: Click the Logseq Copilot icon in the toolbar of any web page. The popup lists the notes that mention that page, if there are any.
 
 ## Troubleshooting
 
 ### Common Issues
 
-- **Connection Failed**: Check if Logseq API server is running
-- **Wrong URL**: Make sure you're using the correct API server URL (usually `http://localhost:12315`)
+- **Connection Failed**: Check if the Logseq API server is running and a graph is open in Logseq
+- **Wrong Host or Port**: Make sure they match the API server (usually `localhost` and `12315`)
 - **Invalid Token**: Verify that the authorization token matches exactly
 - **Firewall Issues**: Check if your firewall is blocking the connection
+- **Nothing shows up on a page**: Reload pages that were open before you installed or updated the extension
 
 ### Getting Help
 
@@ -133,6 +149,7 @@ If you're still having trouble:
 
 Once everything is set up:
 
-- [Learn about the Highlights Sidebar →](/features/highlights-sidebar)
-- [Discover Highlight Comments →](/features/highlight-comments)
-- Start capturing your first highlights!
+- [Choose the search engines you use →](/features/search-engines/)
+- [Set up your clip template →](/features/clipping-and-templates/)
+- [Learn about the Highlights Sidebar →](/features/highlights-sidebar/)
+- [Discover Highlight Comments →](/features/highlight-comments/)

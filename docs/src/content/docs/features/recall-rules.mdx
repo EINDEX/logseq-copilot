@@ -1,0 +1,78 @@
+---
+title: Recall Rules
+description: Tune how Logseq Copilot finds notes for a website with per-site recall rules.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A **recall rule** changes how Logseq Copilot looks up your notes for the websites it matches. Use rules when a site gives noisy results, for example because its web addresses carry a long hash or query, or because you want only some pages of your graph to show up there.
+
+Open the extension options and choose **Recall Rules**.
+
+## Where Rules Apply
+
+Rules apply whenever Logseq Copilot looks notes up for a page:
+
+- **The popup**: the notes it lists for the page you are on.
+- **The toolbar badge**: the number on the icon counts the notes that are left after the rules.
+- **The search engine panel**: the rules that match the address of the results page apply to its results. See [Search Engines](/features/search-engines/).
+
+The search box in the popup is not changed by rules.
+
+## How a Rule Matches
+
+Every rule has a **URL pattern**, a regular expression tested, case-insensitively, against the full address of the page, hash and query included. Examples: `github\.com` or `.*reddit\.com.*`. A rule with a pattern that is not a valid regular expression is skipped.
+
+Several rules can match one page. All enabled rules that match are applied together, and their settings combine:
+
+| Setting | When several rules match |
+| --- | --- |
+| Ignore hash, query, path segments | Applied one after the other to the address |
+| Exclude and prefer keywords | Collected from all rules |
+| Restrict to pages | Only pages named in every rule |
+| Exclude pages | Pages named in any rule |
+| Max results | The smallest number |
+
+## What a Rule Can Do
+
+### Query processing
+
+How the address of the page is turned into a lookup.
+
+- **Ignore hash fragments**: drop the `#…` part of the address first. Useful for single-page apps that route with the hash.
+- **Ignore query parameters**: drop the `?…` part of the address first.
+- **Ignore path segments**: remove the listed segments from the path of the address first, such as `files` or `commits`.
+- **Exclude keywords**: hide the blocks whose text contains one of these words (case-insensitive).
+- **Prefer keywords**: show the blocks that contain these words first.
+
+### Search scope
+
+Where in your graph the results may come from. Names are page names of your graph.
+
+- **Restrict to pages**: only show results from these pages.
+- **Exclude pages**: never show results from these pages.
+
+A name has to match the whole page name. It ignores case and surrounding spaces, but "Work" does not hide "Homework". The scope applies to blocks and to page results. While a scope is set, a result whose page cannot be determined is hidden, so excluded content cannot slip through.
+
+### Result filtering
+
+- **Max results**: show at most this many results.
+
+<Aside type="caution" title="Not applied yet">
+The rule editor also has **Journals: last N days**, **Minimum relevance score** and **Prioritize recent results**. The current version stores them but does not use them yet, so they change nothing in the results. Use the options above for now.
+</Aside>
+
+## Built-in Rules
+
+Two rules come with the extension. You can edit or delete both.
+
+- **Single-page apps** (on): matches every page, ignores the hash of the address, and shows at most 10 results.
+- **GitHub Pull Request** (off): matches pull requests and issues on GitHub. It ignores the hash and the query, drops the `files` and `commits` path segments, excludes blocks mentioning `comment`, `discussion` or `review`, prefers blocks mentioning `code`, `bug`, `feature` or `implementation`, hides the page `Daily Notes`, and shows at most 15 results.
+
+## Create a Rule
+
+1. Click **Add rule**.
+2. Give it a name, and a URL pattern. The **Test the URL pattern** box lets you paste an address to see if it matches.
+3. Set the options you need and save.
+
+In the list, each rule has a switch to turn it on and off, an edit button and a delete button. Every rule also has a **Test URL pattern** box.

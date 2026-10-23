@@ -6,13 +6,17 @@ import mdx from '@astrojs/mdx';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://logseq-copilot.eindex.me',
+	redirects: {
+		// The extension's options page links to the setup guide at this old path.
+		'/doc/setup': '/setup/',
+	},
 	integrations: [
 		starlight({
 			title: 'Logseq Copilot',
-			tagline: 'Connect Browser and Logseq',
-			description: 'A bridge between logseq and browser, building your personal knowledge base easily.',
+			tagline: 'Your Logseq notes, right where you browse',
+			description: 'A browser extension for Chrome, Edge and Firefox that connects to your own Logseq: recall notes while you search and browse, clip pages, and keep highlights.',
 			logo: {
-				src: './src/assets/logo.svg',
+				src: './src/assets/logo.png',
 			},
 			social: [
 				{
@@ -38,9 +42,13 @@ export default defineConfig({
 						{ label: 'Setup', slug: 'setup' },
 					],
 				},
+				{ label: 'Blog', autogenerate: { directory: 'blog' } },
 				{
 					label: 'Features',
 					items: [
+						{ label: 'Search Engines', slug: 'features/search-engines' },
+						{ label: 'Recall Rules', slug: 'features/recall-rules' },
+						{ label: 'Clipping & Templates', slug: 'features/clipping-and-templates' },
 						{ label: 'Highlights Sidebar', slug: 'features/highlights-sidebar' },
 						{ label: 'Highlight Comments', slug: 'features/highlight-comments' },
 					],

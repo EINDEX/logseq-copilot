@@ -1,263 +1,103 @@
 ---
 title: Testing Architecture
-description: Learn about the testable architecture refactoring of Logseq Copilot extension.
+description: How Logseq Copilot is tested, from unit tests to browser tests against a real Logseq.
 ---
 
-import { Badge, Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
-# Logseq Copilot 可测试架构重构
-
-本文档描述了对 Logseq Copilot 扩展程序进行的架构重构，目标是提高代码的可测试性、可维护性和模块化程度。
-
-## 重构概述
+Logseq Copilot is tested at three levels. Each level covers what the one below cannot.
 
 <CardGrid>
-  <Card title="测试环境设置" icon="rocket">
-    增强的 Jest 配置，支持 TypeScript 和 React 组件测试
+  <Card title="Unit tests" icon="rocket">
+    Vitest with happy-dom and the WXT test plugin. Fast, no browser, no Logseq. They run on every commit.
   </Card>
-  <Card title="服务接口和依赖注入" icon="setting">
-    定义了核心服务接口，实现了类型安全的依赖注入
+  <Card title="Integration tests" icon="setting">
+    The extension's Logseq client and service code against a real Logseq desktop app, for file graphs and DB graphs.
   </Card>
-  <Card title="消息传递服务" icon="chat">
-    可测试的消息传递系统，支持完整的模拟实现
+  <Card title="End-to-end tests" icon="laptop">
+    The built extension in Playwright's Chromium and Firefox, against a real Logseq.
   </Card>
 </CardGrid>
 
-## 重构内容
+## Commands
 
-### 1. 测试环境设置 <Badge text="✅ 完成" variant="success" />
+| Command | What it runs |
+| --- | --- |
+| `pnpm test` | The unit tests (`vitest run`) |
+| `pnpm test:coverage` | The unit tests with V8 coverage |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm test:integration` | The integration tests, against a real Logseq |
+| `pnpm test:e2e` | Builds both browsers, then runs the E2E tests in Chromium and Firefox |
+| `pnpm test:e2e:chromium`, `pnpm test:e2e:firefox` | Build and run the E2E tests of one browser |
+| `pnpm test:e2e:run` | Run the E2E tests without building first |
 
-#### 增强的 Jest 配置 (`jest.config.js`)
+The Git pre-commit hook (husky) runs `pnpm test`, so a commit with a failing unit test is rejected.
 
-- 支持 TypeScript 和 React 组件测试
-- 配置了模块映射和覆盖率报告
-- 设置了测试环境选项
+## Unit Tests
 
-#### Jest 设置文件 (`__setups__/jest-setup.ts`)
+Unit tests sit next to the code they cover, as `src/**/*.test.ts` and `src/**/*.test.tsx`. They are configured in `vitest.config.ts`:
 
-- 模拟了浏览器 API (chrome/browser)
-- 模拟了 WXT 框架特定功能
-- 设置了 DOM API 模拟
-- 配置了测试库
+- **[Vitest](https://vitest.dev)** is the test runner.
+- **happy-dom** is the DOM, set as the test `environment`.
+- **`WxtVitest()`**, from `wxt/testing`, is a Vite plugin that sets up what WXT code needs: the auto-imports and an in-memory `fakeBrowser` in place of the real `browser` APIs, such as storage, tabs and messaging.
+- **React Testing Library** (`@testing-library/react`) renders and drives the React components, in the popup, the options pages, the side panel and the content script UI.
+- **Coverage** uses V8 and covers `src/**/*.{ts,tsx}`, except the test files and the generated UI primitives in `src/components/ui`. It writes a JSON summary, a text report and `lcov`.
 
-#### 测试依赖更新 (`package.json`)
+A typical test runs real code and fakes only the edge. For example `src/entrypoints/background/background.test.ts` runs the real background entrypoint against `fakeBrowser` and talks to it with the real `@webext-core/messaging` client, so message names and payloads are checked at both ends. Only the Logseq service is replaced.
 
-- 添加了 Jest、React Testing Library 和相关工具
-- 配置了测试脚本命令
+## Integration Tests
 
-### 2. 服务接口和依赖注入 <Badge text="✅ 完成" variant="success" />
+The integration tests (`tests/integration`) run the extension's Logseq client and service code against a **real Logseq desktop app**. They use their own Vitest config, `vitest.integration.config.ts`, which includes only `tests/integration/**/*.test.ts` and starts Logseq in a global setup. The unit test run skips them.
 
-#### 服务接口 (`src/services/interfaces.ts`)
+The same tests run for both graph types:
 
-- 定义了所有核心服务的接口
-- 包括存储、消息传递、Logseq API、日志等
-- 使用了服务键常量进行类型安全的依赖注入
+| Variant | Logseq | Graph |
+| --- | --- | --- |
+| `file` | 0.10.x | The fixture graph in `tests/integration/fixtures/file-graph`, opened from disk |
+| `db` | 2.x | The default "Demo" DB graph, seeded through the API |
 
-#### 依赖注入容器 (`src/services/ServiceContainer.ts`)
+The global setup starts Logseq through a launcher shared with the E2E tests (`tests/support/logseq-app.ts`). It drives the Electron app with Playwright, in a throwaway home and user data directory, with the HTTP API server switched on and a known token. Your own Logseq is untouched, and can run next to it as long as the API port differs.
 
-- 简单但功能完整的 DI 容器
-- 支持单例和瞬态服务注册
-- 提供了测试友好的实例注册方法
+The tests check the HTTP API itself (a wrong token is rejected, the graph type is reported correctly) and the extension services on top of it: the matching service is picked for the graph type, search and URL search find the seeded blocks, the clip path appends a block to a page, and the task status of a block can be changed. One Logseq is shared, so the test files run one after another.
 
-### 3. 可测试的消息传递服务 <Badge text="✅ 完成" variant="success" />
+Set these variables to run them:
 
-#### 消息传递服务 (`src/services/MessagingService.ts`)
+```sh
+BIN=$(scripts/download-logseq.sh db 2.0.2 .logseq-bin | tail -n 1)
+LOGSEQ_VARIANT=db LOGSEQ_BIN=$BIN pnpm test:integration
 
-- 包装了 WXT 消息传递系统
-- 提供了类型安全的接口
-- 包含完整的模拟实现用于测试
-
-#### 模拟消息传递
-
-- 可以模拟消息发送和接收
-- 支持同步和异步消息处理
-- 提供了测试友好的消息队列
-
-### 4. 存储服务 <Badge text="✅ 完成" variant="success" />
-
-#### 存储服务 (`src/services/StorageService.ts`)
-
-- 包装了浏览器存储 API
-- 提供了类型安全的存储操作
-- 支持内存模拟用于测试
-
-#### 模拟存储
-
-- 内存存储实现用于测试
-- 支持所有标准存储操作
-- 提供了数据持久化模拟
-
-### 5. 日志服务 <Badge text="✅ 完成" variant="success" />
-
-#### 日志服务 (`src/services/LoggerService.ts`)
-
-- 统一的日志接口
-- 支持不同日志级别
-- 可配置的输出目标
-
-#### 测试日志
-
-- 模拟日志输出用于测试
-- 支持日志验证
-- 提供了测试友好的日志捕获
-
-### 6. Logseq 服务 <Badge text="✅ 完成" variant="success" />
-
-#### Logseq 服务 (`src/services/LogseqService.ts`)
-
-- 包装了 Logseq API 调用
-- 提供了类型安全的接口
-- 包含完整的模拟实现
-
-#### API 模拟
-
-- 模拟 Logseq API 响应
-- 支持错误场景测试
-- 提供了可配置的响应数据
-
-## 测试策略
-
-### 单元测试
-
-- **服务层测试**: 每个服务都有对应的单元测试
-- **组件测试**: React 组件使用 React Testing Library
-- **工具函数测试**: 纯函数的独立测试
-
-### 集成测试
-
-- **服务集成**: 测试服务之间的交互
-- **消息传递**: 测试跨上下文通信
-- **存储操作**: 测试数据持久化
-
-### 端到端测试
-
-- **扩展功能**: 测试完整的用户流程
-- **浏览器兼容性**: 跨浏览器测试
-- **性能测试**: 确保扩展性能
-
-## 架构优势
-
-### 可测试性
-
-- **依赖注入**: 易于模拟外部依赖
-- **接口抽象**: 清晰的契约定义
-- **模拟实现**: 完整的测试替身
-
-### 可维护性
-
-- **模块化设计**: 清晰的责任分离
-- **类型安全**: TypeScript 类型检查
-- **文档化**: 完整的接口文档
-
-### 可扩展性
-
-- **插件架构**: 易于添加新功能
-- **服务注册**: 动态服务发现
-- **配置驱动**: 灵活的配置选项
-
-## 最佳实践
-
-### 编写测试
-
-```typescript
-describe('MessagingService', () => {
-  let messagingService: IMessagingService;
-
-  beforeEach(() => {
-    // 使用模拟实现
-    messagingService = new MockMessagingService();
-  });
-
-  it('should send messages correctly', async () => {
-    const message = { type: 'test', payload: {} };
-    await messagingService.sendMessage(message);
-    // 验证消息发送
-  });
-});
+BIN=$(scripts/download-logseq.sh file 0.10.15 .logseq-bin | tail -n 1)
+LOGSEQ_VARIANT=file LOGSEQ_BIN=$BIN pnpm test:integration
 ```
 
-### 服务注册
+On Linux, run them under `xvfb-run -a`, because Logseq needs a display. On macOS, give Logseq a free `LOGSEQ_API_PORT`, because the launcher refuses a port that is taken. Set `LOGSEQ_DEBUG=1` to see the logs of Logseq. See `tests/integration/README.md` for the details.
 
-```typescript
-// 在生产环境中注册真实服务
-container.register(SERVICE_KEYS.MESSAGING, MessagingService, true);
+## End-to-End Tests
 
-// 在测试环境中注册模拟服务
-container.register(SERVICE_KEYS.MESSAGING, MockMessagingService, true);
-```
+The E2E tests (`tests/e2e`) use [Playwright](https://playwright.dev) to load the **built extension** in a real browser, with a real Logseq behind it. The config is `tests/e2e/playwright.config.ts`. It defines two projects, `chromium` and `firefox`, and both run the same specs. The tests run one at a time and share a single Logseq.
 
-### 依赖注入
+The specs cover the user flows: clipping, the floating button, highlights and the comment popup, the connection and recall rule pages in the options, the popup, the search engine panel, and changing a task status from the results.
 
-```typescript
-class MyComponent {
-  constructor(
-    private messagingService = container.get<IMessagingService>(
-      SERVICE_KEYS.MESSAGING,
-    ),
-  ) {}
-}
-```
+### Builds
 
-## 运行测试
+`pnpm test:e2e` makes two builds for each browser:
 
-### 测试命令
+- the **packaged build** (`wxt build`), where the in-page UI sits in closed shadow roots, as shipped. Only `closed-shadow.spec.ts` uses it, to check that every in-page UI is mounted in a closed shadow root.
+- the **E2E build** (`WXT_E2E=true`), which has open shadow roots so that Playwright locators can see inside the in-page UI. It goes to its own `-e2e` output folders so that it cannot be published by mistake.
 
-```bash
-# 运行所有测试
-pnpm test
+### Browsers
 
-# 运行特定测试
-pnpm test -- --testNamePattern="MessagingService"
+- **Chromium**: each test gets a fresh profile from a persistent context with `--load-extension`. Playwright's full Chromium runs extensions in headless mode.
+- **Firefox**: Playwright's Firefox cannot load an extension, so each test starts Firefox with the remote debugging server on and installs the build as a temporary add-on over the remote debugging protocol, as `web-ext run` does. The same specs then run in both browsers, with a small abstraction for the extension pages.
 
-# 生成覆盖率报告
-pnpm test -- --coverage
+Websites are fixtures: the tests route a minimal Google results page and a few articles, and abort every other request, so nothing reaches the internet.
 
-# 监听模式
-pnpm test -- --watch
-```
+A failing test keeps a screenshot of every open page and a Playwright trace in `test-results/e2e`.
 
-### 测试配置
+See `tests/e2e/README.md` for the details of both browsers and how to run the tests locally.
 
-测试环境配置在 `jest.config.js` 中：
+## Continuous Integration
 
-```javascript
-module.exports = {
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/__setups__/jest-setup.ts'],
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
-  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts'],
-};
-```
-
-## 持续改进
-
-### 代码质量
-
-- **ESLint 规则**: 强制代码风格
-- **TypeScript 严格模式**: 类型安全
-- **自动化测试**: CI/CD 集成
-
-### 测试覆盖率
-
-- **目标覆盖率**: 90% 以上
-- **关键路径**: 100% 覆盖
-- **定期审查**: 覆盖率报告
-
-### 性能优化
-
-- **测试速度**: 并行执行
-- **内存使用**: 及时清理
-- **CI 效率**: 增量测试
-
-## 总结
-
-通过这次架构重构，Logseq Copilot 扩展程序在以下方面得到了显著改善：
-
-1. **测试覆盖率提升**: 从 0% 提升到 80%+
-2. **代码质量改善**: 更清晰的架构和接口
-3. **开发效率提高**: 更容易添加新功能和修复 bug
-4. **维护成本降低**: 更好的模块化和文档
-
-这为扩展程序的长期发展奠定了坚实的基础。
+- **Build** runs `pnpm typecheck`, `pnpm test:coverage` and `pnpm run build`.
+- **Integration** runs two jobs. `logseq` runs the integration tests for Logseq 0.10.15 (file graph) and 2.0.2 (DB graph). `e2e` runs the E2E tests for each browser and each graph type, so four combinations.
+- **Website Deploy** builds this website for every change under `docs/`, and publishes it from `main` and for published releases.

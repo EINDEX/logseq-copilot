@@ -1,61 +1,64 @@
 ---
 title: Introduction
-description: Learn about Logseq Copilot - the bridge between your browser and Logseq.
+description: Learn about Logseq Copilot, the bridge between your browser and Logseq.
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-# Logseq Copilot
+**Logseq Copilot** is a browser extension that connects your browser to your own [Logseq](https://logseq.com). It brings the notes you already wrote to the pages you read and search, and it sends what you clip back into your graph.
 
-**Logseq Copilot** is a browser extension that bridges the gap between your web browsing experience and your Logseq personal knowledge base. It allows you to seamlessly capture, organize, and recall information while browsing the web.
+It talks to the HTTP API server of the Logseq desktop app on your computer. Nothing goes through a service of ours.
 
 ## Getting Started
 
 <CardGrid>
   <Card title="Install the Extension" icon="rocket">
-    Available for Chrome, Firefox, and Edge browsers. [Get it now →](/installation)
+    Available for Chrome, Edge and Firefox. [Get it now →](/installation/)
   </Card>
   <Card title="Setup Connection" icon="setting">
-    Connect your browser extension to your Logseq instance. [Setup guide →](/setup)
+    Connect the extension to your Logseq. [Setup guide →](/setup/)
   </Card>
 </CardGrid>
 
-## Key Features
+## How It Works
 
-### 🔍 Smart Note Recall
+Logseq Copilot shows up in four places.
 
-Search your Logseq notes when you search in your browser. Your personal knowledge base becomes accessible from any webpage.
+### Search engine pages
 
-### 📝 Quick Capture with Highlights
+When you search on Google, Bing, DuckDuckGo, Kagi and other supported engines, a panel next to the results lists the blocks and pages of your graph that match your keywords. See [Search Engines](/features/search-engines/).
 
-Record highlights with your ideas immediately. Add personal notes and comments to any text on the web.
+### The popup and the toolbar icon
 
-### 📔 Contextual Notes
+Click the toolbar icon on any web page and the popup searches your graph for notes that mention the address of that page. The icon also carries a badge with the number of matching notes. You can search by keyword in the popup too. What counts as a match is tunable per website with [Recall Rules](/features/recall-rules/).
 
-Search your Logseq notes based on the tabs you are currently using. Find relevant information contextually.
+### Clipping
 
-### 🎯 Highlights Sidebar
+Clip the text you selected, or just the link of the page, into your journal, the current page or any page, shaped by a template. See [Clipping & Templates](/features/clipping-and-templates/).
 
-See the highlights of the page you are reading in your browser's own sidebar. Jump to a highlight, edit its note, or delete it.
+### Highlights
+
+A clipped selection is also saved as a highlight. It is painted on the page the next time you open it, you can click it to add a comment, and the highlights of the page you are reading are listed in your browser's own sidebar. See [Highlights Sidebar](/features/highlights-sidebar/) and [Highlight Comments](/features/highlight-comments/).
 
 ## Why Logseq Copilot?
 
-- **Seamless Integration**: Works with your existing Logseq workflow
-- **Privacy Focused**: Your data stays in your Logseq instance
-- **Cross-Browser Support**: Available on all major browsers
-- **Real-time Sync**: Changes sync instantly with your Logseq database
+- **File graphs and DB graphs**: works with Logseq 0.10 (file graph) and Logseq 2.x (DB graph). It detects which one is open.
+- **Private**: it only talks to the Logseq API server you set up, which is on your own computer by default. Highlights are stored in your browser.
+- **Chrome, Edge and Firefox**: Firefox 127 or later. Safari is not supported.
+- **Light and dark**: the interface follows the theme of the page and of your system.
 
 ## Next Steps
 
-1. [Install the extension](/installation) for your browser
-2. [Set up the connection](/setup) to your Logseq instance
-3. Start capturing and organizing your web research!
+1. [Install the extension](/installation/) for your browser
+2. [Set up the connection](/setup/) to your Logseq
+3. Search for something, or clip a paragraph of the page you are reading
+4. See [what's new in 2.0](/blog/)
 
 ## Community
 
 - Join our [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions)
 - Follow the author on [Twitter](https://x.com/eindex)
-- [Support the project](/sponsor) to help development
+- [Support the project](/sponsor/) to help development
 
 ---
 

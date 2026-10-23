@@ -1,0 +1,61 @@
+---
+title: Clipping & Templates
+description: Clip selected text or a page link into your Logseq graph, shaped by templates you write.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Clipping sends what you are reading into your Logseq graph: the text you selected, or the link of the page. A **template** decides what the new block looks like and which page it goes to.
+
+## Ways to Clip
+
+- **Keyboard shortcut**: press `Ctrl+Shift+U`. You can change it in the browser's shortcut settings, the command is called **Make Clip note**. With text selected it clips the selection. With nothing selected it clips the page link.
+- **Right-click menu**: right-click selected text and choose **Clip "…"**, or right-click the page and choose **Clip page link**.
+- **Popup**: click the toolbar icon and then **Quick Capture** to clip the link of the current page.
+- **Floating button**: a small Logseq button that follows your text selection. It is off by default. Turn it on in the options under **Settings**, **Clip Note**, **Floating Button**.
+
+A clipped selection is converted to Markdown first. Links, lists, code blocks and images keep their shape in Logseq. It is also saved as a [highlight](/features/highlight-comments/) on the page.
+
+## Where the Clip Goes
+
+The block is added to the end of a page of your graph, chosen by the template:
+
+- **Journal**: the journal page of today.
+- **Current Page**: the page that is open in Logseq right now.
+- **Custom Page**: a page you name.
+
+## Templates
+
+Open the extension options and look at the **Templates** list in the sidebar.
+
+- Click **+** to add a template, and click a template to edit it.
+- Drag a template by its handle to reorder the list. Hover a template to show its delete button.
+- **Clipping uses the first template in the list.** To clip with another one, drag it to the top.
+
+A template has a name, a clip location (Journal, Current Page or Custom Page with its page name) and the content of the block.
+
+The default template is:
+
+```
+#[[Clip]] [{{title}}]({{url}})
+{{content}}
+```
+
+### Variables
+
+| Variable | Value |
+| --- | --- |
+| `{{title}}` | The title of the page |
+| `{{url}}` | The address of the page |
+| `{{content}}` | The selected content, as Markdown. Empty when you clip a page link. |
+| `{{date}}` | Today's date, in the date format of your Logseq |
+| `{{time}}` | The current time, as `HH:mm` |
+| `{{dt}}` | The current date and time as a date object, for filters |
+
+Templates are written in [LiquidJS](https://liquidjs.com/tutorials/intro-to-liquid.html), so you can use filters and conditions. For example, `{{ dt | date: "%Y-%m-%d %H:%M" }}` writes the date and the time in your own format.
+
+Double brackets in the clipped text (`[[`, `{{` and `((`) are escaped, so a clip does not create links or macros in your graph by accident.
+
+<Aside title="Coming from 1.x">
+The single clip template and location of version 1 are moved into a template when you update. Clip location is now set per template.
+</Aside>

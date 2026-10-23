@@ -1,62 +1,102 @@
 ---
 title: Logseq Copilot
-description: Connect Browser and Logseq - A bridge between logseq and browser, building your personal knowledge base easily.
+description: Your Logseq notes, right where you browse. A browser extension for Chrome, Edge and Firefox that connects to your own Logseq.
 template: splash
 hero:
-  tagline: A bridge between logseq and browser, building your personal knowledge base easily.
+  tagline: Your Logseq notes, right where you browse. See them next to your search results, recall them for the page you are on, clip pages into your graph, and keep highlights with comments.
   image:
-    file: ../../assets/logo.svg
+    file: ../../assets/logo.png
   actions:
-    - text: Get Started
-      link: /introduction/
+    - text: Install
+      link: /installation/
       icon: right-arrow
       variant: primary
-    - text: Download for Chrome
-      link: https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl
-      icon: external
-    - text: Download for Edge
-      link: https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi
-      icon: external
-    - text: Download for Firefox
-      link: https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/
-      icon: external
+    - text: Quick start
+      link: /setup/
+      icon: rocket
+      variant: secondary
+    - text: What's new in 2.0
+      link: /blog/
+      icon: right-arrow
+      variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 import Reviews from '../../components/Reviews.astro';
 
-## Key Features
+## What it does
 
 <CardGrid>
-  <Card title="🔍 Smart Note Recall" icon="magnifier">
-    Search your Logseq notes when you search in your browser. Your personal knowledge base becomes accessible from any webpage.
+  <Card title="Notes next to your search" icon="magnifier">
+    On Google, Bing, DuckDuckGo, Kagi and other search engines, the blocks and pages of your graph that match your query show up beside the results. [Search engines →](/features/search-engines/)
   </Card>
-  <Card title="📝 Quick Capture" icon="pencil">
-    Record highlights with your ideas immediately. Add personal notes and comments to any text on the web.
+  <Card title="Notes for the page you are on" icon="document">
+    Open the popup on any page to see the notes that mention its address. The toolbar icon shows how many there are. [How recall works →](/features/recall-rules/)
   </Card>
-  <Card title="📔 Contextual Notes" icon="open-book">
-    Search your Logseq notes based on the tabs you are currently using. Find relevant information contextually.
+  <Card title="Recall rules" icon="setting">
+    Tune the recall for a website: ignore the URL hash or query, exclude or prefer keywords, search or skip certain pages, cap the number of results. [Recall rules →](/features/recall-rules/)
   </Card>
-  <Card title="🎯 Highlights Sidebar" icon="bars">
-    See the highlights of the page you are reading in your browser's own sidebar. Jump to a highlight, edit its note, or delete it.
+  <Card title="Clip with templates" icon="list-format">
+    Clip a selection, or the page link, into your journal, the current page or a page of your choice, in the shape of a template you write. [Clipping & templates →](/features/clipping-and-templates/)
+  </Card>
+  <Card title="Highlights in the browser sidebar" icon="bars">
+    The highlights of the page you are reading are listed in your browser's own sidebar: the side panel in Chrome and Edge, the sidebar in Firefox. It follows the active tab. [Highlights sidebar →](/features/highlights-sidebar/)
+  </Card>
+  <Card title="Highlight comments" icon="pencil">
+    A clipped selection stays highlighted on the page. Click it to add a note. Highlights and notes are stored in your browser. [Highlight comments →](/features/highlight-comments/)
   </Card>
 </CardGrid>
 
-## Why Choose Logseq Copilot?
+## Built for your graph and your privacy
 
 <CardGrid>
-  <Card title="Seamless Integration" icon="setting">
-    Works with your existing Logseq workflow without disruption.
+  <Card title="File graphs and DB graphs" icon="open-book">
+    Works with Logseq 0.10 (file graphs) and Logseq 2.x (DB graphs). The extension finds out which one is open, so there is nothing to switch.
   </Card>
-  <Card title="Privacy Focused" icon="shield">
-    Your data stays in your Logseq instance - no cloud storage required.
+  <Card title="Chrome, Edge and Firefox" icon="laptop">
+    Install it from the Chrome Web Store, Edge Add-ons or Firefox Add-ons. Firefox 127 or later. Safari is not supported.
   </Card>
-  <Card title="Cross-Browser" icon="laptop">
-    Available on Chrome, Firefox, and Edge browsers.
+  <Card title="Your notes stay yours" icon="approve-check-circle">
+    The extension only talks to the Logseq HTTP API server you run. The panels it draws on web pages sit in a closed shadow root, so scripts of the page cannot read your Logseq search results.
   </Card>
-  <Card title="Real-time Sync" icon="rocket">
-    Changes sync instantly with your Logseq database.
+  <Card title="A Logseq look, light and dark" icon="moon">
+    The interface uses the Logseq teal and follows the theme of the page and of your system, in light and dark.
   </Card>
+</CardGrid>
+
+## What's new in 2.0
+
+Logseq Copilot 2.0 supports Logseq DB graphs next to file graphs, runs on Firefox, adds recall rules, page highlights with comments and templated clipping, and moves the highlights list into the browser's own sidebar. The extension is rebuilt on the [WXT](https://wxt.dev) framework.
+
+<LinkCard
+  title="Read what's new in 2.0"
+  description="The release notes and the story behind the new version."
+  href="/blog/"
+/>
+
+## Get it for your browser
+
+<CardGrid>
+  <LinkCard
+    title="Chrome"
+    description="Chrome Web Store"
+    href="https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl"
+  />
+  <LinkCard
+    title="Edge"
+    description="Microsoft Edge Add-ons"
+    href="https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi"
+  />
+  <LinkCard
+    title="Firefox"
+    description="Firefox Add-ons, Firefox 127 or later"
+    href="https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/"
+  />
+  <LinkCard
+    title="Set it up"
+    description="Connect the extension to Logseq in a few minutes"
+    href="/setup/"
+  />
 </CardGrid>
 
 ## Reviews & Ratings
@@ -65,7 +105,7 @@ import Reviews from '../../components/Reviews.astro';
 
 ## Community & Support
 
-- 💬 [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions) - Get help and share ideas
-- 🐛 [Report Issues](https://github.com/eindex/logseq-copilot/issues) - Help us improve
-- ❤️ [Sponsor the Project](/sponsor/) - Support continued development
-- 🐦 [Follow @eindex](https://x.com/eindex) - Stay updated
+- [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions): get help and share ideas
+- [Report an issue](https://github.com/eindex/logseq-copilot/issues): help us improve
+- [Sponsor the project](/sponsor/): support continued development
+- [Follow @eindex](https://x.com/eindex): stay updated

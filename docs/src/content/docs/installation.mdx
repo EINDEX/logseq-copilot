@@ -1,13 +1,11 @@
 ---
 title: Installation
-description: Download and install Logseq Copilot for your browser.
+description: Download and install Logseq Copilot for Chrome, Edge or Firefox.
 ---
 
 import { Badge } from '@astrojs/starlight/components';
 
-# Installation
-
-Logseq Copilot supports all major browsers. Choose your preferred browser below to get started.
+Logseq Copilot runs in Chrome, Microsoft Edge and Firefox. Choose your browser below to get started.
 
 ## Supported Browsers
 
@@ -23,41 +21,57 @@ Available on the Edge Add-ons store:
 
 [**Download for Edge →**](https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi)
 
-### Firefox
+### Firefox <Badge text="Firefox 127+" variant="note" />
 
 Download from Firefox Add-ons:
 
 [**Download for Firefox →**](https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/)
 
+Firefox 127 or later is required. Firefox only grants the extension access to websites at install time from that version on.
+
 ## Browser Compatibility
 
-:::tip[Chrome-based Browsers]
-Most browsers based on Chromium (like Brave, Opera, Vivaldi) support Chrome extensions. If you're not using Firefox or Safari, try the [Chrome version](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl).
+| Browser | Version | Highlights list |
+| --- | --- | --- |
+| Chrome | Current | Side panel |
+| Microsoft Edge | Current | Side panel |
+| Firefox | 127 or later | Sidebar |
+| Safari | Not supported | – |
+
+:::note[Highlights on Firefox]
+The tint that marks a saved highlight on the page uses the CSS Custom Highlight API, which Firefox supports from version 140. On Firefox 127 to 139 the extension does not paint saved highlights on the page.
+:::
+
+:::tip[Other Chromium-based Browsers]
+Browsers based on Chromium (like Brave, Opera, Vivaldi) can usually install extensions from the Chrome Web Store. Try the [Chrome version](https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl) there.
 :::
 
 :::caution[Safari Not Supported]
 **Safari** is currently not supported because registration in the Apple Developer Program is required, which costs US$99 per year.
 
-If you really need Safari support, consider [becoming a sponsor](/sponsor).
+If you really need Safari support, consider [becoming a sponsor](/sponsor/).
 :::
 
 ## After Installation
 
-Once you've installed the extension, you'll need to:
+The extension opens its options page the first time it is installed. Then:
 
-1. **Set up your Logseq API server** - [Setup Guide →](/setup)
-2. **Configure the connection** between the extension and Logseq
-3. **Start capturing highlights** and building your knowledge base!
+1. **Set up the Logseq API server** in the Logseq desktop app. [Setup Guide →](/setup/)
+2. **Enter the host, port and token** on the extension's Settings page.
+3. **Search, clip and highlight**. Open a search engine page or click the toolbar icon on any web page.
+
+Logseq Copilot works with Logseq 0.10 (file graphs) and Logseq 2.x (DB graphs). You do not need to tell it which one you use.
 
 ## Troubleshooting
 
 If you encounter any issues during installation:
 
 - Make sure your browser is up to date
-- Check if the extension appears in your browser's extension manager
+- Check that the extension appears in your browser's extension manager
 - Restart your browser after installation
+- Pages that were already open when you installed or updated the extension need a reload before the extension works on them
 - Visit our [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions) for help
 
 ## Next Step
 
-[**Configure your setup →**](/setup)
+[**Configure your setup →**](/setup/)

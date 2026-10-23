@@ -1,0 +1,71 @@
+---
+title: Search Engines
+description: See the notes of your Logseq graph next to the results of Google, Bing, DuckDuckGo and other search engines.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+When you search on a supported search engine, Logseq Copilot adds a panel to the results page. It lists the blocks and pages of your graph that match your keywords, so your own notes sit next to the web results.
+
+## Supported Search Engines
+
+These engines are built in and turned on by default:
+
+| Engine | Engine |
+| --- | --- |
+| Google | Bing |
+| DuckDuckGo | Ecosia |
+| Yandex | SearX / SearXNG |
+| Baidu | Kagi |
+| Startpage | |
+
+Turn engines on and off in the extension options, under **Search Engine**. Turn off the ones you do not use. You can add your own engine too, see [Custom Search Engines](#custom-search-engines) below.
+
+## What the Panel Shows
+
+- **The graph name and the number of results** in the header, with a button for the extension options.
+- **Blocks, grouped by page.** Each group starts with the name of the page. Click a page name to open it in Logseq.
+- **Your keywords marked** in the text of the blocks.
+- **An "open in Logseq" link** on each block, which shows when you point at it. It opens the block in your graph in the Logseq desktop app, so Logseq has to be running.
+- **Task status for task blocks.** A block that is a task shows a checkbox and its status. Tick the checkbox to mark it `DONE` in Logseq, untick it to set it back to `TODO`. Click the status badge to switch between `TODO` and `DOING`, or `LATER` and `NOW`. It works for file graphs and DB graphs.
+
+If nothing matches, the panel says so and offers a button to open Logseq. If Logseq cannot be reached, it shows a **Connection Issue** card with the reason and a button to the options page.
+
+The panel follows the theme of the page. It uses the Logseq teal, in light and in dark.
+
+## How the Search Works
+
+- The search uses **the keywords of your query only**. It does not search for the web address of the results page.
+- The [recall rules](/features/recall-rules/) that match the address of the results page still apply to the results. For example a rule that excludes a page of your graph hides it here too.
+- When the address of the results page changes without a reload (single-page results, back and forward), the panel searches again.
+- Everything runs on your computer. The query goes to the Logseq API server you set up, nowhere else.
+
+## Custom Search Engines
+
+Under **Search Engine** in the options, click **Add Custom Search Engine** in the **Custom Search Engines** section to teach Logseq Copilot another search page.
+
+<Steps>
+
+1. Fill in **Name** (required), and optionally an **Icon** and a **Description**.
+
+2. **URL Pattern** (required): a regular expression that is tested, case-insensitively, against the address and the host name of the page. A plain host name such as `search.example.com` works too.
+
+3. **Query Selector** (required): where to read the search keywords from.
+   - `?q` reads the URL parameter `q`. A leading `?` means a URL parameter.
+   - Anything else is a CSS selector, such as `#search-input`. The value of that input is used, or its text if it is not an input.
+
+4. **Element Selector** (required): a CSS selector for the element on the page that the panel is placed in, such as `#sidebar`.
+
+5. **Insert Position**: where the panel goes relative to that element: `before` it, `after` it, as its `first` child, or as its `last` child.
+
+</Steps>
+
+You can edit or remove a custom engine later from the same list. If more than one enabled engine matches a page, the first one is used.
+
+:::tip
+If the panel does not show up, check that the engine is switched on, that the connection under **Settings** works, and, for a custom engine, that the selectors match the page. Reload the page after you change a setting.
+:::
+
+## Not on Search Engines?
+
+The panel only shows on search engine results pages. For any other web page, click the Logseq Copilot icon in the toolbar to see the notes that mention it. See [Recall Rules](/features/recall-rules/).

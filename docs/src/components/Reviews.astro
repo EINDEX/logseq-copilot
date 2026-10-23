@@ -199,12 +199,11 @@ function generateStars(rating: number) {
     justify-content: center;
     gap: 1.5rem;
     padding: 2rem;
-    background: linear-gradient(135deg, var(--sl-color-accent) 0%, var(--sl-color-accent-high) 100%);
+    background: var(--lc-brand);
     border-radius: 16px;
-    color: white;
+    color: var(--lc-brand-foreground);
     max-width: 400px;
     margin: 0 auto;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
 
   .overall-rating-number {
@@ -221,7 +220,7 @@ function generateStars(rating: number) {
 
   .overall-rating-stars {
     font-size: 1.5rem;
-    color: #ffd700;
+    color: inherit;
     letter-spacing: 2px;
     margin-bottom: 0.5rem;
   }
@@ -282,9 +281,8 @@ function generateStars(rating: number) {
 
   .rating-stars {
     font-size: 1.5rem;
-    color: #fbbf24;
+    color: var(--sl-color-text-accent);
     letter-spacing: 2px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .rating-number {
@@ -347,11 +345,11 @@ function generateStars(rating: number) {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(45deg, var(--sl-color-accent), var(--sl-color-accent-high));
+    background: var(--lc-brand);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--lc-brand-foreground);
     font-weight: 600;
     font-size: 1.125rem;
   }
@@ -374,9 +372,8 @@ function generateStars(rating: number) {
 
   .review-rating .stars {
     font-size: 1.25rem;
-    color: #fbbf24;
+    color: var(--sl-color-text-accent);
     letter-spacing: 1px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .review-text {

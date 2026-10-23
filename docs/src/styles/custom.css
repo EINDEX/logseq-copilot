@@ -36,6 +36,13 @@ code {
   font-family: 'Fira Code', 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 
+/* One teal for every card icon, instead of Starlight's rotating hues. */
+.card,
+.card:nth-child(n) {
+  --sl-card-border: var(--sl-color-accent);
+  --sl-card-bg: var(--sl-color-accent-low);
+}
+
 /* Card hover effects */
 .sl-card:hover {
   transform: translateY(-2px);
@@ -47,15 +54,64 @@ code {
   max-height: 2rem;
 }
 
-/* Custom colors for Logseq theme */
+/* The logo is a rounded square already: no generic image shadow on it. */
+.site-title img,
+.hero > img {
+  border-radius: 22%;
+  box-shadow: none;
+}
+
+/*
+ * Logseq teal, taken from the extension UI (src/assets/globals.css):
+ *   light primary oklch(0.5 0.075 206)   ~ #206f78 (5.8:1 as text on white)
+ *   dark primary  oklch(0.788 0.068 196) ~ #85c8c8, its foreground #002b36
+ * Starlight paints the primary button with --sl-color-bg-accent and the text
+ * on it with --sl-color-text-invert, so the three accent steps below give the
+ * same primary/foreground pairs as the extension in both themes. The grays are
+ * the extension's neutral zinc scale instead of Starlight's blue-tinted one.
+ */
+:root {
+  --lc-brand: oklch(0.5 0.075 206);
+  --lc-brand-foreground: oklch(0.985 0.005 206);
+  --lc-surface: var(--sl-color-bg-nav);
+  --lc-border: var(--sl-color-hairline);
+}
+
 :root[data-theme='light'] {
-  --sl-color-accent: #4f46e5;
-  --sl-color-accent-high: #312e81;
+  --sl-color-accent-low: oklch(0.94 0.03 196);
+  --sl-color-accent: oklch(0.5 0.075 206);
+  --sl-color-accent-high: oklch(0.36 0.06 208);
+
+  --sl-color-white: oklch(0.141 0.005 286);
+  --sl-color-gray-1: oklch(0.21 0.006 286);
+  --sl-color-gray-2: oklch(0.3 0.008 286);
+  --sl-color-gray-3: oklch(0.44 0.012 286);
+  --sl-color-gray-4: oklch(0.552 0.016 286);
+  --sl-color-gray-5: oklch(0.87 0.004 286);
+  --sl-color-gray-6: oklch(0.92 0.004 286);
+  --sl-color-gray-7: oklch(0.967 0.001 286);
+  --sl-color-black: oklch(1 0 0);
+
+  --lc-brand: oklch(0.5 0.075 206);
+  --lc-brand-foreground: oklch(0.985 0.005 206);
 }
 
 :root[data-theme='dark'] {
-  --sl-color-accent: #6366f1;
-  --sl-color-accent-high: #a5b4fc;
+  --sl-color-accent-low: oklch(0.267 0.049 220);
+  --sl-color-accent: oklch(0.65 0.09 196);
+  --sl-color-accent-high: oklch(0.788 0.068 196);
+
+  --sl-color-white: oklch(0.985 0 0);
+  --sl-color-gray-1: oklch(0.94 0.003 286);
+  --sl-color-gray-2: oklch(0.8 0.008 286);
+  --sl-color-gray-3: oklch(0.65 0.014 286);
+  --sl-color-gray-4: oklch(0.44 0.01 286);
+  --sl-color-gray-5: oklch(0.274 0.006 286);
+  --sl-color-gray-6: oklch(0.21 0.006 286);
+  --sl-color-black: oklch(0.141 0.005 286);
+
+  --lc-brand: oklch(0.788 0.068 196);
+  --lc-brand-foreground: oklch(0.267 0.049 220);
 }
 
 /* External link indicators */
@@ -125,7 +181,7 @@ nav a:after,
 :root[data-theme='dark'] main a[href^="http://"]:after,
 :root[data-theme='dark'] main a[href^="https://"]:after,
 :root[data-theme='dark'] main a[href^="www."]:after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2385c8c8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
 }
 
 /* Responsive image adjustments */

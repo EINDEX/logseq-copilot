@@ -1,169 +1,89 @@
 ---
 title: Highlight Comments
-description: Add and edit personal comments on your highlights for better note-taking.
+description: Highlight text on a web page, add a comment to it, and manage all your highlights. They are stored in your browser.
 ---
 
-import { Badge } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-# Highlight Comments Feature
+When you clip a selection, Logseq Copilot also keeps it as a **highlight**: the text stays marked in teal on the page, and you can click it to write a comment.
 
-The Logseq Copilot extension supports adding and editing comments on your highlights. When you click on any highlighted text on a webpage, a comment popup will appear allowing you to add personal notes and thoughts about the highlighted content.
-
-## Overview
-
-Transform your web highlights into rich, annotated notes by adding personal comments and insights. This feature bridges the gap between passive highlighting and active note-taking.
+<Aside type="note" title="Highlights stay in your browser">
+Highlights and their comments are stored in your browser, in the extension's local storage. They are not sent to Logseq, and they are not synced to other browsers or devices. The clip itself, the block made from your template, is what goes to Logseq. A comment is not part of that clip.
+</Aside>
 
 ## How to Use
 
 ### Creating Highlights
 
-1. **Select text** on any webpage
-2. **Click the Logseq Copilot button** that appears near your selection
-3. The text will be **highlighted and saved automatically**
+1. **Select text** on a web page.
+2. **Clip it**: press the clip shortcut (`Ctrl+Shift+U` by default), right-click and choose **Clip "…"**, or use the floating button if you turned it on. See [Clipping & Templates](/features/clipping-and-templates/) for all the ways.
+3. The selection is clipped into Logseq, marked on the page right away, and saved as a highlight.
 
-### Adding Comments to Highlights
+Clipping the link of a page, with nothing selected, does not make a highlight.
 
-1. **Click on any existing highlight** on the webpage
-2. A comment popup will appear showing:
+Highlights belong to a web address. They show again when you open exactly the same address, and the address has to be identical: a different query or hash is another page. Highlights work on web pages only (`http://` and `https://`).
 
-   - The highlighted text
-   - Creation date and metadata (color, tags if any)
-   - Current comment (if exists)
-   - Edit and Delete buttons
+### Adding a Comment
 
-3. **To add or edit a comment**:
-   - Click the **"Edit"** button
-   - Type your comment in the text area
-   - Click **"Save"** to save your comment
-   - Or click **"Cancel"** to discard changes
+1. **Click a highlight** on the page. A comment popup opens next to the click.
+2. The popup shows the highlighted text (shortened when it is long), the date you created it, and your comment if you wrote one.
+3. Click **Edit**, type your comment in the box, and click **Save**. Click **Cancel** to drop your changes.
+
+You can also edit the comment of a highlight in the [Highlights Sidebar](/features/highlights-sidebar/). If the popup of that highlight is open on the page, it shows the new comment.
 
 ### Managing Comments
 
-#### Editing Comments <Badge text="Quick Edit" variant="note" />
-
-- Click **"Edit"** to modify existing comments
-- Comments support **markdown formatting**
-- **Auto-save** when you click outside the popup while editing
-
-#### Saving Comments
-
-- Comments are automatically saved when you click **"Save"**
-- **Quick save** by clicking outside the popup while editing
-- Changes sync immediately with your Logseq database
-
-#### Deleting Highlights
-
-- Use the **"Delete"** button to remove the entire highlight and its comment
-- **Confirmation prompt** prevents accidental deletions
-- Deleted highlights are removed from your Logseq database
+- **Save**: click **Save**, or click anywhere outside the popup while you are editing. Clicking outside saves, it does not discard.
+- **Delete**: click **Delete** in the popup. The browser asks you to confirm, and then the highlight and its comment are removed from the browser and from the page.
+- **Comments are plain text.** The popup shows them exactly as you typed them, with line breaks. Markdown is not rendered.
 
 ### Keyboard Shortcuts
 
-- **Escape key**: Close the comment popup (or cancel editing if in edit mode)
-- **Click outside**: Close popup (or save changes if editing)
-- **Enter + Ctrl/Cmd**: Quick save while editing (if implemented)
+- **Escape**: while you are editing, drop your changes. Otherwise close the popup.
+- **Click outside**: close the popup, or save your comment if you are editing.
 
 ## Features
 
-### Smart Positioning <Badge text="Auto-Adjust" variant="tip" />
+### Smart Positioning
 
-The comment popup automatically adjusts its position to stay within the viewport, ensuring it's always visible regardless of where you click on the page.
+The comment popup stays inside the window, wherever on the page you click.
 
 ### Theme Support
 
-The comment popup automatically adapts to your current theme (light/dark mode) for a consistent user experience across different websites.
+The popup follows the theme of the page, light or dark. The teal tint of the highlight does too: it is a little softer on dark pages.
 
-### Rich Text Support
+## Manage All Highlights
 
-- **Markdown formatting**: Use basic markdown in your comments
-- **Code snippets**: Add inline code with backticks
-- **Links**: Include URLs in your comments
-- **Lists**: Create bullet points and numbered lists
+Open the extension options and choose **Highlights** to see every highlight you saved, on all websites. There you can:
 
-## Best Practices
+- **Search** the text, title, website and comments of your highlights.
+- **Filter by website**, and click **Apply Filters**.
+- **Open the page** of a highlight by clicking its title.
+- **Delete** a single highlight, or **Clear All** of them (after a confirmation).
+- **Export All** to a JSON file, with the text, comment, address, title and dates of each highlight, to keep a copy or to use them elsewhere.
 
-### Effective Comment Writing
-
-- **Be specific**: Write clear, actionable comments
-- **Add context**: Explain why you highlighted this text
-- **Include questions**: Note questions for later research
-- **Cross-reference**: Link to related notes in Logseq
-
-### Organization Tips
-
-- **Use consistent tagging**: Develop a personal tagging system
-- **Include source context**: Note the publication date or author
-- **Add follow-up actions**: Include next steps or research tasks
-- **Connect ideas**: Reference related highlights or concepts
-
-## Advanced Usage
-
-### Integration with Logseq
-
-Comments are automatically synced with your Logseq database:
-
-- **Block references**: Each comment becomes a block in Logseq
-- **Page organization**: Comments are organized by source page
-- **Search integration**: Find comments through Logseq's search
-- **Graph connections**: Comments appear in your knowledge graph
-
-### Workflow Integration
-
-1. **Highlight while reading**: Capture interesting passages
-2. **Add immediate thoughts**: Write quick reactions
-3. **Expand in Logseq**: Develop ideas further in your database
-4. **Connect concepts**: Link to related notes and ideas
+The page also shows how many highlights you have, on how many websites, and how many you made this week.
 
 ## Troubleshooting
 
-### Common Issues
+**The highlight does not show on the page**:
 
-**Popup not appearing**:
+- Check that the address is the same as when you made it. A different query or hash is a different page.
+- The text of the page may have changed since you saved the highlight. The highlight is still in the list of the sidebar and in the options, and you can edit or delete it there.
+- On Firefox before version 140 the extension does not paint highlights. See [Installation](/installation/#browser-compatibility).
+- Reload the page if it was already open when you installed or updated the extension.
 
-- Ensure the text is properly highlighted
-- Check if the extension is enabled
-- Verify connection to Logseq API server
-- Try refreshing the page
+**Clicking a highlight opens nothing**:
 
-**Comments not saving**:
+- Click on the highlighted text itself.
+- Reload the page if it was already open when you installed or updated the extension.
 
-- Check your internet connection
-- Verify Logseq API server is running
-- Ensure you have proper permissions
-- Try the action again after a moment
+**The comment does not save**:
 
-**Popup positioning issues**:
-
-- Try scrolling to bring the highlight into view
-- Check browser zoom level (100% recommended)
-- Disable other extensions that might interfere
-- Try resizing the browser window
-
-### Performance Optimization
-
-- **Keep comments concise** for faster loading
-- **Regular cleanup** of outdated highlights
-- **Stable internet connection** for real-time sync
-- **Updated browser** for best performance
-
-## Integration Examples
-
-### Research Workflow
-
-```markdown
-Original text: "Machine learning algorithms require large datasets..."
-Your comment: "Check dataset requirements for my project - need to find public datasets for sentiment analysis. Related: [[ML Resources]] #research #todo"
-```
-
-### Study Notes
-
-```markdown
-Original text: "The mitochondria is the powerhouse of the cell..."
-Your comment: "Key concept for biology exam. Remember: ATP production, cellular respiration. See also: [[Cell Biology Notes]] #study #biology"
-```
+- Click **Save** and wait for the button to finish. Comments are saved in the browser, so Logseq does not need to be running for this.
 
 ## What's Next?
 
-- Explore the [Highlights Sidebar](/features/highlights-sidebar) for managing the highlights of the page you are reading
-- Learn about [advanced Logseq integration](/development/testing-architecture)
+- Explore the [Highlights Sidebar](/features/highlights-sidebar/) for managing the highlights of the page you are reading
+- Shape what is sent to Logseq with [Clipping & Templates](/features/clipping-and-templates/)
 - Join our [community](https://github.com/EINDEX/logseq-copilot/discussions) for tips and workflows!
