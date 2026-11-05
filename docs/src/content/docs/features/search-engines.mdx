@@ -23,15 +23,18 @@ Turn engines on and off in the extension options, under **Search Engine**. Turn 
 
 ## What the Panel Shows
 
-- **The graph name and the number of results** in the header, with a button for the extension options.
-- **Blocks, grouped by page.** Each group starts with the name of the page. Click a page name to open it in Logseq.
-- **Your keywords marked** in the text of the blocks.
-- **An "open in Logseq" link** on each block, which shows when you point at it. It opens the block in your graph in the Logseq desktop app, so Logseq has to be running.
-- **Task status for task blocks.** A block that is a task shows a checkbox and its status. Tick the checkbox to mark it `DONE` in Logseq, untick it to set it back to `TODO`. Click the status badge to switch between `TODO` and `DOING`, or `LATER` and `NOW`. It works for file graphs and DB graphs.
+- **The graph name** at the top. Click it to open the graph in Logseq. Point at the panel to show the gear button for the extension options.
+- **The pages that mention your keywords**, best match first. Each page row has a page icon (a calendar for journals), the title and how long ago the page changed. Journals show only their date. The first three pages show; the arrow below them shows the rest.
+- **The best blocks of each page**, two at first. Click **+N** to show the others. A page that matches only by its title shows no blocks.
+- **The context of a block.** Above a nested block, a gray line shows its parent block. In a journal it also shows the top-level block, so you can tell the topics of a day apart. Blocks that share a parent are listed under it once.
+- **Your keywords marked** in the blocks and the context lines. Page references show in teal, tags in gray.
+- **Tasks** show a checkbox: checked and struck through for `DONE`, a dot for `DOING` and `NOW`.
 
-If nothing matches, the panel says so and offers a button to open Logseq. If Logseq cannot be reached, it shows a **Connection Issue** card with the reason and a button to the options page.
+Click a page, a block or a context line to open it in the Logseq desktop app, so Logseq has to be running.
 
-The panel follows the theme of the page. It uses the Logseq teal, in light and in dark.
+If nothing matches, the panel shows a single line: "No related notes in Logseq". If Logseq cannot be reached or the token is wrong, it shows the reason and a link to the options page.
+
+The panel follows the theme of the page, in light and in dark.
 
 ## How the Search Works
 
