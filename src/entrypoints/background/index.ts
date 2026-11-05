@@ -1,5 +1,3 @@
-import { getLogseqCopliotConfig } from '@/utils/storage';
-import { blockRending, formatLogseqDate } from '@/utils/utils';
 import { debounce } from '@/utils';
 import {
   changeOptionsHostToHostNameAndPort,
@@ -8,7 +6,6 @@ import {
 } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
-import { templates } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import { openSidebar } from '@/utils/sidebar';
@@ -18,6 +15,7 @@ import {
   recallRequestKey,
   recentRequests,
 } from './logseq/recall/recent-requests';
+import { backgroundClipFallback, clipToLogseq } from './clip';
 
 // Long enough to cover a result page that reloads itself (Bing: ~1.5 s).
 const RECALL_SHARE_MS = 5_000;
@@ -134,42 +132,7 @@ export default defineBackground({
       if (!tab) return;
       const activeTab = tab;
 
-      // Get the first template (default template) from the templates list
-      const templateList = await templates.getValue();
-      const defaultTemplate = templateList[0];
-
-      if (!defaultTemplate) {
-        log.error('No templates found for clipping');
-        return;
-      }
-
-      const now = new Date();
-      const logseqService = await getLogseqService();
-
-      const resp = await logseqService.client.getUserConfig();
-
-      const block = blockRending({
-        url: activeTab.url,
-        title: activeTab.title,
-        data,
-        clipNoteTemplate: defaultTemplate.content,
-        preferredDateFormat: resp['preferredDateFormat'],
-        time: now,
-      });
-
-      const clipNoteLocation = defaultTemplate.clipNoteLocation || 'journal';
-      const clipNoteCustomPage = defaultTemplate.clipNoteCustomPage || '';
-
-      if (clipNoteLocation === 'customPage') {
-        await logseqService.client.appendBlock(clipNoteCustomPage, block);
-      } else if (clipNoteLocation === 'currentPage') {
-        const { name: currentPage } =
-          await logseqService.client.getCurrentPage();
-        await logseqService.client.appendBlock(currentPage, block);
-      } else {
-        const journalPage = formatLogseqDate(now, resp['preferredDateFormat']);
-        await logseqService.client.appendBlock(journalPage, block);
-      }
+      await clipToLogseq({ url: activeTab.url, title: activeTab.title, data });
 
       debounceBadgeSearch(activeTab.url, activeTab.id!);
     };
@@ -254,13 +217,35 @@ export default defineBackground({
       );
     };
 
+    // The content script clips the selection as Markdown and highlights it.
+    // Where it cannot run (the browser's PDF viewer, ...), clip the plain
+    // selected text the menu click reports.
+    const clipSelectionFromMenu = async (
+      info: Browser.contextMenus.OnClickData,
+      tab: Browser.tabs.Tab | undefined,
+    ) => {
+      try {
+        if (tab?.id === undefined) throw new Error('No tab to clip from');
+        await sendMessage('content:quickCaptureWithSelection', undefined, {
+          tabId: tab.id,
+        });
+        return;
+      } catch (err) {
+        const fallback = backgroundClipFallback(info, tab);
+        if (!fallback) throw err;
+        log.debug('[background] Content script unreachable, clipping the menu selection', err);
+        await clipToLogseq(fallback);
+        if (tab?.id !== undefined) debounceBadgeSearch(fallback.url, tab.id);
+      }
+    };
+
     browser.contextMenus.onClicked.addListener((info, tab) => {
       if (info.menuItemId === 'open-highlights-sidebar') {
         openSidebarForTab(tab);
       } else if (info.menuItemId === 'clip-with-selection') {
-        sendMessage('content:quickCaptureWithSelection', undefined, {
-          tabId: tab!.id!,
-        });
+        clipSelectionFromMenu(info, tab).catch((err) =>
+          log.error('Failed to clip the selection:', err),
+        );
       } else if (info.menuItemId === 'clip-page') {
         sendMessage('content:quickCapturePage', undefined, { tabId: tab!.id! });
       }

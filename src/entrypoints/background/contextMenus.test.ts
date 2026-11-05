@@ -7,7 +7,12 @@ vi.mock('@/types/messaging', () => ({
   onMessage: vi.fn(),
   sendMessage: vi.fn(),
 }));
+vi.mock('./clip', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./clip')>()),
+  clipToLogseq: vi.fn(),
+}));
 
+import { clipToLogseq } from './clip';
 import background from './index';
 
 describe('background context menus', () => {
@@ -24,6 +29,7 @@ describe('background context menus', () => {
     onCommand.addListener.mockReset();
     sidePanelOpen.mockReset().mockResolvedValue(undefined);
     vi.mocked(sendMessage).mockReset();
+    vi.mocked(clipToLogseq).mockReset().mockResolvedValue(undefined);
     (fakeBrowser as any).contextMenus = { create, onClicked };
     (fakeBrowser as any).commands = { onCommand };
     (fakeBrowser as any).sidePanel = { open: sidePanelOpen };
@@ -150,6 +156,67 @@ describe('background context menus', () => {
       );
 
       expect(sidePanelOpen).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('clipping a selection where the content script cannot run (#60)', () => {
+    const noReceiver = () =>
+      new Error('Could not establish connection. Receiving end does not exist.');
+    const clickSelection = (
+      info: { selectionText?: string; pageUrl?: string },
+      tab?: { id?: number; windowId: number; url?: string; title?: string },
+    ) => {
+      background.main();
+      const listener = onClicked.addListener.mock.calls[0][0];
+      listener({ menuItemId: 'clip-with-selection', ...info }, tab);
+    };
+    const pdfTab = {
+      id: 7,
+      windowId: 3,
+      url: 'https://example.com/paper.pdf',
+      title: 'paper.pdf',
+    };
+
+    it('leaves the clip to the content script when it answers', async () => {
+      vi.mocked(sendMessage).mockResolvedValue(undefined);
+
+      clickSelection({ selectionText: 'a quote', pageUrl: pdfTab.url }, pdfTab);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(clipToLogseq).not.toHaveBeenCalled();
+    });
+
+    it('clips the selected text from the background when the tab has no receiver', async () => {
+      vi.mocked(sendMessage).mockRejectedValue(noReceiver());
+
+      clickSelection({ selectionText: 'a quote', pageUrl: pdfTab.url }, pdfTab);
+
+      await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
+      expect(clipToLogseq).toHaveBeenCalledWith({
+        url: 'https://example.com/paper.pdf',
+        title: 'paper.pdf',
+        data: 'a quote',
+      });
+    });
+
+    it('clips from the background when the click has no tab id', async () => {
+      clickSelection(
+        { selectionText: 'a quote', pageUrl: pdfTab.url },
+        { windowId: 3, url: pdfTab.url, title: 'paper.pdf' },
+      );
+
+      await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not clip from the background without selected text', async () => {
+      const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+      vi.mocked(sendMessage).mockRejectedValue(noReceiver());
+
+      clickSelection({ pageUrl: pdfTab.url }, pdfTab);
+
+      await vi.waitFor(() => expect(error).toHaveBeenCalledTimes(1));
+      expect(clipToLogseq).not.toHaveBeenCalled();
     });
   });
 });
