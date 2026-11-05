@@ -13,18 +13,6 @@ export interface MessagingProtocol {
     options?: { fuzzy?: boolean };
   }) => LogseqResponseType<LogseqSearchResult>;
 
-  'logseq:hybridSearch': (data: {
-    url: string;
-    query: string;
-    options?: { fuzzy?: boolean };
-    /**
-     * Search by `query` only. `url` is still used to pick the recall rules
-     * (and so their page scope / keyword filters), but no URL search runs.
-     * Used where the page is not the content (search engine result pages).
-     */
-    keywordOnly?: boolean;
-  }) => LogseqResponseType<LogseqSearchResult>;
-
   /**
    * Pages that mention a search engine query, best first (see
    * background/logseq/recall). `url` picks the recall rules (keyword

@@ -104,27 +104,6 @@ describe('page scope filtering', () => {
   });
 });
 
-describe('filterPages', () => {
-  it('applies the page scope to page results', () => {
-    const ctx = context({ searchScope: { excludePages: ['Work'] } });
-    const pages = [
-      { id: 1, uuid: 'p1', name: 'work', originalName: 'Work' },
-      { id: 2, uuid: 'p2', name: 'homework', originalName: 'Homework' },
-      { id: 3, uuid: 'p3', name: '' },
-    ];
-    expect(processor.filterPages(pages, ctx).map((p) => p.uuid)).toEqual(['p2']);
-  });
-
-  it('restrictToPages keeps only the listed pages', () => {
-    const ctx = context({ searchScope: { restrictToPages: ['homework'] } });
-    const pages = [
-      { id: 1, uuid: 'p1', name: 'work' },
-      { id: 2, uuid: 'p2', name: 'Homework' },
-    ];
-    expect(processor.filterPages(pages, ctx).map((p) => p.uuid)).toEqual(['p2']);
-  });
-});
-
 const rule = (overrides: Record<string, any> = {}) => ({
   id: overrides.id ?? 'r',
   name: overrides.name ?? 'rule',
