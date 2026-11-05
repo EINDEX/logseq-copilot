@@ -7,13 +7,12 @@ import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { FileRecallSource } from '../recall/file-source';
+import { moreBlocks } from './more-blocks';
 
 /**
- * `logseq.App.search` of a file graph (0.10.x) returns at most 10 blocks
- * (`search repo q {:limit 10}`, the API takes no options). When it is full,
- * the rest comes from a full-text query, up to this many blocks in total.
+ * Blocks a search answers at most: a full `App.search` answer (10 blocks)
+ * is completed by a full-text query up to this many (see more-blocks.ts).
  */
-export const SEARCH_API_LIMIT = 10;
 export const MAX_SEARCH_BLOCKS = 50;
 
 export default class LogseqService implements LogseqServiceInterface {
@@ -39,9 +38,17 @@ export default class LogseqService implements LogseqServiceInterface {
         return await this.getBlock(block['block/uuid'], graphName, query);
       }),
     );
-    if (result.blocks.length >= SEARCH_API_LIMIT) {
-      result.blocks.push(...(await this.moreBlocks(graphName, query, result.blocks)));
-    }
+    const extra = await moreBlocks(
+      this.client,
+      query,
+      result.blocks.map((block: LogseqBlockType) => block.uuid),
+      MAX_SEARCH_BLOCKS,
+    );
+    result.blocks.push(
+      ...(await Promise.all(
+        extra.map((block) => this.prepareBlock(block, graphName, query)),
+      )),
+    );
     result.pages = await Promise.all(
       result.pages.map(async (page: string) => {
         return await this.client.getPage({
@@ -53,33 +60,6 @@ export default class LogseqService implements LogseqServiceInterface {
     result.count = result.blocks.length + result.pages.length;
     result.graph = graphName;
     return result;
-  }
-
-  /**
-   * Blocks containing `query` beyond the search API limit: a simple query
-   * (`logseq.DB.q "text"`) answers with whole blocks, so only their page
-   * names are missing. Failures keep the search API results.
-   */
-  private async moreBlocks(
-    graphName: string,
-    query: string,
-    found: LogseqBlockType[],
-  ): Promise<LogseqBlockType[]> {
-    let hits: any[];
-    try {
-      hits = await this.client.find(query);
-    } catch (e) {
-      log.warn('[search] full-text query failed', e);
-      return [];
-    }
-    if (!Array.isArray(hits)) return [];
-    const seen = new Set(found.map((block) => block.uuid));
-    const extra = hits
-      .filter((block) => block?.uuid && !seen.has(block.uuid) && block.content)
-      .slice(0, Math.max(0, MAX_SEARCH_BLOCKS - found.length));
-    return Promise.all(
-      extra.map((block) => this.prepareBlock(block, graphName, query)),
-    );
   }
 
   /** Page name, block ref texts and HTML of a block read from the API. */

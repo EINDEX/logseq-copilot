@@ -1,8 +1,9 @@
 import type LogseqClient from '../markdown/client';
+import { moreBlocks } from '../markdown/more-blocks';
 import { BlockCache } from './block-cache';
 import { parseBlockText, type UuidRef } from './block-text';
 import type { CandidateBlock, CandidatePage } from './rank';
-import type { AncestorBlock, RecallSource } from './recall';
+import { SEARCH_LIMIT, type AncestorBlock, type RecallSource } from './recall';
 
 /*
  * Logseq 0.10.x (file graph) shapes, checked against 0.10.15
@@ -10,6 +11,10 @@ import type { AncestorBlock, RecallSource } from './recall';
  * - `App.search(q)` answers `{ blocks: [{ 'block/uuid', ... }], pages:
  *   [original names] }` and returns at most 10 blocks; a second `opts`
  *   argument (`{ limit }`) is ignored.
+ * - The simple query `DB.q "q"` answers every block whose markdown
+ *   `content` contains `q` (case-sensitive, the words in that order), as
+ *   whole blocks: the `Editor.getBlock` fields without `children`
+ *   (tests/integration/recall.test.ts).
  * - `Editor.getBlock` has the markdown `content` (page references are
  *   names, block references `((uuid))`), `marker`, `properties`, and
  *   `page` / `parent` as `{ id }`. Blocks have no `updatedAt`.
@@ -101,11 +106,15 @@ export class FileRecallSource implements RecallSource {
     const resp: any = await this.client.search(query);
     const blocks: any[] = Array.isArray(resp?.blocks) ? resp.blocks : [];
     const pageNames: string[] = Array.isArray(resp?.pages) ? resp.pages : [];
+    const uuids: string[] = blocks.map((b) => b['block/uuid']);
+    // A full answer is completed by a full-text query (whole blocks, so
+    // they go into the block cache), as the search sidebar does.
+    const extra = await moreBlocks(this.client, query, uuids, SEARCH_LIMIT);
+    extra.forEach((block) => this.blocks.add(block));
+    uuids.push(...extra.map((block) => block.uuid));
     const [pages, candidates] = await Promise.all([
       Promise.all(pageNames.map((name) => this.readPage(name))),
-      Promise.all(
-        blocks.map((b) => this.readBlock(b['block/uuid']).catch(() => null)),
-      ),
+      Promise.all(uuids.map((uuid) => this.readBlock(uuid).catch(() => null))),
     ]);
     return {
       pages: pages.filter((p): p is CandidatePage => p !== null),

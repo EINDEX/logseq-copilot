@@ -22,4 +22,12 @@ export class BlockCache {
     this.blocks.set(key, pending);
     return pending;
   }
+
+  /** A block read some other way (a query answer), so get() does not ask again. */
+  add(block: any): void {
+    if (!block?.uuid || this.blocks.has(block.uuid)) return;
+    const known = Promise.resolve(block);
+    this.blocks.set(block.uuid, known);
+    if (block.id !== undefined) this.blocks.set(String(block.id), known);
+  }
 }
