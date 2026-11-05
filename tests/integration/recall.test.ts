@@ -63,6 +63,19 @@ describe(`Logseq API facts recall relies on (${variant})`, () => {
     }
   });
 
+  test.skipIf(isDB)('DB.q "text" answers every block containing the text', async () => {
+    // What the file graph source completes a full App.search answer with.
+    const hits: any[] = await api('logseq.DB.q', ['"limitprobe"']);
+    expect(hits).toHaveLength(LIMIT_PROBE_BLOCKS);
+    const block = await api('logseq.Editor.getBlock', [hits[0].uuid]);
+    const { children, ...withoutChildren } = block;
+    expect(children).toEqual([]);
+    expect(hits[0]).toMatchObject({ ...withoutChildren, page: { id: block.page.id } });
+    // Case-sensitive, the words in that order.
+    expect(await api('logseq.DB.q', ['"LimitProbe"'])).toHaveLength(0);
+    expect(await api('logseq.DB.q', ['"filler limitprobe"'])).toHaveLength(0);
+  });
+
   test.skipIf(!isDB)('getBlock fullTitle has readable references, content has uuids', async () => {
     const hit = (await search('Recallprobe outline')).find((b) =>
       plain(b.fullTitle).startsWith('Recallprobe outline'),
@@ -269,7 +282,7 @@ describe(`service.recall (${variant})`, () => {
     const { pages } = await service.recall('limitprobe');
     const probe = pages.find((p) => p.title === 'Limit Probe')!;
     expect(probe.hits).toHaveLength(MAX_HITS_PER_PAGE);
-    // 30 hits asked on 2.x; 0.10.x returns 10 at most.
-    expect(probe.totalHits).toBe(isDB ? LIMIT_PROBE_BLOCKS : 10);
+    // 30 hits asked on 2.x; on 0.10.x DB.q completes the 10 of App.search.
+    expect(probe.totalHits).toBe(LIMIT_PROBE_BLOCKS);
   });
 });
