@@ -165,6 +165,20 @@ function detectSiteSpecificDarkMode(): Theme | null {
     return isDark ? 'dark' : 'light';
   }
 
+  // Brave Search: `html.dark` / `html.light` when a theme is picked in its
+  // settings. The default theme ("system") sets neither, and the page
+  // follows prefers-color-scheme.
+  if (hostname === 'search.brave.com') {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark')
+      ? true
+      : html.classList.contains('light')
+        ? false
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    log.debug('[Theme Detection] Brave result:', isDark ? 'dark' : 'light');
+    return isDark ? 'dark' : 'light';
+  }
+
   // Baidu
   if (hostname.includes('baidu.')) {
     log.debug('[Theme Detection] Detecting Baidu theme...');

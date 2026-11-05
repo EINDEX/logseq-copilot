@@ -1,4 +1,9 @@
-import { searchEngineConfig, SearchEngineConfig } from './storage';
+import { storage } from '#imports';
+import {
+  BUILT_IN_SEARCH_ENGINES,
+  searchEngineConfig,
+  SearchEngineConfig,
+} from './storage';
 import { log } from './index';
 
 /**
@@ -30,123 +35,11 @@ export class SearchEngineConfigMigration {
         '[Migration] Starting search engine configuration migration to v2',
       );
 
-      // Define the default built-in search engines with full configuration
-      const builtInEngines: SearchEngineConfig[] = [
-        {
-          id: 'google',
-          name: 'Google',
-          enabled: true,
-          icon: '🔍',
-          description: "The world's most popular search engine",
-          isCustom: false,
-          urlPattern: '\\.google(\\.com?)?(\\.[a-z]{2})?(\\.[a-z]{3})?$',
-          querySelector: '?q',
-          elementSelector: '#rhs',
-          insertPosition: 'first',
-        },
-        {
-          id: 'bing',
-          name: 'Bing',
-          enabled: true,
-          icon: '🔷',
-          description: "Microsoft's search engine with AI integration",
-          isCustom: false,
-          urlPattern: 'bing(\\.com?)?(\\.[a-z]{2})?$',
-          querySelector: '?q',
-          elementSelector: '#b_context',
-          insertPosition: 'first',
-        },
-        {
-          id: 'duckduckgo',
-          name: 'DuckDuckGo',
-          enabled: true,
-          icon: '🦆',
-          description: 'Privacy-focused search engine',
-          isCustom: false,
-          urlPattern: 'duckduckgo\\.com$',
-          querySelector: '?q',
-          elementSelector: '.js-react-sidebar',
-          insertPosition: 'first',
-        },
-        {
-          id: 'ecosia',
-          name: 'Ecosia',
-          enabled: true,
-          icon: '🌱',
-          description: 'Search engine that plants trees',
-          isCustom: false,
-          urlPattern: 'ecosia\\.org$',
-          querySelector: '?q',
-          elementSelector: '.layout__content .web .sidebar',
-          insertPosition: 'first',
-        },
-        {
-          id: 'yandex',
-          name: 'Yandex',
-          enabled: true,
-          icon: '🔴',
-          description: 'Russian search engine and web services',
-          isCustom: false,
-          urlPattern: 'yandex\\.(com|ru)$',
-          querySelector: '?text',
-          elementSelector: '#search-result-aside',
-          insertPosition: 'first',
-        },
-        {
-          id: 'searx',
-          name: 'SearX',
-          enabled: true,
-          icon: '🔒',
-          description: 'Privacy-respecting metasearch engine',
-          isCustom: false,
-          urlPattern: '^searx(ng)?\\.',
-          querySelector: '?q',
-          elementSelector: '#sidebar',
-          insertPosition: 'first',
-        },
-        {
-          id: 'baidu',
-          name: 'Baidu',
-          enabled: true,
-          icon: '🐾',
-          description: 'Leading Chinese search engine',
-          isCustom: false,
-          urlPattern: 'baidu\\.com',
-          querySelector: '?wd',
-          elementSelector: '#con-ar',
-          insertPosition: 'first',
-        },
-        {
-          id: 'kagi',
-          name: 'Kagi',
-          enabled: true,
-          icon: '🔎',
-          description: 'Ad-free, privacy-focused search',
-          isCustom: false,
-          urlPattern: 'kagi\\.com$',
-          querySelector: '?q',
-          elementSelector: 'div.right-content-box',
-          insertPosition: 'first',
-        },
-        {
-          id: 'startpage',
-          name: 'Startpage',
-          enabled: true,
-          icon: '🛡️',
-          description: 'Private search using Google results',
-          isCustom: false,
-          urlPattern: 'startpage\\.com$',
-          querySelector: '#q',
-          elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
-          insertPosition: 'first',
-        },
-      ];
-
       // Merge existing configuration with new built-in engines
       const migratedConfig: SearchEngineConfig[] = [];
 
       // First, add built-in engines with preserved enabled state
-      for (const builtInEngine of builtInEngines) {
+      for (const builtInEngine of BUILT_IN_SEARCH_ENGINES) {
         const existingEngine = currentConfig.find(
           (e) => e.id === builtInEngine.id,
         );
@@ -188,11 +81,42 @@ export class SearchEngineConfigMigration {
   }
 
   /**
+   * Add the built-in engines a saved config does not have yet (e.g. Brave
+   * Search for users upgrading from an older version), enabled by default.
+   * They go at the end: the content script uses the first enabled engine
+   * that matches, so a custom engine the user made for the same site keeps
+   * working. Entries already saved are left as they are. Built-in engines
+   * cannot be removed, so a missing id is always a new one; that makes this
+   * idempotent. Nothing is written when no config is saved: the fallback
+   * already has every built-in engine.
+   */
+  static async addMissingBuiltInEngines() {
+    // The raw value: the typed item returns its fallback for a missing key.
+    const saved = await storage.getItem<SearchEngineConfig[]>(
+      'local:searchEngineConfig',
+    );
+    if (!Array.isArray(saved)) return;
+
+    const savedIds = new Set(saved.map((engine) => engine.id));
+    const missing = BUILT_IN_SEARCH_ENGINES.filter(
+      (engine) => !savedIds.has(engine.id),
+    );
+    if (missing.length === 0) return;
+
+    await searchEngineConfig.setValue([...saved, ...missing]);
+    log.info(
+      '[Migration] Added built-in search engines:',
+      missing.map((engine) => engine.id),
+    );
+  }
+
+  /**
    * Run all necessary migrations
    */
   static async runMigrations() {
     try {
       await this.migrateToV2();
+      await this.addMissingBuiltInEngines();
       log.info(
         '[Migration] All search engine migrations completed successfully',
       );

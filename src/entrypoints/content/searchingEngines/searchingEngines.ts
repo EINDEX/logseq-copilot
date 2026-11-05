@@ -22,6 +22,16 @@ const GOOGLE_RHS_MARGIN = 76;
 /** Narrower than this, the sidebar goes above the results instead. */
 const GOOGLE_RHS_MIN_WIDTH = 300;
 
+/**
+ * Brave's right column: fixed width and gap to the results column. Brave's
+ * grid does not shrink it, so without this much room right of the results
+ * the column is cut off by the window edge.
+ */
+const BRAVE_SIDE_WIDTH = 400;
+const BRAVE_SIDE_GAP = 48;
+/** Brave's results and infobox start this far below the top of the columns. */
+const BRAVE_TOP_GAP = 24;
+
 class CustomSearchEngine extends SearchingEngine {
   private config: {
     id: string;
@@ -151,6 +161,9 @@ class CustomSearchEngine extends SearchingEngine {
       if (this.config.id === 'google') {
         return this.handleGoogleElement();
       }
+      if (this.config.id === 'brave') {
+        return this.handleBraveElement();
+      }
 
       let targetElement = document.querySelector(this.config.elementSelector);
       if (!targetElement) {
@@ -256,6 +269,43 @@ class CustomSearchEngine extends SearchingEngine {
       width: `${Math.min(GOOGLE_RHS_WIDTH, room - GOOGLE_RHS_MARGIN)}px`,
       marginLeft: `${GOOGLE_RHS_MARGIN}px`,
     });
+    return container;
+  }
+
+  /**
+   * Brave Search: first thing in the right column (#mixed-side). Brave hides
+   * that column while it is empty, and a card in it shows it, like Brave's
+   * own infobox. When the window has no room for the column (it would be cut
+   * off, and Brave hides it on narrow windows), the top of the results
+   * (#mixed-main) instead.
+   */
+  private handleBraveElement(): Element | null {
+    const side = document.querySelector(this.config.elementSelector);
+    const main = document.getElementById('mixed-main');
+    const room = main
+      ? document.documentElement.clientWidth - main.getBoundingClientRect().right
+      : 0;
+    const target =
+      main && (!side || room < BRAVE_SIDE_GAP + BRAVE_SIDE_WIDTH) ? main : side;
+    if (!target) {
+      log.warn(`[CustomSearchEngine] Target element not found for ${this.config.name}`);
+      return null;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'logseq-copilot-custom-container';
+    container.style.marginTop = `${BRAVE_TOP_GAP}px`;
+    const firstResult = target === main ? target.firstElementChild : null;
+    if (firstResult) {
+      // Level with the text of the results, which Brave insets by the
+      // padding of each result (none on the one-column layout).
+      const inset =
+        firstResult.getBoundingClientRect().left +
+        parseFloat(getComputedStyle(firstResult).paddingLeft) -
+        target.getBoundingClientRect().left;
+      if (inset > 0) container.style.paddingLeft = `${inset}px`;
+    }
+    target.insertBefore(container, target.firstChild);
     return container;
   }
 
