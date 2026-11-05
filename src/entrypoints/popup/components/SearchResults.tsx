@@ -63,7 +63,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     className="w-full"
                 >
                     <Plus className="w-4 h-4 mr-2" />
-                    Quick Capture
+                    Clip page
                 </Button>
             </div>
         );

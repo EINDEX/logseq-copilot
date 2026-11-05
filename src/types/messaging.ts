@@ -41,6 +41,9 @@ export interface MessagingProtocol {
 
   'content:quickCapturePage': () => void;
 
+  /** Whether the page has a selection that `quickCaptureWithSelection` would clip. */
+  'content:hasSelection': () => boolean;
+
   /**
    * Sent by the browser sidebar to one tab: scroll the highlight to the middle
    * of the viewport. Resolves to false when the page has no such highlight.

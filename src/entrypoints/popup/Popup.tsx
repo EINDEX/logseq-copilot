@@ -23,6 +23,9 @@ export default function Popup() {
   const [logseqSearchResult, setLogseqSearchResult] = useState<LogseqSearchResult>();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTab, setCurrentTab] = useState<Browser.tabs.Tab | null>(null);
+  // False until the page's content script says it has a selection; stays
+  // false where it cannot run (browser pages, the PDF viewer, ...).
+  const [canClipSelection, setCanClipSelection] = useState(false);
 
   const mountOpenPageMethod = () => {
     const innerFunction = () => {
@@ -118,6 +121,18 @@ export default function Popup() {
     window.close();
   };
 
+  // The same command as the "Clip selection" context menu item.
+  const tabId = currentTab?.id;
+  const clipSelection = async () => {
+    if (tabId === undefined) return;
+    try {
+      await sendMessage('content:quickCaptureWithSelection', undefined, { tabId });
+      window.close();
+    } catch (err) {
+      log.error('Failed to clip the selection:', err);
+    }
+  };
+
   // The window is known from the tab query at mount, before the click: the
   // browser opens the sidebar only while the click is still a user action, so
   // nothing may be awaited before openSidebar.
@@ -137,6 +152,12 @@ export default function Popup() {
 
         if (tab) {
           setCurrentTab(tab);
+          if (tab.id !== undefined) {
+            sendMessage('content:hasSelection', undefined, { tabId: tab.id }).then(
+              (has) => setCanClipSelection(has === true),
+              () => setCanClipSelection(false),
+            );
+          }
           if (
             tab.url &&
             !['chrome://', 'about:', 'moz-extension://', 'chrome-extension://'].some(
@@ -214,6 +235,8 @@ export default function Popup() {
       {/* Quick Actions */}
       <QuickActions
         onQuickCapture={quickCapture}
+        onClipSelection={clipSelection}
+        canClipSelection={canClipSelection}
         onRefresh={searchCurrentPage}
         onOpenSettings={openSettingsPage}
         onOpenLogseq={openLogseqGraph}

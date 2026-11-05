@@ -1,4 +1,16 @@
+import type { Page } from '@playwright/test';
 import { expect, nonce, test } from './fixtures';
+
+/** Select the whole #target paragraph, like a user drag-selecting it. */
+const selectParagraph = (page: Page) =>
+  page.evaluate(() => {
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById('target')!);
+    const selection = getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection.toString();
+  });
 
 test.describe('popup', () => {
   test('searches the URL of the active tab and lists the matching block', async ({ page, ext }) => {
@@ -35,5 +47,45 @@ test.describe('popup', () => {
     await popup.click(checkbox);
     await expect.poll(() => popup.isChecked(checkbox)).toBe(true);
     await expect.poll(() => logseq.taskMarker(uuid)).toBe('DONE');
+  });
+
+  test('offers "Clip selection" only while the page has a selection', async ({ page, ext, articles }) => {
+    const id = nonce('popupnosel');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Popup page ${id}`, paragraph: `Words ${id}` });
+
+    await ext.connect();
+    await page.goto(url);
+    await page.waitForLoadState('load');
+
+    let popup = await ext.openPopup(page);
+    await popup.expectText(`Popup page ${id}`);
+    await popup.expectButtonEnabled('Clip selection', false);
+    await popup.close();
+
+    await selectParagraph(page);
+    popup = await ext.openPopup(page);
+    await popup.expectButtonEnabled('Clip selection');
+  });
+
+  test('"Clip selection" clips the selected text into the journal', async ({ page, ext, logseq, articles }) => {
+    const id = nonce('popupsel');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Popup clip ${id}`, paragraph: `Popup selected ${id} words` });
+
+    await ext.connect();
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    expect(await selectParagraph(page)).toContain(id);
+
+    const popup = await ext.openPopup(page);
+    await popup.expectButtonEnabled('Clip selection');
+    await popup.clickButton('Clip selection');
+
+    await expect.poll(async () => (await logseq.findBlocks(id)).length, { timeout: 30_000 }).toBeGreaterThan(0);
+    const [block] = await logseq.findBlocks(id);
+    const content: string = block.content ?? block.title ?? '';
+    expect(content).toContain(`[Popup clip ${id}](${url})`);
+    expect(content).toContain(`Popup selected ${id} words`);
   });
 });

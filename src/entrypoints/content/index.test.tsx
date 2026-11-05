@@ -160,6 +160,25 @@ describe('content script startup', () => {
     await expect(HighlightManager.getInstance().ready).resolves.toBeUndefined();
     expect(save).toHaveBeenCalledTimes(1);
   });
+
+  it('tells the toolbar popup whether there is a selection to clip, from the start', async () => {
+    vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
+      new Promise(() => {}),
+    );
+    void (contentScript as any).main({});
+    const hasSelection = messaging.handlers.get('content:hasSelection')!;
+
+    document.body.innerHTML = '<p id="p">hello world</p>';
+    window.getSelection()!.removeAllRanges();
+    expect(await hasSelection({ data: undefined })).toBe(false);
+
+    window.getSelection()!.collapse(document.getElementById('p')!.firstChild, 2);
+    expect(await hasSelection({ data: undefined })).toBe(false);
+
+    selectText();
+    expect(await hasSelection({ data: undefined })).toBe(true);
+  });
+
   describe('for the browser sidebar', () => {
     it('handles scrollToHighlight from the start, whatever the float button setting', async () => {
       const scroll = vi

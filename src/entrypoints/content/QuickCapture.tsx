@@ -18,10 +18,16 @@ import log from '@/utils/logger';
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
 
+/** The page has a selection that a clip would take instead of the page link. */
+export const hasClippableSelection = (
+  selection: Selection | null = getSelection(),
+): selection is Selection =>
+  // getSelection() is never null in practice; with no selection rangeCount is 0.
+  !!selection && selection.rangeCount > 0 && !selection.isCollapsed;
+
 const capture = async () => {
   const selection = getSelection();
-  // getSelection() is never null in practice; with no selection rangeCount is 0.
-  if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+  if (hasClippableSelection(selection)) {
     const range = selection.getRangeAt(0);
     const clonedSelection = range.cloneContents();
     const turndownService = buildTurndownService();

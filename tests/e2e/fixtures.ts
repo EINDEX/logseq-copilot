@@ -95,6 +95,8 @@ export interface ExtPage {
   expectButton: (name: string | RegExp) => Promise<void>;
   /** Click the first visible button whose accessible name matches. */
   clickButton: (name: string | RegExp) => Promise<void>;
+  /** Wait until the first visible button whose accessible name matches is enabled (or disabled). */
+  expectButtonEnabled: (name: string | RegExp, enabled?: boolean) => Promise<void>;
   /** Current value of the first input matching the CSS selector ('' if none). */
   inputValue: (selector: string) => Promise<string>;
   /** Fill the `nth` element matching the CSS selector. */
@@ -250,7 +252,7 @@ async function installFirefoxAddon(context: BrowserContext, port: number, extens
 function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Promise<void>): ExtPage {
   type Action =
     | { op: 'hasText'; text?: string; re?: [string, string] }
-    | { op: 'button'; text?: string; re?: [string, string]; click: boolean }
+    | { op: 'button'; text?: string; re?: [string, string]; click: boolean; enabled?: boolean }
     | { op: 'fill'; selector: string; nth: number; value: string }
     | { op: 'press'; selector: string; nth: number; key: string }
     | { op: 'click'; selector: string }
@@ -275,6 +277,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
               .filter(visible)
               .find((b) => matches(b.getAttribute('aria-label') || b.innerText || ''));
             if (button && a.click) button.click();
+            if (a.enabled !== undefined) return !!button && (button as HTMLButtonElement).disabled !== a.enabled;
             return !!button;
           }
           case 'fill': {
@@ -331,6 +334,8 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     hasText: async (text) => !!(await run({ op: 'hasText', ...textArg(text) })),
     expectButton: (name) => until(`expectButton ${name}`, { op: 'button', ...textArg(name), click: false }),
     clickButton: (name) => until(`clickButton ${name}`, { op: 'button', ...textArg(name), click: true }),
+    expectButtonEnabled: (name, enabled = true) =>
+      until(`expectButtonEnabled ${name} ${enabled}`, { op: 'button', ...textArg(name), click: false, enabled }),
     inputValue: async (selector) => String(await run({ op: 'value', selector })),
     fill: (selector, value, nth = 0) => until(`fill ${selector}`, { op: 'fill', selector, nth, value }),
     press: (selector, key, nth = 0) => until(`press ${selector}`, { op: 'press', selector, nth, key }),
@@ -359,6 +364,8 @@ function playwrightExtPage(page: Page): ExtPage {
     hasText: (text) => page.getByText(text).isVisible(),
     expectButton: (name) => expect(page.getByRole('button', { name })).toBeVisible(),
     clickButton: (name) => page.getByRole('button', { name }).first().click(),
+    expectButtonEnabled: (name, enabled = true) =>
+      expect(page.getByRole('button', { name }).first()).toBeEnabled({ enabled }),
     inputValue: (selector) => page.locator(selector).first().inputValue(),
     fill: (selector, value, nth = 0) => page.locator(selector).nth(nth).fill(value),
     press: (selector, key, nth = 0) => page.locator(selector).nth(nth).press(key),

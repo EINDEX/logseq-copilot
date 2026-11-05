@@ -4,7 +4,7 @@ import { searchEngineConfig } from '@/utils/storage';
 import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
-import mountQuickCapture from './QuickCapture';
+import mountQuickCapture, { hasClippableSelection } from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
@@ -54,6 +54,9 @@ export default defineContentScript({
       // Trigger quick capture page
       contentEvents.emit('quickCapturePage', undefined);
     });
+
+    // From the toolbar popup: it offers "Clip selection" only when there is one.
+    onMessage('content:hasSelection', () => hasClippableSelection());
 
     // From the browser sidebar: scroll to a highlight of this page. The
     // manager waits for the restore itself.
