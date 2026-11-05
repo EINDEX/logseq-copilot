@@ -26,7 +26,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     if (error) {
         return (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-                <p className="text-sm text-destructive">{error}</p>
+                <p id="search-error" className="text-sm text-destructive">{error}</p>
                 <Button
                     variant="outline"
                     size="sm"

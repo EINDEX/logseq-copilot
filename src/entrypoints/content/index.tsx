@@ -4,11 +4,13 @@ import { searchEngineConfig } from '@/utils/storage';
 import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
-import mountQuickCapture, { hasClippableSelection } from './QuickCapture';
+import mountQuickCapture, {
+  hasClippableSelection,
+  runClipCommand,
+} from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
-import { contentEvents } from '@/utils/content-events';
 import log from '@/utils/logger';
 import { shadowRootMode } from '@/utils/shadow-mode';
 
@@ -40,20 +42,19 @@ export default defineContentScript({
     // before this point, so a shortcut pressed while the page is still
     // starting up (or restoring highlights) is never dropped.
     // Setup message listeners for background script communication
-    onMessage('content:quickCapture', async (message) => {
-      // QuickCapture subscribes to the in-memory content event bus
-      contentEvents.emit('quickCapture', undefined);
-    });
+    // Clip commands: the clip shortcut and the context menu (from the
+    // background), "Clip selection" (from the toolbar popup).
+    onMessage('content:quickCapture', ({ data }) =>
+      runClipCommand('selectionOrPage', data),
+    );
 
-    onMessage('content:quickCaptureWithSelection', async (message) => {
-      // Trigger quick capture with selection
-      contentEvents.emit('quickCaptureWithSelection', undefined);
-    });
+    onMessage('content:quickCaptureWithSelection', ({ data }) =>
+      runClipCommand('selectionOrPage', data),
+    );
 
-    onMessage('content:quickCapturePage', async (message) => {
-      // Trigger quick capture page
-      contentEvents.emit('quickCapturePage', undefined);
-    });
+    onMessage('content:quickCapturePage', ({ data }) =>
+      runClipCommand('page', data),
+    );
 
     // From the toolbar popup: it offers "Clip selection" only when there is one.
     onMessage('content:hasSelection', () => hasClippableSelection());

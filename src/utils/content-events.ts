@@ -17,10 +17,8 @@ export type ContentEventMap = {
     highlightData: HighlightData;
     clickPosition: { x: number; y: number };
   };
-  // Background commands relayed to QuickCapture by the content script entry.
-  quickCapture: undefined;
-  quickCaptureWithSelection: undefined;
-  quickCapturePage: undefined;
+  // A clip started in the page failed: QuickCapture shows the message.
+  clipFailed: { message: string };
 };
 
 type Listener<T> = (payload: T) => void;

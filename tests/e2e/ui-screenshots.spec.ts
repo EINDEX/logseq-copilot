@@ -225,6 +225,81 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('popup clip actions: with a selection, and a failed clip', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await page.goto('https://example.com/copilot/article');
+    await selectParagraph(page);
+
+    for (const scheme of SCHEMES) {
+      const popup = (await ext.openPopup(page)).page!;
+      await setScheme(popup, scheme);
+      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+      await expect(popup.getByRole('button', { name: 'Clip selection' })).toBeEnabled();
+      await shoot(popup.locator('#app-container > *').first(), 'popup-selection', scheme);
+      await popup.close();
+    }
+
+    // The search of the page worked, the clip after it fails: the error
+    // is shown on the action.
+    for (const scheme of SCHEMES) {
+      await ext.connect();
+      const popup = (await ext.openPopup(page)).page!;
+      await setScheme(popup, scheme);
+      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+      await ext.connect({ token: 'wrong-token' });
+      await popup.getByRole('button', { name: 'Clip page' }).first().click();
+      await expect(popup.getByRole('alert')).toContainText('The authorization token is wrong');
+      await shoot(popup.locator('#app-container > *').first(), 'popup-clip-error', scheme);
+      await popup.close();
+    }
+
+    // A wrong token from the start: the search shows the error, the failed
+    // clip only marks its button.
+    await ext.connect({ token: 'wrong-token' });
+    for (const scheme of SCHEMES) {
+      const popup = (await ext.openPopup(page)).page!;
+      await setScheme(popup, scheme);
+      await expect(popup.getByText(/The authorization token is wrong/)).toBeVisible();
+      const clipPage = popup.getByRole('button', { name: 'Clip page' }).first();
+      await clipPage.click();
+      await expect(clipPage).toHaveAttribute('aria-invalid', 'true');
+      await expect(popup.getByRole('alert')).toHaveCount(0);
+      await shoot(popup.locator('#app-container > *').first(), 'popup-clip-error-search', scheme);
+      await popup.close();
+    }
+  });
+
+  test('page clip error', async ({ page, ext, articles }) => {
+    fileGraphOnly();
+    const id = nonce('shotfail');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, {
+      title: 'Notes on building a second brain',
+      paragraph: 'Capture what resonates, organize by project, distill to the essence.',
+    });
+    await ext.connect({ token: 'wrong-token' });
+    await page.goto(url);
+    const host = page.locator('logseq-copilot-popup');
+    await expect(host).toBeAttached();
+
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await ext.sendToTab(page, 'content:quickCapturePage');
+      const alert = host.locator('[data-clip-error]');
+      await expect(alert).toContainText('The authorization token is wrong');
+      await shoot(page, 'page-clip-error', scheme, {
+        x: VIEWPORT.width - 480,
+        y: VIEWPORT.height - 140,
+        width: 480,
+        height: 140,
+      });
+      await alert.click();
+      await expect(alert).toHaveCount(0);
+    }
+  });
+
   test('popup with rich content', async ({ page, ext }) => {
     await ext.connect();
     await page.goto('https://example.com/copilot/article');

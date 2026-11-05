@@ -15,7 +15,15 @@ import {
   recallRequestKey,
   recentRequests,
 } from './logseq/recall/recent-requests';
-import { backgroundClipFallback, clipToLogseq } from './clip';
+import { backgroundClipFallback, clipToLogseq, type ClipSource } from './clip';
+import {
+  clearClipErrorBadges,
+  hasClipErrorBadge,
+  showClipErrorBadge,
+} from './clip-error-badge';
+import { clipErrorMessage } from '@/utils/clip-feedback';
+
+const CANNOT_CLIP_PAGE = 'Cannot clip this page: extensions cannot run on it.';
 
 // Long enough to cover a result page that reloads itself (Bing: ~1.5 s).
 const RECALL_SHARE_MS = 5_000;
@@ -88,6 +96,8 @@ export default defineBackground({
       browser.runtime.openOptionsPage();
     });
 
+    // A failed clip rejects with a readable message (LogseqError), which the
+    // sender (content script, popup) shows.
     onMessage('logseq:clipWithSelection', async ({ data }) => {
       await quickCapture(data);
     });
@@ -129,12 +139,14 @@ export default defineBackground({
 
     const quickCapture = async (data: string) => {
       const tab = await getCurrentTab();
-      if (!tab) return;
-      const activeTab = tab;
+      if (!tab) throw new Error('No tab to clip.');
+      await clip({ url: tab.url, title: tab.title, data }, tab.id);
+    };
 
-      await clipToLogseq({ url: activeTab.url, title: activeTab.title, data });
-
-      debounceBadgeSearch(activeTab.url, activeTab.id!);
+    const clip = async (source: ClipSource, tabId: number | undefined) => {
+      await clipToLogseq(source);
+      await clearClipErrorBadges();
+      if (tabId !== undefined) debounceBadgeSearch(source.url, tabId);
     };
 
     browser.tabs.onActivated.addListener((activeInfo) => {
@@ -217,25 +229,30 @@ export default defineBackground({
       );
     };
 
-    // The content script clips the selection as Markdown and highlights it.
-    // Where it cannot run (the browser's PDF viewer, ...), clip the plain
-    // selected text the menu click reports.
-    const clipSelectionFromMenu = async (
-      info: Browser.contextMenus.OnClickData,
+    // Clip commands (shortcut, context menu) go to the content script: it
+    // clips the selection as Markdown, highlights it, and shows a failure in
+    // the page. Where it cannot run (the browser's PDF viewer, ...), the
+    // background clips the plain selected text a menu click reports, and
+    // reports a failure on the toolbar button.
+    const relayClipCommand = async (
+      send: (tabId: number) => Promise<void>,
       tab: Browser.tabs.Tab | undefined,
+      info: { selectionText?: string; pageUrl?: string } = {},
     ) => {
+      if (tab?.id !== undefined) {
+        try {
+          await send(tab.id);
+          return;
+        } catch (err) {
+          log.debug('[background] Content script unreachable', err);
+        }
+      }
       try {
-        if (tab?.id === undefined) throw new Error('No tab to clip from');
-        await sendMessage('content:quickCaptureWithSelection', undefined, {
-          tabId: tab.id,
-        });
-        return;
-      } catch (err) {
         const fallback = backgroundClipFallback(info, tab);
-        if (!fallback) throw err;
-        log.debug('[background] Content script unreachable, clipping the menu selection', err);
-        await clipToLogseq(fallback);
-        if (tab?.id !== undefined) debounceBadgeSearch(fallback.url, tab.id);
+        if (!fallback) throw new Error(CANNOT_CLIP_PAGE);
+        await clip(fallback, tab?.id);
+      } catch (err) {
+        await showClipErrorBadge(tab?.id, clipErrorMessage(err));
       }
     };
 
@@ -243,11 +260,17 @@ export default defineBackground({
       if (info.menuItemId === 'open-highlights-sidebar') {
         openSidebarForTab(tab);
       } else if (info.menuItemId === 'clip-with-selection') {
-        clipSelectionFromMenu(info, tab).catch((err) =>
-          log.error('Failed to clip the selection:', err),
+        void relayClipCommand(
+          (tabId) =>
+            sendMessage('content:quickCaptureWithSelection', undefined, { tabId }),
+          tab,
+          info,
         );
       } else if (info.menuItemId === 'clip-page') {
-        sendMessage('content:quickCapturePage', undefined, { tabId: tab!.id! });
+        void relayClipCommand(
+          (tabId) => sendMessage('content:quickCapturePage', undefined, { tabId }),
+          tab,
+        );
       }
     });
 
@@ -275,11 +298,16 @@ export default defineBackground({
       if (command === 'open-sidebar') {
         openSidebarForTab(tab);
       } else if (command === 'clip' && tab !== undefined) {
-        sendMessage('content:quickCapture', undefined, { tabId: tab.id! });
+        void relayClipCommand(
+          (tabId) => sendMessage('content:quickCapture', undefined, { tabId }),
+          tab,
+        );
       }
     });
 
     async function setExtensionBadge(text: string, tabId: number) {
+      // A clip error stays on the tab until the next successful clip.
+      if (hasClipErrorBadge(tabId)) return;
       await browser.action.setBadgeText({
         text: text,
         tabId: tabId,

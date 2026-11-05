@@ -9,6 +9,10 @@ import {
 import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing';
 import log from '@/utils/logger';
+import {
+  CannotConnectWithLogseq,
+  LogseqError,
+} from '@/entrypoints/background/logseq/error';
 
 const sendMessage = vi.fn();
 vi.mock('@/types/messaging', () => ({
@@ -232,11 +236,143 @@ describe('Popup', () => {
       fireEvent.click(clipButton());
 
       await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
+      // The popup shows a failure itself (see below), not the page.
       expect(sendMessage).toHaveBeenCalledWith(
         'content:quickCaptureWithSelection',
-        undefined,
+        { feedback: 'sender' },
         { tabId: 4 },
       );
+    });
+  });
+
+  describe('a failed clip (#48)', () => {
+    const tab = { id: 4, windowId: 7, url: 'https://example.com/page', title: 'Example' };
+    const button = (name: string) =>
+      screen.getAllByRole('button', { name })[0] as HTMLButtonElement;
+
+    /** `failing` rejects with a LogseqError, everything else succeeds. */
+    const failOn = (failing: string) =>
+      sendMessage.mockImplementation((type: string) => {
+        if (type === failing) {
+          return Promise.reject(new LogseqError(CannotConnectWithLogseq));
+        }
+        if (type === 'content:hasSelection') return Promise.resolve(true);
+        return Promise.resolve({
+          status: 200,
+          response: { graph: 'g', pages: [], blocks: [], count: 0 },
+        });
+      });
+
+    beforeEach(() => {
+      vi.spyOn(window, 'close').mockImplementation(() => {});
+      vi.spyOn(log, 'error').mockImplementation(() => {});
+      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+    });
+
+    it('of Clip page is shown on the action, and the popup stays open', async () => {
+      failOn('logseq:clipPage');
+      render(<Popup />);
+      await waitFor(() => expect(button('Clip page').disabled).toBe(false));
+
+      fireEvent.click(button('Clip page'));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toBe(CannotConnectWithLogseq.msg);
+      expect(button('Clip page').getAttribute('aria-invalid')).toBe('true');
+      expect(button('Clip page').getAttribute('aria-describedby')).toBe(alert.id);
+      expect(button('Clip selection').getAttribute('aria-invalid')).toBeNull();
+      expect(window.close).not.toHaveBeenCalled();
+    });
+
+    it('of Clip selection is shown on the action, and the popup stays open', async () => {
+      failOn('content:quickCaptureWithSelection');
+      render(<Popup />);
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(false));
+
+      fireEvent.click(button('Clip selection'));
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        CannotConnectWithLogseq.msg,
+      );
+      expect(button('Clip selection').getAttribute('aria-invalid')).toBe('true');
+      expect(button('Clip page').getAttribute('aria-invalid')).toBeNull();
+      expect(window.close).not.toHaveBeenCalled();
+    });
+
+    it('only marks the action when the search error already shows the same text', async () => {
+      failOn('logseq:clipPage');
+      const answer = sendMessage.getMockImplementation()!;
+      sendMessage.mockImplementation((type: string, ...rest: unknown[]) =>
+        type === 'logseq:urlSearch'
+          ? Promise.reject(new LogseqError(CannotConnectWithLogseq))
+          : answer(type, ...rest),
+      );
+      render(<Popup />);
+      await screen.findByText(CannotConnectWithLogseq.msg);
+
+      fireEvent.click(button('Clip page'));
+
+      await waitFor(() =>
+        expect(button('Clip page').getAttribute('aria-invalid')).toBe('true'),
+      );
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.getAllByText(CannotConnectWithLogseq.msg)).toHaveLength(1);
+      const describedBy = button('Clip page').getAttribute('aria-describedby')!;
+      expect(document.getElementById(describedBy)?.textContent).toBe(
+        CannotConnectWithLogseq.msg,
+      );
+    });
+
+    it('shows the text when the search error says something else', async () => {
+      failOn('logseq:clipPage');
+      const answer = sendMessage.getMockImplementation()!;
+      sendMessage.mockImplementation((type: string, ...rest: unknown[]) =>
+        type === 'logseq:urlSearch'
+          ? Promise.reject(new Error('Search failed'))
+          : answer(type, ...rest),
+      );
+      render(<Popup />);
+      await screen.findByText('Search failed');
+
+      fireEvent.click(button('Clip page'));
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        CannotConnectWithLogseq.msg,
+      );
+    });
+
+    it('is cleared by the next clip, which closes the popup', async () => {
+      failOn('logseq:clipPage');
+      render(<Popup />);
+      await waitFor(() => expect(button('Clip page').disabled).toBe(false));
+      fireEvent.click(button('Clip page'));
+      await screen.findByRole('alert');
+
+      failOn('none');
+      fireEvent.click(button('Clip page'));
+
+      await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('cannot be sent twice while a clip is on its way', async () => {
+      let done!: () => void;
+      failOn('none');
+      const answer = sendMessage.getMockImplementation()!;
+      sendMessage.mockImplementation((type: string, ...rest: unknown[]) =>
+        type === 'logseq:clipPage'
+          ? new Promise<void>((resolve) => (done = resolve))
+          : answer(type, ...rest),
+      );
+      render(<Popup />);
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(false));
+
+      fireEvent.click(button('Clip page'));
+
+      await waitFor(() => expect(button('Clip page').disabled).toBe(true));
+      expect(button('Clip selection').disabled).toBe(true);
+      done();
+      await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
     });
   });
 });

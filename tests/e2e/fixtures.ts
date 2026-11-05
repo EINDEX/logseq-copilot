@@ -91,12 +91,17 @@ export interface ExtPage {
   /** Wait until the page shows `text` (case-insensitive substring, or RegExp). */
   expectText: (text: string | RegExp, options?: { timeout?: number }) => Promise<void>;
   hasText: (text: string | RegExp) => Promise<boolean>;
+  /** Wait until an element with role="alert" shows `text` (as expectText). */
+  expectAlert: (text: string | RegExp) => Promise<void>;
+  hasAlert: (text: string | RegExp) => Promise<boolean>;
   /** Wait for a visible button whose accessible name matches. */
   expectButton: (name: string | RegExp) => Promise<void>;
   /** Click the first visible button whose accessible name matches. */
   clickButton: (name: string | RegExp) => Promise<void>;
   /** Wait until the first visible button whose accessible name matches is enabled (or disabled). */
   expectButtonEnabled: (name: string | RegExp, enabled?: boolean) => Promise<void>;
+  /** Wait until the first visible button whose accessible name matches is marked aria-invalid. */
+  expectButtonInvalid: (name: string | RegExp) => Promise<void>;
   /** Current value of the first input matching the CSS selector ('' if none). */
   inputValue: (selector: string) => Promise<string>;
   /** Fill the `nth` element matching the CSS selector. */
@@ -251,8 +256,8 @@ async function installFirefoxAddon(context: BrowserContext, port: number, extens
  */
 function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Promise<void>): ExtPage {
   type Action =
-    | { op: 'hasText'; text?: string; re?: [string, string] }
-    | { op: 'button'; text?: string; re?: [string, string]; click: boolean; enabled?: boolean }
+    | { op: 'hasText'; text?: string; re?: [string, string]; selector?: string }
+    | { op: 'button'; text?: string; re?: [string, string]; click: boolean; enabled?: boolean; invalid?: boolean }
     | { op: 'fill'; selector: string; nth: number; value: string }
     | { op: 'press'; selector: string; nth: number; key: string }
     | { op: 'click'; selector: string }
@@ -271,13 +276,16 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
         const nth = (selector: string, n: number) => document.querySelectorAll<HTMLElement>(selector)[n];
         switch (a.op) {
           case 'hasText':
-            return matches(document.body?.innerText ?? '');
+            return a.selector
+              ? [...document.querySelectorAll<HTMLElement>(a.selector)].some((el) => matches(el.innerText))
+              : matches(document.body?.innerText ?? '');
           case 'button': {
             const button = [...document.querySelectorAll<HTMLElement>('button, [role="button"]')]
               .filter(visible)
               .find((b) => matches(b.getAttribute('aria-label') || b.innerText || ''));
             if (button && a.click) button.click();
             if (a.enabled !== undefined) return !!button && (button as HTMLButtonElement).disabled !== a.enabled;
+            if (a.invalid !== undefined) return !!button && (button.getAttribute('aria-invalid') === 'true') === a.invalid;
             return !!button;
           }
           case 'fill': {
@@ -332,8 +340,13 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
   return {
     expectText: (text, options) => until(`expectText ${text}`, { op: 'hasText', ...textArg(text) }, options?.timeout),
     hasText: async (text) => !!(await run({ op: 'hasText', ...textArg(text) })),
+    expectAlert: (text) =>
+      until(`expectAlert ${text}`, { op: 'hasText', ...textArg(text), selector: '[role="alert"]' }),
+    hasAlert: async (text) => !!(await run({ op: 'hasText', ...textArg(text), selector: '[role="alert"]' })),
     expectButton: (name) => until(`expectButton ${name}`, { op: 'button', ...textArg(name), click: false }),
     clickButton: (name) => until(`clickButton ${name}`, { op: 'button', ...textArg(name), click: true }),
+    expectButtonInvalid: (name) =>
+      until(`expectButtonInvalid ${name}`, { op: 'button', ...textArg(name), click: false, invalid: true }),
     expectButtonEnabled: (name, enabled = true) =>
       until(`expectButtonEnabled ${name} ${enabled}`, { op: 'button', ...textArg(name), click: false, enabled }),
     inputValue: async (selector) => String(await run({ op: 'value', selector })),
@@ -362,8 +375,13 @@ function playwrightExtPage(page: Page): ExtPage {
   return {
     expectText: (text, options) => expect(page.getByText(text)).toBeVisible(options),
     hasText: (text) => page.getByText(text).isVisible(),
+    expectAlert: (text) =>
+      expect(page.getByRole('alert').filter({ hasText: text }).first()).toBeVisible(),
+    hasAlert: async (text) => (await page.getByRole('alert').filter({ hasText: text }).count()) > 0,
     expectButton: (name) => expect(page.getByRole('button', { name })).toBeVisible(),
     clickButton: (name) => page.getByRole('button', { name }).first().click(),
+    expectButtonInvalid: (name) =>
+      expect(page.getByRole('button', { name }).first()).toHaveAttribute('aria-invalid', 'true'),
     expectButtonEnabled: (name, enabled = true) =>
       expect(page.getByRole('button', { name }).first()).toBeEnabled({ enabled }),
     inputValue: (selector) => page.locator(selector).first().inputValue(),

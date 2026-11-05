@@ -88,4 +88,30 @@ test.describe('popup', () => {
     expect(content).toContain(`[Popup clip ${id}](${url})`);
     expect(content).toContain(`Popup selected ${id} words`);
   });
+
+  test('shows on the action why Clip page clipped nothing, and stays open', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto('https://example.com/copilot/article');
+
+    const popup = await ext.openPopup(page);
+    await popup.expectText('Reading notes from https://example.com/copilot/article');
+    // The search worked; the clip after it does not.
+    await ext.connect({ token: 'wrong-token' });
+    await popup.clickButton('Clip page');
+    await popup.expectAlert('The authorization token is wrong');
+    await popup.expectButtonInvalid('Clip page');
+    // Still open: the alert is in the popup, and it can be used again.
+    await popup.expectButtonEnabled('Clip page');
+  });
+
+  test('does not repeat the error the search already shows', async ({ page, ext }) => {
+    await ext.connect({ token: 'wrong-token' });
+    await page.goto('https://example.com/copilot/article');
+
+    const popup = await ext.openPopup(page);
+    await popup.expectText('The authorization token is wrong');
+    await popup.clickButton('Clip page');
+    await popup.expectButtonInvalid('Clip page');
+    expect(await popup.hasAlert('The authorization token is wrong')).toBe(false);
+  });
 });

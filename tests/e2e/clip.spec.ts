@@ -51,4 +51,21 @@ test.describe('clip (quick capture)', () => {
     expect(content).toContain(`[Whole page ${id}](${url})`);
     expect(content).not.toContain('Nothing selected here');
   });
+
+  test('shows in the page why nothing was clipped', async ({ page, ext, logseq, articles }) => {
+    const id = nonce('clipfail');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Failed clip ${id}`, paragraph: `Not clipped ${id}` });
+
+    await ext.connect({ token: 'wrong-token' });
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    const alert = page.locator('logseq-copilot-popup [data-clip-error]');
+    await expect(alert).toHaveText(/The authorization token is wrong/);
+    expect(await logseq.findBlocks(id)).toEqual([]);
+  });
 });

@@ -3,6 +3,8 @@ import { Plus, RefreshCw, Settings, ExternalLink, Search, BookOpen, PanelRight, 
 import { Button } from '@/components/ui/button';
 import { browser } from 'wxt/browser';
 
+export type ClipAction = 'page' | 'selection';
+
 interface QuickActionsProps {
     onQuickCapture: () => void;
     onClipSelection: () => void;
@@ -16,6 +18,13 @@ interface QuickActionsProps {
     canOpenSidebar?: boolean;
     /** The active tab has a selection its content script can clip. */
     canClipSelection?: boolean;
+    /** A clip is on its way to Logseq. */
+    clipping?: boolean;
+    /**
+     * The last clip failed. `message` is shown under the clip actions; null
+     * when the search error (#search-error) already shows the same text.
+     */
+    clipError?: { action: ClipAction; message: string | null } | null;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
@@ -29,6 +38,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     hasGraph = false,
     canOpenSidebar = false,
     canClipSelection = false,
+    clipping = false,
+    clipError = null,
 }) => {
     const openNewTab = () => {
         // No url opens the browser's own new tab page (chrome://newtab/ is
@@ -36,6 +47,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
         browser.tabs.create({});
         window.close();
     };
+
+    const clipErrorId = clipError?.message ? 'clip-error' : 'search-error';
 
     return (
         <div className="space-y-1">
@@ -45,7 +58,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={onQuickCapture}
-                    className="flex flex-1 min-w-0 items-center gap-2"
+                    disabled={clipping}
+                    aria-invalid={clipError?.action === 'page' || undefined}
+                    aria-describedby={clipError?.action === 'page' ? clipErrorId : undefined}
+                    className="flex flex-1 min-w-0 items-center gap-2 dark:aria-invalid:border-destructive"
                 >
                     <Plus className="w-4 h-4" />
                     Clip page
@@ -54,8 +70,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={onClipSelection}
-                    disabled={!canClipSelection}
-                    className="flex flex-1 min-w-0 items-center gap-2"
+                    disabled={!canClipSelection || clipping}
+                    aria-invalid={clipError?.action === 'selection' || undefined}
+                    aria-describedby={clipError?.action === 'selection' ? clipErrorId : undefined}
+                    className="flex flex-1 min-w-0 items-center gap-2 dark:aria-invalid:border-destructive"
                 >
                     <TextSelect className="w-4 h-4" />
                     Clip selection
@@ -72,6 +90,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                     <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
             </div>
+            {clipError?.message && (
+                <p
+                    id="clip-error"
+                    role="alert"
+                    className="text-xs text-destructive whitespace-pre-line break-words"
+                >
+                    {clipError.message}
+                </p>
+            )}
 
             {/* Secondary Actions */}
             <div className="grid grid-cols-2 gap-2">

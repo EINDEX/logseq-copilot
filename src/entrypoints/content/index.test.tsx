@@ -179,6 +179,25 @@ describe('content script startup', () => {
     expect(await hasSelection({ data: undefined })).toBe(true);
   });
 
+  it('answers a clip command once the clip is done, with the failure when the popup asks for it', async () => {
+    vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
+      new Promise(() => {}),
+    );
+    void (contentScript as any).main({});
+    messaging.sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq'));
+
+    // From the background: shown in the page, the command resolves.
+    await expect(
+      messaging.handlers.get('content:quickCapturePage')!({ data: undefined }),
+    ).resolves.toBeUndefined();
+    // From the popup: the popup shows it.
+    await expect(
+      messaging.handlers.get('content:quickCaptureWithSelection')!({
+        data: { feedback: 'sender' },
+      }),
+    ).rejects.toThrow('Cannot connect to Logseq');
+  });
+
   describe('for the browser sidebar', () => {
     it('handles scrollToHighlight from the start, whatever the float button setting', async () => {
       const scroll = vi

@@ -18,6 +18,7 @@ import {
   CannotConnectWithLogseq,
   LogseqError,
   LogseqVersionIsLower,
+  TokenNotCurrect,
 } from './logseq/error';
 
 const service = vi.hoisted(() => ({
@@ -163,6 +164,34 @@ describe('logseq:clipPage', () => {
 
     expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
     expect(service.client.appendBlock.mock.calls[0][0]).toBe(journal);
+  });
+
+  // Issue #48: the sender (popup, content script) shows why nothing was clipped.
+  describe('rejects with a readable message when nothing was clipped', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([
+        { id: 1, url: 'https://example.com/', title: 'Example' } as any,
+      ]);
+    });
+
+    test('Logseq cannot be reached (the client returns an error object)', async () => {
+      service.client.getUserConfig.mockResolvedValue(CannotConnectWithLogseq);
+
+      const err = await sendMessage('logseq:clipPage', undefined).catch((e) => e);
+
+      expect(err.message).toBe(CannotConnectWithLogseq.msg);
+      expect(service.client.appendBlock).not.toHaveBeenCalled();
+    });
+
+    test('appending the block fails', async () => {
+      service.client.getUserConfig.mockResolvedValue({ preferredDateFormat: 'yyyy-MM-dd' });
+      service.client.appendBlock.mockRejectedValue(new LogseqError(TokenNotCurrect));
+
+      const err = await sendMessage('logseq:clipWithSelection', 'text').catch((e) => e);
+
+      expect(err.message).toBe(TokenNotCurrect.msg);
+    });
   });
 });
 

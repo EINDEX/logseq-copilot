@@ -13,7 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { sendMessage } from '@/types/messaging';
 import { openSidebar } from '@/utils/sidebar';
 import log from '@/utils/logger';
-import { QuickActions } from './components/QuickActions';
+import { clipErrorMessage } from '@/utils/clip-feedback';
+import { QuickActions, type ClipAction } from './components/QuickActions';
 import { SearchResults } from './components/SearchResults';
 
 export default function Popup() {
@@ -26,6 +27,8 @@ export default function Popup() {
   // False until the page's content script says it has a selection; stays
   // false where it cannot run (browser pages, the PDF viewer, ...).
   const [canClipSelection, setCanClipSelection] = useState(false);
+  const [clipping, setClipping] = useState(false);
+  const [clipError, setClipError] = useState<{ action: ClipAction; message: string } | null>(null);
 
   const mountOpenPageMethod = () => {
     const innerFunction = () => {
@@ -116,21 +119,31 @@ export default function Popup() {
     }
   };
 
-  const quickCapture = () => {
-    sendMessage('logseq:clipPage');
-    window.close();
-  };
-
-  // The same command as the "Clip selection" context menu item.
-  const tabId = currentTab?.id;
-  const clipSelection = async () => {
-    if (tabId === undefined) return;
+  // Closes the popup once clipped; a failure stays on the action.
+  const runClip = async (action: ClipAction, clip: () => Promise<unknown>) => {
+    setClipping(true);
+    setClipError(null);
     try {
-      await sendMessage('content:quickCaptureWithSelection', undefined, { tabId });
+      await clip();
       window.close();
     } catch (err) {
-      log.error('Failed to clip the selection:', err);
+      log.error('Failed to clip:', err);
+      setClipError({ action, message: clipErrorMessage(err) });
+    } finally {
+      setClipping(false);
     }
+  };
+
+  const quickCapture = () => runClip('page', () => sendMessage('logseq:clipPage'));
+
+  // The same command as the "Clip selection" context menu item. The popup shows
+  // a failure itself, not the page.
+  const tabId = currentTab?.id;
+  const clipSelection = () => {
+    if (tabId === undefined) return;
+    return runClip('selection', () =>
+      sendMessage('content:quickCaptureWithSelection', { feedback: 'sender' }, { tabId }),
+    );
   };
 
   // The window is known from the tab query at mount, before the click: the
@@ -237,6 +250,14 @@ export default function Popup() {
         onQuickCapture={quickCapture}
         onClipSelection={clipSelection}
         canClipSelection={canClipSelection}
+        clipping={clipping}
+        // The same text in the search error box: the red border is enough.
+        clipError={
+          clipError && {
+            action: clipError.action,
+            message: clipError.message === error ? null : clipError.message,
+          }
+        }
         onRefresh={searchCurrentPage}
         onOpenSettings={openSettingsPage}
         onOpenLogseq={openLogseqGraph}

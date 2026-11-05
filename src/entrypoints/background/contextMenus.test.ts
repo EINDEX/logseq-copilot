@@ -12,7 +12,15 @@ vi.mock('./clip', async (importOriginal) => ({
   clipToLogseq: vi.fn(),
 }));
 
+vi.mock('./clip-error-badge', () => ({
+  showClipErrorBadge: vi.fn(),
+  clearClipErrorBadges: vi.fn(),
+  hasClipErrorBadge: vi.fn(() => false),
+}));
+
 import { clipToLogseq } from './clip';
+import { clearClipErrorBadges, showClipErrorBadge } from './clip-error-badge';
+import { CannotConnectWithLogseq, LogseqError } from './logseq/error';
 import background from './index';
 
 describe('background context menus', () => {
@@ -30,6 +38,8 @@ describe('background context menus', () => {
     sidePanelOpen.mockReset().mockResolvedValue(undefined);
     vi.mocked(sendMessage).mockReset();
     vi.mocked(clipToLogseq).mockReset().mockResolvedValue(undefined);
+    vi.mocked(showClipErrorBadge).mockReset().mockResolvedValue(undefined);
+    vi.mocked(clearClipErrorBadges).mockReset().mockResolvedValue(undefined);
     (fakeBrowser as any).contextMenus = { create, onClicked };
     (fakeBrowser as any).commands = { onCommand };
     (fakeBrowser as any).sidePanel = { open: sidePanelOpen };
@@ -184,6 +194,8 @@ describe('background context menus', () => {
       await new Promise((r) => setTimeout(r, 0));
 
       expect(clipToLogseq).not.toHaveBeenCalled();
+      // A failure there is the content script's to show, in the page.
+      expect(showClipErrorBadge).not.toHaveBeenCalled();
     });
 
     it('clips the selected text from the background when the tab has no receiver', async () => {
@@ -197,6 +209,8 @@ describe('background context menus', () => {
         title: 'paper.pdf',
         data: 'a quote',
       });
+      await vi.waitFor(() => expect(clearClipErrorBadges).toHaveBeenCalledTimes(1));
+      expect(showClipErrorBadge).not.toHaveBeenCalled();
     });
 
     it('clips from the background when the click has no tab id', async () => {
@@ -210,13 +224,53 @@ describe('background context menus', () => {
     });
 
     it('does not clip from the background without selected text', async () => {
-      const error = vi.spyOn(log, 'error').mockImplementation(() => {});
       vi.mocked(sendMessage).mockRejectedValue(noReceiver());
 
       clickSelection({ pageUrl: pdfTab.url }, pdfTab);
 
-      await vi.waitFor(() => expect(error).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(showClipErrorBadge).toHaveBeenCalledTimes(1));
       expect(clipToLogseq).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a failed clip no page can show (#48)', () => {
+    const noReceiver = () =>
+      new Error('Could not establish connection. Receiving end does not exist.');
+    const tab = { id: 7, windowId: 3, url: 'chrome://newtab/', title: 'New Tab' };
+    const listenerOf = (event: { addListener: { mock: { calls: any[][] } } }) => {
+      background.main();
+      return event.addListener.mock.calls[0][0];
+    };
+
+    beforeEach(() => {
+      vi.mocked(sendMessage).mockRejectedValue(noReceiver());
+    });
+
+    it.each([
+      ['the clip shortcut', () => listenerOf(onCommand)('clip', tab)],
+      ['Clip page link', () => listenerOf(onClicked)({ menuItemId: 'clip-page' }, tab)],
+    ])('puts the error on the toolbar button of the tab: %s', async (_, run) => {
+      run();
+
+      await vi.waitFor(() => expect(showClipErrorBadge).toHaveBeenCalledTimes(1));
+      expect(showClipErrorBadge).toHaveBeenCalledWith(
+        7,
+        'Cannot clip this page: extensions cannot run on it.',
+      );
+      expect(clipToLogseq).not.toHaveBeenCalled();
+    });
+
+    it('shows the Logseq error when the clip of the selection from the background fails', async () => {
+      vi.mocked(clipToLogseq).mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
+
+      listenerOf(onClicked)(
+        { menuItemId: 'clip-with-selection', selectionText: 'a quote' },
+        { ...tab, url: 'https://example.com/paper.pdf' },
+      );
+
+      await vi.waitFor(() => expect(showClipErrorBadge).toHaveBeenCalledTimes(1));
+      expect(showClipErrorBadge).toHaveBeenCalledWith(7, CannotConnectWithLogseq.msg);
+      expect(clearClipErrorBadges).not.toHaveBeenCalled();
     });
   });
 });

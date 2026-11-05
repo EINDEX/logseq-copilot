@@ -2,6 +2,7 @@ import { defineExtensionMessaging } from '@webext-core/messaging';
 import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import type { RecallResult } from './recall';
+import type { ClipCommandOptions } from '@/utils/clip-feedback';
 
 // Define all message types for cross-context communication
 export interface MessagingProtocol {
@@ -21,8 +22,10 @@ export interface MessagingProtocol {
    */
   'logseq:recall': (data: { query: string; url: string }) => RecallResult;
 
+  /** Rejects with a readable message (LogseqError) when nothing was clipped. */
   'logseq:clipWithSelection': (data: string) => void;
 
+  /** Rejects with a readable message (LogseqError) when nothing was clipped. */
   'logseq:clipPage': () => void;
 
   'logseq:changeBlockMarker': (data: {
@@ -34,12 +37,13 @@ export interface MessagingProtocol {
 
   'app:openPage': (data: { url: string }) => void;
 
-  // Content script messages
-  'content:quickCapture': () => void;
+  // Content script messages. Clip commands resolve once the clip is done; for
+  // failures see ClipCommandOptions.
+  'content:quickCapture': (data?: ClipCommandOptions) => void;
 
-  'content:quickCaptureWithSelection': () => void;
+  'content:quickCaptureWithSelection': (data?: ClipCommandOptions) => void;
 
-  'content:quickCapturePage': () => void;
+  'content:quickCapturePage': (data?: ClipCommandOptions) => void;
 
   /** Whether the page has a selection that `quickCaptureWithSelection` would clip. */
   'content:hasSelection': () => boolean;
