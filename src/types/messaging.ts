@@ -1,6 +1,7 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
+import type { RecallResult } from './recall';
 
 // Define all message types for cross-context communication
 export interface MessagingProtocol {
@@ -23,6 +24,14 @@ export interface MessagingProtocol {
      */
     keywordOnly?: boolean;
   }) => LogseqResponseType<LogseqSearchResult>;
+
+  /**
+   * Pages that mention a search engine query, best first (see
+   * background/logseq/recall). `url` picks the recall rules (keyword
+   * filters, page scope, maxResults counted in pages). Errors are thrown
+   * (LogseqError) and reach the sender as a readable message.
+   */
+  'logseq:recall': (data: { query: string; url: string }) => RecallResult;
 
   'logseq:clipWithSelection': (data: string) => void;
 

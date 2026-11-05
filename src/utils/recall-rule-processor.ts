@@ -331,6 +331,21 @@ export class RecallRuleProcessor {
   }
 
   /**
+   * The recall rules as options for `logseq:recall` (search engine result
+   * pages). Same keyword filters and page scope as filterResults, but
+   * maxResults counts pages, and nothing is cut before the hits are ranked.
+   */
+  public recallOptions(context: ProcessedSearchContext) {
+    return {
+      excludeKeywords: context.excludeKeywords,
+      includeKeywords: context.includeKeywords,
+      searchScope: context.searchScope,
+      prioritizeRecent: context.resultFiltering.prioritizeRecent,
+      maxPages: context.resultFiltering.maxResults,
+    };
+  }
+
+  /**
    * Filter page results by the restrictToPages / excludePages scope (exact,
    * case-insensitive names; unknown names are dropped while a scope is active).
    */

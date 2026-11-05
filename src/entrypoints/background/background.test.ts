@@ -22,6 +22,7 @@ import {
 
 const service = vi.hoisted(() => ({
   changeBlockMarker: vi.fn(),
+  recall: vi.fn(),
   search: vi.fn(),
   urlSearch: vi.fn(),
   client: {
@@ -245,5 +246,56 @@ describe('logseq:clipPage', () => {
 
     expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
     expect(service.client.appendBlock.mock.calls[0][0]).toBe(journal);
+  });
+});
+
+describe('logseq:recall', () => {
+  test('passes the query and the recall rules (maxResults in pages)', async () => {
+    await fakeBrowser.storage.local.set({
+      recallRulesConfig: [
+        {
+          id: 'r1',
+          name: 'scoped',
+          enabled: true,
+          urlPattern: 'bing\\.com',
+          queryProcessing: {
+            ignoreHashFragments: false,
+            ignoreQueryParams: false,
+            excludeKeywords: ['secret'],
+            includeKeywords: ['logseq'],
+            ignorePathSegments: [],
+          },
+          searchScope: { excludePages: ['Work'] },
+          resultFiltering: { maxResults: 4, prioritizeRecent: true },
+        },
+      ],
+    });
+    const answer = { graph: 'g', pages: [] };
+    service.recall.mockResolvedValue(answer);
+
+    const result = await sendMessage('logseq:recall', {
+      query: 'logseq plugin',
+      url: 'https://www.bing.com/search?q=logseq+plugin',
+    });
+
+    expect(result).toEqual(answer);
+    expect(service.recall).toHaveBeenCalledWith('logseq plugin', {
+      excludeKeywords: ['secret'],
+      includeKeywords: ['logseq'],
+      searchScope: { excludePages: ['Work'] },
+      prioritizeRecent: true,
+      maxPages: 4,
+    });
+    expect(service.search).not.toHaveBeenCalled();
+    expect(service.urlSearch).not.toHaveBeenCalled();
+  });
+
+  test('errors reach the sender', async () => {
+    service.recall.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
+    const err = await sendMessage('logseq:recall', {
+      query: 'q',
+      url: 'https://www.bing.com/search?q=q',
+    }).catch((e) => e);
+    expect(err.message).toBe(CannotConnectWithLogseq.msg);
   });
 });
