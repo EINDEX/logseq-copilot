@@ -1,13 +1,13 @@
 import React from 'react';
-import { LogseqSearchResult } from '@/types/logseqBlock';
-import { LogseqResultList } from '@/components/LogseqResultList';
-import { IconSettings, IconAlertCircle } from '@tabler/icons-react';
+import { browser } from 'wxt/browser';
+import { RecallCard } from '@/components/recall/RecallCard';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage } from '@/types/messaging';
+import type { RecallResult } from '@/types/recall';
+import { requestRecall } from '@/utils/recall-client';
+import { normalizeQuery } from '@/utils/recall-query';
 import log from '@/utils/logger';
-import logo from '@/assets/img/logo.png';
 import '@/assets/globals.css';
-import '@/components/logseq-results.css';
 import './sidebar.css';
 
 // Import theme test function for debugging
@@ -24,51 +24,53 @@ type LogseqCopliotProps = {
   hostFont?: string;
 };
 
-type LoadingState = 'loading' | 'success' | 'error' | 'disconnected';
+type LoadingState = 'loading' | 'success' | 'error';
 
 // Minimum delay between URL-change re-searches.
 const RESEARCH_DEBOUNCE_MS = 500;
 
+/** Language of the browser UI, for relative times. */
+const uiLocale = (): string | undefined => {
+  try {
+    return browser.i18n.getUILanguage() || navigator.language;
+  } catch {
+    return navigator.language;
+  }
+};
+
 const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   const [state, setState] = React.useState<LoadingState>('loading');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
-  const [logseqSearchResult, setLogseqSearchResult] = React.useState<LogseqSearchResult>();
+  const [result, setResult] = React.useState<RecallResult>();
+  // Bumped on every search, so a new answer starts collapsed.
+  const [generation, setGeneration] = React.useState(0);
+  const terms = React.useMemo(() => normalizeQuery(query).terms, [query]);
+  const locale = React.useMemo(uiLocale, []);
 
   React.useEffect(() => {
     let lastSearchedUrl = '';
     let researchTimer: ReturnType<typeof setTimeout> | undefined;
+    let active = true;
 
     const performSearch = async () => {
       setState('loading');
       setErrorMessage('');
+      // The URL selects the recall rules (keyword filters, page scope) that
+      // apply to this result page.
+      const currentUrl = window.location.href;
+      lastSearchedUrl = currentUrl;
 
       try {
-        // Search engine result pages: search by keyword only. A URL search
-        // would recall every block that mentions the engine's own host. The
-        // URL is still sent so the recall rules (page scope, keyword
-        // filters) matching this page apply to the results.
-        const currentUrl = window.location.href;
-        lastSearchedUrl = currentUrl;
-
-        const result = await sendMessage('logseq:hybridSearch', {
-          url: currentUrl,
-          query: query,
-          keywordOnly: true,
-        });
-
-        if (result.msg === 'success') {
-          setState('success');
-          setLogseqSearchResult(result.response);
-          setErrorMessage('');
-        } else {
-          setState('error');
-          setErrorMessage(result.msg);
-          setLogseqSearchResult(undefined);
-        }
+        const recall = await requestRecall(query, currentUrl);
+        if (!active || lastSearchedUrl !== currentUrl) return;
+        setResult(recall);
+        setGeneration((n) => n + 1);
+        setState('success');
       } catch (err) {
-        setState('error');
+        if (!active || lastSearchedUrl !== currentUrl) return;
+        setResult(undefined);
         setErrorMessage(err instanceof Error ? err.message : 'Search failed');
-        setLogseqSearchResult(undefined);
+        setState('error');
       }
     };
 
@@ -94,6 +96,7 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
     window.addEventListener('hashchange', handleLocationChange);
 
     return () => {
+      active = false;
       if (researchTimer) clearTimeout(researchTimer);
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('hashchange', handleLocationChange);
@@ -104,104 +107,21 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
     sendMessage('app:openOptions');
   };
 
-  const graphUrl = logseqSearchResult?.graph
-    ? `logseq://graph/${encodeURIComponent(logseqSearchResult.graph)}`
-    : undefined;
-
-  const blocks = logseqSearchResult?.blocks ?? [];
-  const pages = (logseqSearchResult?.pages ?? []).filter(Boolean);
-  const total = blocks.filter((block) => block.html).length;
-
-  const header = (
-    <div className="lc-header">
-      <img className="lc-logo" src={logo} alt="" />
-      <span className="lc-title">{logseqSearchResult?.graph || 'Logseq'}</span>
-      {state === 'success' && total > 0 && (
-        <span className="lc-count">
-          {total} {total === 1 ? 'result' : 'results'}
-        </span>
-      )}
-      <span className="lc-spacer" />
-      <button
-        type="button"
-        className="lc-button lc-icon-button"
-        title="Logseq Copilot settings"
-        aria-label="Logseq Copilot settings"
-        onClick={handleOpenOptions}
-      >
-        <IconSettings />
-      </button>
-    </div>
-  );
-
-  const loading = (
-    <div className="lc-skeleton" aria-busy="true" aria-label="Searching Logseq">
-      <span style={{ width: '40%' }} />
-      <span style={{ width: '92%' }} />
-      <span style={{ width: '76%' }} />
-    </div>
-  );
-
-  const error = (
-    <div className="lc-message" role="status">
-      <IconAlertCircle className="lc-message-icon" />
-      <span>
-        {errorMessage || 'Unable to connect to Logseq.'}{' '}
-        <button type="button" className="lc-inline-link" onClick={handleOpenOptions}>
-          Check the connection
-        </button>
-      </span>
-    </div>
-  );
-
-  const results =
-    total === 0 && pages.length === 0 ? (
-      <div className="lc-message">No notes found for this search.</div>
-    ) : (
-      <LogseqResultList graph={logseqSearchResult!.graph} blocks={blocks} pages={pages} />
-    );
-
-  const footer = (
-    <div className="lc-footer">
-      {graphUrl && (
-        <>
-          <a className="lc-link" href={graphUrl}>
-            Open in Logseq
-          </a>
-          <span aria-hidden>·</span>
-        </>
-      )}
-      <a
-        className="lc-link"
-        href="https://github.com/EINDEX/logseq-copilot/issues"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Feedback
-      </a>
-      <span className="lc-spacer" />
-      <a
-        className="lc-link"
-        href="https://logseq-copilot.eindex.me/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Logseq Copilot
-      </a>
-    </div>
-  );
-
   return (
     <section
-      className="lc-results lc-sidebar"
+      className="lc-sidebar"
       aria-label="Notes from Logseq"
       style={hostFont ? ({ '--lc-font': hostFont } as React.CSSProperties) : undefined}
     >
-      {header}
-      {state === 'loading' && loading}
-      {state === 'error' && error}
-      {state === 'success' && logseqSearchResult && results}
-      {footer}
+      <RecallCard
+        key={generation}
+        state={state}
+        result={result}
+        terms={terms}
+        error={errorMessage}
+        onOpenOptions={handleOpenOptions}
+        locale={locale}
+      />
     </section>
   );
 };
