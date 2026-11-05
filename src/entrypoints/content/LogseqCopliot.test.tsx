@@ -20,11 +20,7 @@ describe('LogseqCopliot re-search on URL changes', () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     sendMessage.mockReset();
-    sendMessage.mockResolvedValue({
-      msg: 'success',
-      status: 200,
-      response: { blocks: [], pages: [], graph: 'g' },
-    });
+    sendMessage.mockResolvedValue({ graph: 'g', pages: [] });
     container = document.createElement('div');
     document.body.appendChild(container);
     await act(async () => {
@@ -41,14 +37,10 @@ describe('LogseqCopliot re-search on URL changes', () => {
 
   it('searches once on mount', () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(sendMessage).toHaveBeenCalledWith(
-      'logseq:hybridSearch',
-      expect.objectContaining({
-        url: window.location.href,
-        query: 'q',
-        keywordOnly: true,
-      }),
-    );
+    expect(sendMessage).toHaveBeenCalledWith('logseq:recall', {
+      query: 'q',
+      url: window.location.href,
+    });
   });
 
   it('ignores synthetic popstate/hashchange events dispatched by the page', async () => {
