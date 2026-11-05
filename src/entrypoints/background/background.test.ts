@@ -215,6 +215,35 @@ describe('logseq:hybridSearch', () => {
     expect(result.response.pages.map((p) => p.name)).toEqual(['Homework']);
     expect(result.count).toBe(2);
   });
+
+  // maxResults counts blocks here; the default rules set none, so the result
+  // lists get every block and show the rest behind "Show all".
+  test('the default rules keep every block, an explicit maxResults cuts them', async () => {
+    const page = { id: 1, uuid: 'p1', name: 'notes', originalName: 'Notes' };
+    service.search.mockResolvedValue({
+      status: 200,
+      msg: 'success',
+      response: {
+        blocks: Array.from({ length: 25 }, (_, i) => ({ uuid: `b${i}`, content: 'a', page })),
+        pages: [],
+        graph: 'g',
+      },
+    });
+    const search = () =>
+      sendMessage('logseq:hybridSearch', {
+        url: 'https://example.com/a',
+        query: 'q',
+        keywordOnly: true,
+      });
+
+    await fakeBrowser.storage.local.remove('recallRulesConfig');
+    expect((await search()).response.blocks).toHaveLength(25);
+
+    await fakeBrowser.storage.local.set({
+      recallRulesConfig: [{ ...rule, searchScope: {}, resultFiltering: { maxResults: 4 } }],
+    });
+    expect((await search()).response.blocks).toHaveLength(4);
+  });
 });
 
 describe('logseq:clipPage', () => {
@@ -288,6 +317,19 @@ describe('logseq:recall', () => {
     });
     expect(service.search).not.toHaveBeenCalled();
     expect(service.urlSearch).not.toHaveBeenCalled();
+  });
+
+  test('the default rules leave the page limit to recall', async () => {
+    await fakeBrowser.storage.local.remove('recallRulesConfig');
+    service.recall.mockResolvedValue({ graph: 'g', pages: [] });
+
+    await sendMessage('logseq:recall', {
+      query: 'default limit',
+      url: 'https://www.google.com/search?q=default+limit',
+    });
+
+    expect(service.recall).toHaveBeenCalledTimes(1);
+    expect(service.recall.mock.calls[0][1].maxPages).toBeUndefined();
   });
 
   test('a result page that loads twice (Bing &rdr=1) searches Logseq once', async () => {
