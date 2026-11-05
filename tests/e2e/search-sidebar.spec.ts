@@ -7,6 +7,10 @@ test.describe('search engine sidebar', () => {
     await page.goto(googleUrl('copilot'));
 
     const sidebar = page.locator('#rhs logseq-copilot-search-engine');
+    await expect(sidebar.getByText('Copilot Test Page', { exact: true })).toBeVisible();
+    // Two hits per page first, the rest behind "+N".
+    const more = sidebar.getByRole('button', { name: /^Show \d+ more$/ });
+    if (await more.count()) await more.first().click();
     await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
     await expect(sidebar.locator('mark', { hasText: /^copilot$/i }).first()).toBeVisible();
     // The E2E build uses open shadow roots, which is what lets the locators
@@ -21,7 +25,7 @@ test.describe('search engine sidebar', () => {
     await page.goto(googleUrl('copilot'));
 
     const sidebar = page.locator('#rhs logseq-copilot-search-engine');
-    await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
+    await expect(sidebar.getByText('Copilot Test Page', { exact: true })).toBeVisible();
     const container = sidebar.locator('[data-theme-container]').first();
     await expect(container).not.toHaveClass(/\bdark\b/);
 

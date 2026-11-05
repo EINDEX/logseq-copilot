@@ -5,11 +5,13 @@
  * and dark, against the seeded Logseq. The tests only assert that the key
  * elements are visible.
  *
- * The search engine sidebar is taken on the Google (empty right column,
+ * The search engine card is taken on the Google (empty right column,
  * knowledge panel, no right column, narrow window), Bing and DuckDuckGo
- * fixture pages, with the rich content of the fixture graph (`showcase`,
- * folded and unfolded) and with many results (`bulkitem`, first page and
- * all); the popup also with the rich content.
+ * fixture pages, with the recall data of the fixture graph: hits nested
+ * under a hit and "+N" (`recallprobe`), two hits under one context line
+ * (`deepnest`), a journal day with two topics (`journaldeep`), more pages
+ * than shown (`notes`), and the hover, no result, loading and error states.
+ * The popup also with the rich content.
  *
  * Output: test-results/ui-screenshots/<name>-<light|dark>.png (uploaded by
  * CI as the `ui-screenshots-<variant>` artifact on every run). Runs on
@@ -103,7 +105,7 @@ const ENGINES = [
   },
 ] as const;
 
-/** Click every visible button named `name` (e.g. all "Show more" toggles). */
+/** Click every visible button named `name` (e.g. all "+N" buttons). */
 const clickAll = async (host: Locator, name: RegExp) => {
   for (let i = 0; i < 50; i++) {
     const button = host.getByRole('button', { name }).first();
@@ -111,6 +113,10 @@ const clickAll = async (host: Locator, name: RegExp) => {
     await button.click();
   }
 };
+
+/** The title of a page in the search engine card. */
+const pageRow = (host: Locator, title: string) =>
+  host.locator('.lc-page-name').getByText(title, { exact: true });
 
 const expectTheme = (host: Locator, scheme: Scheme) =>
   scheme === 'dark'
@@ -231,15 +237,15 @@ test.describe('UI screenshots', () => {
     fileGraphOnly();
     await ext.connect();
     const cases = [
-      ...ENGINES.map((engine) => ({ engine, name: engine.name, url: engine.url('copilot') })),
-      { engine: ENGINES[0], name: 'google-panel', url: googleUrl('copilot', 'panel') },
+      ...ENGINES.map((engine) => ({ engine, name: engine.name, url: engine.url('recallprobe') })),
+      { engine: ENGINES[0], name: 'google-panel', url: googleUrl('recallprobe', 'panel') },
       // No right column: the sidebar makes its own column next to the results.
-      { engine: { ...ENGINES[0], host: 'logseq-copilot-search-engine' }, name: 'google-no-rhs', url: googleUrl('copilot', 'none') },
+      { engine: { ...ENGINES[0], host: 'logseq-copilot-search-engine' }, name: 'google-no-rhs', url: googleUrl('recallprobe', 'none') },
     ];
     for (const { engine, name, url } of cases) {
       await page.goto(url);
       const host = page.locator(engine.host);
-      await expect(host.getByText('Hello from copilot integration test')).toBeVisible();
+      await expect(pageRow(host, 'Recall Notes')).toBeVisible();
       for (const scheme of SCHEMES) {
         await setPageTheme(page, scheme, engine.dark);
         await expectTheme(host, scheme);
@@ -252,9 +258,9 @@ test.describe('UI screenshots', () => {
     fileGraphOnly();
     await ext.connect();
     await page.setViewportSize({ width: 1024, height: 800 });
-    await page.goto(googleUrl('copilot', 'none'));
+    await page.goto(googleUrl('recallprobe', 'none'));
     const host = page.locator('logseq-copilot-search-engine');
-    await expect(host.getByText('Hello from copilot integration test')).toBeVisible();
+    await expect(pageRow(host, 'Recall Notes')).toBeVisible();
     for (const scheme of SCHEMES) {
       await setPageTheme(page, scheme);
       await expectTheme(host, scheme);
@@ -262,51 +268,137 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('search engine sidebar with rich content', async ({ page, ext }) => {
+  test('search engine card: deep hits under their context lines', async ({ page, ext }) => {
     await ext.connect();
-    await page.goto(googleUrl('showcase'));
-    const host = page.locator(ENGINES[0].host);
-    await expect(host.getByText('showcase finished task').or(host.getByText('showcase parent block')).first()).toBeVisible();
+    // The hit's parent is itself a hit (nested), tasks, references, "+N".
+    await page.goto(bingUrl('recallprobe'));
+    const host = page.locator(ENGINES[1].host);
+    await expect(pageRow(host, 'Recall Notes')).toBeVisible();
     for (const scheme of SCHEMES) {
-      await page.reload();
-      await expect(host.getByText('showcase parent block')).toBeVisible();
-      await setPageTheme(page, scheme);
+      await setPageTheme(page, scheme, ENGINES[1].dark);
       await expectTheme(host, scheme);
-      await shoot(host, `search-sidebar-rich${variantSuffix()}`, scheme);
-      // Everything: all results, every long block unfolded.
-      await clickAll(host, /^Show all/i);
-      await clickAll(host, /^Show more/i);
-      // Page refs and tags read by name; DB class tags follow the block text.
-      const text = await host.locator('.lc-results').first().innerText();
-      expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/);
-      expect(text).toContain('Another Page');
-      if (logseqInfo().variant === 'db') {
-        await expect(host.locator('.lc-block-tag', { hasText: '#Book' })).toBeVisible();
-        // Inline tags are not repeated after the text, #Task is not shown.
-        await expect(host.locator('.lc-block-tag', { hasText: /#(reading|Task)$/ })).toHaveCount(0);
-      }
-      await shoot(host, `search-sidebar-rich-expanded${variantSuffix()}`, scheme);
-      // Hover toolbar of a task: the TODO -> DOING switch and "open block".
-      const task = host.locator('[data-marker="TODO"]').first();
-      await expect(task).toBeVisible();
-      await task.hover();
-      await task.screenshot({ path: file(`search-sidebar-task-hover${variantSuffix()}`, scheme), animations: 'disabled' });
+      await shoot(host, `search-card-deep${variantSuffix()}`, scheme);
+    }
+    await clickAll(host, /^Show \d+ more/);
+    await expect(host.getByText(/^Recallprobe outline about/)).toBeVisible();
+    await expect(host.locator('.lc-kids .lc-hit').first()).toBeVisible();
+    const text = await host.locator('.lc-card').innerText();
+    // References and tags read by name.
+    expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/);
+    expect(text).toContain('Another Page');
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme, ENGINES[1].dark);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-card-deep-expanded${variantSuffix()}`, scheme);
+    }
+
+    // Two hits under one context line ("Recallprobe grandchild detail"),
+    // below a block with only a property.
+    await page.goto(bingUrl('deepnest'));
+    await expect(host.getByText('Deepnest leaf alpha')).toBeVisible();
+    await expect(host.locator('.lc-ctx')).toHaveCount(1);
+    await expect(host.locator('.lc-kids .lc-hit')).toHaveCount(2);
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme, ENGINES[1].dark);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-card-shared-context${variantSuffix()}`, scheme);
     }
   });
 
-  test('search engine sidebar with many results', async ({ page, ext }) => {
+  test('search engine card: a journal day with two topics', async ({ page, ext }) => {
     await ext.connect();
-    await page.goto(googleUrl('bulkitem'));
+    await page.goto(googleUrl('journaldeep'));
     const host = page.locator(ENGINES[0].host);
-    await expect(host.getByText(/bulkitem \d+/).first()).toBeVisible();
+    // Three hits, two levels under a root and a parent context line each;
+    // which two come first depends on the graph type.
+    await expect(host.locator('.lc-kids .lc-kids .lc-hit')).toHaveCount(2);
     for (const scheme of SCHEMES) {
-      await page.reload();
-      await expect(host.getByText(/bulkitem \d+/).first()).toBeVisible();
       await setPageTheme(page, scheme);
       await expectTheme(host, scheme);
-      await shoot(host, `search-sidebar-many${variantSuffix()}`, scheme);
-      await clickAll(host, /^Show all/i);
-      await shoot(host, `search-sidebar-many-all${variantSuffix()}`, scheme);
+      await shoot(host, `search-card-journal${variantSuffix()}`, scheme);
+    }
+    await clickAll(host, /^Show \d+ more/);
+    await expect(host.locator('.lc-kids .lc-kids .lc-hit')).toHaveCount(3);
+    for (const text of ['Homelab', 'Router upgrade', 'Journaldeep firmware notes', '1:1 with Alice', 'Journaldeep promotion notes', 'Journaldeep raise notes']) {
+      await expect(host.getByText(text, { exact: true })).toBeVisible();
+    }
+    // "Career goals" is the context of two hits, drawn once.
+    await expect(host.getByText('Career goals', { exact: true })).toHaveCount(1);
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-card-journal-expanded${variantSuffix()}`, scheme);
+    }
+  });
+
+  test('search engine card with many pages', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto(googleUrl('notes'));
+    const host = page.locator(ENGINES[0].host);
+    await expect(host.locator('.lc-page')).toHaveCount(3);
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-card-many${variantSuffix()}`, scheme);
+    }
+    await clickAll(host, /more pages$/);
+    await clickAll(host, /^Show \d+ more/);
+    expect(await host.locator('.lc-page').count()).toBeGreaterThan(3);
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, `search-card-many-all${variantSuffix()}`, scheme);
+    }
+  });
+
+  test('search engine card states: hover, no results, loading, error', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    const host = page.locator(ENGINES[0].host);
+
+    // Hover: the settings gear and the row background.
+    await page.goto(googleUrl('journaldeep'));
+    const hit = host.locator('.lc-hit').first();
+    await expect(hit).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await hit.hover();
+      await expect(host.locator('.lc-gear')).toHaveCSS('opacity', '1');
+      await host.locator('.lc-card').screenshot({ path: file('search-card-hover', scheme), animations: 'disabled' });
+    }
+
+    await page.goto(googleUrl('zzqxnomatch'));
+    await expect(host.getByText('No related notes in Logseq')).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, 'search-card-empty', scheme);
+    }
+
+    // Loading: Logseq never answers.
+    await ext.evaluate(() => {
+      (globalThis as any).fetch = () => new Promise(() => {});
+    });
+    await page.goto(googleUrl('loadingprobe'));
+    await expect(host.locator('[aria-busy="true"]')).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, 'search-card-loading', scheme);
+    }
+  });
+
+  test('search engine card when Logseq refuses the token', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect({ token: 'wrong-token' });
+    await page.goto(googleUrl('recallprobe'));
+    const host = page.locator(ENGINES[0].host);
+    await expect(host.getByRole('button', { name: 'Check the connection' })).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, 'search-card-error', scheme);
     }
   });
 

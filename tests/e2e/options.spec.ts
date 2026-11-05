@@ -35,7 +35,7 @@ test.describe('options: recall rules', () => {
     await ext.connect();
     const sidebar = page.locator('#rhs logseq-copilot-search-engine');
     await page.goto(googleUrl('copilot'));
-    await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
+    await expect(sidebar.getByText('Copilot Test Page', { exact: true })).toBeVisible();
     await expect(sidebar.getByText('another page mentioning copilot')).toBeVisible();
 
     const options = await ext.openPage('options.html#/recall-rules');
@@ -57,7 +57,7 @@ test.describe('options: recall rules', () => {
     await options.close();
 
     await page.reload();
-    await expect(sidebar.getByText('Hello from copilot integration test')).toBeVisible();
+    await expect(sidebar.getByText('Copilot Test Page', { exact: true })).toBeVisible();
     await expect(sidebar.getByText('another page mentioning copilot')).toHaveCount(0);
   });
 });
