@@ -6,8 +6,9 @@
  * elements are visible.
  *
  * The search engine card is taken on the Google (empty right column,
- * knowledge panel, no right column, narrow window), Bing and DuckDuckGo
- * fixture pages, with the recall data of the fixture graph: hits nested
+ * knowledge panel, no right column, narrow window), Bing, DuckDuckGo and
+ * Brave Search (also narrow) fixture pages, with the recall data of the
+ * fixture graph: hits nested
  * under a hit and "+N" (`recallprobe`), two hits under one context line
  * (`deepnest`), a journal day with two topics (`journaldeep`), more pages
  * than shown (`notes`), and the hover, no result, loading and error states.
@@ -21,7 +22,7 @@
 import path from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 import { expect, logseqInfo, nonce, test } from './fixtures';
-import { bingUrl, duckDuckGoUrl, googleUrl, type GoogleRightColumn } from './pages';
+import { bingUrl, braveUrl, duckDuckGoUrl, googleUrl, type GoogleRightColumn } from './pages';
 
 const OUT_DIR = path.resolve(__dirname, '../../test-results/ui-screenshots');
 const VIEWPORT = { width: 1440, height: 900 };
@@ -63,8 +64,9 @@ const shoot = async (
 const setScheme = (page: Page, scheme: Scheme) => page.emulateMedia({ colorScheme: scheme });
 
 /**
- * Host page theme for the in-page UI: theme-detection reads the html class,
- * the body class on Bing and DuckDuckGo and, on Google, the body background.
+ * Host page theme for the in-page UI: theme-detection reads the html class
+ * (also on Brave Search), the body class on Bing and DuckDuckGo and, on
+ * Google, the body background.
  * The fixture pages switch their own colors on `html.dark`.
  */
 const setPageTheme = (
@@ -102,6 +104,12 @@ const ENGINES = [
     url: (q: string) => duckDuckGoUrl(q),
     host: '.js-react-sidebar logseq-copilot-search-engine',
     dark: { background: 'rgb(28, 28, 28)', color: 'rgb(238, 238, 238)' },
+  },
+  {
+    name: 'brave',
+    url: (q: string) => braveUrl(q),
+    host: '#mixed-side logseq-copilot-search-engine',
+    dark: { background: 'rgb(28, 28, 29)', color: 'rgb(255, 255, 255)' },
   },
 ] as const;
 
@@ -233,7 +241,7 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('search engine sidebar on Google, Bing and DuckDuckGo', async ({ page, ext }) => {
+  test('search engine sidebar on Google, Bing, DuckDuckGo and Brave Search', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();
     const cases = [
@@ -265,6 +273,16 @@ test.describe('UI screenshots', () => {
       await setPageTheme(page, scheme);
       await expectTheme(host, scheme);
       await shoot(page, 'search-sidebar-google-narrow', scheme);
+    }
+
+    // Brave's right column would be cut off: the card goes above the results.
+    await page.goto(braveUrl('recallprobe'));
+    const braveHost = page.locator('#mixed-main logseq-copilot-search-engine');
+    await expect(pageRow(braveHost, 'Recall Notes')).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme, ENGINES[3].dark);
+      await expectTheme(braveHost, scheme);
+      await shoot(page, 'search-sidebar-brave-narrow', scheme);
     }
   });
 

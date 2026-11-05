@@ -1,11 +1,12 @@
 /**
  * Fixture pages served through `context.route`, so no test ever reaches the
- * real Google, Bing, DuckDuckGo or example.com. The content script injects
- * into them exactly like into the real sites.
+ * real Google, Bing, DuckDuckGo, Brave Search or example.com. The content
+ * script injects into them exactly like into the real sites.
  *
  * The search result pages copy the parts of the real layouts the sidebar
  * depends on: the mount point of the built-in engine config (Google `#rhs`,
- * Bing `#b_context`, DuckDuckGo `.js-react-sidebar`), the column widths, the
+ * Bing `#b_context`, DuckDuckGo `.js-react-sidebar`, Brave `#mixed-side`),
+ * the column widths, the
  * page fonts and colors. Dark mode follows `html.dark`, which is what the
  * screenshot spec toggles (together with the body background that Google's
  * theme detection reads). The numbers are approximations of the real pages
@@ -276,6 +277,74 @@ export function duckDuckGoResultsHtml(query: string) {
 </html>`;
 }
 
+/**
+ * Brave Search result page: the results (`#mixed-main`, 672px) and the
+ * right column (`#mixed-side`, 400px, 48px gap). Brave hides the column
+ * while it is empty, here with `:has()`. The built-in engine mounts a div
+ * first into `#mixed-side`, or first into `#mixed-main` when the window has
+ * no room for the column. Brave sets `html.dark` / `html.light` for a theme
+ * picked in its settings.
+ */
+export function braveResultsHtml(query: string) {
+  const q = escapeHtml(query);
+  const results = organicResults(q)
+    .map(
+      (r) => `<div class="snippet">
+        <div class="site"><span class="favicon">${r.site[0]}</span><div><div class="site-name">${r.site}</div><cite>${r.path}</cite></div></div>
+        <a class="title" href="${r.url}">${r.title}</a>
+        <div class="description">${r.snippet}</div>
+      </div>`,
+    )
+    .join('\n');
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>${q} - Brave Search</title>
+<style>
+  html, body { margin: 0; }
+  body { background: #ffffff; color: #000000; font-family: "Inter Variable", Helvetica, sans-serif; font-size: 14px; line-height: 1.5; }
+  a { text-decoration: none; }
+  #site-header { display: flex; align-items: center; gap: 51px; height: 85px; padding: 0 24px; box-sizing: border-box; }
+  .logo { width: 103px; font: 700 26px/1 Helvetica, sans-serif; color: #fb542b; }
+  .searchform { box-sizing: border-box; width: 672px; height: 52px; padding: 0 24px; display: flex; align-items: center;
+    border: 1px solid #dadce0; border-radius: 26px; font-size: 16px; }
+  .searchform input { flex: 1; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+  #nav-tabs { display: flex; gap: 36px; height: 42px; align-items: center; padding-left: 202px; border-bottom: 1px solid #e8e8e8; color: #686868; font-size: 15px; }
+  #nav-tabs .on { color: #000; font-weight: 600; }
+  .serp-columns { display: grid; grid-template-columns: 672px 400px; column-gap: 48px; padding: 0 0 40px 178px; }
+  .serp-columns-side:not(:has(#mixed-side > *)) { display: none; }
+  #mixed-main, #mixed-side { display: flex; flex-direction: column; }
+  .snippet { padding: 24px 24px 0; }
+  .site { display: flex; align-items: center; gap: 12px; }
+  .favicon { width: 32px; height: 32px; border-radius: 8px; background: #f2f2f2; font-size: 13px; line-height: 32px; text-align: center; color: #444; }
+  .site-name { font-size: 12px; font-weight: 600; line-height: 16px; }
+  cite { display: block; font-style: normal; font-size: 12px; line-height: 16px; color: #686868; }
+  .title { display: block; margin: 8px 0 4px; font-size: 22px; line-height: 30px; color: #3b3bc4; }
+  .description { color: #000; font-size: 15px; line-height: 22px; }
+  html.dark body { background: #1c1c1d; color: #ffffff; }
+  html.dark .searchform { background: #2a2a2c; border-color: #3a3a3c; }
+  html.dark #nav-tabs { border-color: #2f2f31; color: #a5a5a8; }
+  html.dark #nav-tabs .on { color: #fff; }
+  html.dark .favicon { background: #2f2f31; color: #ddd; }
+  html.dark cite { color: #a5a5a8; }
+  html.dark .title { color: #a5b4fc; }
+  html.dark .description { color: #fff; }
+</style></head>
+<body class="is-pc is-serp">
+  <div id="main">
+    <header id="site-header"><div class="logo">brave</div>
+      <form class="searchform" id="searchform"><input id="searchbox" name="q" value="${q}"></form></header>
+    <div id="nav-tabs"><span>Ask</span><span class="on">All</span><span>Images</span><span>News</span><span>Videos</span><span>Maps</span></div>
+    <main id="search-page">
+      <div class="serp-columns">
+        <div class="serp-columns-main"><main class="main-column"><section id="mixed-main">${results}</section></main></div>
+        <div class="serp-columns-side"><section id="mixed-side"></section></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>`;
+}
+
 /** An article page with a unique title and paragraph to select and clip. */
 export function articleHtml(title: string, paragraph: string) {
   return `<!doctype html>
@@ -301,6 +370,9 @@ export const bingUrl = (query: string) =>
 export const duckDuckGoUrl = (query: string) =>
   `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
 
+export const braveUrl = (query: string) =>
+  `https://search.brave.com/search?q=${encodeURIComponent(query)}`;
+
 /**
  * Route the fixture sites. Article pages are looked up by URL in `articles`;
  * unknown example.com URLs get a generic article.
@@ -324,6 +396,10 @@ export async function routeFixtureSites(
   await context.route('https://duckduckgo.com/?*', (route) => {
     const query = new URL(route.request().url()).searchParams.get('q') ?? '';
     return route.fulfill({ contentType: 'text/html', body: duckDuckGoResultsHtml(query) });
+  });
+  await context.route('https://search.brave.com/search*', (route) => {
+    const query = new URL(route.request().url()).searchParams.get('q') ?? '';
+    return route.fulfill({ contentType: 'text/html', body: braveResultsHtml(query) });
   });
   await context.route('https://example.com/**', (route) => {
     const url = route.request().url();
