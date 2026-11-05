@@ -2,46 +2,59 @@ import type { LogseqResponseType } from './client';
 
 export type LogseqClientError = LogseqResponseType<null>;
 
-export const TokenNotCurrect: LogseqClientError = {
-  msg: 'Token not correct, Please checking your Logseq Authorization Setting.',
-  status: 401,
-  response: null,
+// Every error object made below, so isLogseqClientError can tell them apart
+// from real API data of the same shape.
+const clientErrors = new WeakSet<object>();
+
+const clientError = (msg: string, status: number): LogseqClientError => {
+  const info: LogseqClientError = { msg, status, response: null };
+  clientErrors.add(info);
+  return info;
 };
 
-export const LogseqVersionIsLower: LogseqClientError = {
-  msg: 'Logseq version is lower, Please upgrade your Logseq version.\nhttps://logseq.com/downloads',
-  status: 500,
-  response: null,
-};
+/** Logseq answered 401 or 403: the token was rejected. */
+export const tokenRejected = (status: number): LogseqClientError =>
+  clientError(
+    `The authorization token is wrong (Logseq returned HTTP ${status}). Check it in Logseq's API server settings.`,
+    status,
+  );
 
-export const CannotConnectWithLogseq: LogseqClientError = {
-  msg: 'Cannot connect to Logseq, Please open your Logseq and config well.',
-  status: 500,
-  response: null,
-};
+export const TokenNotCurrect: LogseqClientError = tokenRejected(401);
 
-export const NoSearchingResult: LogseqClientError = {
-  msg: 'Not found.',
-  status: 404,
-  response: null,
-};
+export const LogseqVersionIsLower: LogseqClientError = clientError(
+  'Logseq version is lower, Please upgrade your Logseq version.\nhttps://logseq.com/downloads',
+  500,
+);
 
-export const UnknownIssues: LogseqClientError = {
-  msg: 'Unknow issues, may you can connect with author.',
-  status: 500,
-  response: null,
-};
+/**
+ * The request never got an HTTP answer. The browser cannot tell "API server
+ * not started" from "wrong host or port", so name the address that was tried.
+ */
+export const cannotConnectWithLogseq = (address: string): LogseqClientError =>
+  clientError(
+    `Cannot connect to Logseq at ${address}. Check that Logseq is running and its HTTP API server is started on this address.`,
+    500,
+  );
 
-const KNOWN_CLIENT_ERRORS: readonly LogseqClientError[] = [
-  TokenNotCurrect,
-  LogseqVersionIsLower,
-  CannotConnectWithLogseq,
-  NoSearchingResult,
-  UnknownIssues,
-];
+/** Same as cannotConnectWithLogseq, for when the address is not known. */
+export const CannotConnectWithLogseq: LogseqClientError = clientError(
+  'Cannot connect to Logseq. Check that Logseq is running and its HTTP API server is started.',
+  500,
+);
+
+export const NoSearchingResult: LogseqClientError = clientError('Not found.', 404);
+
+/** Any other non-200 answer. */
+export const httpStatusError = (status: number): LogseqClientError =>
+  clientError(`Logseq returned HTTP ${status}.`, status);
+
+export const UnknownIssues: LogseqClientError = clientError(
+  'Unexpected error while talking to Logseq.',
+  500,
+);
 
 export const isLogseqClientError = (value: unknown): value is LogseqClientError =>
-  KNOWN_CLIENT_ERRORS.includes(value as LogseqClientError);
+  typeof value === 'object' && value !== null && clientErrors.has(value);
 
 /**
  * The one error type thrown by the Logseq clients and services.
@@ -66,24 +79,39 @@ export class LogseqError extends Error {
   }
 }
 
-/** Maps anything thrown while talking to Logseq onto a LogseqError. */
-export const toLogseqError = (e: unknown): LogseqError => {
+/**
+ * Maps anything thrown while talking to Logseq onto a LogseqError: a thrown
+ * fetch error or an HTTP Response with a non-200 status. `address` is the
+ * host:port that was tried, for the "cannot connect" message.
+ */
+export const toLogseqError = (e: unknown, address?: string): LogseqError => {
   if (e instanceof LogseqError) {
     return e;
   }
   if (isLogseqClientError(e)) {
     return new LogseqError(e);
   }
-  if ((e as { status?: unknown } | null)?.status === 401) {
+  const status = (e as { status?: unknown } | null)?.status;
+  if (status === 401) {
     return new LogseqError(TokenNotCurrect);
   }
+  if (status === 403) {
+    return new LogseqError(tokenRejected(403));
+  }
+  if (typeof status === 'number') {
+    return new LogseqError(httpStatusError(status));
+  }
+  // Chrome: "Failed to fetch", Firefox: "NetworkError when attempting to
+  // fetch resource.", Safari: "Load failed"; "Invalid URL" from a bad host.
   if (
     e instanceof TypeError &&
     /failed to fetch|networkerror|network request failed|invalid url|load failed/i.test(
       e.message,
     )
   ) {
-    return new LogseqError(CannotConnectWithLogseq);
+    return new LogseqError(
+      address ? cannotConnectWithLogseq(address) : CannotConnectWithLogseq,
+    );
   }
   return new LogseqError(UnknownIssues);
 };

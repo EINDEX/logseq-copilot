@@ -15,11 +15,13 @@ import './tool';
 import LogseqService from './markdown/service';
 import LogseqDBService from './db/service';
 import {
-  CannotConnectWithLogseq,
+  cannotConnectWithLogseq,
   LogseqError,
   LogseqVersionIsLower,
   TokenNotCurrect,
 } from './error';
+
+const unreachable = cannotConnectWithLogseq('127.0.0.1:12315').msg;
 
 const flavours = [
   ['file', () => new LogseqService()],
@@ -68,7 +70,7 @@ describe.each(flavours)('connection failures (%s graph)', (_name, create) => {
     offline();
     const err = await create().getGraph().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(LogseqError);
-    expect((err as Error).message).toBe(CannotConnectWithLogseq.msg);
+    expect((err as Error).message).toBe(unreachable);
   });
 
   test('search / urlSearch / changeBlockMarker reject with the same message', async () => {
@@ -80,14 +82,14 @@ describe.each(flavours)('connection failures (%s graph)', (_name, create) => {
       () => service.changeBlockMarker('uuid', 'DONE'),
     ]) {
       const err = await call().catch((e: unknown) => e);
-      expect((err as Error).message).toBe(CannotConnectWithLogseq.msg);
+      expect((err as Error).message).toBe(unreachable);
     }
   });
 
   test('getVersion rejects instead of returning undefined', async () => {
     offline();
     const err = await create().getVersion().catch((e: unknown) => e);
-    expect((err as Error).message).toBe(CannotConnectWithLogseq.msg);
+    expect((err as Error).message).toBe(unreachable);
   });
 
   test('a rejected token is reported as such', async () => {
@@ -96,10 +98,16 @@ describe.each(flavours)('connection failures (%s graph)', (_name, create) => {
     expect((err as Error).message).toBe(TokenNotCurrect.msg);
   });
 
+  test('another HTTP error names the status', async () => {
+    stubApi(() => new Response('boom', { status: 500 }));
+    const err = await create().getGraph().catch((e: unknown) => e);
+    expect((err as Error).message).toBe('Logseq returned HTTP 500.');
+  });
+
   test('an invalid host is reported as "cannot connect"', async () => {
     await logseqHostNameItem.setValue('not a url');
     const err = await create().getGraph().catch((e: unknown) => e);
-    expect((err as Error).message).toBe(CannotConnectWithLogseq.msg);
+    expect((err as Error).message).toBe(cannotConnectWithLogseq('not a url:12315').msg);
   });
 
   test('search on a too-old Logseq throws the version error as an Error', async () => {

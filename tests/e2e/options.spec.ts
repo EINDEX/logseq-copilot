@@ -26,7 +26,17 @@ test.describe('options: connection', () => {
   test('a wrong token shows a readable error', async ({ ext }) => {
     await ext.connect({ token: 'wrong-token' });
     const options = await ext.openPage('options.html#/settings');
-    await options.expectButton(/Token not correct, Please checking your Logseq Authorization Setting/);
+    await options.expectText(/The authorization token is wrong \(Logseq returned HTTP 401\)/);
+  });
+
+  test('an unreachable Logseq names the address that was tried', async ({ ext }) => {
+    // Nothing listens on port 1: the fetch fails without an HTTP answer.
+    await ext.setStorage({ logseqHostName: 'localhost', logseqPort: 1, logseqAuthToken: 'token' });
+    const options = await ext.openPage('options.html#/settings');
+    await options.expectText(
+      'Cannot connect to Logseq at localhost:1. Check that Logseq is running and its HTTP API server is started on this address.',
+    );
+    await options.expectButton('Connect');
   });
 });
 

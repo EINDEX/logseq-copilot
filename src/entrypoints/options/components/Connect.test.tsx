@@ -133,7 +133,9 @@ describe('LogseqConnectOptions', () => {
     service.getVersion.mockReset().mockRejectedValue(new Error('Token not correct'));
     await mount();
 
-    expect(screen.getByRole('button', { name: /Token not correct/ })).toBeTruthy();
+    // In its own line, not in the button (it cannot wrap).
+    expect(screen.getByRole('alert').textContent).toMatch(/Token not correct/);
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeTruthy();
     expect(screen.queryByText(/Open .* in Logseq/)).toBeNull();
   });
 

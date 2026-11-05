@@ -1,7 +1,7 @@
 import { getLogseqCopliotConfig } from '@/config';
 import { log } from '@/utils';
 import { toLogseqError } from './error';
-import { buildLogseqOrigin } from '@/utils/connection';
+import { buildLogseqOrigin, formatLogseqAddress } from '@/utils/connection';
 
 export type LogseqPageResponse = {
   name: string;
@@ -24,6 +24,7 @@ export default class LogseqClientBase {
   baseFetch = async (method: string, args: any[]) => {
     log.debug(`Logseq Method ${method}, Args -> \n`, args);
     const config = await getLogseqCopliotConfig();
+    const address = formatLogseqAddress(config.logseqHostName, config.logseqPort);
     let resp: Response;
     try {
       const origin = buildLogseqOrigin(
@@ -44,7 +45,7 @@ export default class LogseqClientBase {
         }),
       });
     } catch (e) {
-      throw toLogseqError(e);
+      throw toLogseqError(e, address);
     }
 
     if (resp.status !== 200) {

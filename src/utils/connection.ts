@@ -24,6 +24,10 @@ export const isValidLogseqHostName = (hostName: string): boolean => {
 export const isValidLogseqPort = (port: number): boolean =>
   Number.isInteger(port) && port >= 1 && port <= 65535;
 
+/** host:port of the Logseq HTTP API server, as shown in messages. */
+export const formatLogseqAddress = (hostName: string, port: number): string =>
+  `${toUrlHost(hostName)}:${port}`;
+
 /**
  * The origin (scheme://host:port) of the Logseq HTTP API server. The single
  * source of truth is `logseqHostName` + `logseqPort`, as edited in the options.

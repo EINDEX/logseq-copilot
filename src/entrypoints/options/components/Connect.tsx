@@ -37,6 +37,8 @@ export const LogseqConnectOptions = () => {
   const [connected, setConnected] = React.useState(false);
   const [buttonMessage, setButtonMessage] = React.useState('Connect');
   const [notice, setNotice] = React.useState('');
+  // Why the last check failed. Shown under the button, which cannot wrap.
+  const [error, setError] = React.useState('');
   const [graph, setGraph] = React.useState<string | null>(null);
   const [showToken, setShowToken] = React.useState(false);
   // Only the newest check may update the state; older ones are stale.
@@ -47,6 +49,7 @@ export const LogseqConnectOptions = () => {
     if (!logseqConfig) return;
     const { name, value } = e.target;
     setNotice('');
+    setError('');
     updateSettings({ [name]: value });
   };
 
@@ -57,6 +60,7 @@ export const LogseqConnectOptions = () => {
       port = '0'
     }
     setNotice('');
+    setError('');
     updateSettings({ logseqPort: parseInt(port) });
   }
 
@@ -81,7 +85,8 @@ export const LogseqConnectOptions = () => {
           if (isStale()) return false;
           setConnected(false);
           setGraph(null);
-          setButtonMessage(resp.msg || 'Connection failed');
+          setButtonMessage('Connect');
+          setError(resp.msg || 'Connection failed');
           return false;
         }
       }
@@ -89,16 +94,18 @@ export const LogseqConnectOptions = () => {
       const graphName: string | null = await service.getGraph().catch(() => null);
       if (isStale()) return false;
       setConnected(true);
+      setError('');
       setGraph(graphName || null);
       setButtonMessage(`Connected to Logseq v${version}!`);
       return true;
-    } catch (error) {
-      log.error('Connection check failed:', error);
+    } catch (err) {
+      log.error('Connection check failed:', err);
       if (isStale()) return false;
       setConnected(false);
       setGraph(null);
-      setButtonMessage(
-        error instanceof Error && error.message ? error.message : 'Connection error',
+      setButtonMessage('Connect');
+      setError(
+        err instanceof Error && err.message ? err.message : 'Connection failed',
       );
       return false;
     } finally {
@@ -117,11 +124,13 @@ export const LogseqConnectOptions = () => {
     const invalid = validateConnection(logseqConfig);
     if (invalid) {
       setConnected(false);
+      setError('');
       setButtonMessage(invalid);
       return;
     }
 
     setNotice('');
+    setError('');
     if (await checkConnection(true)) {
       setNotice('Settings saved and connected to Logseq.');
     }
@@ -147,6 +156,7 @@ export const LogseqConnectOptions = () => {
       setLoading(false);
       setConnected(false);
       setGraph(null);
+      setError('');
       // Nothing is wrong with an empty token yet; the user has not started.
       setButtonMessage(logseqAuthToken ? invalid : 'Connect');
       return;
@@ -235,6 +245,12 @@ export const LogseqConnectOptions = () => {
             Guide to Connection
           </a>
         </div>
+
+        {error && !loading && (
+          <p role="alert" className="text-sm text-destructive break-words sm:col-span-3">
+            {error}
+          </p>
+        )}
 
         {notice && (
           <p role="status" className="text-sm text-primary sm:col-span-3">
