@@ -226,8 +226,6 @@ a.lc-graph:hover {
 }
 .lc-hit[data-done] .lc-hit-text {
   color: var(--lc-muted);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in oklab, var(--lc-muted) 60%, transparent);
 }
 .lc-hit[data-done] .lc-ref {
   color: inherit;

@@ -273,8 +273,11 @@
 .lc-block-row[data-marker='DONE'] .lc-content,
 .lc-block-row[data-marker='CANCELED'] .lc-content,
 .lc-block-row[data-marker='CANCELLED'] .lc-content {
-  text-decoration: line-through;
   opacity: 0.6;
+}
+.lc-block-row[data-marker='CANCELED'] .lc-content,
+.lc-block-row[data-marker='CANCELLED'] .lc-content {
+  text-decoration: line-through;
 }
 .lc-task-error {
   clear: both;
