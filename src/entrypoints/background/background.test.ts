@@ -290,6 +290,24 @@ describe('logseq:recall', () => {
     expect(service.urlSearch).not.toHaveBeenCalled();
   });
 
+  test('a result page that loads twice (Bing &rdr=1) searches Logseq once', async () => {
+    service.recall.mockResolvedValue({ graph: 'g', pages: [] });
+    await sendMessage('logseq:recall', {
+      query: 'twice',
+      url: 'https://www.bing.com/search?q=twice',
+    });
+    await sendMessage('logseq:recall', {
+      query: 'twice',
+      url: 'https://www.bing.com/search?q=twice&rdr=1&rdrig=9E58F2A7',
+    });
+    expect(service.recall).toHaveBeenCalledTimes(1);
+    await sendMessage('logseq:recall', {
+      query: 'other',
+      url: 'https://www.bing.com/search?q=other',
+    });
+    expect(service.recall).toHaveBeenCalledTimes(2);
+  });
+
   test('errors reach the sender', async () => {
     service.recall.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
     const err = await sendMessage('logseq:recall', {
