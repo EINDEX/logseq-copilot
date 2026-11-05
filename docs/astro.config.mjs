@@ -10,10 +10,15 @@ export default defineConfig({
 		// The extension's options page links to the setup guide at this old path.
 		'/doc/setup': '/setup/',
 	},
+	vite: {
+		// Astro turns on Vite's tsconfig paths resolution. Without a fixed tsconfig,
+		// files that docs/tsconfig.json does not include (.mdx, .astro) fall through
+		// to the repository's tsconfig.json, which needs the root's .wxt/ folder.
+		tsconfig: './tsconfig.json',
+	},
 	integrations: [
 		starlight({
 			title: 'Logseq Copilot',
-			tagline: 'Your Logseq notes, right where you browse',
 			description: 'A browser extension for Chrome, Edge and Firefox that connects to your own Logseq: recall notes while you search and browse, clip pages, and keep highlights.',
 			logo: {
 				src: './src/assets/logo.png',
@@ -42,7 +47,7 @@ export default defineConfig({
 						{ label: 'Setup', slug: 'setup' },
 					],
 				},
-				{ label: 'Blog', autogenerate: { directory: 'blog' } },
+				{ label: 'Blog', items: [{ autogenerate: { directory: 'blog' } }] },
 				{
 					label: 'Features',
 					items: [
