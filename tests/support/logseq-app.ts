@@ -468,7 +468,14 @@ export async function startLogseq(options: LogseqAppOptions): Promise<LogseqApp>
   step(`launching ${executablePath} (port ${port})`);
   const app = await electron.launch({
     executablePath,
-    args: ['--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+    // --use-mock-keychain: the temp HOME has no keychain, so Electron's
+    // safeStorage would pop a "Keychain Not Found" dialog on every launch.
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--use-mock-keychain',
+      `--user-data-dir=${userData}`,
+    ],
     // XDG_CONFIG_HOME (set on GitHub runners) would move userData away from
     // the configs.edn written by prepareHome(). CFFIXED_USER_HOME is the
     // macOS counterpart of HOME for NSHomeDirectory().
