@@ -1,0 +1,428 @@
+/*
+ * Search engine result page card (RecallCard). Lives in a shadow root on
+ * any site, so plain CSS in px (`rem` would be the host's root size). Colors
+ * are mixes of the globals.css tokens, so light and dark follow the
+ * ThemeProvider. One step quieter than the host's results: 13px text, 12px
+ * secondary lines, weight and gray for hierarchy, hover backgrounds instead
+ * of boxes. The frame (width, column alignment) is sidebar.css.
+ */
+.lc-card {
+  --lc-fg: var(--foreground);
+  --lc-muted: var(--muted-foreground);
+  --lc-body: color-mix(in oklab, var(--foreground) 84%, transparent);
+  --lc-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --lc-mark: color-mix(in oklab, var(--highlight) 42%, transparent);
+  --lc-mark-soft: color-mix(in oklab, var(--highlight) 22%, transparent);
+  --lc-guide: var(--border);
+  --lc-sk: var(--muted);
+  font-family: var(--lc-font, inherit);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--lc-fg);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.dark .lc-card {
+  --lc-mark: color-mix(in oklab, var(--highlight) 34%, transparent);
+  --lc-mark-soft: color-mix(in oklab, var(--highlight) 17%, transparent);
+  --lc-guide: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  --lc-sk: color-mix(in oklab, var(--muted) 80%, var(--background));
+}
+
+.lc-card *,
+.lc-card *::before,
+.lc-card *::after {
+  box-sizing: border-box;
+}
+:where(.lc-card) a {
+  color: inherit;
+  text-decoration: none;
+}
+:where(.lc-card) button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.lc-card a:focus-visible,
+.lc-card button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 60%, transparent);
+  outline-offset: -2px;
+}
+.lc-card svg {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+/* Header: logo and graph name, the gear only while the card is hovered. */
+.lc-head {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 0 0 6px;
+}
+.lc-graph {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--lc-muted);
+}
+a.lc-graph:hover {
+  color: var(--lc-fg);
+}
+.lc-graph-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lc-logo {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.lc-logo-dim {
+  opacity: 0.6;
+}
+.lc-gear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border-radius: 6px;
+  color: var(--lc-muted);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.lc-card:hover .lc-gear,
+.lc-gear:focus-visible {
+  opacity: 1;
+}
+.lc-gear:hover {
+  background: var(--lc-hover);
+  color: var(--lc-fg);
+}
+
+/* Page: title row, then its hits under their context lines. */
+.lc-page {
+  margin-top: 2px;
+}
+.lc-page + .lc-page {
+  margin-top: 6px;
+}
+.lc-page-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+}
+.lc-page-row:hover {
+  background: var(--lc-hover);
+}
+.lc-page-icon {
+  color: var(--lc-muted);
+}
+.lc-page-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.lc-ns {
+  font-weight: 500;
+  color: var(--lc-muted);
+}
+.lc-page-row time {
+  flex: none;
+  font-size: 12px;
+  color: var(--lc-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Glyph column: bullet or task box, as wide as the page icon. */
+.lc-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 14px;
+  height: 18px;
+}
+.lc-bullet {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lc-muted);
+  opacity: 0.75;
+}
+.lc-box {
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--lc-muted);
+  border-radius: 3px;
+}
+.lc-box[data-state='doing'] {
+  border-color: var(--primary);
+}
+.lc-box[data-state='doing']::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--primary);
+}
+.lc-box[data-state='done'] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.lc-box[data-state='canceled'] {
+  opacity: 0.6;
+}
+.lc-box svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 3.5;
+}
+
+/* Hit: up to two lines, the matches marked. */
+.lc-hit {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+.lc-hit:hover {
+  background: var(--lc-hover);
+}
+.lc-hit-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--lc-body);
+}
+.lc-hit[data-done] .lc-hit-text {
+  color: var(--lc-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--lc-muted) 60%, transparent);
+}
+.lc-hit[data-done] .lc-ref {
+  color: inherit;
+}
+.lc-card mark {
+  border-radius: 2px;
+  background: var(--lc-mark);
+  color: inherit;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.lc-ref {
+  color: var(--primary);
+}
+.lc-tag {
+  color: var(--lc-muted);
+}
+
+/* Context line: one muted line above a hit. */
+.lc-ctx {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+.lc-ctx:hover {
+  background: var(--lc-hover);
+}
+.lc-ctx .lc-bullet {
+  width: 4px;
+  height: 4px;
+  opacity: 0.4;
+}
+.lc-ctx-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--lc-muted);
+}
+.lc-ctx:hover .lc-ctx-text {
+  color: var(--lc-fg);
+}
+.lc-ctx mark {
+  background: var(--lc-mark-soft);
+}
+
+/*
+ * Guide line from under a row's bullet down to the first line of its last
+ * child, drawn in pieces: the parent row draws the part below its bullet,
+ * every child the part beside it (the last child only down to its bullet).
+ * The line sits at x = 12-13px of the parent row (bullet center: 6px
+ * padding + 7px).
+ */
+.lc-kids {
+  margin-left: 14px;
+}
+.lc-hit[data-kids]::after,
+.lc-ctx[data-kids]::after,
+.lc-kids > .lc-node::before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  background: var(--lc-guide);
+  pointer-events: none;
+}
+.lc-hit[data-kids]::after {
+  left: 12px;
+  top: 17px;
+  bottom: 0;
+}
+.lc-ctx[data-kids]::after {
+  left: 12px;
+  top: 16px;
+  bottom: 0;
+}
+.lc-kids > .lc-node {
+  position: relative;
+}
+.lc-kids > .lc-node::before {
+  left: -2px;
+  top: 0;
+  bottom: 0;
+}
+.lc-kids > .lc-node:last-child::before {
+  bottom: auto;
+  height: 12px;
+}
+.lc-kids > .lc-node:last-child:has(> .lc-ctx)::before {
+  height: 11px;
+}
+
+/* "+N" more hits, under the text column. */
+.lc-plus {
+  margin: 0 0 0 22px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--lc-muted);
+  font-variant-numeric: tabular-nums;
+}
+.lc-plus:hover {
+  background: var(--lc-hover);
+  color: var(--lc-fg);
+}
+
+/* More pages. */
+.lc-chev {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 24px;
+  margin-top: 2px;
+  border-radius: 6px;
+  color: var(--lc-muted);
+}
+.lc-chev:hover {
+  background: var(--lc-hover);
+  color: var(--lc-fg);
+}
+
+/* No pages: one muted line. */
+.lc-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--lc-muted);
+}
+.lc-empty .lc-logo {
+  opacity: 0.85;
+}
+
+/* Logseq unreachable / wrong token: the message and the way to settings. */
+.lc-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--lc-muted);
+}
+.lc-card .lc-error-icon {
+  margin-top: 2px;
+  color: var(--destructive);
+}
+.lc-inline-link {
+  color: var(--primary);
+}
+.lc-inline-link:hover {
+  text-decoration: underline;
+}
+
+/* Loading: a page row and two hit lines, twice. */
+.lc-sk {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--lc-sk);
+  animation: lc-pulse 1.6s ease-in-out infinite;
+}
+@keyframes lc-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.lc-sk-group {
+  padding: 5px 0 3px;
+}
+.lc-sk-group + .lc-sk-group {
+  margin-top: 6px;
+}
+.lc-sk-row,
+.lc-sk-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+}
+.lc-sk-row {
+  height: 18px;
+}
+.lc-sk-line {
+  height: 20px;
+  padding-left: 28px;
+}
+.lc-sk-end {
+  margin-left: auto;
+}
