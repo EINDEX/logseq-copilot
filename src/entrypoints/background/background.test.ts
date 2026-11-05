@@ -350,6 +350,43 @@ describe('logseq:recall', () => {
     expect(service.recall).toHaveBeenCalledTimes(2);
   });
 
+  test('a storage change (new recall rules) makes the same request search again', async () => {
+    service.recall.mockResolvedValue({ graph: 'g', pages: [] });
+    const recall = () =>
+      sendMessage('logseq:recall', {
+        query: 'rules changed',
+        url: 'https://www.bing.com/search?q=rules+changed',
+      });
+    await recall();
+    expect(service.recall).toHaveBeenCalledTimes(1);
+
+    await fakeBrowser.storage.local.set({
+      recallRulesConfig: [
+        {
+          id: 'r1',
+          name: 'scoped',
+          enabled: true,
+          urlPattern: 'bing\\.com',
+          queryProcessing: {
+            ignoreHashFragments: false,
+            ignoreQueryParams: false,
+            excludeKeywords: [],
+            includeKeywords: [],
+            ignorePathSegments: [],
+          },
+          searchScope: { excludePages: ['Work'] },
+          resultFiltering: { maxResults: 3 },
+        },
+      ],
+    });
+    await recall();
+    expect(service.recall).toHaveBeenCalledTimes(2);
+    expect(service.recall.mock.calls[1][1]).toMatchObject({
+      searchScope: { excludePages: ['Work'] },
+      maxPages: 3,
+    });
+  });
+
   test('errors reach the sender', async () => {
     service.recall.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
     const err = await sendMessage('logseq:recall', {

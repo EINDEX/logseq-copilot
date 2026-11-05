@@ -5,10 +5,13 @@
  * Used for `logseq:recall`: Bing loads a result page, then navigates the same
  * tab again to the same results with `&rdr=1&rdrig=…` about a second later.
  * The content script runs in both documents and would search Logseq twice.
+ *
+ * `clear()` forgets every answer, in flight or done, so the next request runs
+ * again. Call it when an input of the answer changes (settings, rules).
  */
 export const recentRequests = <T>(ttlMs: number, now = () => Date.now()) => {
   const entries = new Map<string, { at: number; value: Promise<T> }>();
-  return (key: string, run: () => Promise<T>): Promise<T> => {
+  const share = (key: string, run: () => Promise<T>): Promise<T> => {
     const time = now();
     for (const [k, entry] of entries) {
       if (time - entry.at > ttlMs) entries.delete(k);
@@ -23,6 +26,7 @@ export const recentRequests = <T>(ttlMs: number, now = () => Date.now()) => {
     });
     return value;
   };
+  return Object.assign(share, { clear: () => entries.clear() });
 };
 
 /** Same query on the same results page; query string and hash ignored. */

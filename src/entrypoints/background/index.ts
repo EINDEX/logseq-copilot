@@ -100,6 +100,9 @@ export default defineBackground({
 
     // Result pages that load twice in a row (Bing) ask the same recall twice.
     const sharedRecall = recentRequests<RecallResult>(RECALL_SHARE_MS);
+    // The answer depends on the recall rules, the Logseq connection and other
+    // settings. Any storage change may alter it, so share nothing older.
+    browser.storage.onChanged.addListener(() => sharedRecall.clear());
     onMessage('logseq:recall', ({ data }) =>
       sharedRecall(recallRequestKey(data.query, data.url), async () => {
         const logseqService = await getLogseqService();
