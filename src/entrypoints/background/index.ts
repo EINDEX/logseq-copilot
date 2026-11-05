@@ -12,7 +12,6 @@ import { templates } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import { openSidebar } from '@/utils/sidebar';
-import type { LogseqBlockType } from '@/types/logseqBlock';
 import type { RecallResult } from '@/types/recall';
 import log from '@/utils/logger';
 import {
@@ -41,61 +40,6 @@ export default defineBackground({
       const searchRes = await logseqService.search(data);
       log.debug('search result', searchRes);
       return searchRes;
-    });
-
-    onMessage('logseq:hybridSearch', async ({ data }) => {
-      const logseqService = await getLogseqService();
-
-      // Apply recall rules processing
-      const recallProcessor = RecallRuleProcessor.getInstance();
-      const searchContext = await recallProcessor.processSearchContext(
-        data.url,
-      );
-
-      // Perform both URL search and query search (query search only for
-      // keywordOnly, e.g. search engine result pages, where the page URL says
-      // nothing about the content). Errors (LogseqError) are thrown and reach
-      // the sender as a readable message.
-      const urlSearchRes = data.keywordOnly
-        ? undefined
-        : await logseqService.urlSearch(
-            searchContext.processedUrl,
-            data.options,
-          );
-      const querySearchRes = await logseqService.search(data.query);
-
-      // Combine results, prioritizing URL-based results; drop duplicate blocks
-      const seenUuids = new Set<string>();
-      const blocks = [
-        ...(urlSearchRes?.response?.blocks || []),
-        ...(querySearchRes.response?.blocks || []),
-      ].filter((block: LogseqBlockType) => {
-        if (seenUuids.has(block.uuid)) return false;
-        seenUuids.add(block.uuid);
-        return true;
-      });
-      const pages = [
-        ...(urlSearchRes?.response?.pages || []),
-        ...(querySearchRes.response?.pages || []),
-      ];
-
-      // Filter results (blocks and pages) based on recall rules
-      const filteredBlocks = recallProcessor.filterResults(
-        blocks,
-        searchContext,
-      );
-      const filteredPages = recallProcessor.filterPages(pages, searchContext);
-
-      return {
-        status: (urlSearchRes ?? querySearchRes).status,
-        msg: (urlSearchRes ?? querySearchRes).msg,
-        response: {
-          blocks: filteredBlocks,
-          pages: filteredPages,
-          graph: urlSearchRes?.response?.graph || querySearchRes.response?.graph,
-        },
-        count: filteredBlocks.length + filteredPages.length,
-      };
     });
 
     // Result pages that load twice in a row (Bing) ask the same recall twice.
