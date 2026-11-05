@@ -13,7 +13,15 @@ import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import { openSidebar } from '@/utils/sidebar';
 import type { LogseqBlockType } from '@/types/logseqBlock';
+import type { RecallResult } from '@/types/recall';
 import log from '@/utils/logger';
+import {
+  recallRequestKey,
+  recentRequests,
+} from './logseq/recall/recent-requests';
+
+// Long enough to cover a result page that reloads itself (Bing: ~1.5 s).
+const RECALL_SHARE_MS = 5_000;
 
 export default defineBackground({
   // Set manifest options
@@ -90,17 +98,21 @@ export default defineBackground({
       };
     });
 
-    onMessage('logseq:recall', async ({ data }) => {
-      const logseqService = await getLogseqService();
-      const recallProcessor = RecallRuleProcessor.getInstance();
-      const searchContext = await recallProcessor.processSearchContext(
-        data.url,
-      );
-      return await logseqService.recall(
-        data.query,
-        recallProcessor.recallOptions(searchContext),
-      );
-    });
+    // Result pages that load twice in a row (Bing) ask the same recall twice.
+    const sharedRecall = recentRequests<RecallResult>(RECALL_SHARE_MS);
+    onMessage('logseq:recall', ({ data }) =>
+      sharedRecall(recallRequestKey(data.query, data.url), async () => {
+        const logseqService = await getLogseqService();
+        const recallProcessor = RecallRuleProcessor.getInstance();
+        const searchContext = await recallProcessor.processSearchContext(
+          data.url,
+        );
+        return await logseqService.recall(
+          data.query,
+          recallProcessor.recallOptions(searchContext),
+        );
+      }),
+    );
 
     onMessage('logseq:urlSearch', async ({ data }) => {
       const logseqService = await getLogseqService();
