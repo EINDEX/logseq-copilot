@@ -85,6 +85,11 @@ export const INDEXED_KEYWORDS: Record<string, number> = {
   copilot: 3,
   showcase: 10,
   bulkitem: 10,
+  // "Limit Probe": more blocks than a file graph search returns (10).
+  limitprobe: 10,
+  // Recall context: nested journal hits and a template grandchild.
+  journaldeep: 3,
+  templatedeep: 1,
 };
 
 export interface LogseqAppOptions {
@@ -287,14 +292,98 @@ async function seedBlocks(
 async function seedDbGraph(callApi: LogseqApp['callApi']) {
   // A fresh 2.x profile starts on a "Demo" graph which is already a DB graph.
   await waitFor('DB graph', async () => (await callApi('logseq.App.checkCurrentIsDbGraph')) === true);
-  const pages = fixturePages();
+  const pages = fixturePages().filter(([page]) => !DB_RECALL_PAGES.includes(page));
   for (const [page] of pages) {
     await callApi('logseq.Editor.createPage', [page, {}, { redirect: false }]);
   }
   for (const [page, blocks] of pages) {
     await seedBlocks(callApi, page, blocks);
   }
+  await seedDbRecallData(callApi);
   await waitForIndex('DB graph', callApi);
+  await waitFor('DB recall data to be indexed', async () => {
+    const result = await callApi('logseq.App.search', ['limitprobe', { limit: 50 }]);
+    return result?.blocks?.length >= LIMIT_PROBE_BLOCKS;
+  });
+}
+
+export const LIMIT_PROBE_BLOCKS = 15;
+
+/**
+ * Fixture pages that seedDbRecallData builds with DB graph structures
+ * (property values, status, tags) instead of copying them from the file graph.
+ */
+const DB_RECALL_PAGES = ['Recall Notes', 'Recall Target', 'Templates', 'Limit Probe'];
+
+/**
+ * Recall test data for the DB graph, the counterpart of the "Recall Notes",
+ * "Recall Target", "Templates", "Limit Probe" pages and the 2024-11-05
+ * journal of the file graph fixture: references, a tag, a block reference,
+ * child blocks four levels deep (two hits under a shared, text-less
+ * ancestor), a text property (its value is a block of its own), a task, a
+ * #Template block with a grandchild, journal hits nested under two
+ * top-level blocks (one below a property-only block) and more blocks than
+ * the default search limit.
+ */
+async function seedDbRecallData(callApi: LogseqApp['callApi']) {
+  const page = (name: string) =>
+    callApi('logseq.Editor.createPage', [name, {}, { redirect: false }]);
+  const append = (target: string, content: string) =>
+    callApi('logseq.Editor.appendBlockInPage', [target, content]);
+  const child = (parent: string, content: string) =>
+    callApi('logseq.Editor.insertBlock', [parent, content, { sibling: false }]);
+  const sibling = (after: string, content: string) =>
+    callApi('logseq.Editor.insertBlock', [after, content, { sibling: true }]);
+  const property = (uuid: string, key: string, value: string) =>
+    callApi('logseq.Editor.upsertBlockProperty', [uuid, key, value]);
+
+  await page('Recall Target');
+  const target = await append('Recall Target', 'Referenced target sentence for recall');
+
+  await page('Recall Notes');
+  const outline = await append(
+    'Recall Notes',
+    `Recallprobe outline about [[Another Page]] with #research and ((${target.uuid}))`,
+  );
+  const middle = await child(outline.uuid, 'Recallprobe child block under the outline');
+  const grandchild = await child(middle.uuid, 'Recallprobe grandchild detail');
+  // An ancestor with no text, only a property, above two hits: 4 levels deep.
+  const container = await child(grandchild.uuid, '');
+  await property(container.uuid, 'recallkind', 'container');
+  const alpha = await child(container.uuid, 'Deepnest leaf alpha');
+  await callApi('logseq.Editor.insertBlock', [alpha.uuid, 'Deepnest leaf beta', { sibling: true }]);
+  await property(outline.uuid, 'recallnote', 'Recallprobe property value text');
+  const done = await append('Recall Notes', 'Recallprobe review finished');
+  await property(done.uuid, 'logseq.property/status', 'Done');
+  await append(
+    'Recall Notes',
+    'Recallprobe screenshot ![shot](../assets/shot.png) and **bold** text',
+  );
+
+  await page('Templates');
+  const template = await append('Templates', 'Recallprobe meeting template #Template');
+  const agenda = await child(template.uuid, 'Recallprobe template child agenda');
+  // Two levels below the template: only the ancestor walk can drop it.
+  const section = await sibling(agenda.uuid, 'Section');
+  await child(section.uuid, 'Templatedeep grandchild notes');
+
+  const journal = await callApi('logseq.Editor.createJournalPage', ['2024-11-05']);
+  await append(journal.uuid, 'Recallprobe journal entry linking [[Recall Notes]]');
+  const homelab = await append(journal.uuid, 'Homelab');
+  const router = await child(homelab.uuid, 'Router upgrade');
+  await child(router.uuid, 'Journaldeep firmware notes');
+  const alice = await append(journal.uuid, '1:1 with Alice');
+  const career = await child(alice.uuid, 'Career goals');
+  const promotion = await child(career.uuid, 'Journaldeep promotion notes');
+  // Only a property, no text: the hit below it falls back to "Career goals".
+  const propertyOnly = await sibling(promotion.uuid, '');
+  await property(propertyOnly.uuid, 'recallkind', 'career');
+  await child(propertyOnly.uuid, 'Journaldeep raise notes');
+
+  await page('Limit Probe');
+  for (let i = 1; i <= LIMIT_PROBE_BLOCKS; i++) {
+    await append('Limit Probe', `limitprobe filler block number ${i}`);
+  }
 }
 
 /** All descendants of `pid` (Logseq 2.x runs a db worker as a child process). */
