@@ -24,6 +24,7 @@ import Popup from './Popup';
 describe('Popup', () => {
   beforeEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue({
       status: 200,
@@ -32,9 +33,12 @@ describe('Popup', () => {
   });
 
   it('searches the current tab URL as soon as the popup opens', async () => {
-    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
-      { id: 1, url: 'https://example.com/page', title: 'Example' },
-    ] as Browser.tabs.Tab[]);
+    vi.spyOn(browser.tabs, 'query').mockImplementation(
+      async () =>
+        [
+          { id: 1, url: 'https://example.com/page', title: 'Example' },
+        ] as Browser.tabs.Tab[],
+    );
 
     render(<Popup />);
 
@@ -47,9 +51,12 @@ describe('Popup', () => {
   });
 
   it('does not search for chrome:// pages', async () => {
-    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
-      { id: 1, url: 'chrome://extensions', title: 'Extensions' },
-    ] as Browser.tabs.Tab[]);
+    vi.spyOn(browser.tabs, 'query').mockImplementation(
+      async () =>
+        [
+          { id: 1, url: 'chrome://extensions', title: 'Extensions' },
+        ] as Browser.tabs.Tab[],
+    );
 
     render(<Popup />);
     await new Promise((r) => setTimeout(r, 50));
@@ -82,7 +89,9 @@ describe('Popup', () => {
       } as Browser.tabs.Tab);
 
     it('opens the sidebar of the window of the tab, then closes the popup', async () => {
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([activeTab()]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [activeTab()],
+      );
       render(<Popup />);
       await waitFor(() => expect(sidebarButton().disabled).toBe(false));
 
@@ -96,7 +105,7 @@ describe('Popup', () => {
     });
 
     it('works on pages that cannot be searched, such as the new tab page', async () => {
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [
         activeTab({ url: 'chrome://newtab/' }),
       ]);
       render(<Popup />);
@@ -109,8 +118,8 @@ describe('Popup', () => {
 
     it('cannot be used before the window is known', async () => {
       let found!: (tabs: Browser.tabs.Tab[]) => void;
-      vi.spyOn(browser.tabs, 'query').mockReturnValue(
-        new Promise((resolve) => (found = resolve)),
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        () => new Promise<Browser.tabs.Tab[]>((resolve) => (found = resolve)),
       );
       render(<Popup />);
 
@@ -123,7 +132,7 @@ describe('Popup', () => {
     });
 
     it('cannot be used when the tab has no window', async () => {
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [
         activeTab({ windowId: undefined }),
       ]);
       render(<Popup />);
@@ -139,7 +148,9 @@ describe('Popup', () => {
         'may only be called in response to a user gesture',
       );
       sidePanelOpen.mockRejectedValue(refusal);
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([activeTab()]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [activeTab()],
+      );
       render(<Popup />);
       await waitFor(() => expect(sidebarButton().disabled).toBe(false));
 
@@ -160,7 +171,9 @@ describe('Popup', () => {
       });
 
       it('opens the sidebar drawn on pages, then closes the popup', async () => {
-        vi.spyOn(browser.tabs, 'query').mockResolvedValue([activeTab()]);
+        vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [
+          activeTab(),
+        ]);
         render(<Popup />);
 
         fireEvent.click(sidebarButton());
@@ -173,7 +186,9 @@ describe('Popup', () => {
       });
 
       it('can be used before the window is known, and without one', async () => {
-        vi.spyOn(browser.tabs, 'query').mockReturnValue(new Promise(() => {}));
+        vi.spyOn(browser.tabs, 'query').mockImplementation(
+          () => new Promise(() => {}),
+        );
         render(<Popup />);
 
         expect(sidebarButton().disabled).toBe(false);
@@ -202,7 +217,9 @@ describe('Popup', () => {
 
     beforeEach(() => {
       vi.spyOn(window, 'close').mockImplementation(() => {});
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [tab] as Browser.tabs.Tab[],
+      );
     });
 
     it('shares the action row with Clip page, and nothing else', async () => {
@@ -290,7 +307,9 @@ describe('Popup', () => {
     beforeEach(() => {
       vi.spyOn(window, 'close').mockImplementation(() => {});
       vi.spyOn(log, 'error').mockImplementation(() => {});
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [tab] as Browser.tabs.Tab[],
+      );
     });
 
     it('of Clip page is shown on the action, and the popup stays open', async () => {
@@ -406,7 +425,9 @@ describe('Popup', () => {
     beforeEach(() => {
       vi.spyOn(window, 'close').mockImplementation(() => {});
       vi.spyOn(window, 'open').mockImplementation(() => null);
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [tab] as Browser.tabs.Tab[],
+      );
       sendMessage.mockImplementation((type: string) =>
         Promise.resolve(
           type === 'content:hasSelection'
@@ -467,7 +488,9 @@ describe('Popup', () => {
     };
 
     beforeEach(() => {
-      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+      vi.spyOn(browser.tabs, 'query').mockImplementation(
+        async () => [tab] as Browser.tabs.Tab[],
+      );
     });
 
     it('does not search while typing', async () => {
@@ -516,7 +539,7 @@ describe('Popup', () => {
     });
 
     it('does not search browser pages', async () => {
-      vi.mocked(browser.tabs.query).mockResolvedValue([
+      vi.mocked(browser.tabs.query).mockImplementation(async () => [
         { ...tab, url: 'chrome://newtab/' },
       ] as Browser.tabs.Tab[]);
       render(<Popup />);
