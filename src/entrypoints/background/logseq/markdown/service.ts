@@ -1,9 +1,17 @@
 import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
 import LogseqClient from './client';
-import { renderBlock } from '../tool';
+import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
 import log from '@/utils/logger';
+
+/**
+ * `logseq.App.search` of a file graph (0.10.x) returns at most 10 blocks
+ * (`search repo q {:limit 10}`, the API takes no options). When it is full,
+ * the rest comes from a full-text query, up to this many blocks in total.
+ */
+export const SEARCH_API_LIMIT = 10;
+export const MAX_SEARCH_BLOCKS = 50;
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -28,6 +36,9 @@ export default class LogseqService implements LogseqServiceInterface {
         return await this.getBlock(block['block/uuid'], graphName, query);
       }),
     );
+    if (result.blocks.length >= SEARCH_API_LIMIT) {
+      result.blocks.push(...(await this.moreBlocks(graphName, query, result.blocks)));
+    }
     result.pages = await Promise.all(
       result.pages.map(async (page: string) => {
         return await this.client.getPage({
@@ -39,6 +50,42 @@ export default class LogseqService implements LogseqServiceInterface {
     result.count = result.blocks.length + result.pages.length;
     result.graph = graphName;
     return result;
+  }
+
+  /**
+   * Blocks containing `query` beyond the search API limit: a simple query
+   * (`logseq.DB.q "text"`) answers with whole blocks, so only their page
+   * names are missing. Failures keep the search API results.
+   */
+  private async moreBlocks(
+    graphName: string,
+    query: string,
+    found: LogseqBlockType[],
+  ): Promise<LogseqBlockType[]> {
+    let hits: any[];
+    try {
+      hits = await this.client.find(query);
+    } catch (e) {
+      log.warn('[search] full-text query failed', e);
+      return [];
+    }
+    if (!Array.isArray(hits)) return [];
+    const seen = new Set(found.map((block) => block.uuid));
+    const extra = hits
+      .filter((block) => block?.uuid && !seen.has(block.uuid) && block.content)
+      .slice(0, Math.max(0, MAX_SEARCH_BLOCKS - found.length));
+    return Promise.all(
+      extra.map((block) => this.prepareBlock(block, graphName, query)),
+    );
+  }
+
+  /** Page name, block ref texts and HTML of a block read from the API. */
+  private async prepareBlock(block: any, graph: string, query?: string) {
+    if (!block.page?.name) {
+      block.page = await this.client.getPage(block.page);
+    }
+    await resolveBlockRefs(block, (uuid) => this.client.getBlockViaUuid(uuid));
+    return renderBlock(block, graph, query);
   }
 
   public async search(query: string) {
@@ -62,6 +109,7 @@ export default class LogseqService implements LogseqServiceInterface {
       includeChildren,
     });
     block.page = await this.client.getPage(block.page);
+    await resolveBlockRefs(block, (uuid) => this.client.getBlockViaUuid(uuid));
     return renderBlock(block, graph, query);
   }
 

@@ -27,13 +27,64 @@ export const FIXTURE_GRAPH = path.resolve(
 );
 export const TEST_PAGE = 'Copilot Test Page';
 export const OTHER_PAGE = 'Another Page';
-const DB_SEED: Record<string, string[]> = {
-  [TEST_PAGE]: [
-    'Hello from copilot integration test',
-    'TODO check copilot marker',
-    'Reading notes from https://example.com/copilot/article',
-  ],
-  [OTHER_PAGE]: ['another page mentioning copilot'],
+
+/** One block of a fixture page: text, optional fixed uuid (`id::`), children. */
+export interface OutlineBlock {
+  content: string;
+  id?: string;
+  children: OutlineBlock[];
+}
+
+/**
+ * Parse a Logseq markdown page of the fixture graph: `- ` starts a block,
+ * tabs nest it, lines indented by two more spaces continue it. An `id::`
+ * line becomes the block uuid (the DB graph gets it as `customUUID`).
+ */
+export function parseOutline(markdown: string): OutlineBlock[] {
+  const roots: OutlineBlock[] = [];
+  const stack: { depth: number; block: OutlineBlock }[] = [];
+  let current: OutlineBlock | undefined;
+  for (const line of markdown.split('\n')) {
+    const start = line.match(/^(\t*)- (.*)$/);
+    if (start) {
+      const depth = start[1].length;
+      const block: OutlineBlock = { content: start[2], children: [] };
+      while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
+      (stack.length ? stack[stack.length - 1].block.children : roots).push(block);
+      stack.push({ depth, block });
+      current = block;
+      continue;
+    }
+    const more = line.match(/^\t*  (.*)$/);
+    if (more && current) {
+      const id = more[1].match(/^id:: ([0-9a-f-]{36})$/);
+      if (id) current.id = id[1];
+      else current.content += `\n${more[1]}`;
+    }
+  }
+  return roots;
+}
+
+/** Pages of the fixture graph, in file name order: page name -> blocks. */
+export function fixturePages(): [string, OutlineBlock[]][] {
+  const dir = path.join(FIXTURE_GRAPH, 'pages');
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.md'))
+    .sort()
+    .map((f) => [f.slice(0, -3), parseOutline(fs.readFileSync(path.join(dir, f), 'utf8'))]);
+}
+
+/**
+ * Search keywords of the fixture data and how many block hits each needs
+ * before the graph counts as indexed. `showcase`: rich content (long text,
+ * code, table, image, references, properties, nesting, CJK); `bulkitem`: more
+ * results than the sidebar shows at first.
+ */
+export const INDEXED_KEYWORDS: Record<string, number> = {
+  copilot: 3,
+  showcase: 10,
+  bulkitem: 10,
 };
 
 export interface LogseqAppOptions {
@@ -169,25 +220,81 @@ async function loadFileGraph(win: Page, home: string, callApi: LogseqApp['callAp
     // macOS resolves the tmp dir through /private.
     return graph?.path && fs.realpathSync(graph.path) === fs.realpathSync(graphDir);
   });
-  await waitFor('file graph to be indexed', async () => {
-    const result = await callApi('logseq.App.search', ['copilot']);
-    return result?.blocks?.length >= 3;
-  });
+  await waitForIndex('file graph', callApi);
+}
+
+async function waitForIndex(label: string, callApi: LogseqApp['callApi']) {
+  for (const [keyword, count] of Object.entries(INDEXED_KEYWORDS)) {
+    await waitFor(`${label} to be indexed (${keyword})`, async () => {
+      const result = await callApi('logseq.App.search', [keyword]);
+      return result?.blocks?.length >= count;
+    });
+  }
+}
+
+/** Create `blocks` below `parent` (a page name for the top level). */
+/** DB graphs keep the task state in the status property, not a prefix. */
+const DB_STATUS: Record<string, string> = { TODO: 'Todo', DOING: 'Doing', DONE: 'Done', CANCELED: 'Canceled' };
+
+async function seedBlocks(
+  callApi: LogseqApp['callApi'],
+  page: string,
+  blocks: OutlineBlock[],
+  parent?: string,
+) {
+  let previous: string | undefined;
+  for (const block of blocks) {
+    const opts = block.id ? { customUUID: block.id } : {};
+    const marker = block.content.match(/^(TODO|DOING|DONE|CANCELED) /);
+    // `tags:: A, B` becomes class tags on the block (not inline in the title).
+    const tags: string[] = [];
+    const text = block.content
+      .split('\n')
+      .filter((line) => {
+        const match = line.match(/^tags:: (.+)$/);
+        if (match) tags.push(...match[1].split(',').map((t) => t.trim()));
+        return !match;
+      })
+      .join('\n');
+    const content = marker ? text.slice(marker[0].length) : text;
+    const created = parent
+      ? await callApi('logseq.Editor.insertBlock', [
+          previous ?? parent,
+          content,
+          { ...opts, sibling: !!previous },
+        ])
+      : await callApi('logseq.Editor.appendBlockInPage', [page, content, opts]);
+    if (!created?.uuid) throw new Error(`could not create block on ${page}: ${JSON.stringify(created)}`);
+    if (marker) {
+      await callApi('logseq.Editor.upsertBlockProperty', [
+        created.uuid,
+        'logseq.property/status',
+        DB_STATUS[marker[1]],
+      ]);
+    }
+    previous = created.uuid;
+    for (const name of tags) {
+      const tag =
+        (await callApi('logseq.Editor.getTag', [name])) ??
+        (await callApi('logseq.Editor.createTag', [name]));
+      if (!tag?.uuid) throw new Error(`could not create tag ${name}: ${JSON.stringify(tag)}`);
+      await callApi('logseq.Editor.addBlockTag', [created.uuid, tag.uuid]);
+    }
+    await seedBlocks(callApi, page, block.children, created.uuid);
+  }
 }
 
 async function seedDbGraph(callApi: LogseqApp['callApi']) {
   // A fresh 2.x profile starts on a "Demo" graph which is already a DB graph.
   await waitFor('DB graph', async () => (await callApi('logseq.App.checkCurrentIsDbGraph')) === true);
-  for (const [page, blocks] of Object.entries(DB_SEED)) {
+  const pages = fixturePages();
+  for (const [page] of pages) {
     await callApi('logseq.Editor.createPage', [page, {}, { redirect: false }]);
-    for (const content of blocks) {
-      await callApi('logseq.Editor.appendBlockInPage', [page, content]);
-    }
   }
-  await waitFor('DB graph to be indexed', async () => {
-    const result = await callApi('logseq.App.search', ['copilot']);
-    return result?.blocks?.length >= 3;
-  });
+  for (const [page, blocks] of pages) {
+    await seedBlocks(callApi, page, blocks);
+  }
+  await waitForIndex('DB graph', callApi);
 }
 
 /** All descendants of `pid` (Logseq 2.x runs a db worker as a child process). */

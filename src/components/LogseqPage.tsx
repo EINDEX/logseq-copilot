@@ -2,6 +2,7 @@ import React from 'react';
 import { LogseqPageIdenity } from '@/types/logseqBlock';
 import { IconFile } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
+import './logseq-results.css';
 
 type LogseqPageLinkProps = {
   page: LogseqPageIdenity;
@@ -10,6 +11,10 @@ type LogseqPageLinkProps = {
   className?: string;
 };
 
+export const pageUrl = (graph: string, name: string) =>
+  `logseq://graph/${encodeURIComponent(graph)}?page=${encodeURIComponent(name)}`;
+
+/** A page title row that opens the page in Logseq (styles: logseq-results.css). */
 const LogseqPageLink = ({
   page,
   graph,
@@ -21,14 +26,11 @@ const LogseqPageLink = ({
 
   return (
     <a
-      href={`logseq://graph/${graph}?page=${page?.name}`}
-      className={cn(
-        "flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors no-underline hover:underline",
-        className
-      )}
+      href={pageUrl(graph, page.name)}
+      className={cn('lc-page-title', className)}
     >
-      <IconFile className="h-3 w-3 text-muted-foreground" />
-      <span className="truncate">
+      <IconFile aria-hidden />
+      <span className="lc-page-name">
         {page?.originalName || page?.name}
       </span>
     </a>

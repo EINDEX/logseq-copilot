@@ -1,0 +1,14 @@
+- bulkitem 1: reading list entry about note taking, linking and spaced review
+- bulkitem 2: reading list entry about note taking, linking and spaced review
+- bulkitem 3: reading list entry about note taking, linking and spaced review
+- bulkitem 4: reading list entry about note taking, linking and spaced review
+- bulkitem 5: reading list entry about note taking, linking and spaced review
+- bulkitem 6: reading list entry about note taking, linking and spaced review
+- bulkitem 7: reading list entry about note taking, linking and spaced review
+- bulkitem 8: reading list entry about note taking, linking and spaced review
+- bulkitem 9: reading list entry about note taking, linking and spaced review
+- bulkitem 10: reading list entry about note taking, linking and spaced review
+- bulkitem 11: reading list entry about note taking, linking and spaced review
+- bulkitem 12: reading list entry about note taking, linking and spaced review
+- bulkitem 13: reading list entry about note taking, linking and spaced review
+- bulkitem 14: reading list entry about note taking, linking and spaced review

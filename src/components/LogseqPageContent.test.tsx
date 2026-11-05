@@ -114,7 +114,7 @@ describe('LogseqPageContent Component', () => {
         render(<LogseqPageContent graph="different-graph" pageContent={defaultProps.pageContent} />);
 
         const link = screen.getByRole('link');
-        expect(link.getAttribute('href')).toBe('logseq://graph/different-graph?page=Test Page');
+        expect(link.getAttribute('href')).toBe('logseq://graph/different-graph?page=Test%20Page');
     });
 
     it('should render with isPopUp prop', () => {
@@ -189,7 +189,7 @@ describe('LogseqPageContent Component', () => {
 
             expect(screen.getByText('Original Different Page')).toBeTruthy();
             const link = screen.getByRole('link');
-            expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Different Page');
+            expect(link.getAttribute('href')).toBe('logseq://graph/test-graph?page=Different%20Page');
         });
 
         it('should handle page without originalName', () => {
