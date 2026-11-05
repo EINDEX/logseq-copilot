@@ -26,6 +26,20 @@ describe('recentRequests', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  test('clear() forgets answers, done or in flight', async () => {
+    const shared = recentRequests<number>(5_000);
+    const run = vi.fn(async () => 1);
+    await shared('k', run);
+    shared.clear();
+    await shared('k', run);
+    expect(run).toHaveBeenCalledTimes(2);
+
+    void shared('p', () => new Promise<number>(() => {})); // never settles
+    shared.clear();
+    expect(await shared('p', async () => 2)).toBe(2);
+    expect(await shared('p', run)).toBe(2);
+  });
+
   test('other keys run on their own; failures are not kept', async () => {
     const shared = recentRequests<number>(5_000);
     const fail = vi.fn(async () => {
