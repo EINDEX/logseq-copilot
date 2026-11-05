@@ -90,6 +90,18 @@ export default defineBackground({
       };
     });
 
+    onMessage('logseq:recall', async ({ data }) => {
+      const logseqService = await getLogseqService();
+      const recallProcessor = RecallRuleProcessor.getInstance();
+      const searchContext = await recallProcessor.processSearchContext(
+        data.url,
+      );
+      return await logseqService.recall(
+        data.query,
+        recallProcessor.recallOptions(searchContext),
+      );
+    });
+
     onMessage('logseq:urlSearch', async ({ data }) => {
       const logseqService = await getLogseqService();
 

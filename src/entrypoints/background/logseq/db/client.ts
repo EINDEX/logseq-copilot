@@ -74,8 +74,15 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
       : resp;
   };
 
-  public search = async (query: string): Promise<LogseqSearchResponse> => {
-    const resp = await this.baseJson('logseq.App.search', [query]);
+  /** `opts.limit`: max hits (Logseq 2.x honours it). */
+  public search = async (
+    query: string,
+    opts?: { limit?: number },
+  ): Promise<LogseqSearchResponse> => {
+    const resp = await this.baseJson(
+      'logseq.App.search',
+      opts ? [query, opts] : [query],
+    );
     if (resp.error) {
       throw new LogseqError(LogseqVersionIsLower);
     }

@@ -4,6 +4,9 @@ import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
 import log from '@/utils/logger';
+import type { RecallResult } from '@/types/recall';
+import { recall, type RecallOptions } from '../recall/recall';
+import { FileRecallSource } from '../recall/file-source';
 
 /**
  * `logseq.App.search` of a file graph (0.10.x) returns at most 10 blocks
@@ -159,6 +162,17 @@ export default class LogseqService implements LogseqServiceInterface {
       },
       count: count,
     };
+  }
+
+  public async recall(
+    query: string,
+    options?: RecallOptions,
+  ): Promise<RecallResult> {
+    return recall(
+      new FileRecallSource(this.client, () => this.getGraph()),
+      query,
+      options,
+    );
   }
 
   public async changeBlockMarker(

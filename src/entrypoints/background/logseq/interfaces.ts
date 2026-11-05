@@ -1,4 +1,6 @@
 import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
+import type { RecallResult } from '@/types/recall';
+import type { RecallOptions } from './recall/recall';
 
 export interface LogseqClientInterface {
   getGraph(): any;
@@ -30,4 +32,6 @@ export interface LogseqServiceInterface {
     uuid: string,
     marker: string,
   ): Promise<ChangeBlockMarkerResult>;
+  /** Pages mentioning a search engine query, see recall/recall.ts. */
+  recall(query: string, options?: RecallOptions): Promise<RecallResult>;
 }

@@ -8,9 +8,12 @@ import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
+import type { RecallResult } from '@/types/recall';
+import { recall, type RecallOptions } from '../recall/recall';
+import { DBRecallSource } from '../recall/db-source';
+import { getBlockMarker } from './status';
 
-const STATUS_PROPERTY = ':logseq.property/status';
-const STATUS_IDENT_PREFIX = `${STATUS_PROPERTY}.`;
+export { getBlockMarker };
 
 // Marker -> title of the built-in status choice (Backlog, Todo, Doing,
 // In Review, Done, Canceled). Logseq clears the property for unknown titles,
@@ -21,18 +24,6 @@ const STATUS_TITLE_BY_MARKER: Record<string, string> = {
   DONE: 'Done',
   CANCELED: 'Canceled',
   CANCELLED: 'Canceled',
-};
-
-/**
- * DB graphs keep the task state in the `logseq.property/status` property, e.g.
- * `{ ident: ':logseq.property/status.todo', title: 'Todo' }`, not as a text
- * prefix. Returns the equivalent file-graph style marker (TODO, DONE, ...).
- */
-export const getBlockMarker = (block: any): string => {
-  const ident = block?.[STATUS_PROPERTY]?.ident;
-  return typeof ident === 'string' && ident.startsWith(STATUS_IDENT_PREFIX)
-    ? ident.slice(STATUS_IDENT_PREFIX.length).toUpperCase()
-    : '';
 };
 
 // Logseq 2.0.x returns `uuid`; older builds nested it as `block/uuid: {uuid}`.
@@ -292,6 +283,17 @@ export default class LogseqDBService implements LogseqServiceInterface {
       },
       count: count,
     };
+  }
+
+  public async recall(
+    query: string,
+    options?: RecallOptions,
+  ): Promise<RecallResult> {
+    return recall(
+      new DBRecallSource(this.client, () => this.getGraph()),
+      query,
+      options,
+    );
   }
 
   public async changeBlockMarker(
