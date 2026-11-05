@@ -41,7 +41,7 @@ const activate = (tabId: number, windowId = WINDOW_ID) =>
   });
 
 const update = (
-  changeInfo: Browser.tabs.TabChangeInfo,
+  changeInfo: Browser.tabs.OnUpdatedInfo,
   tab: Browser.tabs.Tab,
 ) =>
   act(async () => {
@@ -72,10 +72,15 @@ describe('useActiveTab', () => {
       2: makeTab({ id: 2, title: 'Page two', url: 'https://two.example/' }),
       3: makeTab({ id: 3, title: 'Page three', url: 'https://three.example/' }),
     };
-    vi.spyOn(browser.windows, 'getCurrent').mockResolvedValue({
-      id: WINDOW_ID,
-    } as Browser.windows.Window);
-    query = vi.spyOn(browser.tabs, 'query').mockResolvedValue([tabs[1]]);
+    vi.spyOn(browser.windows, 'getCurrent').mockImplementation(
+      async () =>
+        ({
+          id: WINDOW_ID,
+        } as Browser.windows.Window),
+    );
+    query = vi
+      .spyOn(browser.tabs, 'query')
+      .mockImplementation(async () => [tabs[1]]);
     get = vi
       .spyOn(browser.tabs, 'get')
       .mockImplementation(async (tabId: number) => tabs[tabId]);
@@ -187,7 +192,7 @@ describe('useActiveTab', () => {
     ['a page with no url (no host permission)', undefined],
   ])('has no url for %s', async (_name, url) => {
     tabs[1] = makeTab({ url });
-    query.mockResolvedValue([tabs[1]]);
+    query.mockImplementation(async () => [tabs[1]]);
 
     const { result } = await mount();
 
@@ -231,7 +236,7 @@ describe('useActiveTab', () => {
   });
 
   it('has no tab when the window has no active tab', async () => {
-    query.mockResolvedValue([]);
+    query.mockImplementation(async () => []);
 
     const { result } = await mount();
 
@@ -239,15 +244,15 @@ describe('useActiveTab', () => {
   });
 
   it('copes with a window it cannot read', async () => {
-    vi.mocked(browser.windows.getCurrent).mockResolvedValue(
-      undefined as unknown as Browser.windows.Window,
+    vi.mocked(browser.windows.getCurrent).mockImplementation(
+      async () => undefined as unknown as Browser.windows.Window,
     );
 
     const { result } = await mount();
 
     expect(result.current).toEqual({ tab: null, loading: false });
     expect(query).not.toHaveBeenCalled();
-    expect(fakeBrowser.tabs.onActivated.hasListeners()).toBe(false);
+    expect(browser.tabs.onActivated.hasListeners()).toBe(false);
   });
 
   it('stops loading when the browser fails to read', async () => {
@@ -297,10 +302,10 @@ describe('useActiveTab', () => {
 
   it('does not let the first read overwrite a newer update', async () => {
     const first = deferred<Browser.tabs.Tab[]>();
-    query.mockReturnValue(first.promise);
+    query.mockImplementation(() => first.promise);
     const { result } = renderHook(() => useActiveTab());
     await waitFor(() =>
-      expect(fakeBrowser.tabs.onUpdated.hasListeners()).toBe(true),
+      expect(browser.tabs.onUpdated.hasListeners()).toBe(true),
     );
 
     await update(
@@ -318,14 +323,14 @@ describe('useActiveTab', () => {
 
   it('removes its listeners when it unmounts', async () => {
     const { result, unmount } = await mount();
-    expect(fakeBrowser.tabs.onActivated.hasListeners()).toBe(true);
-    expect(fakeBrowser.tabs.onUpdated.hasListeners()).toBe(true);
+    expect(browser.tabs.onActivated.hasListeners()).toBe(true);
+    expect(browser.tabs.onUpdated.hasListeners()).toBe(true);
     const before = result.current;
 
     unmount();
 
-    expect(fakeBrowser.tabs.onActivated.hasListeners()).toBe(false);
-    expect(fakeBrowser.tabs.onUpdated.hasListeners()).toBe(false);
+    expect(browser.tabs.onActivated.hasListeners()).toBe(false);
+    expect(browser.tabs.onUpdated.hasListeners()).toBe(false);
     // Late events do nothing.
     await activate(2);
     expect(get).not.toHaveBeenCalled();
@@ -334,7 +339,9 @@ describe('useActiveTab', () => {
 
   it('adds no listeners when it unmounts before the window is known', async () => {
     const windowRead = deferred<Browser.windows.Window>();
-    vi.mocked(browser.windows.getCurrent).mockReturnValue(windowRead.promise);
+    vi.mocked(browser.windows.getCurrent).mockImplementation(
+      () => windowRead.promise,
+    );
     const { unmount } = renderHook(() => useActiveTab());
 
     unmount();
@@ -342,8 +349,8 @@ describe('useActiveTab', () => {
       windowRead.resolve({ id: WINDOW_ID } as Browser.windows.Window);
     });
 
-    expect(fakeBrowser.tabs.onActivated.hasListeners()).toBe(false);
-    expect(fakeBrowser.tabs.onUpdated.hasListeners()).toBe(false);
+    expect(browser.tabs.onActivated.hasListeners()).toBe(false);
+    expect(browser.tabs.onUpdated.hasListeners()).toBe(false);
     expect(query).not.toHaveBeenCalled();
   });
 
@@ -354,7 +361,7 @@ describe('useActiveTab', () => {
       title: 'Changed meanwhile',
       url: 'https://one.example/changed',
     });
-    query.mockResolvedValue([tabs[1]]);
+    query.mockImplementation(async () => [tabs[1]]);
 
     const second = await mount();
 

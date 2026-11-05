@@ -64,7 +64,8 @@ const seed = (items: HighlightData[]) =>
   fakeBrowser.storage.local.set({ highlights: items });
 
 const stored = async (): Promise<HighlightData[]> =>
-  (await fakeBrowser.storage.local.get('highlights')).highlights ?? [];
+  ((await fakeBrowser.storage.local.get('highlights')).highlights ??
+    []) as HighlightData[];
 
 const changeStorage = (items: HighlightData[]) =>
   act(async () => {
@@ -107,10 +108,15 @@ describe('sidepanel App', () => {
         url: 'https://two.example/article',
       }),
     };
-    vi.spyOn(browser.windows, 'getCurrent').mockResolvedValue({
-      id: WINDOW_ID,
-    } as Browser.windows.Window);
-    query = vi.spyOn(browser.tabs, 'query').mockResolvedValue([tabs[1]]);
+    vi.spyOn(browser.windows, 'getCurrent').mockImplementation(
+      async () =>
+        ({
+          id: WINDOW_ID,
+        } as Browser.windows.Window),
+    );
+    query = vi
+      .spyOn(browser.tabs, 'query')
+      .mockImplementation(async () => [tabs[1]]);
     vi.spyOn(browser.tabs, 'get').mockImplementation(
       async (tabId: number) => tabs[tabId],
     );
@@ -156,7 +162,7 @@ describe('sidepanel App', () => {
 
     it('shows the domain when the tab has no title', async () => {
       tabs[1] = makeTab({ title: '' });
-      query.mockResolvedValue([tabs[1]]);
+      query.mockImplementation(async () => [tabs[1]]);
 
       render(<App />);
 
@@ -165,7 +171,7 @@ describe('sidepanel App', () => {
 
     it('says so while the tab and its highlights are being read', async () => {
       const reading = deferred<Browser.tabs.Tab[]>();
-      query.mockReturnValue(reading.promise);
+      query.mockImplementation(() => reading.promise);
       await seed([highlight('a')]);
 
       render(<App />);
@@ -191,7 +197,7 @@ describe('sidepanel App', () => {
 
     it('says highlights are not available on a page that cannot have them', async () => {
       tabs[1] = makeTab({ url: 'chrome://extensions', title: 'Extensions' });
-      query.mockResolvedValue([tabs[1]]);
+      query.mockImplementation(async () => [tabs[1]]);
       await seed([highlight('a', { url: 'chrome://extensions' })]);
 
       render(<App />);
@@ -205,7 +211,7 @@ describe('sidepanel App', () => {
     });
 
     it('says highlights are not available when there is no tab', async () => {
-      query.mockResolvedValue([]);
+      query.mockImplementation(async () => []);
 
       render(<App />);
 

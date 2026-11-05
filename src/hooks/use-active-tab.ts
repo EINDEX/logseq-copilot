@@ -89,14 +89,14 @@ export function useActiveTab(): ActiveTabState {
         return;
       }
 
-      const onActivated = (info: Browser.tabs.TabActiveInfo) => {
+      const onActivated = (info: Browser.tabs.OnActivatedInfo) => {
         if (info.windowId !== windowId) return;
         // The event has no url or title.
         read(browser.tabs.get(info.tabId));
       };
       const onUpdated = (
         _tabId: number,
-        changeInfo: Browser.tabs.TabChangeInfo,
+        changeInfo: Browser.tabs.OnUpdatedInfo,
         tab: Browser.tabs.Tab,
       ) => {
         if (tab.windowId !== windowId || !tab.active) return;

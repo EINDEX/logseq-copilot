@@ -43,6 +43,7 @@ const seed = (items: HighlightData[]) =>
 
 beforeEach(() => {
   fakeBrowser.reset();
+  vi.restoreAllMocks();
   document.body.innerHTML = '';
 });
 

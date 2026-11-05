@@ -32,7 +32,8 @@ const seed = (items: HighlightData[]) =>
   fakeBrowser.storage.local.set({ highlights: items });
 
 const stored = async (): Promise<HighlightData[]> =>
-  (await fakeBrowser.storage.local.get('highlights')).highlights ?? [];
+  ((await fakeBrowser.storage.local.get('highlights')).highlights ??
+    []) as HighlightData[];
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;

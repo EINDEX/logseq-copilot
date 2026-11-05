@@ -54,12 +54,12 @@
     "clsx": "^2.1.1",
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.1",
-    "liquidjs": "^10.21.1",
+    "liquidjs": "^10.30.1",
     "lucide-react": "^0.511.0",
     "marked": "^4.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.6.2",
+    "react-router-dom": "^7.18.5",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.0",
@@ -73,23 +73,24 @@
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/marked": "^4.3.2",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/turndown": "^5.0.5",
-    "@vitest/coverage-v8": "^3.2.7",
+    "@vitest/coverage-v8": "^4.1.12",
     "@wxt-dev/module-react": "^1.1.3",
     "archiver": "^5.3.2",
     "autoprefixer": "^10.4.21",
-    "axios": "^1.10.0",
+    "axios": "^1.21.0",
     "css-loader": "^6.11.0",
     "file-loader": "^6.2.0",
     "fs-extra": "^11.3.0",
-    "happy-dom": "^21.0.3",
+    "happy-dom": "^21.0.4",
     "html-loader": "^4.2.0",
     "husky": "^8.0.3",
     "mockzilla": "^0.14.0",
     "playwright-core": "^1.64.1",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.32",
     "prettier": "^2.8.8",
     "react-refresh": "^0.14.2",
     "react-refresh-typescript": "^2.0.10",
@@ -101,11 +102,16 @@
     "ts-loader": "^9.5.2",
     "type-fest": "^3.13.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.12",
     "web-ext": "^10.8.0",
-    "wxt": "^0.20.7"
+    "wxt": "^0.20.27"
   },
   "pnpm": {
-    "overrides": {}
+    "overrides": {
+      "firefox-profile@<4.7.1": "^4.7.1",
+      "postcss-selector-parser@<6.1.5": "^6.1.5",
+      "shell-quote@<1.9.0": "^1.9.0",
+      "tmp@<0.2.6": "^0.2.6"
+    }
   }
 }
