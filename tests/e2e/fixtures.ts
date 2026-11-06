@@ -160,6 +160,11 @@ export interface Extension {
 
 type Fixtures = {
   extensionBuild: ExtensionBuild;
+  /**
+   * Serve the fixture sites (pages.ts) and abort every other request. Only
+   * the live site check (tests/e2e/live) turns this off.
+   */
+  fixtureSites: boolean;
   context: BrowserContext;
   page: Page;
   ext: Extension;
@@ -433,12 +438,13 @@ async function closeExtensionTabs(context: BrowserContext) {
 
 export const test = base.extend<Fixtures>({
   extensionBuild: ['e2e', { option: true }],
+  fixtureSites: [true, { option: true }],
 
   articles: async ({}, use) => {
     await use(new Map());
   },
 
-  context: async ({ browserName, extensionBuild, articles }, use, testInfo) => {
+  context: async ({ browserName, extensionBuild, fixtureSites, articles }, use, testInfo) => {
     if (browserName !== 'chromium' && browserName !== 'firefox') {
       throw new Error(`no E2E support for ${browserName}`);
     }
@@ -455,7 +461,7 @@ export const test = base.extend<Fixtures>({
     // Fail a stuck action quickly instead of at the test timeout.
     context.setDefaultTimeout(15_000);
     await context.tracing.start({ screenshots: true, snapshots: true });
-    await routeFixtureSites(context, articles);
+    if (fixtureSites) await routeFixtureSites(context, articles);
     if ('port' in launched) {
       await installFirefoxAddon(context, launched.port, extensionPath).catch(async (e) => {
         await withTimeout(context.close(), 15_000);
