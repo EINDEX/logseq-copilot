@@ -123,6 +123,7 @@ export default defineContentScript({
       const query = searchEngine.getQuery();
       if (query) {
         log.debug(`match ${typeof searchEngine}, query ${query}`);
+        await searchEngine.whenReady();
         const container = searchEngine.gotElement();
         if (!container) {
           log.warn('Failed to get container element for search engine');

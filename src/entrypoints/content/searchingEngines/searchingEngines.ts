@@ -37,6 +37,27 @@ const BRAVE_SIDE_WIDTH = 400;
 const BRAVE_SIDE_GAP = 48;
 /** Brave's results and infobox start this far below the top of the columns. */
 const BRAVE_TOP_GAP = 24;
+/**
+ * How long the card waits for Brave to hydrate the page. On CI, Svelte
+ * replaced the page 0.4 s after a card that did not wait was mounted.
+ */
+const BRAVE_HYDRATION_TIMEOUT = 3_000;
+
+/** Resolves when the element with `id` is on the page, or after `timeout` ms. */
+const waitForElement = (id: string, timeout: number) =>
+  new Promise<void>((resolve) => {
+    if (document.getElementById(id)) return resolve();
+    const done = () => {
+      observer.disconnect();
+      clearTimeout(timer);
+      resolve();
+    };
+    const observer = new MutationObserver(() => {
+      if (document.getElementById(id)) done();
+    });
+    const timer = setTimeout(done, timeout);
+    observer.observe(document, { childList: true, subtree: true });
+  });
 
 class CustomSearchEngine extends SearchingEngine {
   private config: {
@@ -159,6 +180,22 @@ class CustomSearchEngine extends SearchingEngine {
     const searchUrl = new URL(window.location.href);
     const query = searchUrl.searchParams.get('q');
     return query;
+  }
+
+  /**
+   * Resolves when the page is ready for the card. Brave Search is a
+   * SvelteKit app that hydrates the server-rendered page after load; a card
+   * already in it makes hydration fail (svelte.dev/e/hydration_mismatch),
+   * and Svelte then throws the page away, card included, and renders it
+   * again. SvelteKit adds #svelte-announcer once its root component has
+   * mounted, so hydration is over then. Waits BRAVE_HYDRATION_TIMEOUT at
+   * most; a card the page takes out is put back anyway (keep-on-page.ts).
+   */
+  whenReady(): Promise<void> {
+    if (this.config.id === 'brave') {
+      return waitForElement('svelte-announcer', BRAVE_HYDRATION_TIMEOUT);
+    }
+    return Promise.resolve();
   }
 
   gotElement({ quiet = false }: GotElementOptions = {}): Element | null {

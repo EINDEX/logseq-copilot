@@ -323,6 +323,9 @@ export function duckDuckGoResultsHtml(query: string) {
  * first into `#mixed-side`, or first into `#mixed-main` when the window has
  * no room for the column. Brave sets `html.dark` / `html.light` for a theme
  * picked in its settings.
+ *
+ * Brave is a SvelteKit app: SvelteKit adds `#svelte-announcer` once it has
+ * hydrated the server-rendered page, here 400 ms after DOMContentLoaded.
  * `rerender`: the page renders `#main` again after load (rerenderScript).
  */
 export function braveResultsHtml(query: string, rerender = false) {
@@ -381,6 +384,14 @@ export function braveResultsHtml(query: string, rerender = false) {
       </div>
     </main>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+      const announcer = document.createElement('div');
+      announcer.id = 'svelte-announcer';
+      announcer.setAttribute('aria-live', 'assertive');
+      document.body.append(announcer);
+    }, 400));
+  </script>
   ${rerender ? rerenderScript('#main') : ''}
 </body>
 </html>`;

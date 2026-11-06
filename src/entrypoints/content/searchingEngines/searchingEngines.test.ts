@@ -175,6 +175,57 @@ describe('Brave Search', () => {
     ).toBe(false);
   });
 
+  describe('waits for hydration', () => {
+    const hydrated = () => {
+      const announcer = document.createElement('div');
+      announcer.id = 'svelte-announcer';
+      document.body.append(announcer);
+    };
+    const settled = async (ready: Promise<void>) => {
+      let done = false;
+      void ready.then(() => (done = true));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return done;
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    test('until SvelteKit adds #svelte-announcer', async () => {
+      document.body.innerHTML = '<div id="main"></div>';
+      const ready = engineAt('https://search.brave.com/search?q=logseq').whenReady();
+
+      expect(await settled(ready)).toBe(false);
+      hydrated();
+      expect(await settled(ready)).toBe(true);
+    });
+
+    test('not when the page is hydrated already', async () => {
+      document.body.innerHTML = '<div id="main"></div>';
+      hydrated();
+      expect(await settled(engineAt('https://search.brave.com/search?q=logseq').whenReady())).toBe(true);
+    });
+
+    test('3 s at most', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      document.body.innerHTML = '<div id="main"></div>';
+      let done = false;
+      void engineAt('https://search.brave.com/search?q=logseq').whenReady().then(() => (done = true));
+
+      await vi.advanceTimersByTimeAsync(2_900);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(done).toBe(true);
+    });
+
+    test('only on Brave', async () => {
+      document.body.innerHTML = '<div class="right-content-box"></div>';
+      setURL('https://kagi.com/search?q=logseq');
+      expect(await settled(new CustomSearchEngine(kagiConfig).whenReady())).toBe(true);
+    });
+  });
+
   describe('mount point', () => {
     // The real layout: the results (#mixed-main, 672px) and the right column
     // (#mixed-side, 400px, 48px gap), here with Brave's infobox in it.
