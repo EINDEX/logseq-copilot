@@ -138,7 +138,8 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
 
 /**
  * The built-in search engines: the default config, and what upgrades add to
- * a saved config that lacks one of them (src/utils/migration.ts).
+ * a saved config that lacks one of them or holds an older definition of one
+ * (src/utils/migration.ts).
  */
 export const BUILT_IN_SEARCH_ENGINES: SearchEngineConfig[] = [
   {
@@ -246,7 +247,8 @@ export const BUILT_IN_SEARCH_ENGINES: SearchEngineConfig[] = [
     isCustom: false,
     urlPattern: 'startpage\\.com$',
     querySelector: '#q',
-    elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
+    // The right column, next to the results (section#main).
+    elementSelector: 'section#sidebar',
     insertPosition: 'first',
   },
   {

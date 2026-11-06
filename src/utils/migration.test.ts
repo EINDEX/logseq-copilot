@@ -110,3 +110,93 @@ describe('SearchEngineConfigMigration.addMissingBuiltInEngines', () => {
     expect(config.find((e) => e.id === 'brave')).toEqual(byId('brave'));
   });
 });
+
+describe('SearchEngineConfigMigration.refreshBuiltInEngines', () => {
+  const OLD_STARTPAGE = 'div.layout-web__sidebar.layout-web__sidebar--web';
+
+  /** A config saved by a version with Startpage's old selector: Startpage off. */
+  const savedWithOldStartpage = (): SearchEngineConfig[] => [
+    ...savedBeforeBrave().map((e) =>
+      e.id === 'startpage'
+        ? { ...e, enabled: false, elementSelector: OLD_STARTPAGE }
+        : e,
+    ),
+    byId('brave'),
+  ];
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it("gives Startpage its current mount point, the right column's section#sidebar", () => {
+    expect(byId('startpage').elementSelector).toBe('section#sidebar');
+  });
+
+  it('updates a saved built-in definition and keeps its on/off state and place', async () => {
+    const saved = savedWithOldStartpage();
+    await storage.setItem(KEY, saved);
+
+    await SearchEngineConfigMigration.refreshBuiltInEngines();
+
+    const config = await searchEngineConfig.getValue();
+    const index = saved.findIndex((e) => e.id === 'startpage');
+    expect(config[index]).toEqual({ ...byId('startpage'), enabled: false });
+    // Everything else as it was: Google still off, the custom engine.
+    expect(config.filter((e) => e.id !== 'startpage')).toEqual(
+      saved.filter((e) => e.id !== 'startpage'),
+    );
+  });
+
+  it('leaves custom engines alone, also one for a built-in site', async () => {
+    const custom: SearchEngineConfig = {
+      id: 'custom-startpage',
+      name: 'My Startpage',
+      enabled: true,
+      isCustom: true,
+      urlPattern: 'startpage\\.com$',
+      querySelector: '#q',
+      elementSelector: OLD_STARTPAGE,
+      insertPosition: 'last',
+    };
+    await storage.setItem(KEY, [custom, ...savedWithOldStartpage()]);
+
+    await SearchEngineConfigMigration.refreshBuiltInEngines();
+
+    const config = await searchEngineConfig.getValue();
+    expect(config[0]).toEqual(custom);
+    expect(config.find((e) => e.id === 'custom-1')).toEqual(
+      savedBeforeBrave().find((e) => e.id === 'custom-1'),
+    );
+  });
+
+  it('writes nothing when the saved definitions are current', async () => {
+    // Saved with the keys in another order: still the same definition.
+    const saved = BUILT_IN_SEARCH_ENGINES.map((e) =>
+      Object.fromEntries(Object.entries(e).reverse()),
+    );
+    await storage.setItem(KEY, saved);
+    const writes: unknown[] = [];
+    const unwatch = storage.watch(KEY, (value) => writes.push(value));
+
+    await SearchEngineConfigMigration.refreshBuiltInEngines();
+
+    unwatch();
+    expect(writes).toEqual([]);
+  });
+
+  it('writes nothing when no config is saved', async () => {
+    await SearchEngineConfigMigration.refreshBuiltInEngines();
+    expect(await storage.getItem(KEY)).toBeNull();
+  });
+
+  it('runs on install and update (runMigrations)', async () => {
+    await storage.setItem(KEY, savedWithOldStartpage());
+
+    await SearchEngineConfigMigration.runMigrations();
+
+    const startpage = (await searchEngineConfig.getValue()).find(
+      (e) => e.id === 'startpage',
+    );
+    expect(startpage).toEqual({ ...byId('startpage'), enabled: false });
+  });
+});

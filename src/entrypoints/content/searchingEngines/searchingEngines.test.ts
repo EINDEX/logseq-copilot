@@ -68,22 +68,60 @@ describe('CustomSearchEngine.gotElement', () => {
 
   test('other engines still mount directly in the configured element', () => {
     document.body.innerHTML = `
-      <div class="layout-web__sidebar layout-web__sidebar--web">
+      <section id="sidebar">
         <div class="_0_right_sidebar"></div>
-      </div>`;
+      </section>`;
 
     const container = new CustomSearchEngine({
-      id: 'startpage',
-      name: 'Startpage',
-      urlPattern: 'startpage\\.com$',
-      querySelector: '#q',
-      elementSelector: 'div.layout-web__sidebar.layout-web__sidebar--web',
+      id: 'searx',
+      name: 'SearX',
+      urlPattern: '^searx(ng)?\\.',
+      querySelector: '?q',
+      elementSelector: '#sidebar',
       insertPosition: 'first',
     }).gotElement();
 
-    const sidebarColumn = document.querySelector('.layout-web__sidebar');
+    const sidebarColumn = document.getElementById('sidebar');
     expect(container?.parentElement).toBe(sidebarColumn);
     expect(sidebarColumn?.firstElementChild).toBe(container);
+  });
+});
+
+describe('Startpage', () => {
+  const startpage = BUILT_IN_SEARCH_ENGINES.find((engine) => engine.id === 'startpage')!;
+  const engine = () =>
+    new CustomSearchEngine({
+      id: startpage.id,
+      name: startpage.name,
+      urlPattern: startpage.urlPattern!,
+      querySelector: startpage.querySelector!,
+      elementSelector: startpage.elementSelector!,
+      insertPosition: startpage.insertPosition!,
+    });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('mounts first in the right column, next to the results', () => {
+    // The live result page (2026-11): the results and an empty right column
+    // in <main>, the query in the search box.
+    document.body.innerHTML = `
+      <div id="root"><div class="Layout"><div>
+        <form><input id="q" name="query" value="logseq copilot"></form>
+        <main class="css-84ooco">
+          <section id="main" class="css-rzlu9p"><div class="result"></div></section>
+          <section id="sidebar" role="complementary" aria-label="sidebar" class="css-1sdrk1e"></section>
+        </main>
+      </div></div></div>`;
+
+    const container = engine().gotElement();
+
+    const sidebar = document.getElementById('sidebar');
+    expect(engine().getQuery()).toBe('logseq copilot');
+    expect(container?.parentElement).toBe(sidebar);
+    expect(sidebar?.firstElementChild).toBe(container);
+    expect(document.getElementById('main')?.contains(container)).toBe(false);
   });
 });
 

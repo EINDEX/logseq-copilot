@@ -6,6 +6,15 @@ import {
 } from './storage';
 import { log } from './index';
 
+/** The same fields with the same values (the order of the keys aside). */
+const sameEngine = (a: SearchEngineConfig, b: SearchEngineConfig) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].every(
+    (key) =>
+      a[key as keyof SearchEngineConfig] === b[key as keyof SearchEngineConfig],
+  );
+};
+
 /**
  * Migration utility for search engine configuration
  */
@@ -111,12 +120,48 @@ export class SearchEngineConfigMigration {
   }
 
   /**
+   * Give the saved built-in engines the definition that ships (URL pattern,
+   * selectors, ...), each keeping whether it is on. The content script reads
+   * the definitions from the saved config, so without this an engine keeps
+   * the selector of the version that saved it after the site changed its
+   * markup (Startpage's right column). The options page edits custom engines
+   * only, so a built-in entry holds nothing else the user set. Custom
+   * engines and the order stay as they are. Writes only when a definition
+   * changed, and nothing when no config is saved (the fallback is current).
+   */
+  static async refreshBuiltInEngines() {
+    // The raw value: the typed item returns its fallback for a missing key.
+    const saved = await storage.getItem<SearchEngineConfig[]>(
+      'local:searchEngineConfig',
+    );
+    if (!Array.isArray(saved)) return;
+
+    const builtIn = new Map(
+      BUILT_IN_SEARCH_ENGINES.map((engine) => [engine.id, engine]),
+    );
+    const refreshed: string[] = [];
+    const config = saved.map((engine) => {
+      const current = builtIn.get(engine.id);
+      if (!current || engine.isCustom) return engine;
+      const updated = { ...current, enabled: engine.enabled ?? current.enabled };
+      if (sameEngine(engine, updated)) return engine;
+      refreshed.push(engine.id);
+      return updated;
+    });
+    if (refreshed.length === 0) return;
+
+    await searchEngineConfig.setValue(config);
+    log.info('[Migration] Updated built-in search engines:', refreshed);
+  }
+
+  /**
    * Run all necessary migrations
    */
   static async runMigrations() {
     try {
       await this.migrateToV2();
       await this.addMissingBuiltInEngines();
+      await this.refreshBuiltInEngines();
       log.info(
         '[Migration] All search engine migrations completed successfully',
       );
