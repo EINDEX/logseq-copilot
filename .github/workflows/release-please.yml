@@ -53,8 +53,11 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' && steps.release.outputs.release_created != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          # Parsed in the shell: fromJSON in env failed this step on the empty
+          # output of a failed release-please run, even with the `if` false.
+          PR: ${{ steps.release.outputs.pr }}
         run: |
+          BRANCH=$(jq -r .headBranchName <<<"$PR")
           gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run integration.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
 
