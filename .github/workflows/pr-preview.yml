@@ -1,0 +1,237 @@
+name: PR Preview
+
+# Builds a pull request to `main` into downloadable packages on its own GitHub
+# pre-release, `v<next version>-<PR number>-preview` (e.g. v2.0.0-104-preview).
+# Nothing goes to a store and package.json is never committed; see
+# "PR previews" in RELEASING.md.
+#
+# Every build waits for EINDEX to approve it: the job uses the `pr-preview`
+# environment, whose required reviewer is EINDEX. The environment gate holds
+# the job before a runner starts it, so no PR code (not even the checkout)
+# runs until it is approved. The environment only allows `refs/pull/*/merge`,
+# the GITHUB_REF of `pull_request` runs.
+#
+# Pull requests from forks are skipped.
+#
+# Why a `v*` tag is safe here:
+# - The release and tag are created with GITHUB_TOKEN, so they start no other
+#   workflow (publish.yml's tag push, docs.yml's `release: published`), and
+#   publish.yml rejects any tag that is not exactly vX.Y.Z.
+# - release-please (manifest mode) only takes a release as the previous one
+#   when its tag version equals the manifest version (e.g. 1.15.2, later
+#   2.0.0); `2.0.0-104-preview` never equals it.
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, closed]
+
+permissions: {}
+
+# One preview per PR. A newer push replaces a run still waiting for approval
+# or building; closing the PR cancels it and removes the preview.
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: pr-preview
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # The PR head, not the merge ref: the tag then points at a commit on the
+      # PR branch, and a PR with conflicts can still be previewed.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        name: Install pnpm
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        name: Use Node.js
+        with:
+          node-version: 26.x
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Testing
+        run: pnpm test
+
+      # The next release version, in this order:
+      # 1. `release-as` in release-please-config.json;
+      # 2. X.Y.Z in the title of the open release-please PR;
+      # 3. the version in package.json.
+      - name: Find next version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          NEXT=$(jq -r '.packages["."]["release-as"] // empty' release-please-config.json)
+          if [[ -z "$NEXT" ]]; then
+            TITLE=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+              --head release-please--branches--wxt--components--logseq-copilot \
+              --json title --jq '.[0].title // empty')
+            NEXT=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' <<<"$TITLE" | head -n1 || true)
+          fi
+          if [[ -z "$NEXT" ]]; then
+            NEXT=$(jq -r '.version // empty' package.json)
+          fi
+          if [[ ! "$NEXT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::next version '$NEXT' is not X.Y.Z"
+            exit 1
+          fi
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || (( PR_NUMBER > 65535 )); then
+            echo "::error::PR number '$PR_NUMBER' does not fit a version part"
+            exit 1
+          fi
+          {
+            echo "next=$NEXT"
+            echo "tag=v$NEXT-$PR_NUMBER-preview"
+            # wxt.config.ts sets manifest.version from package.json as is, and
+            # browsers only accept up to four numeric parts there.
+            echo "extension=$NEXT.$PR_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+      # Not committed.
+      - name: Set preview version
+        env:
+          VERSION: ${{ steps.version.outputs.extension }}
+        run: |
+          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+      - name: Package
+        run: |
+          pnpm zip
+          pnpm zip:firefox
+
+      # Fixed asset names keep the download links stable across pushes.
+      - name: Rename packages
+        env:
+          VERSION: ${{ steps.version.outputs.extension }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          mkdir -p preview
+          cp ".output/logseq-copilot-${VERSION}-chrome.zip" "preview/logseq-copilot-${TAG}-chrome.zip"
+          cp ".output/logseq-copilot-${VERSION}-firefox.zip" "preview/logseq-copilot-${TAG}-firefox.zip"
+
+      - name: Publish pre-release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.extension }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          SHORT_SHA="${HEAD_SHA::7}"
+          COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$HEAD_SHA"
+          CHROME_ZIP="logseq-copilot-${TAG}-chrome.zip"
+          FIREFOX_ZIP="logseq-copilot-${TAG}-firefox.zip"
+
+          cat > preview/notes.md <<EOF
+          Preview build of a pull request. Not published to any store.
+
+          - Pull request: [#$PR_NUMBER]($PR_URL) (\`$HEAD_REF\`)
+          - Commit: [\`$SHORT_SHA\`]($COMMIT_URL)
+          - Extension version: \`$VERSION\`
+
+          ## Install
+
+          **Chrome / Edge**: unzip \`$CHROME_ZIP\`, open
+          \`chrome://extensions\` (or \`edge://extensions\`), turn on Developer
+          mode, then "Load unpacked" and pick the unzipped folder.
+
+          **Firefox**: \`$FIREFOX_ZIP\` is not signed.
+          Load it temporarily from \`about:debugging#/runtime/this-firefox\` >
+          "Load Temporary Add-on…" (removed when Firefox restarts), or in
+          Firefox Developer Edition / Nightly set
+          \`xpinstall.signatures.required\` to \`false\` in \`about:config\`,
+          then \`about:addons\` > gear menu > "Install Add-on From File…".
+
+          The manifest uses the same extension ID as the store version. Try it
+          in a separate browser profile.
+          EOF
+
+          # Replace this PR's previous preview, including one made for an
+          # older next version. A tag may outlive its release, so delete
+          # leftover tags too, or --target would be ignored.
+          PATTERN="^v[0-9]+\\.[0-9]+\\.[0-9]+-${PR_NUMBER}-preview\$"
+          gh release list --limit 1000 --json tagName --jq '.[].tagName' \
+            | { grep -E "$PATTERN" || true; } \
+            | while read -r OLD; do gh release delete "$OLD" --cleanup-tag --yes || true; done
+          gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v" --jq '.[].ref' \
+            | sed 's|^refs/tags/||' \
+            | { grep -E "$PATTERN" || true; } \
+            | while read -r OLD; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$OLD" || true; done
+
+          gh release create "$TAG" \
+            --prerelease \
+            --latest=false \
+            --target "$HEAD_SHA" \
+            --title "$TAG" \
+            --notes-file preview/notes.md \
+            "preview/$CHROME_ZIP" \
+            "preview/$FIREFOX_ZIP"
+
+          echo "url=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_OUTPUT"
+
+      # One comment per PR, found by its marker and edited on later pushes.
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TAG: ${{ steps.version.outputs.tag }}
+          URL: ${{ steps.release.outputs.url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MARKER='<!-- pr-preview -->'
+          BODY="$MARKER
+          Preview packages for ${HEAD_SHA::7}: [$TAG]($URL)"
+          ID=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARKER\"))) | .id" \
+            | head -n1)
+          if [[ -n "$ID" ]]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -f body="$BODY" > /dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$BODY" > /dev/null
+          fi
+
+  # Runs no PR code (no checkout), so it needs no approval.
+  cleanup:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete preview release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          PATTERN="^v[0-9]+\\.[0-9]+\\.[0-9]+-${PR_NUMBER}-preview\$"
+          gh release list --limit 1000 --json tagName --jq '.[].tagName' \
+            | { grep -E "$PATTERN" || true; } \
+            | while read -r OLD; do gh release delete "$OLD" --cleanup-tag --yes || true; done
+          gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v" --jq '.[].ref' \
+            | sed 's|^refs/tags/||' \
+            | { grep -E "$PATTERN" || true; } \
+            | while read -r OLD; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$OLD" || true; done

@@ -84,3 +84,47 @@ is `preview`, not `v*`: a `v*` tag would start `publish.yml`, and
 release-please could take it as the previous release. The release is created
 with `GITHUB_TOKEN`, so it starts no other workflows. The pre-release is never
 marked as the latest release.
+
+## PR previews
+
+`.github/workflows/pr-preview.yml` packages every pull request to `main` that
+comes from a branch of this repository (pull requests from forks are skipped).
+Each build waits for approval: the job uses the `pr-preview` environment, whose
+only required reviewer is EINDEX. Approve or reject the run from the PR's
+checks or the Actions run page. Nothing from the PR runs, not even the
+checkout, until the run is approved.
+
+Each approved run typechecks, tests, sets the version in `package.json` (not
+committed), builds the Chrome and Firefox zips, and publishes a pre-release
+named after the next release version and the PR number:
+
+- Tag and title: `v<next version>-<PR number>-preview`, for example
+  `v2.0.0-104-preview`.
+- Assets: `logseq-copilot-v2.0.0-104-preview-chrome.zip` and
+  `logseq-copilot-v2.0.0-104-preview-firefox.zip` (unsigned).
+- Extension version: `2.0.0.104`. `wxt.config.ts` copies the `package.json`
+  version into the manifest as is, and browsers only accept up to four
+  numeric parts there.
+
+The next version is the first of: `release-as` in
+`release-please-config.json`, the X.Y.Z in the title of the open release-please
+PR, the version in `package.json`.
+
+A push to the PR replaces its preview (and a run still waiting for approval).
+The workflow comments the release link on the PR once and edits that comment
+on later pushes. Closing or merging the PR deletes the preview release and
+tag; that job runs no PR code and needs no approval.
+
+The `pr-preview` environment only allows `refs/pull/*/merge`, the ref of
+`pull_request` runs, so no other workflow can use it.
+
+The `v*` tag is safe:
+
+- It is created with `GITHUB_TOKEN`, so it starts no other workflow, and
+  `publish.yml` rejects any tag that is not exactly `vX.Y.Z`.
+- release-please only takes a release as the previous one when its tag
+  version equals the version in `.release-please-manifest.json`.
+  `2.0.0-104-preview` never equals it, so the changelog is not cut short.
+
+The workflow runs from the PR's merge commit, so it only has to be on `wxt`:
+the `wxt` → `main` release PR brings it along.
