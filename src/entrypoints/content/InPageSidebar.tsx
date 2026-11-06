@@ -65,8 +65,8 @@ export function InPageSidebar({ url, title }: InPageSidebarProps) {
   );
 }
 
-const renderSidebar = (root: Root, url = location.href) =>
-  root.render(<InPageSidebar url={url} title={document.title} />);
+const renderSidebar = (root: Root) =>
+  root.render(<InPageSidebar url={location.href} title={document.title} />);
 
 /**
  * Show the in-page sidebar while `inPageSidebarOpen` is set, and follow the
@@ -101,11 +101,28 @@ export async function startInPageSidebar(
         },
         onRemove: (root) => root?.unmount(),
       });
-      // WXT sends this from the Navigation API's navigate event, before the
-      // address changes: location.href is still the old page.
-      ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
-        if (ui?.mounted) renderSidebar(ui.mounted, newUrl.href);
-      });
+      // Redraw for the address the tab is at, once it has changed. Not for the
+      // newUrl of wxt:locationchange: with the Navigation API, WXT sends it
+      // from the navigate event, before the navigation happens. That URL is
+      // any address the page asks for, and the navigation can still be
+      // cancelled (by the page too) or fail: a page could go to another
+      // site's address, cancel, and have that site's highlights and notes
+      // drawn on it.
+      const follow = () => {
+        if (ui?.mounted) renderSidebar(ui.mounted);
+      };
+      // TypeScript's DOM types do not have the Navigation API yet.
+      const { navigation } = globalThis as { navigation?: EventTarget };
+      if (typeof navigation?.addEventListener === 'function') {
+        // Fires once a same-document navigation has changed the address:
+        // pushState, replaceState, a new hash, back and forward. Not for
+        // cancelled navigations, nor for ones that load another document (the
+        // content script runs again there).
+        ctx.addEventListener(navigation, 'currententrychange', follow);
+      } else {
+        // Without it WXT polls location.href and sends this after a change.
+        ctx.addEventListener(window, 'wxt:locationchange', follow);
+      }
     }
     if (open) ui!.mount();
     else ui!.remove();

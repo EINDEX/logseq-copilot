@@ -166,32 +166,43 @@ describe('startInPageSidebar', () => {
   // The page the content script runs in (the test document's origin).
   const HERE = new URL('/page', location.href).href;
   let locationChanged: ((event: { newUrl: URL }) => void) | undefined;
+  let invalidated: AbortController;
   const ctx = {
     addEventListener: vi.fn(
       (
-        _target: unknown,
+        target: EventTarget,
         type: string,
         handler: (event: { newUrl: URL }) => void,
       ) => {
         if (type === 'wxt:locationchange') locationChanged = handler;
+        else
+          target.addEventListener(type, handler as unknown as EventListener, {
+            signal: invalidated.signal,
+          });
       },
     ),
   } as unknown as ContentScriptContext;
   const start = () => act(() => startInPageSidebar(ctx));
+  // Lets a redraw, and the storage read it starts, finish.
+  const settle = () =>
+    act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
   beforeEach(() => {
     fakeBrowser.reset();
     vi.mocked(createShadowRootUi).mockClear();
     vi.spyOn(log, 'error').mockImplementation(() => {});
     locationChanged = undefined;
+    invalidated = new AbortController();
     history.replaceState(null, '', HERE);
     document.title = 'Page one';
   });
 
   afterEach(async () => {
     await setOpen(false);
+    invalidated.abort();
     cleanup();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('stays out of the page while closed', async () => {
@@ -259,23 +270,125 @@ describe('startInPageSidebar', () => {
     });
   });
 
-  it('lists the highlights of the page a single-page app goes to', async () => {
-    const next = new URL('/next', HERE).href;
-    await seed([highlight('a', { url: HERE }), highlight('n', { url: next })]);
-    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
-    await start();
-    await screen.findByText('text of a');
+  describe('with the Navigation API', () => {
+    let navigation: EventTarget;
 
-    // WXT sends the event from the Navigation API's navigate event, before
-    // the address changes.
-    document.title = 'Next page';
-    await act(async () => {
-      locationChanged!({ newUrl: new URL(next) });
-      history.pushState(null, '', next);
+    beforeEach(() => {
+      navigation = new EventTarget();
+      vi.stubGlobal('navigation', navigation);
     });
 
-    expect(await screen.findByText('text of n')).not.toBeNull();
-    expect(text('text of a')).toBeNull();
-    expect(screen.getByText('Next page')).not.toBeNull();
+    /**
+     * A navigation as the browser and WXT run it: WXT sends
+     * wxt:locationchange from the navigate event, with the destination and
+     * before the address changes. Then the navigation is cancelled, or it
+     * changes the address and fires currententrychange.
+     */
+    const navigate = (to: string, { cancelled = false } = {}) =>
+      act(async () => {
+        locationChanged?.({ newUrl: new URL(to) });
+        if (cancelled) return;
+        history.pushState(null, '', to);
+        navigation.dispatchEvent(new Event('currententrychange'));
+      });
+
+    it('lists the highlights of the page a single-page app goes to', async () => {
+      const next = new URL('/next', HERE).href;
+      await seed([
+        highlight('a', { url: HERE }),
+        highlight('n', { url: next }),
+      ]);
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+      await start();
+      await screen.findByText('text of a');
+
+      document.title = 'Next page';
+      await navigate(next);
+
+      expect(await screen.findByText('text of n')).not.toBeNull();
+      expect(text('text of a')).toBeNull();
+      expect(screen.getByText('Next page')).not.toBeNull();
+    });
+
+    it("never shows another site's highlights for the address a page asks for", async () => {
+      const elsewhere = 'https://other.example/notes';
+      await seed([
+        highlight('a', { url: HERE }),
+        highlight('secret', { url: elsewhere }),
+      ]);
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+      await start();
+      await screen.findByText('text of a');
+
+      // The page goes to another site's address and cancels in its own
+      // navigate listener: WXT has already sent the event.
+      await navigate(elsewhere, { cancelled: true });
+      await settle();
+
+      expect(text('text of secret')).toBeNull();
+      expect(text('text of a')).not.toBeNull();
+    });
+
+    it('stays on the page when a navigation is cancelled', async () => {
+      const next = new URL('/next', HERE).href;
+      await seed([
+        highlight('a', { url: HERE }),
+        highlight('n', { url: next }),
+      ]);
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+      await start();
+      await screen.findByText('text of a');
+
+      await navigate(next, { cancelled: true });
+      await settle();
+
+      expect(location.href).toBe(HERE);
+      expect(text('text of n')).toBeNull();
+      expect(text('text of a')).not.toBeNull();
+    });
+  });
+
+  describe('without the Navigation API', () => {
+    /** WXT polls location.href and sends the event after it changed. */
+    const navigate = (to: string) =>
+      act(async () => {
+        history.pushState(null, '', to);
+        locationChanged!({ newUrl: new URL(location.href) });
+      });
+
+    it('lists the highlights of the page a single-page app goes to', async () => {
+      const next = new URL('/next', HERE).href;
+      await seed([
+        highlight('a', { url: HERE }),
+        highlight('n', { url: next }),
+      ]);
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+      await start();
+      await screen.findByText('text of a');
+
+      document.title = 'Next page';
+      await navigate(next);
+
+      expect(await screen.findByText('text of n')).not.toBeNull();
+      expect(text('text of a')).toBeNull();
+      expect(screen.getByText('Next page')).not.toBeNull();
+    });
+
+    it('draws the address the tab is at, not the URL in the event', async () => {
+      const elsewhere = 'https://other.example/notes';
+      await seed([
+        highlight('a', { url: HERE }),
+        highlight('secret', { url: elsewhere }),
+      ]);
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+      await start();
+      await screen.findByText('text of a');
+
+      await act(async () => locationChanged!({ newUrl: new URL(elsewhere) }));
+      await settle();
+
+      expect(text('text of secret')).toBeNull();
+      expect(text('text of a')).not.toBeNull();
+    });
   });
 });
