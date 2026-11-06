@@ -195,6 +195,59 @@ describe('logseq:clipPage', () => {
   });
 });
 
+describe('logseq:clipWithSelection', () => {
+  const popupTab = {
+    id: 9,
+    url: 'chrome-extension://abc/popup.html',
+    title: 'Logseq Copilot',
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // The active tab of the current window is not the clipped page (the popup
+    // window has focus).
+    vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([popupTab as any]);
+    service.client.getUserConfig.mockResolvedValue({ preferredDateFormat: 'yyyy-MM-dd' });
+    service.client.appendBlock.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(fakeBrowser.tabs.query).mockRestore();
+  });
+
+  const clippedBlock = () => service.client.appendBlock.mock.calls[0][1] as string;
+
+  test("a content script's message clips its own tab, not the active tab", async () => {
+    // fakeBrowser sends with an empty sender; a content script's carries its tab.
+    const pageTab = { id: 3, url: 'https://clipped.example/post', title: 'Clipped Page' };
+    const send = vi
+      .spyOn(fakeBrowser.runtime, 'sendMessage')
+      .mockImplementationOnce(async (message: any) => {
+        const res = await fakeBrowser.runtime.onMessage.trigger(message, {
+          tab: pageTab,
+        } as any);
+        return res.find((r: unknown) => !!r);
+      });
+
+    await sendMessage('logseq:clipWithSelection', 'the selection').finally(() =>
+      send.mockRestore(),
+    );
+
+    expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
+    expect(clippedBlock()).toContain('the selection');
+    expect(clippedBlock()).toContain('[Clipped Page](https://clipped.example/post)');
+    expect(clippedBlock()).not.toContain(popupTab.url);
+  });
+
+  test('without a sender tab, clips the active tab of the current window', async () => {
+    await sendMessage('logseq:clipWithSelection', 'the selection');
+
+    expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
+    expect(clippedBlock()).toContain(`[${popupTab.title}](${popupTab.url})`);
+  });
+});
+
 describe('logseq:recall', () => {
   test('passes the query and the recall rules (maxResults in pages)', async () => {
     await fakeBrowser.storage.local.set({

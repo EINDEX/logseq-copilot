@@ -98,8 +98,11 @@ export default defineBackground({
 
     // A failed clip rejects with a readable message (LogseqError), which the
     // sender (content script, popup) shows.
-    onMessage('logseq:clipWithSelection', async ({ data }) => {
-      await quickCapture(data);
+    // The content script sends this from the page it clips, so clip its tab:
+    // the active tab of the current window can be another page, or the popup
+    // window, once focus has moved.
+    onMessage('logseq:clipWithSelection', async ({ data, sender }) => {
+      await quickCapture(data, sender.tab);
     });
 
     onMessage('logseq:clipPage', async () => {
@@ -137,8 +140,13 @@ export default defineBackground({
         await browser.tabs.update(activeTab.id!, { url: url });
     };
 
-    const quickCapture = async (data: string) => {
-      const tab = await getCurrentTab();
+    // Without the sender's tab (an extension page sent the message), clip the
+    // active tab of the current window.
+    const quickCapture = async (
+      data: string,
+      senderTab?: { id?: number; url?: string; title?: string },
+    ) => {
+      const tab = senderTab ?? (await getCurrentTab());
       if (!tab) throw new Error('No tab to clip.');
       await clip({ url: tab.url, title: tab.title, data }, tab.id);
     };
