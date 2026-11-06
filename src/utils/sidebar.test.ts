@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { openSidebar } from './sidebar';
+import { hasNativeSidebar, openSidebar } from './sidebar';
 
 describe('openSidebar', () => {
   const sidePanelOpen = vi.fn();
@@ -37,6 +37,11 @@ describe('openSidebar', () => {
 
       await expect(openSidebar(4)).rejects.toBe(refusal);
     });
+
+    it('rejects without a window', async () => {
+      await expect(openSidebar(undefined)).rejects.toThrow();
+      expect(sidePanelOpen).not.toHaveBeenCalled();
+    });
   });
 
   describe('in Firefox', () => {
@@ -60,5 +65,53 @@ describe('openSidebar', () => {
 
       await expect(openSidebar(4)).rejects.toBe(refusal);
     });
+  });
+
+  describe('without a sidebar of the browser (Safari, Firefox for Android)', () => {
+    const isOpen = async () =>
+      (await fakeBrowser.storage.local.get('inPageSidebarOpen'))
+        .inPageSidebarOpen;
+
+    beforeEach(() => {
+      delete (fakeBrowser as any).sidePanel;
+      delete (fakeBrowser as any).sidebarAction;
+    });
+
+    it('opens the sidebar drawn on the page, in the Chrome build', async () => {
+      expect(hasNativeSidebar()).toBe(false);
+
+      await openSidebar(4);
+
+      expect(await isOpen()).toBe(true);
+    });
+
+    it('opens the sidebar drawn on the page, in the Firefox build', async () => {
+      vi.stubEnv('FIREFOX', 'true');
+      // The other browser's API does not count.
+      (fakeBrowser as any).sidePanel = { open: sidePanelOpen };
+      expect(hasNativeSidebar()).toBe(false);
+
+      await openSidebar(4);
+
+      expect(await isOpen()).toBe(true);
+      expect(sidePanelOpen).not.toHaveBeenCalled();
+    });
+
+    it('needs no window', async () => {
+      await openSidebar(undefined);
+
+      expect(await isOpen()).toBe(true);
+    });
+  });
+
+  it('leaves the sidebar drawn on the page closed where the browser has its own', async () => {
+    expect(hasNativeSidebar()).toBe(true);
+
+    await openSidebar(4);
+
+    expect(
+      (await fakeBrowser.storage.local.get('inPageSidebarOpen'))
+        .inPageSidebarOpen,
+    ).toBeUndefined();
   });
 });

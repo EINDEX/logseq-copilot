@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { graphUrl } from '@/utils/logseq-url';
 
 import { sendMessage } from '@/types/messaging';
-import { openSidebar } from '@/utils/sidebar';
+import { hasNativeSidebar, openSidebar } from '@/utils/sidebar';
 import log from '@/utils/logger';
 import { clipErrorMessage } from '@/utils/clip-feedback';
 import { QuickActions, type ClipAction } from './components/QuickActions';
@@ -166,10 +166,12 @@ export default function Popup() {
 
   // The window is known from the tab query at mount, before the click: the
   // browser opens the sidebar only while the click is still a user action, so
-  // nothing may be awaited before openSidebar.
+  // nothing may be awaited before openSidebar. The sidebar drawn on the page
+  // (no sidebar of the browser's own) needs no window.
   const windowId = currentTab?.windowId;
+  const canOpenSidebar = windowId !== undefined || !hasNativeSidebar();
   const openSidebarAndClose = () => {
-    if (windowId === undefined) return;
+    if (!canOpenSidebar) return;
     openSidebar(windowId)
       .then(() => window.close())
       .catch((err) => log.error('Failed to open the highlights sidebar:', err));
@@ -230,7 +232,7 @@ export default function Popup() {
             variant="ghost"
             size="sm"
             onClick={openSidebarAndClose}
-            disabled={windowId === undefined}
+            disabled={!canOpenSidebar}
             aria-label="Highlights"
             title="Highlights"
             className="h-8 w-8 shrink-0 p-0"

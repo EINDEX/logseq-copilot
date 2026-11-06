@@ -313,3 +313,18 @@ describe('logseq:recall', () => {
     expect(err.message).toBe(CannotConnectWithLogseq.msg);
   });
 });
+
+describe('browser startup', () => {
+  test('closes the sidebar drawn on pages', async () => {
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+
+    await fakeBrowser.runtime.onStartup.trigger();
+
+    await vi.waitFor(async () =>
+      expect(
+        (await fakeBrowser.storage.local.get('inPageSidebarOpen'))
+          .inPageSidebarOpen,
+      ).toBe(false),
+    );
+  });
+});

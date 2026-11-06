@@ -143,6 +143,25 @@ describe('background context menus', () => {
       expect(error.mock.calls[0]).toContain(refusal);
     });
 
+    it('opens the sidebar drawn on pages where the browser has none, also without a tab', async () => {
+      delete (fakeBrowser as any).sidePanel;
+      const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+      const isOpen = async () =>
+        (await fakeBrowser.storage.local.get('inPageSidebarOpen'))
+          .inPageSidebarOpen;
+
+      click('open-highlights-sidebar', { id: 7, windowId: 3 });
+      await vi.waitFor(async () => expect(await isOpen()).toBe(true));
+
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: false });
+      // Safari passes no tab to commands.
+      runCommand('open-sidebar', undefined);
+      await vi.waitFor(async () => expect(await isOpen()).toBe(true));
+
+      expect(warn).not.toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
     it('leaves the clip menu items and the clip command alone', () => {
       click('clip-page', { id: 7, windowId: 3 });
       expect(sendMessage).toHaveBeenLastCalledWith(

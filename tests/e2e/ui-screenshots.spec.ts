@@ -1,9 +1,9 @@
 /**
  * UI screenshots for review, not a visual regression test: every options
  * page, the popup, the browser sidebar page and the in-page UI (search engine
- * sidebar, page highlight and float button, highlight comment popup) in light
- * and dark, against the seeded Logseq. The tests only assert that the key
- * elements are visible.
+ * sidebar, page highlight and float button, highlight comment popup, in-page
+ * highlights sidebar) in light and dark, against the seeded Logseq. The tests
+ * only assert that the key elements are visible.
  *
  * The search engine card is taken on the Google (empty right column,
  * knowledge panel, no right column, narrow window), Bing, DuckDuckGo and
@@ -548,6 +548,50 @@ test.describe('UI screenshots', () => {
       await shoot(popup, 'highlight-popup', scheme);
       await page.keyboard.press('Escape');
       await expect(popup).toHaveCount(0);
+    }
+  });
+
+  test('in-page highlights sidebar', async ({ page, ext, articles }) => {
+    fileGraphOnly();
+    const id = nonce('shot');
+    const url = `https://example.com/e2e/${id}`;
+    const paragraph =
+      'Capture what resonates, organize by project, distill to the essence and express it in your own words.';
+    articles.set(url, { title: 'Notes on building a second brain', paragraph });
+    // Highlights of this page: one on its paragraph, so the page shows it too.
+    const [first, second, third] = seededHighlights();
+    const onThisPage = (highlight: typeof first, extra: object = {}) => ({
+      ...highlight,
+      ...extra,
+      id: `${highlight.id}-${id}`,
+      url,
+      title: 'Notes on building a second brain',
+      hostname: 'example.com',
+    });
+
+    // Browsers without a sidebar of their own (Safari) show this one; here
+    // the open state is set the way their popup button sets it.
+    await ext.connect();
+    await ext.setStorage({
+      highlights: [
+        onThisPage(first, {
+          range: { ...first.range, endOffset: paragraph.length, textContent: paragraph },
+          createdAt: Date.now(),
+        }),
+        onThisPage(second),
+        onThisPage(third),
+      ],
+      inPageSidebarOpen: true,
+    });
+
+    await page.goto(url);
+    const host = page.locator('logseq-copilot-highlights');
+    await expect(host.getByText(paragraph)).toBeVisible();
+    await expect(host.getByRole('button', { name: 'Close' })).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(page, 'in-page-sidebar', scheme);
     }
   });
 

@@ -292,6 +292,19 @@ export const highlights = storage.defineItem<HighlightData[]>(
   },
 );
 
+/**
+ * The highlights sidebar drawn on pages is open, in every tab: browsers
+ * without a sidebar of their own (src/utils/sidebar.ts). `local`, not
+ * `session`: Safari and Firefox do not reliably give content scripts the
+ * session area. The background closes it when the browser starts.
+ */
+export const inPageSidebarOpenItem = storage.defineItem<boolean>(
+  'local:inPageSidebarOpen',
+  {
+    fallback: false,
+  },
+);
+
 // Recall rules storage - stores rules for customizing search behavior per website
 export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
   'local:recallRulesConfig',

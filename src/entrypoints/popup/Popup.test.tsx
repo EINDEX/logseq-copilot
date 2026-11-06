@@ -153,6 +153,35 @@ describe('Popup', () => {
       );
       expect(window.close).not.toHaveBeenCalled();
     });
+
+    describe('where the browser has no sidebar (Safari)', () => {
+      beforeEach(() => {
+        delete (fakeBrowser as any).sidePanel;
+      });
+
+      it('opens the sidebar drawn on pages, then closes the popup', async () => {
+        vi.spyOn(browser.tabs, 'query').mockResolvedValue([activeTab()]);
+        render(<Popup />);
+
+        fireEvent.click(sidebarButton());
+
+        await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
+        expect(
+          (await fakeBrowser.storage.local.get('inPageSidebarOpen'))
+            .inPageSidebarOpen,
+        ).toBe(true);
+      });
+
+      it('can be used before the window is known, and without one', async () => {
+        vi.spyOn(browser.tabs, 'query').mockReturnValue(new Promise(() => {}));
+        render(<Popup />);
+
+        expect(sidebarButton().disabled).toBe(false);
+        fireEvent.click(sidebarButton());
+
+        await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
+      });
+    });
   });
 
   describe('clip selection', () => {

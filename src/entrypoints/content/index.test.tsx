@@ -6,7 +6,7 @@
  * What the browser sidebar needs from the page (scrolling to a highlight,
  * following its edits) does not depend on the clip float button either.
  */
-import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import type { HighlightData } from '@/types/highlight';
 
@@ -274,5 +274,68 @@ describe('content script UI mounting', () => {
     await (contentScript as any).main({});
 
     expect(new Set(mountedNames())).toEqual(new Set(['logseq-copilot-popup']));
+  });
+});
+
+// Browsers without a sidebar of their own (src/utils/sidebar.ts).
+describe('content script in-page highlights sidebar', () => {
+  const ctx = { addEventListener: vi.fn() };
+  const sidebarUi = { mount: vi.fn(), remove: vi.fn(), mounted: undefined };
+  const sidebarCreated = () =>
+    vi
+      .mocked(createShadowRootUi)
+      .mock.calls.some(([, options]) => options.name === 'logseq-copilot-highlights');
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+    messaging.handlers.clear();
+    sidebarUi.mount.mockClear();
+    sidebarUi.remove.mockClear();
+    (globalThis as any).CSS = { highlights: new Map() };
+    (globalThis as any).Highlight = class {
+      add() {}
+      clear() {}
+    };
+    HighlightManager.getInstance().cleanup();
+    vi.restoreAllMocks();
+    vi.mocked(createShadowRootUi)
+      .mockClear()
+      .mockImplementation((async (_ctx: unknown, options: { name: string }) =>
+        options.name === 'logseq-copilot-highlights' ? sidebarUi : undefined) as never);
+    vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockResolvedValue(
+      [],
+    );
+  });
+
+  afterEach(() => {
+    vi.mocked(createShadowRootUi).mockImplementation((async () => undefined) as never);
+  });
+
+  it('is mounted while open, and removed when closed', async () => {
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+
+    await (contentScript as any).main(ctx);
+
+    await vi.waitFor(() => expect(sidebarUi.mount).toHaveBeenCalledTimes(1));
+
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: false });
+
+    await vi.waitFor(() => expect(sidebarUi.remove).toHaveBeenCalledTimes(1));
+  });
+
+  it('is not on the page while closed', async () => {
+    await (contentScript as any).main(ctx);
+
+    expect(sidebarCreated()).toBe(false);
+  });
+
+  it('is not mounted in a frame', async () => {
+    vi.spyOn(window, 'top', 'get').mockReturnValue({} as Window);
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+
+    await (contentScript as any).main(ctx);
+    await flush();
+
+    expect(sidebarCreated()).toBe(false);
   });
 });
