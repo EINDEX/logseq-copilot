@@ -1,0 +1,130 @@
+name: Preview
+
+# Builds the development branch into downloadable packages on a single fixed
+# GitHub pre-release, `preview`. Nothing goes to a store and package.json is
+# never committed; see "Preview builds" in RELEASING.md.
+#
+# The tag is `preview`, deliberately not `v*`:
+# - a `v*` tag push would start publish.yml (which uploads to the stores);
+# - release-please could take a `v*` tag as the previous release and cut the
+#   2.0.0 changelog short at it.
+#
+# The release and tag are created with GITHUB_TOKEN, so they do not start
+# other workflows (docs.yml's `release: published`, publish.yml's tag push).
+
+on:
+  push:
+    branches:
+      - wxt
+  # Run from the Actions tab; pick the branch in the "Use workflow from" menu.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One `preview` release is shared by every run, so only one run at a time;
+# a newer run replaces an older one.
+concurrency:
+  group: preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: the build number N in X.Y.Z.N is the commit count.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        name: Install pnpm
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        name: Use Node.js
+        with:
+          node-version: 26.x
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Testing
+        run: pnpm test
+
+      # Writes X.Y.Z.N into package.json (not committed). dev-version.mjs
+      # refuses to run in CI unless PREVIEW_BUILD=1.
+      - name: Set preview version
+        id: version
+        env:
+          PREVIEW_BUILD: '1'
+        run: |
+          pnpm version:dev
+          echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        run: |
+          pnpm zip
+          pnpm zip:firefox
+
+      # Fixed asset names keep the download links stable across runs.
+      - name: Rename packages
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          mkdir -p preview
+          cp ".output/logseq-copilot-${VERSION}-chrome.zip" preview/logseq-copilot-preview-chrome.zip
+          cp ".output/logseq-copilot-${VERSION}-firefox.zip" preview/logseq-copilot-preview-firefox.zip
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+
+          cat > preview/notes.md <<EOF
+          Development build. Not published to any store.
+
+          - Branch: \`$BRANCH\`
+          - Commit: [\`$SHORT_SHA\`]($COMMIT_URL)
+          - Version: \`$VERSION\`
+
+          ## Install
+
+          **Chrome / Edge**: unzip \`logseq-copilot-preview-chrome.zip\`, open
+          \`chrome://extensions\` (or \`edge://extensions\`), turn on Developer
+          mode, then "Load unpacked" and pick the unzipped folder.
+
+          **Firefox**: \`logseq-copilot-preview-firefox.zip\` is not signed.
+          Load it temporarily from \`about:debugging#/runtime/this-firefox\` >
+          "Load Temporary Add-on…" (removed when Firefox restarts), or in
+          Firefox Developer Edition / Nightly set
+          \`xpinstall.signatures.required\` to \`false\` in \`about:config\`,
+          then \`about:addons\` > gear menu > "Install Add-on From File…".
+
+          The manifest uses the same extension ID as the store version. Try it
+          in a separate browser profile.
+          EOF
+
+          # Replace the previous preview. The tag may outlive its release, so
+          # delete a leftover tag too, or --target would be ignored.
+          gh release delete preview --cleanup-tag --yes || true
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/preview" 2>/dev/null || true
+
+          gh release create preview \
+            --prerelease \
+            --latest=false \
+            --target "$GITHUB_SHA" \
+            --title "Preview $VERSION ($BRANCH@$SHORT_SHA)" \
+            --notes-file preview/notes.md \
+            preview/logseq-copilot-preview-chrome.zip \
+            preview/logseq-copilot-preview-firefox.zip

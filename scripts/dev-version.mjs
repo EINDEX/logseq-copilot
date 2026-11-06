@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Local dev builds only. Release versions are owned by release-please
+// Local dev builds and preview.yml only. Release versions are owned by release-please
 // (see RELEASING.md); this never produces one.
 //
 // Writes X.Y.Z.N into package.json, where X.Y.Z is the current version and N
@@ -17,8 +17,11 @@ const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJsonPath = join(projectRoot, 'package.json');
 
 // CI builds must keep the release version: publish.yml derives zip names from it.
-if (process.env.CI) {
-  console.log('CI detected, not writing package.json');
+// The one exception is preview.yml, which opts in with PREVIEW_BUILD=1: its
+// packages go to the `preview` pre-release only, never to a store, and it does
+// not commit the result.
+if (process.env.CI && process.env.PREVIEW_BUILD !== '1') {
+  console.log('CI detected, not writing package.json (set PREVIEW_BUILD=1 for preview builds)');
   process.exit(0);
 }
 

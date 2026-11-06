@@ -61,3 +61,26 @@ entry will be 2.0.0; earlier release notes stay on the GitHub releases page.
 
 `pnpm version:dev` writes `X.Y.Z.N` (N is the commit count) into `package.json`
 for local test builds. Never commit that; run `pnpm version:reset` to undo it.
+
+## Preview builds
+
+`.github/workflows/preview.yml` packages the development branch so it can be
+tried without a local build. It runs on every push to `wxt`, and by hand from
+Actions > Preview > Run workflow (any branch).
+
+Each run typechecks, tests, sets the version to `X.Y.Z.N` with
+`PREVIEW_BUILD=1 pnpm version:dev` (not committed), builds the Chrome and
+Firefox zips, and replaces the single pre-release tagged `preview`:
+
+- Release page: <https://github.com/EINDEX/logseq-copilot/releases/tag/preview>
+- Chrome / Edge: <https://github.com/EINDEX/logseq-copilot/releases/download/preview/logseq-copilot-preview-chrome.zip>
+- Firefox (unsigned): <https://github.com/EINDEX/logseq-copilot/releases/download/preview/logseq-copilot-preview-firefox.zip>
+
+The release notes say which branch and commit it was built from and how to
+install it.
+
+It does not publish to any store and does not affect release-please. The tag
+is `preview`, not `v*`: a `v*` tag would start `publish.yml`, and
+release-please could take it as the previous release. The release is created
+with `GITHUB_TOKEN`, so it starts no other workflows. The pre-release is never
+marked as the latest release.
