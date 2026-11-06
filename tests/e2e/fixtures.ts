@@ -11,6 +11,7 @@ import {
   expect,
   firefox,
   type BrowserContext,
+  type Locator,
   type Page,
   type Worker,
 } from '@playwright/test';
@@ -146,7 +147,10 @@ export interface Extension {
    * to Playwright as a page, and opening popup.html as a tab makes that tab
    * the active one, so Popup.tsx would see its own URL. Instead the popup
    * goes into its own unfocused window: `tabs.query({ active: true,
-   * lastFocusedWindow: true })` keeps returning `target`.
+   * lastFocusedWindow: true })` keeps returning `target`. Clicks in it are
+   * DOM clicks (as on Firefox): a Playwright click activates the popup
+   * window, which the real popup never is, and the background, which clips
+   * `tabs.query({ active, currentWindow })`, would clip popup.html.
    *
    * Firefox: the real popup panel, `action.openPopup({ windowId })` (allowed
    * without a user gesture by `extensions.openPopupWithoutUserGesture.enabled`).
@@ -378,7 +382,15 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
 }
 
 /** Chromium ExtPage: plain Playwright locators. */
-function playwrightExtPage(page: Page): ExtPage {
+function playwrightExtPage(page: Page, { domClicks = false } = {}): ExtPage {
+  // The DOM click() of the element, once it is visible and enabled: no input
+  // event, so the window the page is in is not activated (see openPopup).
+  const domClick = async (locator: Locator) => {
+    await expect(locator).toBeVisible();
+    await expect(locator).toBeEnabled();
+    await locator.evaluate((el) => (el as HTMLElement).click());
+  };
+  const click = (locator: Locator) => (domClicks ? domClick(locator) : locator.click());
   return {
     expectText: (text, options) => expect(page.getByText(text)).toBeVisible(options),
     hasText: (text) => page.getByText(text).isVisible(),
@@ -386,7 +398,7 @@ function playwrightExtPage(page: Page): ExtPage {
       expect(page.getByRole('alert').filter({ hasText: text }).first()).toBeVisible(),
     hasAlert: async (text) => (await page.getByRole('alert').filter({ hasText: text }).count()) > 0,
     expectButton: (name) => expect(page.getByRole('button', { name })).toBeVisible(),
-    clickButton: (name) => page.getByRole('button', { name }).first().click(),
+    clickButton: (name) => click(page.getByRole('button', { name }).first()),
     expectButtonInvalid: (name) =>
       expect(page.getByRole('button', { name }).first()).toHaveAttribute('aria-invalid', 'true'),
     expectButtonEnabled: (name, enabled = true) =>
@@ -394,7 +406,7 @@ function playwrightExtPage(page: Page): ExtPage {
     inputValue: (selector) => page.locator(selector).first().inputValue(),
     fill: (selector, value, nth = 0) => page.locator(selector).nth(nth).fill(value),
     press: (selector, key, nth = 0) => page.locator(selector).nth(nth).press(key),
-    click: (selector) => page.locator(selector).click(),
+    click: (selector) => click(page.locator(selector)),
     isChecked: (selector) => page.locator(selector).isChecked(),
     close: () => page.close(),
     page,
@@ -566,7 +578,7 @@ export const test = base.extend<Fixtures>({
           );
           const popup = await popupPage;
           await popup.waitForLoadState('domcontentloaded');
-          return playwrightExtPage(popup);
+          return playwrightExtPage(popup, { domClicks: true });
         },
       };
     } else {

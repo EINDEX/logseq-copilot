@@ -63,7 +63,10 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
 - **Popup**: Chromium: `popup.html` is opened in its own unfocused window
   (`chrome.windows.create({ focused: false })`), so
   `tabs.query({ active: true, lastFocusedWindow: true })` in the popup still
-  returns the page under test; the real toolbar popup
+  returns the page under test. Clicks in it are DOM `click()`s, as on
+  Firefox: a Playwright click would activate the popup window, and the
+  background, which clips `tabs.query({ active, currentWindow })`, would
+  clip popup.html. The real toolbar popup
   (`chrome.action.openPopup()`) is not exposed to Playwright as a page.
   Firefox: the real toolbar popup, `action.openPopup({ windowId })` on the
   page's window (a popup window would become the last focused window there).
