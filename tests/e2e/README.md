@@ -152,8 +152,9 @@ every day.
   point at once. The browser is headed (under `xvfb-run` on CI): the sites
   answer HeadlessChrome with captchas and challenge pages.
 - **Waiting**: up to 30 s for the card to be visible with `Copilot Test Page`
-  and in place (see "Placement"), and still so 3 s later (Brave replaces the
-  element the card is in shortly after load).
+  and in place (see "Placement"), and still so 3 s later (a page that
+  renders its columns again after load can take the card out; the content
+  script puts it back for 10 s).
 - **Window**: 1400x900 px (the E2E fixtures), a desktop window: every site
   has room for its right column.
 

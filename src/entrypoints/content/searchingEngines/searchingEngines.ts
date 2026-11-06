@@ -233,9 +233,10 @@ class CustomSearchEngine extends SearchingEngine {
       // Special handling for different search engines
       if (this.config.id === 'bing') {
         // #b_context is a list of cards (li.b_ans); a plain item keeps the
-        // full rail width without the card frame.
+        // full rail width without the card frame. No class: one of Bing's
+        // layouts removes added elements with class names it does not use,
+        // a few ms after they are added.
         container = document.createElement('li');
-        container.className = 'logseq-copilot-custom-container';
         Object.assign((container as HTMLElement).style, {
           listStyle: 'none',
           margin: '0 0 16px',

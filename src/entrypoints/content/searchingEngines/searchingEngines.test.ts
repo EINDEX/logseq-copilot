@@ -325,3 +325,33 @@ describe('Brave Search', () => {
     });
   });
 });
+
+describe('Bing', () => {
+  const bing = BUILT_IN_SEARCH_ENGINES.find((engine) => engine.id === 'bing')!;
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('mounts a plain list item, without a class, first in the right rail', () => {
+    document.body.innerHTML = `
+      <div id="b_content"><aside><ol id="b_context"><li class="b_ans"></li></ol></aside></div>`;
+
+    const container = new CustomSearchEngine({
+      id: bing.id,
+      name: bing.name,
+      urlPattern: bing.urlPattern!,
+      querySelector: bing.querySelector!,
+      elementSelector: bing.elementSelector!,
+      insertPosition: bing.insertPosition!,
+    }).gotElement() as HTMLElement;
+
+    const rail = document.getElementById('b_context');
+    expect(rail?.firstElementChild).toBe(container);
+    expect(container.tagName).toBe('LI');
+    // One of Bing's layouts removes added elements with classes it does
+    // not use.
+    expect(container.hasAttribute('class')).toBe(false);
+    expect(container.style.listStyle).toBe('none');
+  });
+});

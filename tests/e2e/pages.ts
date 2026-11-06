@@ -180,12 +180,32 @@ export function googleResultsHtml(query: string, rhs: GoogleRightColumn = 'empty
 }
 
 /**
- * Bing result page: the built-in Bing engine mounts an `li.b_ans` first into
- * the right rail `#b_context`, whose modules are white cards on Bing.
- * `rerender`: the page renders `#b_context` again after load
- * (rerenderScript).
+ * Bing as GitHub's runners get it (the layout with the "AI MODE" tab): it
+ * removes elements added to the page whose class names it does not use, a
+ * few ms after they are added, in the right rail and next to it. Elements
+ * without a class stay.
  */
-export function bingResultsHtml(query: string, rerender = false) {
+const dropUnknownClassesScript = `<script>
+  (() => {
+    const known = new Set([...document.querySelectorAll('[class]')].flatMap((e) => [...e.classList]));
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && [...node.classList].some((c) => !known.has(c))) node.remove();
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  })();
+</script>`;
+
+/**
+ * Bing result page: the built-in Bing engine mounts an `li` first into the
+ * right rail `#b_context`, whose modules are white cards on Bing.
+ * `rerender`: the page renders `#b_context` again after load
+ * (rerenderScript). `strict`: the page removes added elements with class
+ * names it does not use (dropUnknownClassesScript).
+ */
+export function bingResultsHtml(query: string, { rerender = false, strict = false } = {}) {
   const q = escapeHtml(query);
   const results = organicResults(q)
     .map(
@@ -246,6 +266,7 @@ export function bingResultsHtml(query: string, rerender = false) {
     </ol>
   </main>
   ${rerender ? rerenderScript('#b_context') : ''}
+  ${strict ? dropUnknownClassesScript : ''}
 </body>
 </html>`;
 }
@@ -419,8 +440,12 @@ export const googleUrl = (query: string, rhs?: GoogleRightColumn) =>
 /** `rerender` is read by the fixture routes only (rerenderScript). */
 const rerenderParam = (rerender?: boolean) => (rerender ? '&rerender=1' : '');
 
-export const bingUrl = (query: string, { rerender }: { rerender?: boolean } = {}) =>
-  `https://www.bing.com/search?q=${encodeURIComponent(query)}${rerenderParam(rerender)}`;
+/** `strict` is read by the fixture route only (dropUnknownClassesScript). */
+export const bingUrl = (
+  query: string,
+  { rerender, strict }: { rerender?: boolean; strict?: boolean } = {},
+) =>
+  `https://www.bing.com/search?q=${encodeURIComponent(query)}${rerenderParam(rerender)}${strict ? '&strict=1' : ''}`;
 
 export const duckDuckGoUrl = (query: string) =>
   `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
@@ -446,7 +471,10 @@ export async function routeFixtureSites(
   });
   await context.route('https://www.bing.com/search*', (route) => {
     const params = new URL(route.request().url()).searchParams;
-    const body = bingResultsHtml(params.get('q') ?? '', params.has('rerender'));
+    const body = bingResultsHtml(params.get('q') ?? '', {
+      rerender: params.has('rerender'),
+      strict: params.has('strict'),
+    });
     return route.fulfill({ contentType: 'text/html', body });
   });
   await context.route('https://duckduckgo.com/?*', (route) => {

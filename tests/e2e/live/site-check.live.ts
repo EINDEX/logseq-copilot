@@ -85,6 +85,8 @@ interface Snapshot {
 /**
  * Init script: log when the card's shadow host is added and removed, and its
  * container (the element the content script puts at elementSelector first).
+ * Bing's container has no class (searchingEngines.ts), so on Bing only the
+ * host is logged.
  */
 function watchCard() {
   const events: [string, number][] = [];

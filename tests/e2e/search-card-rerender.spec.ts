@@ -37,3 +37,19 @@ test.describe('search card on a page that renders its column again', () => {
     });
   }
 });
+
+/**
+ * Bing as GitHub's runners get it removes elements added to the page with
+ * class names it does not use (pages.ts, dropUnknownClassesScript). The
+ * card's container has no class there, so it stays.
+ */
+test.describe('search card on Bing that removes elements with unknown classes', () => {
+  test('the card stays in the right rail', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto(bingUrl('copilot', { strict: true }));
+
+    const card = page.locator('#b_context logseq-copilot-search-engine');
+    await expect(card.getByText('Copilot Test Page', { exact: true })).toBeVisible();
+    await expect(page.locator('logseq-copilot-search-engine')).toHaveCount(1);
+  });
+});
