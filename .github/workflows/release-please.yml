@@ -9,8 +9,8 @@ name: Release Please
 # publish.yml is called here instead of relying on the tag.
 #
 # Config: release-please-config.json, .release-please-manifest.json.
-# Releases are cut from `wxt`; the release PR targets the branch that was
-# pushed.
+# Releases are cut from `wxt`. The action targets the repository's default
+# branch unless `target-branch` is set, so it is set below.
 
 on:
   push:
@@ -38,6 +38,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          target-branch: wxt
 
   publish:
     needs: release-please
