@@ -4,6 +4,7 @@ import { searchEngineConfig } from '@/utils/storage';
 import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
+import { startInPageSidebar } from './InPageSidebar';
 import mountQuickCapture, {
   hasClippableSelection,
   runClipCommand,
@@ -64,6 +65,14 @@ export default defineContentScript({
     onMessage('content:scrollToHighlight', async (message) => {
       return HighlightManager.getInstance().scrollToHighlight(message.data.id);
     });
+
+    // Browsers without a sidebar of their own get it drawn on the page
+    // (src/utils/sidebar.ts): once per tab, so in the top frame of web pages.
+    if (window.top === window && /^https?:$/.test(location.protocol)) {
+      startInPageSidebar(ctx).catch((error) =>
+        log.error('[content] Failed to start the in-page sidebar', error),
+      );
+    }
 
     async function getEngine() {
       // Get enabled search engines from storage

@@ -6,9 +6,10 @@ import {
 } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
+import { inPageSidebarOpenItem } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
-import { openSidebar } from '@/utils/sidebar';
+import { hasNativeSidebar, openSidebar } from '@/utils/sidebar';
 import type { RecallResult } from '@/types/recall';
 import log from '@/utils/logger';
 import {
@@ -226,13 +227,13 @@ export default defineBackground({
 
     // Call it first in the handler of a menu item or command: the browser opens
     // the sidebar only while the user action is still alive, so nothing may be
-    // awaited before it.
+    // awaited before it. The sidebar drawn on the page needs no window.
     const openSidebarForTab = (tab: Browser.tabs.Tab | undefined) => {
-      if (tab?.windowId === undefined) {
+      if (tab?.windowId === undefined && hasNativeSidebar()) {
         log.warn('[background] No tab to open the highlights sidebar for');
         return;
       }
-      openSidebar(tab.windowId).catch((err) =>
+      openSidebar(tab?.windowId).catch((err) =>
         log.error('Failed to open the highlights sidebar:', err),
       );
     };
@@ -300,6 +301,14 @@ export default defineBackground({
       if (event.reason === 'install') {
         browser.runtime.openOptionsPage();
       }
+    });
+
+    // The sidebar drawn on pages starts closed with the browser, like the
+    // browser's own.
+    browser.runtime.onStartup.addListener(() => {
+      inPageSidebarOpenItem
+        .setValue(false)
+        .catch((err) => log.error('Failed to close the in-page sidebar:', err));
     });
 
     browser.commands.onCommand.addListener((command, tab) => {
