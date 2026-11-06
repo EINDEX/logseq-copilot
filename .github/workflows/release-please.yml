@@ -29,6 +29,11 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -39,6 +44,19 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           target-branch: wxt
+
+      # The release PR branch is pushed with GITHUB_TOKEN, so its push and
+      # pull_request runs never start (or wait for approval). workflow_dispatch
+      # is exempt: its runs use the branch's head commit, so they show up as
+      # the PR's checks. `pr` is only set when the PR was created or updated.
+      - name: Run checks on the release PR
+        if: ${{ steps.release.outputs.prs_created == 'true' && steps.release.outputs.release_created != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          gh workflow run integration.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
 
   publish:
     needs: release-please
