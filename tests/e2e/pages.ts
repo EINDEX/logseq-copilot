@@ -56,6 +56,42 @@ const organicResults = (q: string) => [
   },
 ];
 
+/**
+ * A page that renders `selector` again after load, as new nodes from its
+ * own markup and without what a content script put in it, like Brave
+ * Search (Svelte throws away the server-rendered `#main` when hydration
+ * fails). The Bing page renders only its right rail `#b_context` again.
+ *
+ * It happens about a second after load, and not before the search card is
+ * in the element, so a test always gets a card the page took out.
+ * `window.__rerendered` says when it happened: `hadCard` (the card was in
+ * the element) and `card` (its host element).
+ */
+const rerenderScript = (selector: string) => `<script>
+  (() => {
+    const SELECTOR = ${JSON.stringify(selector)};
+    const HOST = 'logseq-copilot-search-engine';
+    const markup = document.querySelector(SELECTOR).outerHTML;
+    const rerender = () => {
+      const old = document.querySelector(SELECTOR);
+      const card = old.querySelector(HOST);
+      const fresh = document.createElement('template');
+      fresh.innerHTML = markup;
+      old.replaceWith(fresh.content);
+      window.__rerendered = { hadCard: !!card, card };
+    };
+    window.addEventListener('load', () => setTimeout(() => {
+      if (document.querySelector(SELECTOR + ' ' + HOST)) return rerender();
+      const observer = new MutationObserver(() => {
+        if (!document.querySelector(SELECTOR + ' ' + HOST)) return;
+        observer.disconnect();
+        rerender();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }, 1000));
+  })();
+</script>`;
+
 export type GoogleRightColumn = 'empty' | 'panel' | 'none';
 
 /**
@@ -146,8 +182,10 @@ export function googleResultsHtml(query: string, rhs: GoogleRightColumn = 'empty
 /**
  * Bing result page: the built-in Bing engine mounts an `li.b_ans` first into
  * the right rail `#b_context`, whose modules are white cards on Bing.
+ * `rerender`: the page renders `#b_context` again after load
+ * (rerenderScript).
  */
-export function bingResultsHtml(query: string) {
+export function bingResultsHtml(query: string, rerender = false) {
   const q = escapeHtml(query);
   const results = organicResults(q)
     .map(
@@ -207,6 +245,7 @@ export function bingResultsHtml(query: string) {
         <a href="#">${q} tutorial</a><a href="#">${q} vs obsidian</a><a href="#">${q} plugins</a></li>
     </ol>
   </main>
+  ${rerender ? rerenderScript('#b_context') : ''}
 </body>
 </html>`;
 }
@@ -284,8 +323,9 @@ export function duckDuckGoResultsHtml(query: string) {
  * first into `#mixed-side`, or first into `#mixed-main` when the window has
  * no room for the column. Brave sets `html.dark` / `html.light` for a theme
  * picked in its settings.
+ * `rerender`: the page renders `#main` again after load (rerenderScript).
  */
-export function braveResultsHtml(query: string) {
+export function braveResultsHtml(query: string, rerender = false) {
   const q = escapeHtml(query);
   const results = organicResults(q)
     .map(
@@ -341,6 +381,7 @@ export function braveResultsHtml(query: string) {
       </div>
     </main>
   </div>
+  ${rerender ? rerenderScript('#main') : ''}
 </body>
 </html>`;
 }
@@ -364,14 +405,17 @@ export function articleHtml(title: string, paragraph: string) {
 export const googleUrl = (query: string, rhs?: GoogleRightColumn) =>
   `https://www.google.com/search?q=${encodeURIComponent(query)}${rhs ? `&rhs=${rhs}` : ''}`;
 
-export const bingUrl = (query: string) =>
-  `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+/** `rerender` is read by the fixture routes only (rerenderScript). */
+const rerenderParam = (rerender?: boolean) => (rerender ? '&rerender=1' : '');
+
+export const bingUrl = (query: string, { rerender }: { rerender?: boolean } = {}) =>
+  `https://www.bing.com/search?q=${encodeURIComponent(query)}${rerenderParam(rerender)}`;
 
 export const duckDuckGoUrl = (query: string) =>
   `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
 
-export const braveUrl = (query: string) =>
-  `https://search.brave.com/search?q=${encodeURIComponent(query)}`;
+export const braveUrl = (query: string, { rerender }: { rerender?: boolean } = {}) =>
+  `https://search.brave.com/search?q=${encodeURIComponent(query)}${rerenderParam(rerender)}`;
 
 /**
  * Route the fixture sites. Article pages are looked up by URL in `articles`;
@@ -390,16 +434,18 @@ export async function routeFixtureSites(
     return route.fulfill({ contentType: 'text/html', body: googleResultsHtml(params.get('q') ?? '', rhs) });
   });
   await context.route('https://www.bing.com/search*', (route) => {
-    const query = new URL(route.request().url()).searchParams.get('q') ?? '';
-    return route.fulfill({ contentType: 'text/html', body: bingResultsHtml(query) });
+    const params = new URL(route.request().url()).searchParams;
+    const body = bingResultsHtml(params.get('q') ?? '', params.has('rerender'));
+    return route.fulfill({ contentType: 'text/html', body });
   });
   await context.route('https://duckduckgo.com/?*', (route) => {
     const query = new URL(route.request().url()).searchParams.get('q') ?? '';
     return route.fulfill({ contentType: 'text/html', body: duckDuckGoResultsHtml(query) });
   });
   await context.route('https://search.brave.com/search*', (route) => {
-    const query = new URL(route.request().url()).searchParams.get('q') ?? '';
-    return route.fulfill({ contentType: 'text/html', body: braveResultsHtml(query) });
+    const params = new URL(route.request().url()).searchParams;
+    const body = braveResultsHtml(params.get('q') ?? '', params.has('rerender'));
+    return route.fulfill({ contentType: 'text/html', body });
   });
   await context.route('https://example.com/**', (route) => {
     const url = route.request().url();

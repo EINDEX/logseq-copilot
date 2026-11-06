@@ -1,4 +1,10 @@
 import log from '@/utils/logger';
+
+interface GotElementOptions {
+  /** No warning when the mount point is missing (asked again and again). */
+  quiet?: boolean;
+}
+
 abstract class SearchingEngine {
   abstract getId(): string;
 
@@ -8,7 +14,7 @@ abstract class SearchingEngine {
   getQuery(): string | null {
     return null;
   }
-  gotElement(): Element | null {
+  gotElement(_options?: GotElementOptions): Element | null {
     return null;
   }
   reload(callback: Function): null {
@@ -155,21 +161,23 @@ class CustomSearchEngine extends SearchingEngine {
     return query;
   }
 
-  gotElement(): Element | null {
+  gotElement({ quiet = false }: GotElementOptions = {}): Element | null {
     try {
       // Special handling for Google's sidebar
       if (this.config.id === 'google') {
         return this.handleGoogleElement();
       }
       if (this.config.id === 'brave') {
-        return this.handleBraveElement();
+        return this.handleBraveElement(quiet);
       }
 
       let targetElement = document.querySelector(this.config.elementSelector);
       if (!targetElement) {
-        log.warn(
-          `[CustomSearchEngine] Target element not found for ${this.config.name}`,
-        );
+        if (!quiet) {
+          log.warn(
+            `[CustomSearchEngine] Target element not found for ${this.config.name}`,
+          );
+        }
         return null;
       }
 
@@ -279,7 +287,7 @@ class CustomSearchEngine extends SearchingEngine {
    * off, and Brave hides it on narrow windows), the top of the results
    * (#mixed-main) instead.
    */
-  private handleBraveElement(): Element | null {
+  private handleBraveElement(quiet: boolean): Element | null {
     const side = document.querySelector(this.config.elementSelector);
     const main = document.getElementById('mixed-main');
     const room = main
@@ -288,7 +296,9 @@ class CustomSearchEngine extends SearchingEngine {
     const target =
       main && (!side || room < BRAVE_SIDE_GAP + BRAVE_SIDE_WIDTH) ? main : side;
     if (!target) {
-      log.warn(`[CustomSearchEngine] Target element not found for ${this.config.name}`);
+      if (!quiet) {
+        log.warn(`[CustomSearchEngine] Target element not found for ${this.config.name}`);
+      }
       return null;
     }
 

@@ -10,6 +10,7 @@ import mountQuickCapture, {
   runClipCommand,
 } from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
+import { keepOnPage } from './searchingEngines/keep-on-page';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
@@ -106,8 +107,14 @@ export default defineContentScript({
       return root;
     };
 
+    // The search card on the page. A search that reruns run() (Baidu's
+    // reload) replaces it.
+    let searchCard: { remove: () => void } | undefined;
+
     async function run(searchEngine: CustomSearchEngine) {
       log.debug('Logseq copliot', window.location.hostname);
+      searchCard?.remove();
+      searchCard = undefined;
 
       if (searchEngine.getId() === 'duckduckgo') {
         fixDuckDuckGoDark()
@@ -116,7 +123,7 @@ export default defineContentScript({
       const query = searchEngine.getQuery();
       if (query) {
         log.debug(`match ${typeof searchEngine}, query ${query}`);
-        const container = await searchEngine.gotElement();
+        const container = searchEngine.gotElement();
         if (!container) {
           log.warn('Failed to get container element for search engine');
           return;
@@ -150,6 +157,21 @@ export default defineContentScript({
           // block it takes the full width of the host column.
           searchEngineUi.shadowHost.style.display = 'block';
           searchEngineUi.mount();
+          // Pages that render their columns again take the card out
+          // (Brave); put it back.
+          const stopFollowing = keepOnPage(ctx, searchEngineUi.shadowHost, {
+            place: () => searchEngine.gotElement({ quiet: true }),
+            // After a search that loads no document, the card of the old
+            // query does not belong on the new results.
+            wanted: () => searchEngine.getQuery() === query,
+            onLost: () => searchEngineUi.remove(),
+          });
+          searchCard = {
+            remove: () => {
+              stopFollowing();
+              searchEngineUi.remove();
+            },
+          };
         }
       }
     }
