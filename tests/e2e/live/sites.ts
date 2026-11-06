@@ -201,8 +201,19 @@ export const LIVE_SITES: Record<string, LiveSite> = {
   startpage: {
     // The query is read from the search box (#q), not the address.
     urls: (query) => [`https://www.startpage.com/sp/search?query=${q(query)}`],
-    // .result.h: 1 px high copies of the first results.
-    organic: '.w-bg > .result:not(.h)',
+    // Startpage serves visitors one of two layouts of section#main (a home
+    // network got the first, GitHub's runners the second):
+    // - div.w-bg blocks under "Related searches", split by a News carousel;
+    //   the title link (a.result-title, data-testid="bg-title-link") is in
+    //   .result__main;
+    // - one div.w-gl block, each result with a favicon and the site name
+    //   above its title link (a.result-title, data-testid="gl-title-link").
+    // Both keep #main, .result and a.result-title, not the block's class,
+    // and put 1 px high .result.h copies of results among the results.
+    // Not matched: the hidden .result of the Wikipedia box (no title link),
+    // news (.news-result), the ads (an iframe in #gcsa-top, above the
+    // results) and the ad-blocker bait (.a-bg-result, outside #main).
+    organic: '#main .result:not(.h):has(a.result-title)',
   },
   brave: { urls: (query) => [`https://search.brave.com/search?q=${q(query)}`], organic: '.snippet[data-type="web"]' },
 };
