@@ -68,18 +68,24 @@ jobs:
           pnpm version:dev
           echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # Names the extension "Logseq Copilot Preview" and sets Chromium's
+      # version_name to X.Y.Z.N-preview (see wxt.config.ts).
       - name: Package
+        env:
+          WXT_PREVIEW_LABEL: Preview
+          WXT_PREVIEW_VERSION_NAME: ${{ steps.version.outputs.value }}-preview
         run: |
           pnpm zip
           pnpm zip:firefox
 
-      # Fixed asset names keep the download links stable across runs.
+      # Fixed asset names keep the download links stable across runs. WXT
+      # names the Chrome zip after version_name; Firefox has none.
       - name: Rename packages
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           mkdir -p preview
-          cp ".output/logseq-copilot-${VERSION}-chrome.zip" preview/logseq-copilot-preview-chrome.zip
+          cp ".output/logseq-copilot-${VERSION}-preview-chrome.zip" preview/logseq-copilot-preview-chrome.zip
           cp ".output/logseq-copilot-${VERSION}-firefox.zip" preview/logseq-copilot-preview-firefox.zip
 
       - name: Publish pre-release
@@ -97,6 +103,9 @@ jobs:
           - Branch: \`$BRANCH\`
           - Commit: [\`$SHORT_SHA\`]($COMMIT_URL)
           - Version: \`$VERSION\`
+
+          The extension list shows it as "Logseq Copilot Preview", so it can be
+          told apart from the store version.
 
           ## Install
 

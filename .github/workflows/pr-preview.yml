@@ -105,6 +105,8 @@ jobs:
             # wxt.config.ts sets manifest.version from package.json as is, and
             # browsers only accept up to four numeric parts there.
             echo "extension=$NEXT.$PR_NUMBER"
+            # Chromium shows version_name instead, which can say "preview".
+            echo "version_name=$NEXT-$PR_NUMBER-preview"
           } >> "$GITHUB_OUTPUT"
 
       # Not committed.
@@ -115,19 +117,26 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
+      # Names the extension "Logseq Copilot Preview #<PR number>" and sets
+      # Chromium's version_name to the tag without the `v` (see wxt.config.ts).
       - name: Package
+        env:
+          WXT_PREVIEW_LABEL: 'Preview #${{ github.event.pull_request.number }}'
+          WXT_PREVIEW_VERSION_NAME: ${{ steps.version.outputs.version_name }}
         run: |
           pnpm zip
           pnpm zip:firefox
 
-      # Fixed asset names keep the download links stable across pushes.
+      # Fixed asset names keep the download links stable across pushes. WXT
+      # names the Chrome zip after version_name; Firefox has none.
       - name: Rename packages
         env:
           VERSION: ${{ steps.version.outputs.extension }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           mkdir -p preview
-          cp ".output/logseq-copilot-${VERSION}-chrome.zip" "preview/logseq-copilot-${TAG}-chrome.zip"
+          cp ".output/logseq-copilot-${VERSION_NAME}-chrome.zip" "preview/logseq-copilot-${TAG}-chrome.zip"
           cp ".output/logseq-copilot-${VERSION}-firefox.zip" "preview/logseq-copilot-${TAG}-firefox.zip"
 
       - name: Publish pre-release
@@ -152,6 +161,9 @@ jobs:
           - Pull request: [#$PR_NUMBER]($PR_URL) (\`$HEAD_REF\`)
           - Commit: [\`$SHORT_SHA\`]($COMMIT_URL)
           - Extension version: \`$VERSION\`
+
+          The extension list shows it as "Logseq Copilot Preview #$PR_NUMBER",
+          so it can be told apart from the store version.
 
           ## Install
 

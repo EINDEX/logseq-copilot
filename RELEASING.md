@@ -79,6 +79,13 @@ Firefox zips, and replaces the single pre-release tagged `preview`:
 The release notes say which branch and commit it was built from and how to
 install it.
 
+The package is named "Logseq Copilot Preview", in the extension list and on
+the toolbar button, so it can be told apart from the store version. Chrome and
+Edge also show the version as `X.Y.Z.N-preview` (`version_name`); Firefox has
+no `version_name` and shows `X.Y.Z.N`. The Package step sets both with
+`WXT_PREVIEW_LABEL` and `WXT_PREVIEW_VERSION_NAME`, read by `wxt.config.ts`.
+Without them (releases, local and e2e builds) the manifest is unchanged.
+
 It does not publish to any store and does not affect release-please. The tag
 is `preview`, not `v*`: a `v*` tag would start `publish.yml`, and
 release-please could take it as the previous release. The release is created
@@ -102,9 +109,15 @@ named after the next release version and the PR number:
   `v2.0.0-104-preview`.
 - Assets: `logseq-copilot-v2.0.0-104-preview-chrome.zip` and
   `logseq-copilot-v2.0.0-104-preview-firefox.zip` (unsigned).
+- Extension name: "Logseq Copilot Preview #104", in the extension list and on
+  the toolbar button, so it can be told apart from the store version.
 - Extension version: `2.0.0.104`. `wxt.config.ts` copies the `package.json`
   version into the manifest as is, and browsers only accept up to four
-  numeric parts there.
+  numeric parts there. Chrome and Edge show `2.0.0-104-preview` instead
+  (`version_name`); Firefox has no `version_name` and shows `2.0.0.104`.
+
+The name and `version_name` come from `WXT_PREVIEW_LABEL` and
+`WXT_PREVIEW_VERSION_NAME` on the Package step, the same as for preview builds.
 
 The next version is the first of: `release-as` in
 `release-please-config.json`, the X.Y.Z in the title of the open release-please

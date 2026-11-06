@@ -4,6 +4,16 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { stripRegisteredProperties } from './src/utils/content-css';
 
+// CI preview builds only (preview.yml, pr-preview.yml; see RELEASING.md), so
+// they stand apart from the store version in the browser's extension list.
+// Unset for release, dev and e2e builds, which keep the manifest as is.
+// - WXT_PREVIEW_LABEL: put after the name, e.g. `Preview #104`.
+// - WXT_PREVIEW_VERSION_NAME: Chromium's version_name, e.g.
+//   `2.0.0-104-preview`. WXT leaves it out of Firefox builds.
+const previewLabel = process.env.WXT_PREVIEW_LABEL || undefined;
+const previewVersionName = process.env.WXT_PREVIEW_VERSION_NAME || undefined;
+const name = previewLabel ? `Logseq Copilot ${previewLabel}` : 'Logseq Copilot';
+
 export default defineConfig({
   srcDir: 'src',
   // E2E builds (WXT_E2E=true, open shadow roots) get their own output folder
@@ -15,7 +25,8 @@ export default defineConfig({
   manifestVersion: 3,
   manifest: ({ browser }) => ({
     version: version,
-    name: 'Logseq Copilot',
+    ...(previewVersionName && { version_name: previewVersionName }),
+    name,
     description:
       'Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.',
     // Firefox requires a string here; Chromium browsers take { email }.
@@ -54,6 +65,20 @@ export default defineConfig({
         strict_min_version: '127.0',
         // Data only goes to the user's own Logseq API server.
         data_collection_permissions: { required: ['none'] },
+      },
+    },
+  }),
+  // WXT takes the toolbar and Firefox sidebar titles from the <title> of the
+  // popup and sidepanel pages, after the manifest option above is applied.
+  ...(previewLabel && {
+    hooks: {
+      'build:manifestGenerated': (_, manifest) => {
+        if (manifest.action?.default_title) {
+          manifest.action.default_title = name;
+        }
+        if (manifest.sidebar_action?.default_title) {
+          manifest.sidebar_action.default_title = name;
+        }
       },
     },
   }),
