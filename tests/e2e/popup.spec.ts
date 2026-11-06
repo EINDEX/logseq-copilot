@@ -21,8 +21,9 @@ test.describe('popup', () => {
     await popup.expectText('Reading notes from https://example.com/copilot/article');
     // The current page title comes from the target tab, not the popup.
     await popup.expectText('Fixture /copilot/article');
-    // The graph badge opens the graph in Logseq.
-    await popup.expectButton(`Open ${logseq.graph} in Logseq`);
+    // The graph badge opens the graph in Logseq. The API names a DB graph
+    // `logseq_db_<name>`; Logseq and the popup show `<name>`.
+    await popup.expectButton(`Open ${logseq.graph.replace(/^logseq_db_/, '')} in Logseq`);
   });
 
   test('clearing a typed search shows the results for the page again', async ({ page, ext }) => {
