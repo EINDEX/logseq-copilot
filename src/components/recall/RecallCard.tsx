@@ -18,11 +18,9 @@ import './recall-card.css';
 const HIT_SNIPPET = 90;
 const CONTEXT_SNIPPET = 50;
 
-export const graphUrl = (graph: string) => `logseq://graph/${encodeURIComponent(graph)}`;
-export const pageUrl = (graph: string, name: string) =>
-  `${graphUrl(graph)}?page=${encodeURIComponent(name)}`;
-export const blockUrl = (graph: string, uuid: string) =>
-  `${graphUrl(graph)}?block-id=${encodeURIComponent(uuid)}`;
+// In a module of their own so the popup can use them without this card's CSS.
+import { blockUrl, graphUrl, pageUrl } from '@/utils/logseq-url';
+export { blockUrl, graphUrl, pageUrl };
 
 type Shared = { graph: string; terms: string[] };
 

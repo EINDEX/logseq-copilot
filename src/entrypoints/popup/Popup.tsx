@@ -2,13 +2,15 @@ import { browser } from 'wxt/browser';
 import { useEffect, useState } from 'react';
 import React from 'react';
 import { LogseqSearchResult } from '@/types/logseqBlock';
-import { Settings, Search, RefreshCw, ExternalLink, Plus, BookOpen } from 'lucide-react';
+import { Settings, Search, RefreshCw, ExternalLink, Plus, BookOpen, PanelRight } from 'lucide-react';
 
 import { LogseqBlock } from '@/components/LogseqBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { badgeVariants } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { graphUrl } from '@/utils/logseq-url';
 
 import { sendMessage } from '@/types/messaging';
 import { openSidebar } from '@/utils/sidebar';
@@ -16,6 +18,13 @@ import log from '@/utils/logger';
 import { clipErrorMessage } from '@/utils/clip-feedback';
 import { QuickActions, type ClipAction } from './components/QuickActions';
 import { SearchResults } from './components/SearchResults';
+
+/** Pages the popup does not search: browser and extension pages. */
+const isSearchablePage = (url: string | undefined): url is string =>
+  !!url &&
+  !['chrome://', 'about:', 'moz-extension://', 'chrome-extension://'].some((prefix) =>
+    url.startsWith(prefix),
+  );
 
 export default function Popup() {
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +88,15 @@ export default function Popup() {
   // where currentTab has not been committed yet).
   const searchCurrentPage = () => searchPage(currentTab?.url);
 
+  // Clearing the search box (typing it empty, its clear button, Escape) goes
+  // back to the results for the current page.
+  const changeSearchQuery = (query: string) => {
+    setSearchQuery(query);
+    if (query === '' && searchQuery !== '' && isSearchablePage(currentTab?.url)) {
+      searchCurrentPage();
+    }
+  };
+
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
 
@@ -114,7 +132,7 @@ export default function Popup() {
 
   const openLogseqGraph = () => {
     if (logseqSearchResult?.graph) {
-      window.open(`logseq://graph/${logseqSearchResult.graph}`, '_blank');
+      window.open(graphUrl(logseqSearchResult.graph), '_blank');
       window.close();
     }
   };
@@ -171,12 +189,7 @@ export default function Popup() {
               () => setCanClipSelection(false),
             );
           }
-          if (
-            tab.url &&
-            !['chrome://', 'about:', 'moz-extension://', 'chrome-extension://'].some(
-              (prefix) => tab.url!.startsWith(prefix),
-            )
-          ) {
+          if (isSearchablePage(tab.url)) {
             await searchPage(tab.url);
           }
         }
@@ -196,22 +209,41 @@ export default function Popup() {
   return (
     <div className="w-96 max-h-[600px] p-4 bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex shrink-0 items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-lg">Logseq Copilot</h2>
+          <h2 className="font-semibold text-lg whitespace-nowrap">Logseq Copilot</h2>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
           {logseqSearchResult?.graph && (
-            <Badge variant="secondary" className="text-xs">
-              {logseqSearchResult.graph}
-            </Badge>
+            <button
+              type="button"
+              onClick={openLogseqGraph}
+              aria-label={`Open ${logseqSearchResult.graph} in Logseq`}
+              title={`Open ${logseqSearchResult.graph} in Logseq`}
+              className={cn(badgeVariants({ variant: 'secondary' }), 'mr-1 min-w-0 cursor-pointer')}
+            >
+              <span className="truncate">{logseqSearchResult.graph}</span>
+            </button>
           )}
           <Button
             variant="ghost"
             size="sm"
+            onClick={openSidebarAndClose}
+            disabled={windowId === undefined}
+            aria-label="Highlights"
+            title="Highlights"
+            className="h-8 w-8 shrink-0 p-0"
+          >
+            <PanelRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={openSettingsPage}
-            className="h-8 w-8 p-0"
+            aria-label="Settings"
+            title="Settings"
+            className="h-8 w-8 shrink-0 p-0"
           >
             <Settings className="w-4 h-4" />
           </Button>
@@ -223,10 +255,17 @@ export default function Popup() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            type="text"
+            type="search"
             placeholder="Search in your Logseq graph..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => changeSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // Escape in a popup closes it: with a query, clear that instead.
+              if (e.key === 'Escape' && searchQuery !== '') {
+                e.preventDefault();
+                changeSearchQuery('');
+              }
+            }}
             className="pl-10"
             disabled={isSearching}
           />
@@ -258,13 +297,6 @@ export default function Popup() {
             message: clipError.message === error ? null : clipError.message,
           }
         }
-        onRefresh={searchCurrentPage}
-        onOpenSettings={openSettingsPage}
-        onOpenLogseq={openLogseqGraph}
-        onOpenSidebar={openSidebarAndClose}
-        canOpenSidebar={windowId !== undefined}
-        isLoading={isLoading}
-        hasGraph={!!logseqSearchResult?.graph}
       />
 
       {/* Content */}

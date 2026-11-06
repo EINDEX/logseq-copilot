@@ -13,7 +13,7 @@ const selectParagraph = (page: Page) =>
   });
 
 test.describe('popup', () => {
-  test('searches the URL of the active tab and lists the matching block', async ({ page, ext }) => {
+  test('searches the URL of the active tab and lists the matching block', async ({ page, ext, logseq }) => {
     await ext.connect();
     await page.goto('https://example.com/copilot/article');
 
@@ -21,6 +21,24 @@ test.describe('popup', () => {
     await popup.expectText('Reading notes from https://example.com/copilot/article');
     // The current page title comes from the target tab, not the popup.
     await popup.expectText('Fixture /copilot/article');
+    // The graph badge opens the graph in Logseq.
+    await popup.expectButton(`Open ${logseq.graph} in Logseq`);
+  });
+
+  test('clearing a typed search shows the results for the page again', async ({ page, ext }) => {
+    await ext.connect();
+    await page.goto('https://example.com/copilot/article');
+
+    const popup = await ext.openPopup(page);
+    await popup.expectText('Reading notes from https://example.com/copilot/article');
+    const search = 'input[placeholder^="Search in your Logseq graph"]';
+    await popup.fill(search, 'showcase');
+    await popup.press(search, 'Enter');
+    await popup.expectText('showcase parent block');
+    expect(await popup.hasText('Reading notes from')).toBe(false);
+
+    await popup.fill(search, '');
+    await popup.expectText('Reading notes from https://example.com/copilot/article');
   });
 
   test('checking a task in the popup marks it DONE in Logseq', async ({ page, ext, logseq }) => {

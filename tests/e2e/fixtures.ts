@@ -304,10 +304,17 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
             const el = nth(a.selector, a.nth);
             if (!el) return false;
             el.focus();
+            let submit = a.key === 'Enter';
             for (const type of ['keydown', 'keypress', 'keyup']) {
               const init = { key: a.key, code: a.key, keyCode: 13, which: 13, charCode: type === 'keypress' ? 13 : 0 };
-              el.dispatchEvent(new KeyboardEvent(type, { ...init, bubbles: true, cancelable: true }));
+              const allowed = el.dispatchEvent(new KeyboardEvent(type, { ...init, bubbles: true, cancelable: true }));
+              if (type !== 'keyup' && !allowed) submit = false;
             }
+            // A synthetic Enter does not submit the form of an input the way a
+            // real one does: submit it like the browser would (unless keydown
+            // or keypress was cancelled).
+            const form = (el as HTMLInputElement).form;
+            if (submit && form && el instanceof HTMLInputElement) form.requestSubmit();
             return true;
           }
           case 'click': {

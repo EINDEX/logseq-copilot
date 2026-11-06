@@ -176,19 +176,14 @@ describe('Popup', () => {
       vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
     });
 
-    it('sits next to Clip page, with Refresh as an icon button', async () => {
+    it('shares the action row with Clip page, and nothing else', async () => {
       pageAnswers(async () => true);
       render(<Popup />);
 
-      const [clipPage, clipSelection, refresh] = [
-        // The first one; the empty results have one too.
-        screen.getAllByRole('button', { name: 'Clip page' })[0],
-        clipButton(),
-        screen.getByRole('button', { name: 'Refresh' }),
-      ];
-      expect(clipPage.parentElement).toBe(clipSelection.parentElement);
-      expect(refresh.parentElement).toBe(clipSelection.parentElement);
-      expect(refresh.textContent).toBe('');
+      // The first one; the empty results have one too.
+      const clipPage = screen.getAllByRole('button', { name: 'Clip page' })[0];
+      expect(clipPage.parentElement).toBe(clipButton().parentElement);
+      expect(clipButton().parentElement!.children).toHaveLength(2);
     });
 
     it('asks the page of the active tab for its selection', async () => {
@@ -373,6 +368,136 @@ describe('Popup', () => {
       expect(button('Clip selection').disabled).toBe(true);
       done();
       await waitFor(() => expect(window.close).toHaveBeenCalledTimes(1));
+    });
+  });
+
+  describe('header', () => {
+    const tab = { id: 4, windowId: 7, url: 'https://example.com/page', title: 'Example' };
+
+    beforeEach(() => {
+      vi.spyOn(window, 'close').mockImplementation(() => {});
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+      sendMessage.mockImplementation((type: string) =>
+        Promise.resolve(
+          type === 'content:hasSelection'
+            ? false
+            : {
+                status: 200,
+                response: { graph: 'my graph/2', pages: [], blocks: [], count: 0 },
+              },
+        ),
+      );
+    });
+
+    it('opens the graph in Logseq from its badge', async () => {
+      render(<Popup />);
+      const badge = await screen.findByRole('button', {
+        name: 'Open my graph/2 in Logseq',
+      });
+      expect(badge.textContent).toBe('my graph/2');
+      expect(badge.title).toBe('Open my graph/2 in Logseq');
+
+      fireEvent.click(badge);
+
+      expect(window.open).toHaveBeenCalledWith('logseq://graph/my%20graph%2F2', '_blank');
+      expect(window.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('has one way to the settings, the gear, and no Open Graph or Refresh', async () => {
+      render(<Popup />);
+      await screen.findByRole('button', { name: /in Logseq$/ });
+
+      expect(screen.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Settings' }).title).toBe('Settings');
+      expect(screen.queryByRole('button', { name: /Open Graph/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
+    });
+
+    it('opens the options from the gear', async () => {
+      render(<Popup />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+      expect(sendMessage).toHaveBeenCalledWith('app:openOptions');
+    });
+  });
+
+  describe('clearing the search box', () => {
+    const tab = { id: 4, windowId: 7, url: 'https://example.com/page', title: 'Example' };
+    const input = () => screen.getByPlaceholderText(/Search in your Logseq graph/);
+    const urlSearches = () =>
+      sendMessage.mock.calls.filter(([type]) => type === 'logseq:urlSearch').length;
+
+    const typedSearch = async () => {
+      render(<Popup />);
+      await waitFor(() => expect(urlSearches()).toBe(1));
+      fireEvent.change(input(), { target: { value: 'notes' } });
+      fireEvent.submit(input().closest('form')!);
+      await waitFor(() => expect(sendMessage).toHaveBeenCalledWith('logseq:search', 'notes'));
+    };
+
+    beforeEach(() => {
+      vi.spyOn(browser.tabs, 'query').mockResolvedValue([tab] as Browser.tabs.Tab[]);
+    });
+
+    it('does not search while typing', async () => {
+      render(<Popup />);
+      await waitFor(() => expect(urlSearches()).toBe(1));
+
+      fireEvent.change(input(), { target: { value: 'n' } });
+      fireEvent.change(input(), { target: { value: 'no' } });
+
+      expect(urlSearches()).toBe(1);
+      expect(sendMessage).not.toHaveBeenCalledWith('logseq:search', expect.anything());
+    });
+
+    it('shows the results for the current page again (typed empty, or its clear button)', async () => {
+      await typedSearch();
+
+      fireEvent.change(input(), { target: { value: '' } });
+
+      await waitFor(() => expect(urlSearches()).toBe(2));
+      expect(sendMessage).toHaveBeenLastCalledWith('logseq:urlSearch', {
+        url: 'https://example.com/page',
+        options: { fuzzy: true },
+      });
+    });
+
+    it('with Escape, which then does not close the popup', async () => {
+      await typedSearch();
+
+      // fireEvent returns false when the default was prevented.
+      const escapeKept = fireEvent.keyDown(input(), { key: 'Escape' });
+
+      expect(escapeKept).toBe(false);
+      expect((input() as HTMLInputElement).value).toBe('');
+      await waitFor(() => expect(urlSearches()).toBe(2));
+    });
+
+    it('leaves Escape alone when the box is empty', async () => {
+      render(<Popup />);
+      await waitFor(() => expect(urlSearches()).toBe(1));
+
+      // fireEvent returns false when the default was prevented.
+      const escapeKept = fireEvent.keyDown(input(), { key: 'Escape' });
+
+      expect(escapeKept).toBe(true);
+      expect(urlSearches()).toBe(1);
+    });
+
+    it('does not search browser pages', async () => {
+      vi.mocked(browser.tabs.query).mockResolvedValue([
+        { ...tab, url: 'chrome://newtab/' },
+      ] as Browser.tabs.Tab[]);
+      render(<Popup />);
+      await waitFor(() => expect(sendMessage).toHaveBeenCalled());
+
+      fireEvent.change(input(), { target: { value: 'notes' } });
+      fireEvent.change(input(), { target: { value: '' } });
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(urlSearches()).toBe(0);
     });
   });
 });
