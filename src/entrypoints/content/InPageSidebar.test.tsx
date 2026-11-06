@@ -165,10 +165,14 @@ describe('InPageSidebar', () => {
 describe('startInPageSidebar', () => {
   // The page the content script runs in (the test document's origin).
   const HERE = new URL('/page', location.href).href;
-  let locationChanged: (() => void) | undefined;
+  let locationChanged: ((event: { newUrl: URL }) => void) | undefined;
   const ctx = {
     addEventListener: vi.fn(
-      (_target: unknown, type: string, handler: () => void) => {
+      (
+        _target: unknown,
+        type: string,
+        handler: (event: { newUrl: URL }) => void,
+      ) => {
         if (type === 'wxt:locationchange') locationChanged = handler;
       },
     ),
@@ -262,9 +266,13 @@ describe('startInPageSidebar', () => {
     await start();
     await screen.findByText('text of a');
 
-    history.pushState(null, '', next);
+    // WXT sends the event from the Navigation API's navigate event, before
+    // the address changes.
     document.title = 'Next page';
-    await act(async () => locationChanged!());
+    await act(async () => {
+      locationChanged!({ newUrl: new URL(next) });
+      history.pushState(null, '', next);
+    });
 
     expect(await screen.findByText('text of n')).not.toBeNull();
     expect(text('text of a')).toBeNull();

@@ -65,8 +65,8 @@ export function InPageSidebar({ url, title }: InPageSidebarProps) {
   );
 }
 
-const renderSidebar = (root: Root) =>
-  root.render(<InPageSidebar url={location.href} title={document.title} />);
+const renderSidebar = (root: Root, url = location.href) =>
+  root.render(<InPageSidebar url={url} title={document.title} />);
 
 /**
  * Show the in-page sidebar while `inPageSidebarOpen` is set, and follow the
@@ -101,8 +101,10 @@ export async function startInPageSidebar(
         },
         onRemove: (root) => root?.unmount(),
       });
-      ctx.addEventListener(window, 'wxt:locationchange', () => {
-        if (ui?.mounted) renderSidebar(ui.mounted);
+      // WXT sends this from the Navigation API's navigate event, before the
+      // address changes: location.href is still the old page.
+      ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
+        if (ui?.mounted) renderSidebar(ui.mounted, newUrl.href);
       });
     }
     if (open) ui!.mount();
