@@ -367,6 +367,74 @@ describe('logseq:recall', () => {
   });
 });
 
+// A logseq: link of a content script UI (src/utils/logseq-links.ts).
+describe('logseq:openLink', () => {
+  const LINK = 'logseq://graph/My%20Notes?page=copilot';
+  const pageTab = { id: 7, url: 'https://www.google.com/search?q=copilot' };
+
+  beforeEach(() => {
+    vi.spyOn(fakeBrowser.tabs, 'update').mockResolvedValue({} as any);
+  });
+
+  afterEach(() => {
+    vi.mocked(fakeBrowser.tabs.update).mockRestore();
+  });
+
+  /** Send as the content script in `tab` would (fakeBrowser's sender is empty). */
+  const openFrom = async (tab: { id?: number; url?: string }, url: unknown) => {
+    const send = vi
+      .spyOn(fakeBrowser.runtime, 'sendMessage')
+      .mockImplementationOnce(async (message: any) => {
+        const res = await fakeBrowser.runtime.onMessage.trigger(message, { tab } as any);
+        return res.find((r: unknown) => !!r);
+      });
+    return sendMessage('logseq:openLink', { url: url as string }).finally(() =>
+      send.mockRestore(),
+    );
+  };
+
+  test('opens the link in the tab of the content script that sent it', async () => {
+    await openFrom(pageTab, LINK);
+
+    expect(fakeBrowser.tabs.update).toHaveBeenCalledTimes(1);
+    expect(fakeBrowser.tabs.update).toHaveBeenCalledWith(7, { url: LINK });
+  });
+
+  test.each([
+    'https://evil.example/',
+    'http://localhost:12315/api',
+    'javascript:alert(1)',
+    'data:text/html,<p>hi',
+    'file:///etc/passwd',
+    'chrome://settings',
+    'about:blank',
+    'logseq',
+    '/graph/Notes',
+    '',
+    undefined,
+    42,
+  ])('rejects %j: only logseq: URLs', async (url) => {
+    const err = await openFrom(pageTab, url).catch((e) => e);
+
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe('Not a logseq: link.');
+    expect(fakeBrowser.tabs.update).not.toHaveBeenCalled();
+  });
+
+  test('ignores a message without a sender tab (popup, side panel)', async () => {
+    await sendMessage('logseq:openLink', { url: LINK });
+
+    expect(fakeBrowser.tabs.update).not.toHaveBeenCalled();
+  });
+
+  test('ignores a sender without a tab id', async () => {
+    await openFrom({ url: pageTab.url }, LINK);
+    await openFrom({ id: -1, url: pageTab.url }, LINK);
+
+    expect(fakeBrowser.tabs.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('browser startup', () => {
   test('closes the sidebar drawn on pages', async () => {
     await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });

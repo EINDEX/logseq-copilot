@@ -2,6 +2,7 @@ import React from 'react';
 import { LogseqPageIdenity } from '@/types/logseqBlock';
 import { IconFile } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
+import { pageUrl } from '@/utils/logseq-url';
 import './logseq-results.css';
 
 type LogseqPageLinkProps = {
@@ -10,9 +11,6 @@ type LogseqPageLinkProps = {
   isPopUp?: boolean;
   className?: string;
 };
-
-export const pageUrl = (graph: string, name: string) =>
-  `logseq://graph/${encodeURIComponent(graph)}?page=${encodeURIComponent(name)}`;
 
 /** A page title row that opens the page in Logseq (styles: logseq-results.css). */
 const LogseqPageLink = ({

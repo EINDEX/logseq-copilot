@@ -37,6 +37,13 @@ export interface MessagingProtocol {
 
   'app:openPage': (data: { url: string }) => void;
 
+  /**
+   * From a content script: open a `logseq:` link of its UI in its tab
+   * (src/utils/logseq-links.ts). Rejects any other URL; ignored without a
+   * sender tab.
+   */
+  'logseq:openLink': (data: { url: string }) => void;
+
   // Content script messages. Clip commands resolve once the clip is done; for
   // failures see ClipCommandOptions.
   'content:quickCapture': (data?: ClipCommandOptions) => void;

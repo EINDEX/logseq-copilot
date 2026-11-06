@@ -280,7 +280,12 @@ describe('content script UI mounting', () => {
 // Browsers without a sidebar of their own (src/utils/sidebar.ts).
 describe('content script in-page highlights sidebar', () => {
   const ctx = { addEventListener: vi.fn() };
-  const sidebarUi = { mount: vi.fn(), remove: vi.fn(), mounted: undefined };
+  const sidebarUi = {
+    mount: vi.fn(),
+    remove: vi.fn(),
+    mounted: undefined,
+    shadow: new EventTarget(),
+  };
   const sidebarCreated = () =>
     vi
       .mocked(createShadowRootUi)

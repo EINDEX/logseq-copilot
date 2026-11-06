@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
+import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
 import { shadowRootMode } from '@/utils/shadow-mode';
 import { inPageSidebarOpenItem } from '@/utils/storage';
 import { zIndex } from '@/utils/z-index';
@@ -101,6 +102,7 @@ export async function startInPageSidebar(
         },
         onRemove: (root) => root?.unmount(),
       });
+      openLogseqLinksFromBackground(ui.shadow);
       // Redraw for the address the tab is at, once it has changed. Not for the
       // newUrl of wxt:locationchange: with the Navigation API, WXT sends it
       // from the navigate event, before the navigation happens. That URL is

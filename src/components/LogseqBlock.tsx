@@ -2,8 +2,9 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { IconArrowUpRight, IconCheck } from '@tabler/icons-react';
 import { LogseqBlockType } from '@/types/logseqBlock';
-import LogseqPageLink, { pageUrl } from './LogseqPage';
+import LogseqPageLink from './LogseqPage';
 import { sendMessage } from '@/types/messaging';
+import { blockUrl, pageUrl } from '@/utils/logseq-url';
 import './logseq-results.css';
 
 type LogseqBlockProps = {
@@ -27,9 +28,6 @@ const NEXT_MARKER: Record<string, string> = {
 };
 /** Markers whose label stays in front of the text (in-progress styling). */
 const SHOWN_MARKERS = ['DOING', 'NOW'];
-
-export const blockUrl = (graph: string, uuid: string) =>
-  `logseq://graph/${encodeURIComponent(graph)}?block-id=${encodeURIComponent(uuid)}`;
 
 /** A task's marker and its changes, sent through the background. */
 const useTaskMarker = (uuid: string, marker: string) => {

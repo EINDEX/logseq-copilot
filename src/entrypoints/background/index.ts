@@ -23,6 +23,7 @@ import {
   showClipErrorBadge,
 } from './clip-error-badge';
 import { clipErrorMessage } from '@/utils/clip-feedback';
+import { isLogseqUrl } from '@/utils/logseq-url';
 
 const CANNOT_CLIP_PAGE = 'Cannot clip this page: extensions cannot run on it.';
 
@@ -112,6 +113,21 @@ export default defineBackground({
 
     onMessage('app:openPage', async ({ data }) => {
       await openPage(data.url);
+    });
+
+    // A link to Logseq in a content script UI (the recall card, ...). Opened
+    // by the page, the browser asks whether that site may open Logseq, once
+    // per site; opened here, it asks once for the extension. Only in the tab
+    // the content script runs in, and only logseq: URLs: this must not become
+    // a way to send a tab to any address.
+    onMessage('logseq:openLink', async ({ data, sender }) => {
+      const tabId = sender.tab?.id;
+      if (tabId === undefined || tabId < 0) {
+        log.warn('[background] logseq:openLink without a sender tab, ignored');
+        return;
+      }
+      if (!isLogseqUrl(data?.url)) throw new Error('Not a logseq: link.');
+      await browser.tabs.update(tabId, { url: data.url });
     });
 
     onMessage('logseq:changeBlockMarker', async ({ data }) => {

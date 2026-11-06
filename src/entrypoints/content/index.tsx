@@ -13,6 +13,7 @@ import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { onMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
+import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
 import { shadowRootMode } from '@/utils/shadow-mode';
 
 export default defineContentScript({
@@ -144,6 +145,7 @@ export default defineContentScript({
         });
 
         if (searchEngineUi) {
+          openLogseqLinksFromBackground(searchEngineUi.shadow);
           // 4. Mount the UI. The host element is inline by default; as a
           // block it takes the full width of the host column.
           searchEngineUi.shadowHost.style.display = 'block';
@@ -192,6 +194,7 @@ export default defineContentScript({
       });
 
       if (popupUi) {
+        openLogseqLinksFromBackground(popupUi.shadow);
         // 4. Mount the UI
         popupUi.mount();
       }

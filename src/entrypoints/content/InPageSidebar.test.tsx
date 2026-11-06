@@ -27,6 +27,8 @@ const fakeUi = vi.hoisted(() => async (_ctx: unknown, options: any) => {
   let mounted: unknown;
   return {
     shadowHost: host,
+    // Stands in for the shadow root: events in the UI bubble up to the host.
+    shadow: host,
     uiContainer: container,
     mount() {
       document.body.append(host);
