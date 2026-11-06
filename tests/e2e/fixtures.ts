@@ -559,9 +559,14 @@ export const test = base.extend<Fixtures>({
         .poll(() => context.pages().some((p) => p.url().startsWith(optionsUrl)), { timeout: 10_000 })
         .toBe(true)
         .catch(() => {});
-      for (const p of context.pages()) {
-        if (p.url().startsWith(optionsUrl)) await p.close();
+      const optionsPages = context.pages().filter((p) => p.url().startsWith(optionsUrl));
+      // Headed Chromium on Linux (the live site check under xvfb) can have the
+      // options tab as its only page; with the last tab closed it cannot open
+      // a page any more (Target.createTarget fails). Open the test page first.
+      if (optionsPages.length && optionsPages.length === context.pages().length) {
+        await context.newPage();
       }
+      for (const p of optionsPages) await p.close();
 
       ext = {
         browser: 'chromium',
