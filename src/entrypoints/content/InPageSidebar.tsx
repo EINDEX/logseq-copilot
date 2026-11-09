@@ -4,9 +4,11 @@ import {
   createShadowRootUi,
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { HighlightsPanel } from '@/components/HighlightsPanel';
+import { SidebarPanel } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
+import { usePageRecall } from '@/hooks/use-page-recall';
+import { sendMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
@@ -17,17 +19,25 @@ import '@/assets/globals.css';
 
 interface InPageSidebarProps {
   url: string;
-  title: string;
 }
 
+const openSettings = () => {
+  sendMessage('app:openOptions').catch((error) =>
+    log.error('[InPageSidebar] Failed to open the options page:', error),
+  );
+};
+
 /**
- * The highlights sidebar for browsers without one of their own (Safari,
- * Firefox for Android): the same panel as the browser sidebar, docked to the
- * right edge of the page. It covers the page and leaves its layout alone.
+ * The sidebar for browsers without one of their own (Safari, Firefox for
+ * Android): the same panel as the browser sidebar, docked to the right edge
+ * of the page. It covers the page and leaves its layout alone. Its `logseq:`
+ * links are opened by the background (openLogseqLinksFromBackground on the
+ * shadow root, in startInPageSidebar).
  */
-export function InPageSidebar({ url, title }: InPageSidebarProps) {
+export function InPageSidebar({ url }: InPageSidebarProps) {
   const { highlights, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
+  const { retry: retryRecall, ...recall } = usePageRecall(url);
 
   const handleSelect = async (id: string) => {
     setNotice(null);
@@ -51,14 +61,16 @@ export function InPageSidebar({ url, title }: InPageSidebarProps) {
         className="fixed inset-y-0 right-0 w-[min(360px,100vw)] overflow-hidden border-l bg-background shadow-[-2px_0_12px_rgb(0_0_0/0.05)] dark:shadow-[-2px_0_12px_rgb(0_0_0/0.35)]"
         style={{ zIndex }}
       >
-        <HighlightsPanel
-          page={{ title, url }}
+        <SidebarPanel
           status={highlights === null ? 'loading' : 'ready'}
           highlights={highlights ?? []}
           notice={notice}
           onSelect={handleSelect}
           onDelete={deleteHighlight}
           onUpdateNote={updateNote}
+          recall={recall}
+          onRetryRecall={retryRecall}
+          onOpenSettings={openSettings}
           onClose={close}
         />
       </div>
@@ -67,7 +79,7 @@ export function InPageSidebar({ url, title }: InPageSidebarProps) {
 }
 
 const renderSidebar = (root: Root) =>
-  root.render(<InPageSidebar url={location.href} title={document.title} />);
+  root.render(<InPageSidebar url={location.href} />);
 
 /**
  * Show the in-page sidebar while `inPageSidebarOpen` is set, and follow the
