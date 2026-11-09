@@ -1,10 +1,11 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { IconArrowUpRight, IconCheck } from '@tabler/icons-react';
 import { LogseqBlockType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { sendMessage } from '@/types/messaging';
 import { blockUrl, pageUrl } from '@/utils/logseq-url';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import './logseq-results.css';
 
 type LogseqBlockProps = {
@@ -151,6 +152,9 @@ export const LogseqBlockRow = ({
   const canSwitch = !!NEXT_MARKER[status];
   const showMarker = SHOWN_MARKERS.includes(status);
   const hasStatusLabel = !!status && !hasCheckbox && !CANCELED_MARKERS.includes(status);
+  // The block's Markdown may hold raw HTML (a clipped page, ...), and the
+  // sidebar on pages draws this in the page's own document.
+  const html = useMemo(() => sanitizeHtml(block.html), [block.html]);
 
   return (
     <li>
@@ -177,7 +181,7 @@ export const LogseqBlockRow = ({
               {hasStatusLabel && <span className="lc-status">{status}</span>}
             </span>
           )}
-          <div className="lc-content" dangerouslySetInnerHTML={{ __html: block.html }} />
+          <div className="lc-content" dangerouslySetInnerHTML={{ __html: html }} />
           {block.tagNames && block.tagNames.length > 0 && (
             <div className="lc-block-tags">
               {block.tagNames.map((name) => (
