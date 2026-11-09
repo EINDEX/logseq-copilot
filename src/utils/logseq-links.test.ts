@@ -166,3 +166,48 @@ describe('everything else keeps its default', () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 });
+
+// An extension page (the browser sidebar) has no tab for logseq:openLink.
+describe('with an opener of its own', () => {
+  /** A page with links and the listeners of `open` on its root element. */
+  const makePage = (open: (url: string) => Promise<unknown>) => {
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <a id="logseq" href="${LOGSEQ}"><span id="inside">Block</span></a>
+      <a id="web" href="https://example.com/">Web</a>
+    `;
+    document.body.replaceChildren(root);
+    const stop = openLogseqLinksFromBackground(root, open);
+    return { link: (id: string) => root.querySelector(`#${id}`)!, stop };
+  };
+
+  test('a click on a logseq: link goes to the opener, not logseq:openLink', () => {
+    const open = vi.fn().mockResolvedValue(undefined);
+    const { link } = makePage(open);
+
+    expect(press(link('inside'), 'click')).toBe(true);
+    expect(press(link('logseq'), 'auxclick', { button: 1 })).toBe(true);
+
+    expect(open.mock.calls).toEqual([[LOGSEQ], [LOGSEQ]]);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  test('web links keep their default', () => {
+    const open = vi.fn().mockResolvedValue(undefined);
+    const { link } = makePage(open);
+
+    expect(press(link('web'), 'click')).toBe(false);
+
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  test('stops after the returned function is called', () => {
+    const open = vi.fn().mockResolvedValue(undefined);
+    const { link, stop } = makePage(open);
+
+    stop();
+
+    expect(press(link('logseq'), 'click')).toBe(false);
+    expect(open).not.toHaveBeenCalled();
+  });
+});

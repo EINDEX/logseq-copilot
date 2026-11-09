@@ -16,14 +16,20 @@ const logseqLinkOf = (event: MouseEvent): string | undefined => {
   return isLogseqUrl(link?.href) ? link.href : undefined;
 };
 
-const openFromBackground = (event: Event) => {
+type OpenLink = (url: string) => Promise<unknown>;
+
+/** From a content script: the background opens it in the sender's tab. */
+const sendOpenLink: OpenLink = (url) => sendMessage('logseq:openLink', { url });
+
+const opener = (open: OpenLink) => (event: Event) => {
   const url = logseqLinkOf(event as MouseEvent);
   if (!url) return;
   event.preventDefault();
-  sendMessage('logseq:openLink', { url }).catch((error) =>
-    log.error('[content] Failed to open the Logseq link', error),
-  );
+  open(url).catch((error) => log.error('Failed to open the Logseq link', error));
 };
+
+// One listener for the default, so adding it again is a no-op.
+const openFromBackground = opener(sendOpenLink);
 
 /**
  * Have the background open the `logseq:` links of a content script UI.
@@ -36,8 +42,20 @@ const openFromBackground = (event: Event) => {
  *
  * Call it with the UI's shadow root: the listeners there see the real target
  * of a click, even in a closed shadow root. Adding them again is a no-op.
+ *
+ * An extension page has no tab of its own for `logseq:openLink`: it passes
+ * `open`, which asks the background some other way. Returns a function that
+ * removes the listeners.
  */
-export function openLogseqLinksFromBackground(root: EventTarget): void {
-  root.addEventListener('click', openFromBackground);
-  root.addEventListener('auxclick', openFromBackground);
+export function openLogseqLinksFromBackground(
+  root: EventTarget,
+  open: OpenLink = sendOpenLink,
+): () => void {
+  const listener = open === sendOpenLink ? openFromBackground : opener(open);
+  root.addEventListener('click', listener);
+  root.addEventListener('auxclick', listener);
+  return () => {
+    root.removeEventListener('click', listener);
+    root.removeEventListener('auxclick', listener);
+  };
 }
