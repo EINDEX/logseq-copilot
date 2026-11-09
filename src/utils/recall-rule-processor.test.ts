@@ -14,7 +14,6 @@ const context = (
 ): ProcessedSearchContext => ({
   originalUrl: new URL('https://example.com/'),
   processedUrl: new URL('https://example.com/'),
-  searchQueries: [],
   excludeKeywords: [],
   includeKeywords: [],
   searchScope: {},
@@ -231,19 +230,14 @@ describe('combining rules', () => {
     });
   });
 
-  it('collects include/exclude keywords and search queries', async () => {
+  it('collects include/exclude keywords', async () => {
     await seedRules([
       rule({ queryProcessing: { excludeKeywords: ['spam'], includeKeywords: ['code'] } }),
     ]);
     const ctx = await processor.processSearchContext('https://x.example/p');
     expect(ctx.excludeKeywords).toEqual(['spam']);
     expect(ctx.includeKeywords).toEqual(['code']);
-    expect(ctx.searchQueries).toEqual([
-      'x.example/p',
-      'x.example',
-      'x.example/p code',
-      'x.example code',
-    ]);
+    expect(ctx).not.toHaveProperty('searchQueries');
   });
 });
 

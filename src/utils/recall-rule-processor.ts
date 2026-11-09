@@ -4,7 +4,6 @@ import { log } from '@/utils';
 export interface ProcessedSearchContext {
   originalUrl: URL;
   processedUrl: URL;
-  searchQueries: string[];
   excludeKeywords: string[];
   includeKeywords: string[];
   searchScope: {
@@ -164,39 +163,6 @@ export class RecallRuleProcessor {
   }
 
   /**
-   * Generate search queries based on URL and rules
-   */
-  public generateSearchQueries(
-    processedUrl: URL,
-    rules: RecallRuleConfig[],
-  ): string[] {
-    const queries: string[] = [];
-
-    // Base queries
-    if (processedUrl.pathname && processedUrl.pathname !== '/') {
-      queries.push(processedUrl.host + processedUrl.pathname);
-    }
-
-    if (processedUrl.host) {
-      queries.push(processedUrl.host);
-    }
-
-    // Apply include keywords to generate enhanced queries
-    for (const rule of rules) {
-      if (rule.queryProcessing.includeKeywords.length > 0) {
-        const baseQuery = processedUrl.host + processedUrl.pathname;
-        for (const keyword of rule.queryProcessing.includeKeywords) {
-          queries.push(`${baseQuery} ${keyword}`);
-          queries.push(`${processedUrl.host} ${keyword}`);
-        }
-      }
-    }
-
-    // Remove duplicates and return
-    return [...new Set(queries)];
-  }
-
-  /**
    * Combine search scope restrictions from all applicable rules
    */
   public combineSearchScope(
@@ -297,10 +263,6 @@ export class RecallRuleProcessor {
     );
 
     const processedUrl = this.processUrl(originalUrl, matchingRules);
-    const searchQueries = this.generateSearchQueries(
-      processedUrl,
-      matchingRules,
-    );
 
     // Combine keywords from all rules
     const excludeKeywords = [
@@ -321,7 +283,6 @@ export class RecallRuleProcessor {
     const context: ProcessedSearchContext = {
       originalUrl,
       processedUrl,
-      searchQueries,
       excludeKeywords,
       includeKeywords,
       searchScope,
