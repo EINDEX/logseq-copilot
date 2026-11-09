@@ -346,25 +346,27 @@ export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
         id: 'github-pr',
         name: 'GitHub Pull Request',
         enabled: false,
-        description: 'Focuses GitHub pull requests and issues on code and project notes.',
+        description: 'Recalls notes about the same repository on GitHub pull requests and issues.',
         urlPattern: 'github\\.com.*/(pull|issues)/',
         queryProcessing: {
           ignoreHashFragments: true,
           ignoreQueryParams: true,
-          excludeKeywords: ['comment', 'discussion', 'review'],
-          includeKeywords: ['code', 'bug', 'feature', 'implementation'],
+          excludeKeywords: [],
+          includeKeywords: [],
           ignorePathSegments: ['files', 'commits'],
+          // github.com/owner/repo
+          scopeDepth: 2,
         },
         searchScope: {
-          excludePages: ['Daily Notes'],
           journalDateRange: {
-            enabled: true,
-            days: 90,
+            enabled: false,
+            days: 30,
           },
         },
+        // Not recent first: the page's own notes must stay above the
+        // repository's (urlSearch returns them in that order).
         resultFiltering: {
-          maxResults: 15,
-          prioritizeRecent: true,
+          prioritizeRecent: false,
         },
       },
     ],

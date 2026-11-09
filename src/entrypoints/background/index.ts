@@ -1,6 +1,7 @@
 import { debounce } from '@/utils';
 import {
   changeOptionsHostToHostNameAndPort,
+  migrateGithubRecallRuleToRepoScope,
   migrateLegacyClipSettingsToTemplates,
   migrateRecallRuleDefaultsToEnglish,
 } from './upgrade';
@@ -313,6 +314,10 @@ export default defineBackground({
       await changeOptionsHostToHostNameAndPort();
       await migrateRecallRuleDefaultsToEnglish().catch((err) =>
         log.error('Failed to migrate the recall rule defaults:', err),
+      );
+      // After the English copy: it matches the old English description.
+      await migrateGithubRecallRuleToRepoScope().catch((err) =>
+        log.error('Failed to migrate the GitHub recall rule:', err),
       );
 
       if (event.reason === 'install') {
