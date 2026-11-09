@@ -18,6 +18,15 @@ import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import type { HighlightData } from '@/types/highlight';
 
 vi.mock('@/assets/globals.css', () => ({}));
+// logseq:urlSearch (what Logseq has about the page) has a mock of its own.
+const sendMessage = vi.hoisted(() => vi.fn());
+const urlSearch = vi.hoisted(() => vi.fn());
+vi.mock('@/types/messaging', () => ({
+  sendMessage: (type: string, ...args: unknown[]) =>
+    type === 'logseq:urlSearch'
+      ? urlSearch(...args)
+      : sendMessage(type, ...args),
+}));
 // Mounts like WXT does (host in the page, onMount / onRemove), without the
 // shadow root, so the queries below see the UI.
 const fakeUi = vi.hoisted(() => async (_ctx: unknown, options: any) => {
@@ -55,6 +64,47 @@ import log from '@/utils/logger';
 import { InPageSidebar, startInPageSidebar } from './InPageSidebar';
 
 const PAGE = 'https://one.example/page';
+const GRAPH = 'my notes';
+
+/** Logseq has a block about every page, naming the page's path. */
+const logseqAnswers = async ({ url }: { url: string }) => ({
+  status: 200,
+  msg: '',
+  response: {
+    graph: GRAPH,
+    pages: [],
+    blocks: [
+      {
+        uuid: `block-${url}`,
+        html: `<p>about ${new URL(url).pathname} <a href="logseq://graph/my%20notes?page=books">books</a></p>`,
+        page: { id: 1, name: 'reading', originalName: 'Reading', uuid: 'p1' },
+        content: '',
+        format: 'markdown',
+        marker: '',
+        priority: '',
+      },
+    ],
+  },
+});
+
+/**
+ * A user's click (happy-dom events are not trusted) on a link itself: happy-dom
+ * follows a link clicked through a child even when its default is prevented.
+ * Returns whether the default was prevented.
+ */
+const userClick = (target: Element) => {
+  const event = new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    button: 0,
+  });
+  Object.defineProperty(event, 'isTrusted', { value: true });
+  act(() => {
+    target.dispatchEvent(event);
+  });
+  return event.defaultPrevented;
+};
 
 const highlight = (
   id: string,
@@ -94,6 +144,8 @@ const host = () => document.querySelector('logseq-copilot-highlights');
 describe('InPageSidebar', () => {
   beforeEach(() => {
     fakeBrowser.reset();
+    sendMessage.mockReset().mockResolvedValue(undefined);
+    urlSearch.mockReset().mockImplementation(logseqAnswers);
     vi.spyOn(log, 'error').mockImplementation(() => {});
     vi.spyOn(log, 'warn').mockImplementation(() => {});
   });
@@ -103,23 +155,88 @@ describe('InPageSidebar', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists the highlights of the page, under its title', async () => {
+  it('lists the highlights of the page, then what Logseq has about it', async () => {
     await seed([
       highlight('a'),
       highlight('elsewhere', { url: 'https://two.example/article' }),
     ]);
 
-    render(<InPageSidebar url={PAGE} title="Page one" />);
+    render(<InPageSidebar url={PAGE} />);
 
     expect(await screen.findByText('text of a')).not.toBeNull();
     expect(text('text of elsewhere')).toBeNull();
-    expect(screen.getByText('Page one')).not.toBeNull();
-    expect(screen.getByText('1')).not.toBeNull();
+    expect(await screen.findByText(/about \/page/)).not.toBeNull();
+    expect(urlSearch).toHaveBeenCalledWith({ url: PAGE });
+    expect(screen.getByRole('link', { name: GRAPH })).not.toBeNull();
+  });
+
+  it('shows the highlights when Logseq cannot be searched', async () => {
+    urlSearch.mockResolvedValue({
+      status: 500,
+      msg: 'Cannot connect to Logseq',
+      response: undefined,
+    });
+    await seed([highlight('a')]);
+
+    render(<InPageSidebar url={PAGE} />);
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Cannot connect to Logseq',
+    );
+    expect(text('text of a')).not.toBeNull();
+  });
+
+  it('checks a task off in Logseq', async () => {
+    urlSearch.mockResolvedValue({
+      status: 200,
+      msg: '',
+      response: {
+        graph: GRAPH,
+        pages: [],
+        blocks: [
+          {
+            uuid: 'task-1',
+            html: '<p>read it</p>',
+            page: { id: 1, name: 'reading', originalName: 'Reading', uuid: 'p1' },
+            content: '',
+            format: 'markdown',
+            marker: 'TODO',
+            priority: '',
+          },
+        ],
+      },
+    });
+    sendMessage.mockResolvedValue({
+      type: 'change-block-marker-result',
+      uuid: 'task-1',
+      status: 'success',
+      marker: 'DONE',
+    });
+    render(<InPageSidebar url={PAGE} />);
+    await screen.findByText('read it');
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mark as DONE' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(sendMessage).toHaveBeenCalledWith('logseq:changeBlockMarker', {
+      uuid: 'task-1',
+      marker: 'DONE',
+    });
+  });
+
+  it('opens the settings', async () => {
+    render(<InPageSidebar url={PAGE} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+    expect(sendMessage).toHaveBeenCalledWith('app:openOptions');
   });
 
   it('follows highlights changed elsewhere', async () => {
     await seed([highlight('a')]);
-    render(<InPageSidebar url={PAGE} title="Page one" />);
+    render(<InPageSidebar url={PAGE} />);
     await screen.findByText('text of a');
 
     await act(() => seed([highlight('a'), highlight('b')]));
@@ -132,7 +249,7 @@ describe('InPageSidebar', () => {
       .spyOn(HighlightManager.prototype, 'scrollToHighlight')
       .mockResolvedValue(true);
     await seed([highlight('a')]);
-    render(<InPageSidebar url={PAGE} title="Page one" />);
+    render(<InPageSidebar url={PAGE} />);
 
     fireEvent.click(await screen.findByText('text of a'));
 
@@ -145,7 +262,7 @@ describe('InPageSidebar', () => {
       false,
     );
     await seed([highlight('a')]);
-    render(<InPageSidebar url={PAGE} title="Page one" />);
+    render(<InPageSidebar url={PAGE} />);
 
     fireEvent.click(await screen.findByText('text of a'));
 
@@ -156,7 +273,7 @@ describe('InPageSidebar', () => {
 
   it('closes, in every tab, with the close button', async () => {
     await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
-    render(<InPageSidebar url={PAGE} title="Page one" />);
+    render(<InPageSidebar url={PAGE} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
@@ -191,6 +308,8 @@ describe('startInPageSidebar', () => {
 
   beforeEach(() => {
     fakeBrowser.reset();
+    sendMessage.mockReset().mockResolvedValue(undefined);
+    urlSearch.mockReset().mockImplementation(logseqAnswers);
     vi.mocked(createShadowRootUi).mockClear();
     vi.spyOn(log, 'error').mockImplementation(() => {});
     locationChanged = undefined;
@@ -261,6 +380,20 @@ describe('startInPageSidebar', () => {
     expect(host()).toBeNull();
   });
 
+  it('has the background open logseq: links in this tab', async () => {
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+    await start();
+    await screen.findByText('books');
+
+    expect(userClick(screen.getByText('books'))).toBe(true);
+    expect(userClick(screen.getByRole('link', { name: GRAPH }))).toBe(true);
+
+    expect(sendMessage.mock.calls).toEqual([
+      ['logseq:openLink', { url: 'logseq://graph/my%20notes?page=books' }],
+      ['logseq:openLink', { url: 'logseq://graph/my%20notes' }],
+    ]);
+  });
+
   it('keeps the page from seeing keys typed in it', async () => {
     await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
     await start();
@@ -304,12 +437,12 @@ describe('startInPageSidebar', () => {
       await start();
       await screen.findByText('text of a');
 
-      document.title = 'Next page';
       await navigate(next);
 
       expect(await screen.findByText('text of n')).not.toBeNull();
       expect(text('text of a')).toBeNull();
-      expect(screen.getByText('Next page')).not.toBeNull();
+      // Logseq is searched for that page too.
+      expect(await screen.findByText(/about \/next/)).not.toBeNull();
     });
 
     it("never shows another site's highlights for the address a page asks for", async () => {
@@ -368,12 +501,11 @@ describe('startInPageSidebar', () => {
       await start();
       await screen.findByText('text of a');
 
-      document.title = 'Next page';
       await navigate(next);
 
       expect(await screen.findByText('text of n')).not.toBeNull();
       expect(text('text of a')).toBeNull();
-      expect(screen.getByText('Next page')).not.toBeNull();
+      expect(await screen.findByText(/about \/next/)).not.toBeNull();
     });
 
     it('draws the address the tab is at, not the URL in the event', async () => {
