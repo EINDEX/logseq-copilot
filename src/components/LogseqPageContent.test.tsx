@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { LogseqPageContent } from './LogseqPageContent';
@@ -215,4 +216,20 @@ describe('LogseqPageContent Component', () => {
             expect(screen.getByRole('link', { name: 'Test Page' })).toBe(link);
         });
     });
-}); 
+
+    it('draws no script and no event handler from the notes', () => {
+        const { container } = render(
+            <LogseqPageContent
+                {...defaultProps}
+                pageContent={{
+                    ...defaultProps.pageContent,
+                    content: '<p>text<img src="x" onerror="alert(1)"></p><script>alert(2)</script>',
+                }}
+            />,
+        );
+
+        expect(container.querySelector('script')).toBeNull();
+        expect(container.querySelectorAll('[onerror]')).toHaveLength(0);
+        expect(container.textContent).toContain('text');
+    });
+});

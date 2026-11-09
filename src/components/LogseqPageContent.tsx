@@ -3,6 +3,7 @@ import { LogseqPageContentType } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 
 type LogseqPageContentProps = {
   graph: string;
@@ -37,7 +38,8 @@ export const LogseqPageContent = ({
             "prose-pre:overflow-x-auto prose-pre:whitespace-pre-wrap",
             "[&_*]:break-words [&_*]:text-sm"
           )}
-          dangerouslySetInnerHTML={{ __html: pageContent.content }}
+          // May hold raw HTML from the notes: see sanitizeHtml.
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pageContent.content) }}
         />
       </CardContent>
     </Card>
