@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { IconCheck, IconEdit, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
+import { highlightColor } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 
 /**
@@ -38,6 +39,12 @@ const formatDate = (timestamp: number) => {
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
+};
+
+/** The page's tint of a highlight, light and dark, for its quote. */
+const quoteTint = (color: string | undefined) => {
+  const { light, dark } = highlightColor(color);
+  return { '--hl-light': light, '--hl-dark': dark } as CSSProperties;
 };
 
 const truncateText = (text: string, maxLength: number = 100) => {
@@ -75,7 +82,7 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
 
   return (
     <div
-      className="mt-1.5 space-y-2 pl-3.5"
+      className="mt-1.5 space-y-2 pl-0.5"
       onClick={(e) => e.stopPropagation()}
     >
       <Textarea
@@ -135,9 +142,15 @@ export function HighlightList({
             className="group cursor-pointer rounded-md px-2 py-2 transition-colors hover:bg-accent/60"
             onClick={() => onSelect(highlight.id)}
           >
-            {/* Highlight text, marked like the highlight on the page */}
-            <p className="border-l-2 border-highlight pl-3 text-sm leading-relaxed text-foreground">
-              {truncateText(highlight.range.textContent, 120)}
+            {/* Highlight text, in the tint it has on the page */}
+            <p className="text-sm leading-relaxed text-foreground">
+              <span
+                data-highlight-quote
+                className="rounded-[2px] bg-[var(--hl-light)] px-0.5 py-px [box-decoration-break:clone] [-webkit-box-decoration-break:clone] dark:bg-[var(--hl-dark)]"
+                style={quoteTint(highlight.color)}
+              >
+                {truncateText(highlight.range.textContent, 120)}
+              </span>
             </p>
 
             {/* Note if exists */}
@@ -152,14 +165,14 @@ export function HighlightList({
               />
             ) : (
               highlight.note && (
-                <p className="mt-1.5 pl-3.5 text-xs text-muted-foreground">
+                <p className="mt-1.5 pl-0.5 text-xs text-muted-foreground">
                   {truncateText(highlight.note, 80)}
                 </p>
               )
             )}
 
             {/* Metadata, tags and actions */}
-            <div className="mt-1.5 flex items-center justify-between gap-2 pl-3.5 text-xs text-muted-foreground">
+            <div className="mt-1.5 flex items-center justify-between gap-2 pl-0.5 text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <span className="truncate max-w-32">{highlight.hostname}</span>
                 <span aria-hidden>·</span>
