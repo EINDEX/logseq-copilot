@@ -86,6 +86,23 @@ describe('LogseqResultList', () => {
     expect(el.textContent).toContain('Show fewer');
   });
 
+  test('the sidebar variant counts the rest as "+N", and keeps its name for screen readers', async () => {
+    const blocks = Array.from({ length: 13 }, () => block());
+    const el = await render({ graph: 'g', blocks, initialCount: 10, variant: 'sidebar' });
+    expect(el.querySelector('.lc-results')!.classList.contains('lc-results--sidebar')).toBe(true);
+
+    const more = el.querySelector<HTMLButtonElement>('button[aria-label="Show all 13 results"]')!;
+    expect(more.textContent).toBe('+3');
+    await act(async () => more.click());
+    expect(el.querySelectorAll('.lc-block-row')).toHaveLength(13);
+    expect(el.querySelector('button[aria-label="Show fewer"]')!.textContent).toBe('');
+  });
+
+  test('the default variant has no sidebar class', async () => {
+    const el = await render({ graph: 'g', blocks: [block()] });
+    expect(el.querySelector('.lc-results')!.className).toBe('lc-results');
+  });
+
   test('no "Show all" when everything fits', async () => {
     const el = await render({ graph: 'g', blocks: [block(), block()] });
     expect(el.textContent).not.toContain('Show all');
