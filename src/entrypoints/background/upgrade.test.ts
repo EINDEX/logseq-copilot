@@ -3,6 +3,8 @@ import { fakeBrowser } from 'wxt/testing';
 import { storage } from '#imports';
 import { recallRulesConfig, templates, type RecallRuleConfig } from '@/utils/storage';
 import {
+  LEGACY_GITHUB_PR_RULE,
+  migrateGithubRecallRuleToRepoScope,
   migrateLegacyClipSettingsToTemplates,
   migrateRecallRuleDefaultsToEnglish,
 } from './upgrade';
@@ -78,7 +80,8 @@ describe('migrateLegacyClipSettingsToTemplates', () => {
 });
 
 describe('migrateRecallRuleDefaultsToEnglish', () => {
-  const [spaDefault, githubDefault] = recallRulesConfig.fallback;
+  const [spaDefault] = recallRulesConfig.fallback;
+  const githubDefault = LEGACY_GITHUB_PR_RULE;
   // The built-in rules as older versions saved them.
   const legacyRules = (): RecallRuleConfig[] => [
     {
@@ -98,7 +101,7 @@ describe('migrateRecallRuleDefaultsToEnglish', () => {
 
     await migrateRecallRuleDefaultsToEnglish();
 
-    expect(await recallRulesConfig.getValue()).toEqual(recallRulesConfig.fallback);
+    expect(await recallRulesConfig.getValue()).toEqual([spaDefault, LEGACY_GITHUB_PR_RULE]);
   });
 
   it('keeps names and descriptions the user changed', async () => {
@@ -133,5 +136,81 @@ describe('migrateRecallRuleDefaultsToEnglish', () => {
     await migrateRecallRuleDefaultsToEnglish();
 
     expect(await recallRulesConfig.getValue()).toEqual(once);
+  });
+});
+
+describe('migrateGithubRecallRuleToRepoScope', () => {
+  const [spaDefault, githubDefault] = recallRulesConfig.fallback;
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it('replaces the untouched old GitHub rule, keeping whether it is enabled', async () => {
+    await recallRulesConfig.setValue([
+      spaDefault,
+      { ...LEGACY_GITHUB_PR_RULE, enabled: true },
+    ]);
+
+    await migrateGithubRecallRuleToRepoScope();
+
+    expect(await recallRulesConfig.getValue()).toEqual([
+      spaDefault,
+      { ...githubDefault, enabled: true },
+    ]);
+    expect(githubDefault.queryProcessing.scopeDepth).toBe(2);
+  });
+
+  it('ignores key order and keys saved as undefined', async () => {
+    const { queryProcessing, ...rest } = LEGACY_GITHUB_PR_RULE;
+    const reordered = {
+      queryProcessing: { ...queryProcessing },
+      ...rest,
+      resultFiltering: { ...rest.resultFiltering, minRelevanceScore: undefined },
+    };
+    await recallRulesConfig.setValue([reordered as RecallRuleConfig]);
+
+    await migrateGithubRecallRuleToRepoScope();
+
+    expect(await recallRulesConfig.getValue()).toEqual([githubDefault]);
+  });
+
+  it('leaves a GitHub rule the user edited alone', async () => {
+    const edited = {
+      ...LEGACY_GITHUB_PR_RULE,
+      queryProcessing: { ...LEGACY_GITHUB_PR_RULE.queryProcessing, excludeKeywords: ['comment'] },
+    };
+    await recallRulesConfig.setValue([edited]);
+
+    await migrateGithubRecallRuleToRepoScope();
+
+    expect(await recallRulesConfig.getValue()).toEqual([edited]);
+  });
+
+  it('runs after the English copy migration on the Chinese defaults', async () => {
+    await recallRulesConfig.setValue([
+      { ...LEGACY_GITHUB_PR_RULE, description: '针对GitHub PR页面，只搜索代码和项目相关内容' },
+    ]);
+
+    await migrateRecallRuleDefaultsToEnglish();
+    await migrateGithubRecallRuleToRepoScope();
+
+    expect(await recallRulesConfig.getValue()).toEqual([githubDefault]);
+  });
+
+  it('does nothing when no rules are saved', async () => {
+    await migrateGithubRecallRuleToRepoScope();
+    expect(await storage.getItem('local:recallRulesConfig')).toBeNull();
+  });
+
+  it('is idempotent', async () => {
+    await recallRulesConfig.setValue([LEGACY_GITHUB_PR_RULE]);
+    await migrateGithubRecallRuleToRepoScope();
+    const once = await recallRulesConfig.getValue();
+
+    await migrateGithubRecallRuleToRepoScope();
+
+    expect(await recallRulesConfig.getValue()).toEqual(once);
+    expect(once).toEqual([githubDefault]);
   });
 });

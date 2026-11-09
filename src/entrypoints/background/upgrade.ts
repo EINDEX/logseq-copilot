@@ -158,3 +158,96 @@ export const migrateRecallRuleDefaultsToEnglish = async () => {
 
   if (changed) await recallRulesConfig.setValue(migrated);
 };
+
+/**
+ * The built-in GitHub rule as it shipped before it had a recall scope: its
+ * keyword filters, journal range and result limit hid most notes about the
+ * repository.
+ */
+export const LEGACY_GITHUB_PR_RULE: RecallRuleConfig = {
+  id: 'github-pr',
+  name: 'GitHub Pull Request',
+  enabled: false,
+  description: 'Focuses GitHub pull requests and issues on code and project notes.',
+  urlPattern: 'github\\.com.*/(pull|issues)/',
+  queryProcessing: {
+    ignoreHashFragments: true,
+    ignoreQueryParams: true,
+    excludeKeywords: ['comment', 'discussion', 'review'],
+    includeKeywords: ['code', 'bug', 'feature', 'implementation'],
+    ignorePathSegments: ['files', 'commits'],
+  },
+  searchScope: {
+    excludePages: ['Daily Notes'],
+    journalDateRange: {
+      enabled: true,
+      days: 90,
+    },
+  },
+  resultFiltering: {
+    maxResults: 15,
+    prioritizeRecent: true,
+  },
+};
+
+/** Deep equality of stored JSON; a key set to undefined counts as missing. */
+const sameJson = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((item, i) => sameJson(item, b[i]))
+    );
+  }
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  const keys = (o: object) =>
+    Object.entries(o)
+      .filter(([, value]) => value !== undefined)
+      .map(([key]) => key);
+  const aKeys = keys(a);
+  return (
+    aKeys.length === keys(b).length &&
+    aKeys.every((key) =>
+      sameJson((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+    )
+  );
+};
+
+/**
+ * Replace the saved built-in GitHub rule with the current default (scoped to
+ * the repository) while it is still the old default, keeping only whether
+ * it is enabled. A rule the user edited is left alone. Idempotent: once
+ * replaced it no longer equals the old default. Run after
+ * migrateRecallRuleDefaultsToEnglish, which turns the Chinese description
+ * into the old English one.
+ */
+export const migrateGithubRecallRuleToRepoScope = async () => {
+  // The raw value: the typed item returns its fallback for a missing key.
+  const saved = await storage.getItem<RecallRuleConfig[]>(
+    'local:recallRulesConfig',
+  );
+  if (!Array.isArray(saved)) return;
+  const current = recallRulesConfig.fallback.find(
+    (rule) => rule.id === LEGACY_GITHUB_PR_RULE.id,
+  );
+  if (!current) return;
+
+  let changed = false;
+  const migrated = saved.map((rule) => {
+    if (
+      rule?.id !== LEGACY_GITHUB_PR_RULE.id ||
+      !sameJson(
+        { ...rule, enabled: undefined },
+        { ...LEGACY_GITHUB_PR_RULE, enabled: undefined },
+      )
+    ) {
+      return rule;
+    }
+    changed = true;
+    return { ...current, enabled: rule.enabled };
+  });
+
+  if (changed) await recallRulesConfig.setValue(migrated);
+};
