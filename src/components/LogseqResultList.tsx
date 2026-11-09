@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { IconChevronDown, IconChevronUp, IconFile } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { LogseqBlockRow } from './LogseqBlock';
@@ -58,6 +59,11 @@ type LogseqResultListProps = {
   pages?: (LogseqPageIdenity | null | undefined)[];
   /** Blocks shown before "Show all". */
   initialCount?: number;
+  /**
+   * `sidebar`: the browser sidebars' outline (checkbox in place of the
+   * bullet, guide lines, a "+N" for the rest). The popup keeps the default.
+   */
+  variant?: 'default' | 'sidebar';
 };
 
 /**
@@ -70,6 +76,7 @@ export const LogseqResultList = ({
   blocks,
   pages = [],
   initialCount = DEFAULT_VISIBLE_RESULTS,
+  variant = 'default',
 }: LogseqResultListProps) => {
   const [showAll, setShowAll] = useState(false);
   const withHtml = useMemo(() => blocks.filter((block) => block.html), [blocks]);
@@ -80,9 +87,11 @@ export const LogseqResultList = ({
     (page): page is LogseqPageIdenity => !!page?.name && !allKeys.has(pageKey(page)),
   );
   const hidden = withHtml.length - visible.length;
+  const sidebar = variant === 'sidebar';
+  const moreLabel = showAll ? 'Show fewer' : `Show all ${withHtml.length} results`;
 
   return (
-    <div className="lc-results">
+    <div className={cn('lc-results', sidebar && 'lc-results--sidebar')}>
       {pageOnly.map((page) => (
         <div className="lc-group" key={`page-${pageKey(page)}`}>
           <LogseqPageLink graph={graph} page={page} />
@@ -96,15 +105,29 @@ export const LogseqResultList = ({
       ))}
       {(hidden > 0 || showAll) && withHtml.length > initialCount && (
         <div className="lc-more">
-          <button
-            type="button"
-            className="lc-button"
-            aria-expanded={showAll}
-            onClick={() => setShowAll(!showAll)}
-          >
-            {showAll ? <IconChevronUp /> : <IconChevronDown />}
-            {showAll ? 'Show fewer' : `Show all ${withHtml.length} results`}
-          </button>
+          {sidebar ? (
+            <button
+              type="button"
+              className="lc-button lc-more-count"
+              aria-expanded={showAll}
+              aria-label={moreLabel}
+              title={moreLabel}
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? <IconChevronUp /> : <IconFile />}
+              {!showAll && `+${hidden}`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="lc-button"
+              aria-expanded={showAll}
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? <IconChevronUp /> : <IconChevronDown />}
+              {moreLabel}
+            </button>
+          )}
         </div>
       )}
     </div>
