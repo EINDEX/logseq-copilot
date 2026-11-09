@@ -94,6 +94,8 @@ const RecallRulesPage: React.FC = () => {
         [
             rule.queryProcessing.ignoreHashFragments && 'Ignore hash',
             rule.queryProcessing.ignoreQueryParams && 'Ignore query',
+            rule.queryProcessing.scopeDepth &&
+                `Scope: ${rule.queryProcessing.scopeDepth} ${rule.queryProcessing.scopeDepth === 1 ? 'level' : 'levels'}`,
             rule.searchScope.journalDateRange?.enabled &&
                 `Journals: last ${rule.searchScope.journalDateRange.days} days`,
             rule.resultFiltering.prioritizeRecent && 'Recent first',
