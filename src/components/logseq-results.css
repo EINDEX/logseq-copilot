@@ -475,6 +475,15 @@
 .lc-results--sidebar .lc-content {
   color: var(--lc-body);
 }
+/* Every result here is about the page in the tab, so the search marks on
+   its address add nothing, and their tint reads as a highlight of the page.
+   The text keeps the color around it (link or body). */
+.lc-results--sidebar mark {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+}
 /* A task's box stands where the bullet is (as in the outline of Logseq). */
 .lc-results--sidebar .lc-block-row:has(> .lc-clamp > .lc-task > .lc-checkbox:first-child)::before {
   display: none;
