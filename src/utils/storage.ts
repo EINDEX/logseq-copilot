@@ -82,6 +82,9 @@ export interface RecallRuleConfig {
     includeKeywords: string[];
     // URL path segments to ignore (for hash routers)
     ignorePathSegments: string[];
+    // URL path segments the recall keeps (src/utils/recall-scope.ts):
+    // undefined/0 = this page only, 2 on GitHub = the repository.
+    scopeDepth?: number;
   };
   // Search scope restrictions
   searchScope: {

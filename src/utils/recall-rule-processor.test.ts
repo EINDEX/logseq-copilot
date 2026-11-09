@@ -241,6 +241,25 @@ describe('combining rules', () => {
   });
 });
 
+describe('scope depth', () => {
+  it('comes from the highest-priority rule that sets one', async () => {
+    await seedRules([
+      rule({ id: 'all', urlPattern: '.*', queryProcessing: { scopeDepth: 3 } }),
+      rule({ id: 'gh', urlPattern: 'github\\.com', queryProcessing: { scopeDepth: 1 } }),
+      rule({ id: 'pr', urlPattern: 'github\\.com/.*/pull' }),
+    ]);
+    const ctx = await processor.processSearchContext('https://github.com/a/b/pull/1');
+    expect(ctx.appliedRules.map((r) => r.id)).toEqual(['pr', 'gh', 'all']);
+    expect(ctx.scopeDepth).toBe(1);
+  });
+
+  it('is undefined when no rule sets one', async () => {
+    await seedRules([rule()]);
+    const ctx = await processor.processSearchContext('https://x.example/a/b');
+    expect(ctx.scopeDepth).toBeUndefined();
+  });
+});
+
 describe('filterResults', () => {
   it('drops excluded keywords, ranks include keywords first and caps the count', () => {
     const ctx = context({

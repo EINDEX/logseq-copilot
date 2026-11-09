@@ -45,7 +45,6 @@ describe('Popup', () => {
     await waitFor(() =>
       expect(sendMessage).toHaveBeenCalledWith('logseq:urlSearch', {
         url: 'https://example.com/page',
-        options: { fuzzy: true },
       }),
     );
   });
@@ -512,7 +511,6 @@ describe('Popup', () => {
       await waitFor(() => expect(urlSearches()).toBe(2));
       expect(sendMessage).toHaveBeenLastCalledWith('logseq:urlSearch', {
         url: 'https://example.com/page',
-        options: { fuzzy: true },
       });
     });
 
