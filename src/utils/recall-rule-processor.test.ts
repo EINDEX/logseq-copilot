@@ -104,6 +104,24 @@ describe('page scope filtering', () => {
   });
 });
 
+describe('prioritizeRecent', () => {
+  it('sorts by the millisecond timestamps Logseq sends', () => {
+    const ctx = context({ resultFiltering: { prioritizeRecent: true } });
+    const results = [
+      { ...block('old', 'P'), createdAt: 1_000 },
+      { ...block('new', 'P'), createdAt: 3_000 },
+      { ...block('none', 'P') },
+      { ...block('mid', 'P'), createdAt: 2_000 },
+    ];
+    expect(uuids(processor.filterResults(results, ctx))).toEqual([
+      'new',
+      'mid',
+      'old',
+      'none',
+    ]);
+  });
+});
+
 const rule = (overrides: Record<string, any> = {}) => ({
   id: overrides.id ?? 'r',
   name: overrides.name ?? 'rule',
