@@ -595,19 +595,66 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('browser sidebar page', async ({ page, ext }) => {
+  test('browser sidebar page', async ({ page, ext, articles, logseq }) => {
     fileGraphOnly();
+    const id = nonce('sidepanel');
+    const url = `https://example.com/e2e/${id}`;
+    const paragraph =
+      'Progressive summarization distills a note in layers: bold the key passages, then highlight the best of those.';
+    articles.set(url, { title: 'Progressive summarization', paragraph });
+
+    // What the graph has about the page: a task, and a block under a parent
+    // that mentions the page too (nested, with its guide line).
+    const append = (pageName: string, content: string) =>
+      logseq.callApi('logseq.Editor.appendBlockInPage', [pageName, content]);
+    await append('Reading List', `TODO Try the layers on the next long article ${url}`);
+    const parent = await append('Copilot Test Page', `Summarizing in layers ${url}`);
+    await logseq.callApi('logseq.Editor.insertBlock', [
+      parent.uuid,
+      `Second pass: keep only what changes how I act, see [[Another Page]] ${url}`,
+      { sibling: false },
+    ]);
+
+    // Highlights of the page, one with a note.
+    const [first, second] = seededHighlights();
+    const onThisPage = (highlight: typeof first, text: string, extra: object = {}) => ({
+      ...highlight,
+      ...extra,
+      id: `${highlight.id}-${id}`,
+      url,
+      title: 'Progressive summarization',
+      hostname: 'example.com',
+      range: { ...highlight.range, endOffset: text.length, textContent: text },
+    });
+    await ext.connect();
+    await ext.setStorage({
+      highlights: [
+        onThisPage(first, paragraph, { note: 'Try this on the next long read.' }),
+        onThisPage(second, 'Each layer is a smaller, sharper version of the one before.', {
+          note: undefined,
+          createdAt: Date.now() - 60 * 60 * 1000,
+        }),
+      ],
+    });
+
     // The real sidebar (Chrome side panel, Firefox sidebar) follows the active
-    // tab of its window and is not exposed to Playwright. Opened as an
-    // ordinary tab, the page is that active tab itself, so it shows the state
-    // for a page that cannot have highlights. It is as narrow as a sidebar.
-    await page.setViewportSize({ width: 400, height: 720 });
+    // tab of its window and is not exposed to Playwright. Opened as a tab in
+    // the article's window, as narrow as a sidebar, with the article as the
+    // active tab, it shows what the side panel would.
+    await page.goto(url);
+    const sidebar = await page.context().newPage();
+    await sidebar.setViewportSize({ width: 400, height: 720 });
 
     for (const scheme of SCHEMES) {
-      await setScheme(page, scheme);
-      await page.goto(ext.url('sidepanel.html'));
-      await expect(page.getByText("Highlights aren't available on this page")).toBeVisible();
-      await shoot(page.locator('#app > *').first(), 'sidepanel', scheme);
+      await setScheme(sidebar, scheme);
+      await sidebar.goto(ext.url('sidepanel.html'));
+      await ext.activate(page);
+      await expect(sidebar.getByText('Try this on the next long read.')).toBeVisible();
+      await expect(sidebar.getByText('Try the layers on the next long article')).toBeVisible();
+      await expect(sidebar.getByText(/Second pass: keep only/)).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: logseq.graph })).toBeVisible();
+      await shoot(sidebar.locator('#app > *').first(), 'sidepanel', scheme);
     }
+    await sidebar.close();
   });
 });
