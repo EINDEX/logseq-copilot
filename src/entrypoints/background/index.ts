@@ -81,7 +81,7 @@ export default defineBackground({
       // Use processed URL for search
       const searchRes = await logseqService.urlSearch(
         searchContext.processedUrl,
-        data.options,
+        { scopeDepth: searchContext.scopeDepth },
       );
 
       // Filter results based on recall rules
@@ -198,6 +198,7 @@ export default defineBackground({
       const recallProcessor = RecallRuleProcessor.getInstance();
       const searchContext = await recallProcessor.processSearchContext(url);
 
+      // The badge counts notes about this page only, not its parent paths.
       const logseqService = await getLogseqService();
       const searchRes = await logseqService.urlSearch(
         searchContext.processedUrl,

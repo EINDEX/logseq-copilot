@@ -8,6 +8,7 @@ import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { FileRecallSource } from '../recall/file-source';
 import { moreBlocks } from './more-blocks';
+import { mentionsScope, scopePrefixes } from '@/utils/recall-scope';
 
 /**
  * Blocks a search answers at most: a full `App.search` answer (10 blocks)
@@ -96,7 +97,7 @@ export default class LogseqService implements LogseqServiceInterface {
     return renderBlock(block, graph, query);
   }
 
-  public async urlSearch(url: URL, opt: { fuzzy?: boolean } = { fuzzy: false }) {
+  public async urlSearch(url: URL, opt: { scopeDepth?: number } = {}) {
     const graph = await this.getGraph();
     const blockUuidSet = new Set();
     const blocks: LogseqBlockType[] = [];
@@ -109,9 +110,12 @@ export default class LogseqService implements LogseqServiceInterface {
       blocks.push(block);
     };
 
-    const find = async (url: string) => {
-      const results = await this.client.find(url);
-      results.forEach(blockAdd);
+    const find = async (
+      url: string,
+      keep: (block: LogseqBlockType) => boolean = () => true,
+    ) => {
+      const results: LogseqBlockType[] = await this.client.find(url);
+      results.filter(keep).forEach(blockAdd);
     };
 
     if (url.hash) {
@@ -127,8 +131,10 @@ export default class LogseqService implements LogseqServiceInterface {
 
     const count = blocks.length;
 
-    if (url.host && opt.fuzzy) {
-      await find(url.host);
+    // Parent paths, narrowest first. Search matches substrings, so keep only
+    // blocks that mention the whole path (not github.com/foo/barbaz).
+    for (const prefix of scopePrefixes(url, opt.scopeDepth).slice(1)) {
+      await find(prefix, (block) => mentionsScope(block.content, prefix));
     }
 
     return {

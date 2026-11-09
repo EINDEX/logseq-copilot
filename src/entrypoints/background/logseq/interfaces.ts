@@ -25,7 +25,12 @@ export interface LogseqServiceInterface {
     query?: string,
     includeChildren?: boolean,
   ): any;
-  urlSearch(url: URL, opt?: { fuzzy?: boolean }): any;
+  /**
+   * Blocks mentioning the page, then those mentioning its parent paths up to
+   * `scopeDepth` segments (src/utils/recall-scope.ts). `count` is the number
+   * of blocks for the page itself.
+   */
+  urlSearch(url: URL, opt?: { scopeDepth?: number }): any;
   showMsg(message: string): any;
   getVersion(): any;
   changeBlockMarker(

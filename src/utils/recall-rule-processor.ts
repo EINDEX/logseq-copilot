@@ -4,6 +4,8 @@ import { log } from '@/utils';
 export interface ProcessedSearchContext {
   originalUrl: URL;
   processedUrl: URL;
+  // From the highest-priority rule that sets one (see recall-scope.ts).
+  scopeDepth?: number;
   excludeKeywords: string[];
   includeKeywords: string[];
   searchScope: {
@@ -263,6 +265,10 @@ export class RecallRuleProcessor {
     );
 
     const processedUrl = this.processUrl(originalUrl, matchingRules);
+    // Depths do not combine: the most specific rule decides.
+    const scopeDepth = matchingRules.find(
+      (rule) => rule.queryProcessing.scopeDepth !== undefined,
+    )?.queryProcessing.scopeDepth;
 
     // Combine keywords from all rules
     const excludeKeywords = [
@@ -283,6 +289,7 @@ export class RecallRuleProcessor {
     const context: ProcessedSearchContext = {
       originalUrl,
       processedUrl,
+      scopeDepth,
       excludeKeywords,
       includeKeywords,
       searchScope,

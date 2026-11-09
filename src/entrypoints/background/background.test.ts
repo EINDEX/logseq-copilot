@@ -248,6 +248,46 @@ describe('logseq:clipWithSelection', () => {
   });
 });
 
+describe('logseq:urlSearch', () => {
+  test('searches the processed URL with the scope depth of the rules', async () => {
+    await fakeBrowser.storage.local.set({
+      recallRulesConfig: [
+        {
+          id: 'gh',
+          name: 'GitHub',
+          enabled: true,
+          urlPattern: 'github\\.com.*/pull/',
+          queryProcessing: {
+            ignoreHashFragments: true,
+            ignoreQueryParams: true,
+            excludeKeywords: [],
+            includeKeywords: [],
+            ignorePathSegments: ['files'],
+            scopeDepth: 2,
+          },
+          searchScope: {},
+          resultFiltering: { prioritizeRecent: false },
+        },
+      ],
+    });
+    service.urlSearch.mockResolvedValue({
+      status: 200,
+      msg: 'success',
+      response: { blocks: [], graph: 'g' },
+      count: 0,
+    });
+
+    await sendMessage('logseq:urlSearch', {
+      url: 'https://github.com/foo/bar/pull/1/files?w=1#diff',
+    });
+
+    expect(service.urlSearch).toHaveBeenCalledTimes(1);
+    const [url, opt] = service.urlSearch.mock.calls[0];
+    expect(url.href).toBe('https://github.com/foo/bar/pull/1');
+    expect(opt).toEqual({ scopeDepth: 2 });
+  });
+});
+
 describe('logseq:recall', () => {
   test('passes the query and the recall rules (maxResults in pages)', async () => {
     await fakeBrowser.storage.local.set({

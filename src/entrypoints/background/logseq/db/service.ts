@@ -12,6 +12,7 @@ import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { DBRecallSource } from '../recall/db-source';
 import { getBlockMarker } from './status';
+import { mentionsScope, scopePrefixes } from '@/utils/recall-scope';
 
 export { getBlockMarker };
 
@@ -244,7 +245,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
     return block;
   }
 
-  public async urlSearch(url: URL, opt: { fuzzy?: boolean } = { fuzzy: false }) {
+  public async urlSearch(url: URL, opt: { scopeDepth?: number } = {}) {
     const graph = await this.getGraph();
     const blockUuidSet = new Set();
     const blocks: LogseqBlockType[] = [];
@@ -257,9 +258,12 @@ export default class LogseqDBService implements LogseqServiceInterface {
       blocks.push(block);
     };
 
-    const find = async (url: string) => {
+    const find = async (
+      url: string,
+      keep: (block: LogseqBlockType) => boolean = () => true,
+    ) => {
       const results = await this.searchGraph(graph, url);
-      results.blocks.forEach(blockAdd);
+      results.blocks.filter(keep).forEach(blockAdd);
     };
 
     if (url.pathname) {
@@ -268,8 +272,10 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
     const count = blocks.length;
 
-    if (url.host && opt.fuzzy) {
-      await find(url.host);
+    // Parent paths, narrowest first. Search matches substrings, so keep only
+    // blocks that mention the whole path (not github.com/foo/barbaz).
+    for (const prefix of scopePrefixes(url, opt.scopeDepth).slice(1)) {
+      await find(prefix, (block) => mentionsScope(block.content, prefix));
     }
 
     return {

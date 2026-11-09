@@ -9,9 +9,9 @@ export interface MessagingProtocol {
   // Background script messages
   'logseq:search': (query: string) => LogseqResponseType<LogseqSearchResult>;
 
+  /** The recall rules matching `url` decide how far up its path to search. */
   'logseq:urlSearch': (data: {
     url: string;
-    options?: { fuzzy?: boolean };
   }) => LogseqResponseType<LogseqSearchResult>;
 
   /**

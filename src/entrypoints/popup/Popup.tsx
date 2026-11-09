@@ -65,10 +65,7 @@ export default function Popup() {
     setError(null);
 
     try {
-      const result = await sendMessage('logseq:urlSearch', {
-        url,
-        options: { fuzzy: true }
-      });
+      const result = await sendMessage('logseq:urlSearch', { url });
 
       if (result.status !== 200) {
         setError(result.msg || 'Failed to search current page');

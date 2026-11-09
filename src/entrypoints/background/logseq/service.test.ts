@@ -244,3 +244,76 @@ describe('search (file graph)', () => {
     expect(response.blocks[0].html).toContain('>the referenced block</a>');
   });
 });
+
+describe.each(flavours)('urlSearch recall scope (%s graph)', (name, create) => {
+  // A graph searched like Logseq does: by substring, case-insensitive.
+  const graph = [
+    ['page', 'notes on https://github.com/foo/bar/pull/123'],
+    ['pulls', 'all PRs: https://github.com/foo/bar/pull'],
+    ['pr9', 'see https://github.com/foo/bar/pull/9'],
+    ['repo', '[repo](https://github.com/foo/bar)'],
+    ['sibling', 'https://github.com/foo/barbaz'],
+    ['host', 'I like https://github.com'],
+  ] as const;
+  const matching = (query: string) =>
+    graph.filter(([, content]) => content.toLowerCase().includes(query.toLowerCase()));
+  const block = (uuid: string) => ({
+    uuid,
+    content: graph.find(([id]) => id === uuid)![1],
+    page: { id: 1, name: 'p', originalName: 'P' },
+  });
+
+  const searchService = () => {
+    const service = create();
+    const queries: string[] = [];
+    service.client =
+      name === 'file'
+        ? ({
+            getGraph: async () => ({ name: 'g', path: '/g' }),
+            find: async (query: string) => {
+              queries.push(query);
+              return matching(query).map(([uuid]) => block(uuid));
+            },
+          } as any)
+        : ({
+            getGraph: async () => ({ name: 'logseq_db_g' }),
+            search: async (query: string) => {
+              queries.push(query);
+              return { blocks: matching(query).map(([uuid]) => ({ uuid, 'page?': null })) };
+            },
+            getBlockViaUuid: async (uuid: string) => block(uuid),
+            getPage: async () => ({ id: 1, name: 'p', originalName: 'P' }),
+          } as any);
+    return { service, queries };
+  };
+
+  const url = new URL('https://github.com/foo/bar/pull/123');
+
+  test('without a scope depth only the page is searched', async () => {
+    const { service, queries } = searchService();
+    const res = await service.urlSearch(url);
+    expect(res.response.blocks.map((b: any) => b.uuid)).toEqual(['page']);
+    expect(res.count).toBe(1);
+    expect(queries).toEqual(['github.com/foo/bar/pull/123']);
+  });
+
+  test('the page comes first, then each parent path up to the depth', async () => {
+    const { service, queries } = searchService();
+    const res = await service.urlSearch(url, { scopeDepth: 2 });
+    expect(res.response.blocks.map((b: any) => b.uuid)).toEqual(['page', 'pulls', 'pr9', 'repo']);
+    // The badge counts the page only.
+    expect(res.count).toBe(1);
+    expect(queries).toEqual([
+      'github.com/foo/bar/pull/123',
+      'github.com/foo/bar/pull',
+      'github.com/foo/bar',
+    ]);
+  });
+
+  test('never searches the bare host', async () => {
+    const { service, queries } = searchService();
+    const res = await service.urlSearch(url, { scopeDepth: 1 });
+    expect(queries).not.toContain('github.com');
+    expect(res.response.blocks.map((b: any) => b.uuid)).not.toContain('host');
+  });
+});
