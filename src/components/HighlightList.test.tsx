@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import { HighlightList } from './HighlightList';
 import type { HighlightData } from '@/types/highlight';
+import { HIGHLIGHT_COLORS } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 
 const highlight = (
@@ -101,6 +102,29 @@ describe('HighlightList', () => {
       }
       expect(screen.queryByText('t4')).toBeNull();
       expect(screen.getByText('+2')).not.toBeNull();
+    });
+
+    it('marks the text with the tint the page paints it with', () => {
+      render(
+        <HighlightList
+          highlights={[highlight('a'), highlight('b', { color: 'green' })]}
+          onSelect={noop}
+          onDelete={noop}
+        />,
+      );
+
+      const tint = (text: string) => {
+        const { style } = screen.getByText(text);
+        return [style.getPropertyValue('--hl-light'), style.getPropertyValue('--hl-dark')];
+      };
+      expect(tint('text of a')).toEqual([
+        HIGHLIGHT_COLORS.yellow.light,
+        HIGHLIGHT_COLORS.yellow.dark,
+      ]);
+      expect(tint('text of b')).toEqual([
+        HIGHLIGHT_COLORS.green.light,
+        HIGHLIGHT_COLORS.green.dark,
+      ]);
     });
 
     it('shows the empty state instead of the list', () => {

@@ -21,6 +21,30 @@ const BRAND_HIGHLIGHT = {
 };
 
 /**
+ * The tint a highlight is painted with on the page, by its stored color, for
+ * light and dark pages. The default ('yellow', the stored value of every
+ * highlight so far) is the brand teal: dark text keeps >= 11:1 on light pages,
+ * light text >= 6:1 on dark ones. The sidebars draw their quotes with it too.
+ */
+export const HIGHLIGHT_COLORS: Record<string, { light: string; dark: string }> = {
+  yellow: BRAND_HIGHLIGHT,
+  green: { light: 'rgba(0, 255, 0, 0.4)', dark: 'rgba(0, 255, 0, 0.25)' },
+  blue: { light: 'rgba(0, 0, 255, 0.4)', dark: 'rgba(0, 0, 255, 0.25)' },
+  pink: {
+    light: 'rgba(255, 192, 203, 0.4)',
+    dark: 'rgba(255, 192, 203, 0.25)',
+  },
+  orange: {
+    light: 'rgba(255, 165, 0, 0.4)',
+    dark: 'rgba(255, 165, 0, 0.25)',
+  },
+};
+
+/** The tint of a stored highlight color (unknown colors are the default). */
+export const highlightColor = (color: string | undefined) =>
+  HIGHLIGHT_COLORS[color ?? 'yellow'] ?? HIGHLIGHT_COLORS.yellow;
+
+/**
  * Manages highlights display and restoration on web pages
  */
 export class HighlightManager {
@@ -557,25 +581,7 @@ export class HighlightManager {
       const style = document.createElement('style');
       style.setAttribute('data-highlight', highlightName);
 
-      // Define color mappings
-      // The default ('yellow', the stored value of every highlight so far)
-      // is the brand teal: dark text keeps >= 11:1 on light pages, light
-      // text >= 6:1 on dark ones.
-      const colorMap: Record<string, { light: string; dark: string }> = {
-        yellow: BRAND_HIGHLIGHT,
-        green: { light: 'rgba(0, 255, 0, 0.4)', dark: 'rgba(0, 255, 0, 0.25)' },
-        blue: { light: 'rgba(0, 0, 255, 0.4)', dark: 'rgba(0, 0, 255, 0.25)' },
-        pink: {
-          light: 'rgba(255, 192, 203, 0.4)',
-          dark: 'rgba(255, 192, 203, 0.25)',
-        },
-        orange: {
-          light: 'rgba(255, 165, 0, 0.4)',
-          dark: 'rgba(255, 165, 0, 0.25)',
-        },
-      };
-
-      const colors = colorMap[color] || colorMap.yellow;
+      const colors = highlightColor(color);
 
       // Create CSS rules for the highlight
       const css = `
