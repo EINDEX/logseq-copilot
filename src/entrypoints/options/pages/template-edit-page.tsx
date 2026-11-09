@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,22 @@ const VARIABLES = [
     ['{{dt}}', 'Date/time object'],
 ] as const;
 
+type TextField = 'name' | 'content' | 'clipNoteCustomPage';
+
+// What the user has typed into this template's text fields. Saving goes
+// through storage asynchronously; binding the inputs to the stored value
+// would make React restore the old value on each keystroke and assign the
+// new one later, which moves the caret to the end. Tagging the draft with
+// the template id drops it when another template is opened.
+interface Draft {
+    id?: string;
+    fields: Partial<Pick<TemplateItemV1, TextField>>;
+}
+
 const TemplateEditPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { template, updateTemplate, loading } = useTemplate(id!);
+    const [draft, setDraft] = useState<Draft>({ fields: {} });
 
     if (loading) {
         return <PageLoading title="Edit Template">Loading template...</PageLoading>;
@@ -29,16 +42,27 @@ const TemplateEditPage: React.FC = () => {
         return <Navigate to="/templates" replace />;
     }
 
+    const draftFields = draft.id === id ? draft.fields : {};
+    const textValue = (field: TextField) => draftFields[field] ?? template[field] ?? '';
+
     const handleFieldUpdate = (field: keyof TemplateItemV1, value: string) => {
         updateTemplate({ [field]: value });
     };
 
+    const handleTextChange = (field: TextField, value: string) => {
+        setDraft((prev) => ({
+            id,
+            fields: { ...(prev.id === id ? prev.fields : {}), [field]: value },
+        }));
+        handleFieldUpdate(field, value);
+    };
+
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        handleFieldUpdate('name', event.target.value);
+        handleTextChange('name', event.target.value);
     };
 
     const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        handleFieldUpdate('content', event.target.value);
+        handleTextChange('content', event.target.value);
     };
 
     const handleLocationChange = (value: string) => {
@@ -46,7 +70,7 @@ const TemplateEditPage: React.FC = () => {
     };
 
     const handleCustomPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        handleFieldUpdate('clipNoteCustomPage', event.target.value);
+        handleTextChange('clipNoteCustomPage', event.target.value);
     };
 
     return (
@@ -59,7 +83,7 @@ const TemplateEditPage: React.FC = () => {
                     <Label htmlFor="template-name">Name</Label>
                     <Input
                         id="template-name"
-                        value={template.name}
+                        value={textValue('name')}
                         onChange={handleNameChange}
                         placeholder="Enter template name"
                     />
@@ -97,7 +121,7 @@ const TemplateEditPage: React.FC = () => {
                         <Input
                             id="custom-page-name"
                             disabled={template.clipNoteLocation !== 'customPage'}
-                            value={template.clipNoteCustomPage || ''}
+                            value={textValue('clipNoteCustomPage')}
                             onChange={handleCustomPageChange}
                             placeholder="Enter custom page name"
                         />
@@ -117,7 +141,7 @@ const TemplateEditPage: React.FC = () => {
                     <Textarea
                         id="template-content"
                         className="min-h-48 font-mono text-sm"
-                        value={template.content}
+                        value={textValue('content')}
                         onChange={handleContentChange}
                         placeholder="Enter your template content here..."
                     />
