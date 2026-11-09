@@ -5,10 +5,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Save, X, Plus, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { RecallRuleConfig } from '@/utils/storage';
+import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
+import { broadestScopePrefix } from '@/utils/recall-scope';
 import { PageSection } from './page-layout';
+
+// "This page" saves no depth.
+const SCOPE_OPTIONS = [
+    { value: 'page', label: 'This page' },
+    { value: '1', label: '1 level' },
+    { value: '2', label: '2 levels' },
+    { value: '3', label: '3 levels' },
+];
 
 interface RecallRuleFormProps {
     initialRule?: RecallRuleConfig | null;
@@ -133,6 +144,21 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
     };
 
     const urlPatternResult = testUrlPattern();
+
+    // What the rule recalls up to on the test URL, with its URL processing.
+    const scopePreview = () => {
+        if (!urlPatternResult) return undefined;
+        try {
+            const processed = RecallRuleProcessor.getInstance().processUrl(
+                new URL(testUrl),
+                [{ ...formData, id: '' }],
+            );
+            return broadestScopePrefix(processed, formData.queryProcessing.scopeDepth);
+        } catch {
+            return undefined;
+        }
+    };
+    const recallPrefix = scopePreview();
 
     const help = (...lines: string[]) => (
         <Tooltip>
@@ -269,7 +295,9 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         />
                         {testUrl && formData.urlPattern && (
                             <p className={`text-sm ${urlPatternResult ? 'text-primary' : 'text-destructive'}`}>
-                                {urlPatternResult ? '✓ Matches' : '✗ No match'}
+                                {urlPatternResult
+                                    ? `✓ Matches${recallPrefix ? ` · ${recallPrefix}` : ''}`
+                                    : '✗ No match'}
                             </p>
                         )}
                     </div>
@@ -304,6 +332,28 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             {help('Removes everything after ? in the URL.')}
                         </Label>
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                        Recall scope
+                        {help('Also recalls notes about parent paths of the page.', 'e.g. 2 levels on GitHub: the whole repository.')}
+                    </Label>
+                    <RadioGroup
+                        aria-label="Recall scope"
+                        value={formData.queryProcessing.scopeDepth ? String(formData.queryProcessing.scopeDepth) : 'page'}
+                        onValueChange={(value) =>
+                            handleNestedChange('queryProcessing', 'scopeDepth', value === 'page' ? undefined : Number(value))
+                        }
+                        className="flex flex-wrap gap-x-6 gap-y-2"
+                    >
+                        {SCOPE_OPTIONS.map((option) => (
+                            <div key={option.value} className="flex items-center gap-2">
+                                <RadioGroupItem value={option.value} id={`scope-${option.value}`} />
+                                <Label htmlFor={`scope-${option.value}`}>{option.label}</Label>
+                            </div>
+                        ))}
+                    </RadioGroup>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
