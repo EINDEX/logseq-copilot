@@ -48,6 +48,10 @@ export const pageNameOf = (page: ResultPage): string | undefined => {
 
 const normalizePageName = (name: string) => name.trim().toLowerCase();
 
+/** Milliseconds of a timestamp, Date or date string; 0 when unknown. */
+const timeOf = (value: number | string | Date | undefined): number =>
+  value === undefined ? 0 : new Date(value).getTime() || 0;
+
 /**
  * Whether a page passes the restrictToPages / excludePages scope. Page names
  * are compared exactly after trimming and lower-casing (excluding "Work" does
@@ -349,7 +353,12 @@ export class RecallRuleProcessor {
    * Filter search results based on recall rules
    */
   public filterResults<
-    T extends { content?: string; page?: ResultPage; createdAt?: Date },
+    T extends {
+      content?: string;
+      page?: ResultPage;
+      // Logseq sends a millisecond timestamp, not a Date.
+      createdAt?: number | string | Date;
+    },
   >(results: T[], context: ProcessedSearchContext): T[] {
     let filteredResults = [...results];
 
@@ -392,8 +401,8 @@ export class RecallRuleProcessor {
       filteredResults[0]?.createdAt
     ) {
       filteredResults.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() || 0;
-        const bTime = b.createdAt?.getTime() || 0;
+        const aTime = timeOf(a.createdAt);
+        const bTime = timeOf(b.createdAt);
         return bTime - aTime; // Newer first
       });
     }
