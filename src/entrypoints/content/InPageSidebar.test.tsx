@@ -226,6 +226,36 @@ describe('InPageSidebar', () => {
     });
   });
 
+  it('searches the graph, and keeps the result while the page navigates, until cleared', async () => {
+    sendMessage.mockImplementation(async (type: string, query: unknown) =>
+      type === 'logseq:search'
+        ? (await logseqAnswers({ url: `https://found.example/${query}` }))
+        : undefined,
+    );
+    const { rerender } = render(<InPageSidebar url={PAGE} />);
+    await screen.findByText(/about \/page/);
+    const box = screen.getByRole('searchbox', { name: 'Search Logseq' }) as HTMLInputElement;
+
+    fireEvent.change(box, { target: { value: 'books' } });
+    fireEvent.submit(box.form!);
+
+    expect(await screen.findByText(/about \/books/)).not.toBeNull();
+    expect(sendMessage).toHaveBeenCalledWith('logseq:search', 'books');
+
+    // What startInPageSidebar does after an in-page navigation.
+    rerender(<InPageSidebar url={new URL('/next', PAGE).href} />);
+    await waitFor(() =>
+      expect(urlSearch).toHaveBeenCalledWith({ url: new URL('/next', PAGE).href }),
+    );
+    expect(screen.getByText(/about \/books/)).not.toBeNull();
+    expect(box.value).toBe('books');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(screen.queryByText(/about \/books/)).toBeNull();
+    expect(await screen.findByText(/about \/next/)).not.toBeNull();
+  });
+
   it('opens the settings', async () => {
     render(<InPageSidebar url={PAGE} />);
 

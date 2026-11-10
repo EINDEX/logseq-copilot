@@ -566,6 +566,45 @@ describe('sidepanel App', () => {
       expect(notice()).toBeNull();
     });
   });
+  describe('searching the graph', () => {
+    const box = () =>
+      screen.getByRole('searchbox', { name: 'Search Logseq' }) as HTMLInputElement;
+
+    beforeEach(() => {
+      sendMessage.mockImplementation(async (type: string, query: unknown) =>
+        type === 'logseq:search'
+          ? answer([logseqBlock('s1', `<p>found ${query}</p>`)])
+          : true,
+      );
+    });
+
+    it('searches on Enter, and keeps the result while the tab changes, until cleared', async () => {
+      logseqHas([logseqBlock('b1', '<p>about the page</p>')]);
+      render(<App />);
+      await screen.findByText('about the page');
+
+      fireEvent.change(box(), { target: { value: 'books' } });
+      fireEvent.submit(box().form!);
+
+      expect(await screen.findByText('found books')).not.toBeNull();
+      expect(sendMessage).toHaveBeenCalledWith('logseq:search', 'books');
+      expect(screen.queryByRole('region', { name: 'In Logseq' })).toBeNull();
+
+      await switchTo(2);
+      await waitFor(() =>
+        expect(urlSearch).toHaveBeenCalledWith({ url: 'https://two.example/article' }),
+      );
+      expect(screen.getByText('found books')).not.toBeNull();
+      expect(box().value).toBe('books');
+      expect(sendMessage.mock.calls.filter(([type]) => type === 'logseq:search')).toHaveLength(1);
+
+      fireEvent.keyDown(box(), { key: 'Escape' });
+
+      expect(screen.queryByText('found books')).toBeNull();
+      expect(screen.getByRole('region', { name: 'In Logseq' })).not.toBeNull();
+    });
+  });
+
   describe('what Logseq has about the page', () => {
     const recallPart = () => screen.queryByRole('region', { name: 'In Logseq' });
 
