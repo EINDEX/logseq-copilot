@@ -127,6 +127,42 @@ describe('usePageRecall', () => {
     expect(searchedUrls()).toEqual(['https://one.example/', 'https://one.example/']);
   });
 
+  it('keeps showing the result on refresh until the new one is in', async () => {
+    const again = deferred<ReturnType<typeof ok>>();
+    sendMessage.mockResolvedValueOnce(ok('before')).mockReturnValueOnce(again.promise);
+
+    const { result } = renderHook(() => usePageRecall('https://one.example/'));
+    await waitFor(() => expect(result.current.result?.graph).toBe('before'));
+
+    act(() => result.current.refresh());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.result?.graph).toBe('before');
+    await act(async () => again.resolve(ok('after')));
+    expect(result.current).toMatchObject({ loading: false, error: null });
+    expect(result.current.result?.graph).toBe('after');
+    expect(searchedUrls()).toEqual(['https://one.example/', 'https://one.example/']);
+  });
+
+  it('does not keep the result of the last page when the url changes with a refresh', async () => {
+    const two = deferred<ReturnType<typeof ok>>();
+    sendMessage.mockResolvedValueOnce(ok('one')).mockReturnValueOnce(two.promise);
+
+    const { result, rerender } = renderHook(({ url }) => usePageRecall(url), {
+      initialProps: { url: 'https://one.example/' },
+    });
+    await waitFor(() => expect(result.current.result?.graph).toBe('one'));
+
+    act(() => {
+      result.current.refresh();
+      rerender({ url: 'https://two.example/' });
+    });
+
+    expect(result.current.result).toBeNull();
+    await act(async () => two.resolve(ok('two')));
+    expect(result.current.result?.graph).toBe('two');
+  });
+
   it('does not search without a url, and has no result', async () => {
     const { result } = renderHook(() => usePageRecall(null));
 
