@@ -108,8 +108,15 @@ export default defineBackground({
       await quickCapture(data, sender.tab);
     });
 
-    onMessage('logseq:clipPage', async () => {
-      await quickCapture('');
+    // The browser sidebar names the tab beside it: its messages have no
+    // sender tab, and the active tab of the current window may be in another
+    // window.
+    onMessage('logseq:clipPage', async ({ data }) => {
+      const tabId = data?.tabId;
+      await quickCapture(
+        '',
+        tabId === undefined ? undefined : await browser.tabs.get(tabId),
+      );
     });
 
     onMessage('app:openPage', async ({ data }) => {

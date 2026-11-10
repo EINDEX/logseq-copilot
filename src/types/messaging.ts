@@ -1,4 +1,9 @@
-import { defineExtensionMessaging } from '@webext-core/messaging';
+import {
+  defineExtensionMessaging,
+  type ExtensionSendMessageArgs,
+  type GetDataType,
+  type GetReturnType,
+} from '@webext-core/messaging';
 import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import type { RecallResult } from './recall';
@@ -25,8 +30,13 @@ export interface MessagingProtocol {
   /** Rejects with a readable message (LogseqError) when nothing was clipped. */
   'logseq:clipWithSelection': (data: string) => void;
 
-  /** Rejects with a readable message (LogseqError) when nothing was clipped. */
-  'logseq:clipPage': () => void;
+  /**
+   * Clips the link of the page in tab `tabId` or, without one, in the active
+   * tab of the current window. Senders without a tab of their own (the
+   * browser sidebar) name the tab. Rejects with a readable message
+   * (LogseqError) when nothing was clipped.
+   */
+  'logseq:clipPage': (data?: { tabId?: number }) => void;
 
   'logseq:changeBlockMarker': (data: {
     uuid: string;
@@ -63,5 +73,19 @@ export interface MessagingProtocol {
 }
 
 // Create the messaging instance
-export const { sendMessage, onMessage } =
-  defineExtensionMessaging<MessagingProtocol>();
+const messaging = defineExtensionMessaging<MessagingProtocol>();
+
+type DataOf<T extends keyof MessagingProtocol> = GetDataType<MessagingProtocol[T]>;
+
+/**
+ * webext-core's sendMessage, except that data the message may go without
+ * (`(data?: ...) => ...`) may be left out, as for messages without data.
+ */
+export const sendMessage: <T extends keyof MessagingProtocol>(
+  type: T,
+  ...args: undefined extends DataOf<T>
+    ? [data?: DataOf<T>, ...rest: ExtensionSendMessageArgs]
+    : [data: DataOf<T>, ...rest: ExtensionSendMessageArgs]
+) => Promise<GetReturnType<MessagingProtocol[T]>> = messaging.sendMessage;
+
+export const { onMessage } = messaging;

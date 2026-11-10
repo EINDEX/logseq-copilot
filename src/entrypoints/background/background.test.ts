@@ -166,6 +166,52 @@ describe('logseq:clipPage', () => {
     expect(service.client.appendBlock.mock.calls[0][0]).toBe(journal);
   });
 
+  describe('the tab it clips', () => {
+    const activeTab = { id: 1, url: 'https://active.example/', title: 'Active Page' };
+    const besideTab = { id: 7, url: 'https://beside.example/post', title: 'Beside Page' };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([activeTab as any]);
+      vi.spyOn(fakeBrowser.tabs, 'get').mockImplementation(async (tabId: number) => {
+        if (tabId !== besideTab.id) throw new Error(`No tab with id: ${tabId}`);
+        return besideTab as any;
+      });
+      service.client.getUserConfig.mockResolvedValue({ preferredDateFormat: 'yyyy-MM-dd' });
+      service.client.appendBlock.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.mocked(fakeBrowser.tabs.get).mockRestore();
+    });
+
+    const clippedBlock = () => service.client.appendBlock.mock.calls[0][1] as string;
+
+    test('with a tabId (the browser sidebar), the page in that tab', async () => {
+      await sendMessage('logseq:clipPage', { tabId: besideTab.id });
+
+      expect(fakeBrowser.tabs.get).toHaveBeenCalledWith(besideTab.id);
+      expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
+      expect(clippedBlock()).toContain(`[${besideTab.title}](${besideTab.url})`);
+      expect(clippedBlock()).not.toContain(activeTab.url);
+    });
+
+    test('without one (the popup), the active tab of the current window', async () => {
+      await sendMessage('logseq:clipPage', undefined);
+
+      expect(fakeBrowser.tabs.get).not.toHaveBeenCalled();
+      expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
+      expect(clippedBlock()).toContain(`[${activeTab.title}](${activeTab.url})`);
+    });
+
+    test('rejects, clipping nothing, when the tab is gone', async () => {
+      const err = await sendMessage('logseq:clipPage', { tabId: 99 }).catch((e) => e);
+
+      expect(err).toBeInstanceOf(Error);
+      expect(service.client.appendBlock).not.toHaveBeenCalled();
+    });
+  });
+
   // Issue #48: the sender (popup, content script) shows why nothing was clipped.
   describe('rejects with a readable message when nothing was clipped', () => {
     beforeEach(() => {
