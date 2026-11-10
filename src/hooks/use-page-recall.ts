@@ -14,6 +14,11 @@ export interface PageRecallState {
 export interface PageRecall extends PageRecallState {
   /** Searches the same page again. */
   retry: () => void;
+  /**
+   * Searches the same page again and keeps showing what it has until the
+   * answer is in (after a clip, which may have added a block about the page).
+   */
+  refresh: () => void;
 }
 
 const IDLE: PageRecallState = { loading: false, error: null, result: null };
@@ -32,14 +37,22 @@ export function usePageRecall(url: string | null): PageRecall {
   const [state, setState] = useState<PageRecallState>(IDLE);
   const [attempt, setAttempt] = useState(0);
   const latestSearch = useRef(0);
+  // Set by refresh for the next search; only for the url it was called on.
+  const keepShown = useRef<string | null>(null);
 
   useEffect(() => {
     const thisSearch = ++latestSearch.current;
+    const keep = keepShown.current !== null && keepShown.current === url;
+    keepShown.current = null;
     if (!url) {
       setState(IDLE);
       return;
     }
-    setState({ loading: true, error: null, result: null });
+    setState((shown) =>
+      keep
+        ? { ...shown, loading: true }
+        : { loading: true, error: null, result: null },
+    );
 
     const settle = (next: PageRecallState) => {
       if (thisSearch === latestSearch.current) setState(next);
@@ -68,6 +81,10 @@ export function usePageRecall(url: string | null): PageRecall {
   }, [url, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  const refresh = useCallback(() => {
+    keepShown.current = url;
+    setAttempt((n) => n + 1);
+  }, [url]);
 
-  return { ...state, retry };
+  return { ...state, retry, refresh };
 }
