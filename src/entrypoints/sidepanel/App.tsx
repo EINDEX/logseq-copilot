@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { useActiveTab } from '@/hooks/use-active-tab';
+import { useClipActions } from '@/hooks/use-clip-actions';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
@@ -33,9 +34,65 @@ export default function App() {
   const url = tab?.url ?? null;
   const { highlights, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
-  const { retry: retryRecall, ...recall } = usePageRecall(url);
+  const {
+    retry: retryRecall,
+    refresh: refreshRecall,
+    ...recall
+  } = usePageRecall(url);
   // Not tied to the page: it stays while the tab changes, until cleared.
   const search = useLogseqSearch();
+
+  const tabId = tab?.id;
+
+  // Whether the page has a selection to clip. This page is not told when it
+  // changes, so it asks the page's content script whenever it may have:
+  // for another page, when this sidebar gets focus (a click in it, coming
+  // back from the page), and when the pointer comes over the clip buttons.
+  // The last two come before any click on them. Without a content script
+  // (browser pages, the PDF viewer, ...) there is none.
+  const [canClipSelection, setCanClipSelection] = useState(false);
+  const latestCheck = useRef(0);
+  const checkSelection = useCallback(() => {
+    const thisCheck = ++latestCheck.current;
+    if (tabId === undefined || !url) {
+      setCanClipSelection(false);
+      return;
+    }
+    const settle = (has: boolean) => {
+      if (thisCheck === latestCheck.current) setCanClipSelection(has);
+    };
+    sendMessage('content:hasSelection', undefined, tabId).then(
+      (has) => settle(has === true),
+      () => settle(false),
+    );
+  }, [tabId, url]);
+  useEffect(() => {
+    checkSelection();
+    window.addEventListener('focus', checkSelection);
+    return () => window.removeEventListener('focus', checkSelection);
+  }, [checkSelection]);
+
+  // This page has no tab: the clips name the one beside it.
+  const clip = useClipActions(
+    {
+      clipPage: () => sendMessage('logseq:clipPage', { tabId }),
+      clipSelection: async () => {
+        if (tabId === undefined) throw new Error('No tab to clip.');
+        // The same command as the "Clip selection" context menu item; a
+        // failure is shown here, not in the page.
+        await sendMessage(
+          'content:quickCaptureWithSelection',
+          { feedback: 'sender' },
+          tabId,
+        );
+      },
+      // The clip mentions the page: Logseq has one more block about it.
+      onClipped: refreshRecall,
+      // A clipped selection is gone from the page.
+      onSettled: checkSelection,
+    },
+    url,
+  );
 
   // `logseq:` links are opened by the background, like in the sidebar drawn
   // on pages: followed here, they would load in this page.
@@ -82,6 +139,9 @@ export default function App() {
         recall={recall}
         onRetryRecall={retryRecall}
         search={search}
+        clip={clip}
+        canClipSelection={canClipSelection}
+        onClipActionsPointerEnter={checkSelection}
         onOpenSettings={openSettings}
       />
     </div>

@@ -8,6 +8,7 @@ vi.mock('@/types/messaging', () => ({ sendMessage }));
 
 import { SidebarPanel, type SidebarPanelProps } from './SidebarPanel';
 import { useLogseqSearch, type LogseqSearch } from '@/hooks/use-logseq-search';
+import type { ClipActions } from '@/hooks/use-clip-actions';
 import type { PageRecallState } from '@/hooks/use-page-recall';
 import type { HighlightData } from '@/types/highlight';
 import type { LogseqBlockType, LogseqSearchResult } from '@/types/logseqBlock';
@@ -69,6 +70,16 @@ const idleSearch = (over: Partial<LogseqSearch> = {}): LogseqSearch => ({
   ...over,
 });
 
+/** No clip under way, none done. */
+const idleClip = (over: Partial<ClipActions> = {}): ClipActions => ({
+  clipping: null,
+  done: null,
+  error: null,
+  clipPage: noop,
+  clipSelection: noop,
+  ...over,
+});
+
 const renderPanel = (props: Partial<SidebarPanelProps> = {}) =>
   render(
     <SidebarPanel
@@ -81,6 +92,8 @@ const renderPanel = (props: Partial<SidebarPanelProps> = {}) =>
       recall={recallOf()}
       onRetryRecall={noop}
       search={idleSearch()}
+      clip={idleClip()}
+      canClipSelection={false}
       onOpenSettings={noop}
       {...props}
     />,
@@ -199,6 +212,8 @@ describe('SidebarPanel', () => {
           recall={recallOf({ result: found([]) })}
           onRetryRecall={noop}
           search={idleSearch()}
+          clip={idleClip()}
+          canClipSelection={false}
           onOpenSettings={noop}
         />,
       );
@@ -303,6 +318,8 @@ describe('SidebarPanel', () => {
           recall={recallOf()}
           onRetryRecall={noop}
           search={search}
+          clip={idleClip()}
+          canClipSelection={false}
           onOpenSettings={noop}
           {...props}
         />
@@ -466,6 +483,136 @@ describe('SidebarPanel', () => {
 
       expect(screen.getByText('a found block')).not.toBeNull();
       expect(box().value).toBe('reading');
+    });
+  });
+
+  describe('clipping', () => {
+    const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
+    const clipError = () => screen.queryByRole('alert');
+
+    it('has Clip page and Clip selection in the header, side by side', () => {
+      renderPanel();
+
+      const page = button('Clip page');
+      const selection = button('Clip selection');
+      expect(screen.getByRole('banner').contains(page)).toBe(true);
+      expect(page.parentElement).toBe(selection.parentElement);
+      expect(page.parentElement!.className).toContain('grid-cols-2');
+    });
+
+    it('offers Clip selection only with a selection on the page', () => {
+      const { rerender } = render(
+        <SidebarPanel
+          status="ready"
+          highlights={[]}
+          notice={null}
+          onSelect={noop}
+          onDelete={noop}
+          onUpdateNote={async () => {}}
+          recall={recallOf()}
+          onRetryRecall={noop}
+          search={idleSearch()}
+          clip={idleClip()}
+          canClipSelection={false}
+          onOpenSettings={noop}
+        />,
+      );
+      expect(button('Clip selection').disabled).toBe(true);
+      expect(button('Clip page').disabled).toBe(false);
+
+      rerender(
+        <SidebarPanel
+          status="ready"
+          highlights={[]}
+          notice={null}
+          onSelect={noop}
+          onDelete={noop}
+          onUpdateNote={async () => {}}
+          recall={recallOf()}
+          onRetryRecall={noop}
+          search={idleSearch()}
+          clip={idleClip()}
+          canClipSelection
+          onOpenSettings={noop}
+        />,
+      );
+      expect(button('Clip selection').disabled).toBe(false);
+    });
+
+    it('runs the clips', () => {
+      const clipPage = vi.fn();
+      const clipSelection = vi.fn();
+      renderPanel({ clip: idleClip({ clipPage, clipSelection }), canClipSelection: true });
+
+      fireEvent.click(button('Clip page'));
+      fireEvent.click(button('Clip selection'));
+
+      expect(clipPage).toHaveBeenCalledTimes(1);
+      expect(clipSelection).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the selection of the page when a clip button is pressed', () => {
+      renderPanel({ canClipSelection: true });
+
+      for (const name of ['Clip page', 'Clip selection']) {
+        const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 });
+        button(name).dispatchEvent(press);
+        expect(press.defaultPrevented).toBe(true);
+      }
+    });
+
+    it('asks the host about the selection when the pointer comes over the buttons', () => {
+      const onClipActionsPointerEnter = vi.fn();
+      renderPanel({ onClipActionsPointerEnter });
+
+      fireEvent.pointerEnter(button('Clip page').parentElement!);
+
+      expect(onClipActionsPointerEnter).toHaveBeenCalledTimes(1);
+    });
+
+    it('turns both off while one clips', () => {
+      renderPanel({ clip: idleClip({ clipping: 'page' }), canClipSelection: true });
+
+      expect(button('Clip page').disabled).toBe(true);
+      expect(button('Clip selection').disabled).toBe(true);
+    });
+
+    it('shows that it has clipped on the button, without words', () => {
+      renderPanel({ clip: idleClip({ done: 'page' }) });
+
+      expect(button('Clip page').dataset.done).toBe('true');
+      expect(button('Clip page').textContent).toBe('Clip page');
+      expect(button('Clip selection').dataset.done).toBeUndefined();
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(clipError()).toBeNull();
+    });
+
+    it('keeps Clip selection as it is while it shows it has clipped, but clips nothing more', () => {
+      const clipSelection = vi.fn();
+      renderPanel({ clip: idleClip({ done: 'selection', clipSelection }), canClipSelection: false });
+
+      expect(button('Clip selection').disabled).toBe(false);
+      fireEvent.click(button('Clip selection'));
+      expect(clipSelection).not.toHaveBeenCalled();
+    });
+
+    it('shows why a clip failed under the buttons, on the action that failed', () => {
+      renderPanel({
+        clip: idleClip({
+          error: { action: 'selection', message: 'The authorization token is wrong' },
+        }),
+        canClipSelection: true,
+      });
+
+      const alert = clipError()!;
+      expect(alert.textContent).toBe('The authorization token is wrong');
+      expect(alert.id).toBe('clip-error');
+      expect(screen.getByRole('banner').contains(alert)).toBe(true);
+      expect(button('Clip selection').getAttribute('aria-invalid')).toBe('true');
+      expect(button('Clip selection').getAttribute('aria-describedby')).toBe('clip-error');
+      expect(button('Clip page').hasAttribute('aria-invalid')).toBe(false);
+      // It can be tried again.
+      expect(button('Clip selection').disabled).toBe(false);
     });
   });
 
