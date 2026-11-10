@@ -1,16 +1,17 @@
 import type { MouseEvent } from 'react';
 import { IconNotes, IconRefresh, IconSettings } from '@tabler/icons-react';
-import { X } from 'lucide-react';
+import { LoaderCircle, Search, X } from 'lucide-react';
 import { HighlightList } from '@/components/HighlightList';
 import { LogseqResultList } from '@/components/LogseqResultList';
 import { Button } from '@/components/ui/button';
+import type { LogseqSearch } from '@/hooks/use-logseq-search';
 import type { PageRecallState } from '@/hooks/use-page-recall';
 import type { HighlightData } from '@/types/highlight';
 import type { LogseqSearchResult } from '@/types/logseqBlock';
 import { graphUrl } from '@/utils/logseq-url';
 
-/** Whether the list of a recall result would show anything. */
-const hasRecall = (result: LogseqSearchResult | null): result is LogseqSearchResult =>
+/** Whether the list of a recall or search result would show anything. */
+const hasResults = (result: LogseqSearchResult | null): result is LogseqSearchResult =>
   !!result &&
   ((result.blocks ?? []).some((block) => block.html) ||
     (result.pages ?? []).some((page) => !!page?.name));
@@ -33,6 +34,61 @@ const openWebLinksInNewTab = (event: MouseEvent) => {
   window.open(link.href, '_blank', 'noopener,noreferrer');
 };
 
+/**
+ * Contained: scrolling past the end does not scroll the page under an in-page
+ * sidebar.
+ */
+const MAIN_CLASS = 'flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2';
+
+/** Why Logseq could not be searched, with a retry. */
+const ErrorRow = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+  <div role="alert" className="flex items-start gap-2 px-1.5 py-1">
+    <p className="min-w-0 flex-1 py-1 text-xs leading-4 text-muted-foreground">{message}</p>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onRetry}
+      className="h-6 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+    >
+      <IconRefresh className="h-3.5 w-3.5" stroke={1.75} />
+      Retry
+    </Button>
+  </div>
+);
+
+const EmptyState = ({ children }: { children: string }) => (
+  <div className="py-10 text-center">
+    <IconNotes aria-hidden className="mx-auto mb-2 h-7 w-7 text-muted-foreground/50" stroke={1.5} />
+    <p className="text-sm text-muted-foreground">{children}</p>
+  </div>
+);
+
+/**
+ * What a search of the graph found. Nothing while it is under way: the box
+ * shows that.
+ */
+const SearchResults = ({ search }: { search: LogseqSearch }) => {
+  if (search.loading) return null;
+  const result = hasResults(search.result) ? search.result : null;
+  if (!search.error && !result) return <EmptyState>Nothing found</EmptyState>;
+  return (
+    <section aria-label="Search results" className="-mx-1.5" onClick={openWebLinksInNewTab}>
+      {search.error ? (
+        <ErrorRow message={search.error} onRetry={search.retry} />
+      ) : (
+        result && (
+          <LogseqResultList
+            graph={result.graph}
+            blocks={result.blocks ?? []}
+            pages={result.pages}
+            variant="sidebar"
+          />
+        )
+      )}
+    </section>
+  );
+};
+
 export interface SidebarPanelProps {
   /**
    * `loading` while the highlights of the page are being read, `unavailable`
@@ -49,6 +105,11 @@ export interface SidebarPanelProps {
   /** What the Logseq graph has about the page (usePageRecall). */
   recall: PageRecallState;
   onRetryRecall: () => void;
+  /**
+   * A search of the graph typed in the header (useLogseqSearch). While one
+   * is shown, it takes the place of the page's highlights and recall.
+   */
+  search: LogseqSearch;
   onOpenSettings: () => void;
   /** Shows a close button in the header. */
   onClose?: () => void;
@@ -71,12 +132,14 @@ export function SidebarPanel({
   onUpdateNote,
   recall,
   onRetryRecall,
+  search,
   onOpenSettings,
   onClose,
 }: SidebarPanelProps) {
-  const graph = recall.result?.graph;
+  const graph = recall.result?.graph ?? search.result?.graph;
+  const searching = search.submitted !== null;
   const showHighlights = status === 'ready' && highlights.length > 0;
-  const recallResult = hasRecall(recall.result) ? recall.result : null;
+  const recallResult = hasResults(recall.result) ? recall.result : null;
   const showRecall = !!recall.error || !!recallResult;
   // Nothing at all only once both are known: no empty state that flashes
   // before the results.
@@ -85,43 +148,94 @@ export function SidebarPanel({
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center gap-1 border-b px-3">
-        {graph && (
-          <a
-            href={graphUrl(graph)}
-            title={`Open ${graph} in Logseq`}
-            className="inline-flex h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-sm font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            <span
-              aria-hidden
-              className="grid h-4 w-4 shrink-0 place-items-center rounded-[4px] bg-highlight"
+      <header className="shrink-0 border-b px-3 pb-3">
+        <div className="flex h-12 items-center gap-1">
+          {graph && (
+            <a
+              href={graphUrl(graph)}
+              title={`Open ${graph} in Logseq`}
+              className="inline-flex h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-sm font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#002b36]" />
-            </span>
-            <span className="truncate">{graph}</span>
-          </a>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Settings"
-          title="Settings"
-          onClick={onOpenSettings}
-          className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-        >
-          <IconSettings className="h-4 w-4" stroke={1.75} />
-        </Button>
-        {onClose && (
+              <span
+                aria-hidden
+                className="grid h-4 w-4 shrink-0 place-items-center rounded-[4px] bg-highlight"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#002b36]" />
+              </span>
+              <span className="truncate">{graph}</span>
+            </a>
+          )}
           <Button
             variant="ghost"
             size="sm"
-            aria-label="Close"
-            onClick={onClose}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            aria-label="Settings"
+            title="Settings"
+            onClick={onOpenSettings}
+            className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <IconSettings className="h-4 w-4" stroke={1.75} />
           </Button>
-        )}
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Close"
+              onClick={onClose}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <form
+          role="search"
+          className="relative"
+          onSubmit={(event) => {
+            event.preventDefault();
+            search.submit();
+          }}
+        >
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            type="search"
+            aria-label="Search Logseq"
+            placeholder="Search Logseq"
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
+            value={search.query}
+            onChange={(event) => search.setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && search.query !== '') {
+                event.preventDefault();
+                search.clear();
+              }
+            }}
+            className="h-8 w-full min-w-0 rounded-md border border-input bg-transparent pl-8 pr-8 text-sm outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [&::-webkit-search-cancel-button]:appearance-none"
+          />
+          {search.loading ? (
+            <LoaderCircle
+              role="progressbar"
+              aria-label="Searching"
+              className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground"
+            />
+          ) : (
+            search.query !== '' && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={search.clear}
+                className="absolute right-1 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )
+          )}
+        </form>
       </header>
 
       {notice && (
@@ -133,9 +247,15 @@ export function SidebarPanel({
         </div>
       )}
 
-      {/* Contained: scrolling past the end does not scroll the page under an
-          in-page sidebar. */}
-      <main className="flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
+      {searching && (
+        <main className={MAIN_CLASS}>
+          <SearchResults search={search} />
+        </main>
+      )}
+
+      {/* Hidden, not taken out, while a search is shown: a note being edited
+          and the scroll position are still there after it. */}
+      <main hidden={searching} className={MAIN_CLASS}>
         {showHighlights && (
           <section aria-label="Highlights">
             <HighlightList
@@ -155,20 +275,7 @@ export function SidebarPanel({
           // Rows keep their hover padding; their text lines up with the highlights.
           <section aria-label="In Logseq" className="-mx-1.5" onClick={openWebLinksInNewTab}>
             {recall.error ? (
-              <div role="alert" className="flex items-start gap-2 px-1.5 py-1">
-                <p className="min-w-0 flex-1 py-1 text-xs leading-4 text-muted-foreground">
-                  {recall.error}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRetryRecall}
-                  className="h-6 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <IconRefresh className="h-3.5 w-3.5" stroke={1.75} />
-                  Retry
-                </Button>
-              </div>
+              <ErrorRow message={recall.error} onRetry={onRetryRecall} />
             ) : (
               recallResult && (
                 <LogseqResultList
@@ -183,16 +290,9 @@ export function SidebarPanel({
         )}
 
         {!showHighlights && !showRecall && settled && (
-          <div className="py-10 text-center">
-            <IconNotes
-              aria-hidden
-              className="mx-auto mb-2 h-7 w-7 text-muted-foreground/50"
-              stroke={1.5}
-            />
-            <p className="text-sm text-muted-foreground">
-              {unavailable ? 'Not available on this page' : 'Nothing for this page yet'}
-            </p>
-          </div>
+          <EmptyState>
+            {unavailable ? 'Not available on this page' : 'Nothing for this page yet'}
+          </EmptyState>
         )}
       </main>
     </div>
