@@ -6,6 +6,7 @@ import {
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
 import { sendMessage } from '@/types/messaging';
@@ -38,6 +39,8 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
   const { highlights, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
   const { retry: retryRecall, ...recall } = usePageRecall(url);
+  // Not tied to the page: it stays while the page navigates, until cleared.
+  const search = useLogseqSearch();
 
   const handleSelect = async (id: string) => {
     setNotice(null);
@@ -70,6 +73,7 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
           onUpdateNote={updateNote}
           recall={recall}
           onRetryRecall={retryRecall}
+          search={search}
           onOpenSettings={openSettings}
           onClose={close}
         />

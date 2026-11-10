@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { useActiveTab } from '@/hooks/use-active-tab';
+import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
 import { sendMessage } from '@/types/messaging';
@@ -33,6 +34,8 @@ export default function App() {
   const { highlights, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
   const { retry: retryRecall, ...recall } = usePageRecall(url);
+  // Not tied to the page: it stays while the tab changes, until cleared.
+  const search = useLogseqSearch();
 
   // `logseq:` links are opened by the background, like in the sidebar drawn
   // on pages: followed here, they would load in this page.
@@ -78,6 +81,7 @@ export default function App() {
         onUpdateNote={updateNote}
         recall={recall}
         onRetryRecall={retryRecall}
+        search={search}
         onOpenSettings={openSettings}
       />
     </div>

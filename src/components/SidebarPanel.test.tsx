@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-// Task checkboxes in the results talk to the background.
-vi.mock('@/types/messaging', () => ({ sendMessage: vi.fn() }));
+// Task checkboxes in the results, and the search, talk to the background.
+const sendMessage = vi.hoisted(() => vi.fn());
+vi.mock('@/types/messaging', () => ({ sendMessage }));
 
 import { SidebarPanel, type SidebarPanelProps } from './SidebarPanel';
+import { useLogseqSearch, type LogseqSearch } from '@/hooks/use-logseq-search';
 import type { PageRecallState } from '@/hooks/use-page-recall';
 import type { HighlightData } from '@/types/highlight';
 import type { LogseqBlockType, LogseqSearchResult } from '@/types/logseqBlock';
@@ -53,6 +55,20 @@ const recallOf = (over: Partial<PageRecallState> = {}): PageRecallState => ({
 
 const noop = () => {};
 
+/** No search shown. */
+const idleSearch = (over: Partial<LogseqSearch> = {}): LogseqSearch => ({
+  query: '',
+  submitted: null,
+  loading: false,
+  error: null,
+  result: null,
+  setQuery: noop,
+  submit: noop,
+  clear: noop,
+  retry: noop,
+  ...over,
+});
+
 const renderPanel = (props: Partial<SidebarPanelProps> = {}) =>
   render(
     <SidebarPanel
@@ -64,6 +80,7 @@ const renderPanel = (props: Partial<SidebarPanelProps> = {}) =>
       onUpdateNote={async () => {}}
       recall={recallOf()}
       onRetryRecall={noop}
+      search={idleSearch()}
       onOpenSettings={noop}
       {...props}
     />,
@@ -181,6 +198,7 @@ describe('SidebarPanel', () => {
           onUpdateNote={async () => {}}
           recall={recallOf({ result: found([]) })}
           onRetryRecall={noop}
+          search={idleSearch()}
           onOpenSettings={noop}
         />,
       );
@@ -231,8 +249,16 @@ describe('SidebarPanel', () => {
     it('leaves the graph out until it is known', () => {
       renderPanel({ recall: recallOf({ loading: true, result: null }) });
 
-      expect(screen.queryByRole('link', { name: 'my notes' })).toBeNull();
-      expect(screen.getByRole('banner').textContent).toBe('');
+      expect(screen.queryByRole('link')).toBeNull();
+    });
+
+    it('names the graph a search found when the page has no recall', () => {
+      renderPanel({
+        recall: recallOf({ result: null }),
+        search: idleSearch({ query: 'q', submitted: 'q', result: found() }),
+      });
+
+      expect(screen.getByRole('link', { name: 'my notes' })).not.toBeNull();
     });
 
     it('opens the settings', () => {
@@ -259,6 +285,187 @@ describe('SidebarPanel', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
       // Only the button: no words next to it.
       expect(closeButton()!.textContent).toBe('');
+    });
+  });
+
+  describe('searching the graph', () => {
+    /** The panel with a real search (useLogseqSearch). */
+    const SearchingPanel = (props: Partial<SidebarPanelProps>) => {
+      const search = useLogseqSearch();
+      return (
+        <SidebarPanel
+          status="ready"
+          highlights={[highlight('a')]}
+          notice={null}
+          onSelect={noop}
+          onDelete={noop}
+          onUpdateNote={async () => {}}
+          recall={recallOf()}
+          onRetryRecall={noop}
+          search={search}
+          onOpenSettings={noop}
+          {...props}
+        />
+      );
+    };
+
+    const box = () => screen.getByRole('searchbox', { name: 'Search Logseq' }) as HTMLInputElement;
+    const searchPart = () => screen.queryByRole('region', { name: 'Search results' });
+    const pageShown = () => !!highlightsPart() && !!recallPart();
+    const searched = () =>
+      sendMessage.mock.calls.filter(([type]) => type === 'logseq:search').map(([, q]) => q);
+
+    const searchFor = async (query: string) => {
+      fireEvent.change(box(), { target: { value: query } });
+      await act(async () => {
+        fireEvent.submit(box().form!);
+      });
+    };
+
+    const answer = (blocks: LogseqBlockType[]) => ({
+      status: 200,
+      msg: '',
+      response: { graph: 'my notes', pages: [], blocks },
+    });
+
+    beforeEach(() => {
+      sendMessage.mockReset();
+      sendMessage.mockResolvedValue(answer([block('s1', '<p>a found block</p>')]));
+    });
+
+    it('has a search box in the header, and nothing searched yet', () => {
+      render(<SearchingPanel />);
+
+      expect(screen.getByRole('banner').contains(box())).toBe(true);
+      expect(box().placeholder).toBe('Search Logseq');
+      expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+      expect(pageShown()).toBe(true);
+    });
+
+    it('searches on Enter, not while typing, and shows only what it found', async () => {
+      render(<SearchingPanel />);
+
+      fireEvent.change(box(), { target: { value: 'reading' } });
+      expect(searched()).toEqual([]);
+      expect(pageShown()).toBe(true);
+
+      await act(async () => {
+        fireEvent.submit(box().form!);
+      });
+
+      expect(searched()).toEqual(['reading']);
+      expect(searchPart()).not.toBeNull();
+      expect(screen.getByText('a found block')).not.toBeNull();
+      // The page's highlights and recall are not shown (hidden, kept for later).
+      expect(highlightsPart()).toBeNull();
+      expect(recallPart()).toBeNull();
+      expect(screen.getByText('text of a').closest('main')!.hidden).toBe(true);
+      // No title or count over the results.
+      expect(searchPart()!.textContent).not.toMatch(/result/i);
+      expect(screen.queryByText('1')).toBeNull();
+    });
+
+    it('goes back to the page on Escape', async () => {
+      render(<SearchingPanel />);
+      await searchFor('reading');
+
+      const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      act(() => {
+        box().dispatchEvent(escape);
+      });
+
+      // Handled here: an in-page sidebar's page does not get it either.
+      expect(escape.defaultPrevented).toBe(true);
+      expect(box().value).toBe('');
+      expect(searchPart()).toBeNull();
+      expect(pageShown()).toBe(true);
+      expect(screen.getByText('text of a').closest('main')!.hidden).toBe(false);
+    });
+
+    it('leaves Escape alone with an empty box', () => {
+      render(<SearchingPanel />);
+
+      const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      box().dispatchEvent(escape);
+
+      expect(escape.defaultPrevented).toBe(false);
+    });
+
+    it('goes back to the page with the clear button', async () => {
+      render(<SearchingPanel />);
+      await searchFor('reading');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+      expect(box().value).toBe('');
+      expect(searchPart()).toBeNull();
+      expect(pageShown()).toBe(true);
+    });
+
+    it('goes back to the page when the box is emptied', async () => {
+      render(<SearchingPanel />);
+      await searchFor('reading');
+
+      fireEvent.change(box(), { target: { value: '' } });
+
+      expect(searchPart()).toBeNull();
+      expect(pageShown()).toBe(true);
+    });
+
+    it('shows the spinner in the box, and nothing else, while searching', async () => {
+      let finish!: (value: unknown) => void;
+      sendMessage.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+      render(<SearchingPanel />);
+
+      await searchFor('reading');
+
+      expect(screen.getByRole('progressbar', { name: 'Searching' })).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+      expect(pageShown()).toBe(false);
+      expect(searchPart()).toBeNull();
+      expect(screen.queryByText('Nothing found')).toBeNull();
+
+      await act(async () => finish(answer([block('s2', '<p>found later</p>')])));
+
+      expect(screen.queryByRole('progressbar')).toBeNull();
+      expect(screen.getByText('found later')).not.toBeNull();
+    });
+
+    it('says why the search failed, and searches again on Retry', async () => {
+      sendMessage.mockResolvedValueOnce({ status: 500, msg: 'Cannot connect to Logseq' });
+      render(<SearchingPanel />);
+      await searchFor('reading');
+
+      expect(screen.getByRole('alert').textContent).toContain('Cannot connect to Logseq');
+      expect(pageShown()).toBe(false);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      });
+
+      expect(searched()).toEqual(['reading', 'reading']);
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.getByText('a found block')).not.toBeNull();
+    });
+
+    it('says when nothing was found', async () => {
+      sendMessage.mockResolvedValueOnce(answer([]));
+      render(<SearchingPanel />);
+      await searchFor('nothing like it');
+
+      expect(screen.getByText('Nothing found')).not.toBeNull();
+      expect(pageShown()).toBe(false);
+      expect(screen.queryByText('Nothing for this page yet')).toBeNull();
+    });
+
+    it('keeps the search when the page changes', async () => {
+      const { rerender } = render(<SearchingPanel />);
+      await searchFor('reading');
+
+      rerender(<SearchingPanel highlights={[highlight('other')]} recall={recallOf({ loading: true, result: null })} />);
+
+      expect(screen.getByText('a found block')).not.toBeNull();
+      expect(box().value).toBe('reading');
     });
   });
 
