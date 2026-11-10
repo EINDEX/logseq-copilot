@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,11 +41,16 @@ const formatDate = (timestamp: number) => {
   });
 };
 
-/** The page's tint of a highlight, light and dark, for its quote. */
-const quoteTint = (color: string | undefined) => {
-  const { light, dark } = highlightColor(color);
-  return { '--hl-light': light, '--hl-dark': dark } as CSSProperties;
-};
+/**
+ * The bar beside a quote: the color the page paints the highlight with, at
+ * full strength. The tint itself is translucent (50% on light pages, 35% on
+ * dark ones), too faint for a thin line; its own hue matches it on the page.
+ */
+export const quoteBarColor = (color: string | undefined) =>
+  highlightColor(color).light.replace(
+    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+).*$/,
+    'rgb($1, $2, $3)',
+  );
 
 const truncateText = (text: string, maxLength: number = 100) => {
   if (text.length <= maxLength) return text;
@@ -82,7 +87,7 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
 
   return (
     <div
-      className="mt-1.5 space-y-2 pl-0.5"
+      className="mt-1.5 space-y-2 pl-[15px]"
       onClick={(e) => e.stopPropagation()}
     >
       <Textarea
@@ -142,16 +147,14 @@ export function HighlightList({
             className="group cursor-pointer rounded-md px-2 py-2 transition-colors hover:bg-accent/60"
             onClick={() => onSelect(highlight.id)}
           >
-            {/* Highlight text, in the tint it has on the page */}
-            <p className="text-sm leading-relaxed text-foreground">
-              <span
-                data-highlight-quote
-                className="rounded-[2px] bg-[var(--hl-light)] px-0.5 py-px [box-decoration-break:clone] [-webkit-box-decoration-break:clone] dark:bg-[var(--hl-dark)]"
-                style={quoteTint(highlight.color)}
-              >
-                {truncateText(highlight.range.textContent, 120)}
-              </span>
-            </p>
+            {/* The highlighted text as a quote, its bar in the color of
+                the highlight on the page. */}
+            <blockquote
+              className="m-0 border-l-[3px] border-solid pl-3 text-sm leading-relaxed text-foreground"
+              style={{ borderLeftColor: quoteBarColor(highlight.color) }}
+            >
+              {truncateText(highlight.range.textContent, 120)}
+            </blockquote>
 
             {/* Note if exists */}
             {editingId === highlight.id ? (
@@ -165,17 +168,15 @@ export function HighlightList({
               />
             ) : (
               highlight.note && (
-                <p className="mt-1.5 pl-0.5 text-xs text-muted-foreground">
+                <p className="mt-1.5 pl-[15px] text-xs text-muted-foreground">
                   {truncateText(highlight.note, 80)}
                 </p>
               )
             )}
 
             {/* Metadata, tags and actions */}
-            <div className="mt-1.5 flex items-center justify-between gap-2 pl-0.5 text-xs text-muted-foreground">
+            <div className="mt-1.5 flex items-center justify-between gap-2 pl-[15px] text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span className="truncate max-w-32">{highlight.hostname}</span>
-                <span aria-hidden>·</span>
                 <span>{formatDate(highlight.createdAt)}</span>
                 {highlight.tags?.slice(0, 3).map((tag) => (
                   <Badge
