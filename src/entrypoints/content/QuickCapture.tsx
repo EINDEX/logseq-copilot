@@ -77,7 +77,8 @@ const clipInPage = async (clip: () => Promise<void>) => {
 
 /**
  * Clip commands from the content script's message handlers: the clip shortcut
- * and the context menu (the background), "Clip selection" (the toolbar popup).
+ * and the context menu (the background), "Clip selection" (the toolbar popup,
+ * the browser sidebar). The sidebar drawn on the page calls it directly.
  */
 export const runClipCommand = (
   command: 'selectionOrPage' | 'page',

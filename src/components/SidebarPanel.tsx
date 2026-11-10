@@ -1,9 +1,10 @@
-import type { MouseEvent } from 'react';
+import type { ComponentType, MouseEvent } from 'react';
 import { IconNotes, IconRefresh, IconSettings } from '@tabler/icons-react';
-import { LoaderCircle, Search, X } from 'lucide-react';
+import { Check, FilePlus, LoaderCircle, Search, TextSelect, X } from 'lucide-react';
 import { HighlightList } from '@/components/HighlightList';
 import { LogseqResultList } from '@/components/LogseqResultList';
 import { Button } from '@/components/ui/button';
+import type { ClipAction, ClipActions } from '@/hooks/use-clip-actions';
 import type { LogseqSearch } from '@/hooks/use-logseq-search';
 import type { PageRecallState } from '@/hooks/use-page-recall';
 import type { HighlightData } from '@/types/highlight';
@@ -89,6 +90,52 @@ const SearchResults = ({ search }: { search: LogseqSearch }) => {
   );
 };
 
+interface ClipButtonProps {
+  action: ClipAction;
+  clip: ClipActions;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}
+
+/**
+ * A clip action: a spinner while it clips, a check for a moment once it has,
+ * marked invalid (and described by #clip-error) when it failed.
+ */
+const ClipButton = ({ action, clip, icon: Icon, label, disabled, onClick }: ClipButtonProps) => {
+  const failed = clip.error?.action === action;
+  const ActionIcon =
+    clip.clipping === action ? LoaderCircle : clip.done === action ? Check : Icon;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={disabled}
+      aria-invalid={failed || undefined}
+      aria-describedby={failed ? 'clip-error' : undefined}
+      data-done={clip.done === action || undefined}
+      // A press must not take the selection off the page the sidebar is
+      // drawn on (and focus has nothing to do on these buttons).
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+      className="h-8 min-w-0 gap-1.5 px-2 font-normal dark:aria-invalid:border-destructive data-[done]:text-foreground"
+    >
+      <ActionIcon
+        aria-hidden
+        className={
+          clip.clipping === action
+            ? 'animate-spin text-muted-foreground'
+            : clip.done === action
+            ? 'text-primary'
+            : 'text-muted-foreground'
+        }
+      />
+      <span className="truncate">{label}</span>
+    </Button>
+  );
+};
+
 export interface SidebarPanelProps {
   /**
    * `loading` while the highlights of the page are being read, `unavailable`
@@ -110,6 +157,15 @@ export interface SidebarPanelProps {
    * is shown, it takes the place of the page's highlights and recall.
    */
   search: LogseqSearch;
+  /** Clip page and Clip selection, run by the host (useClipActions). */
+  clip: ClipActions;
+  /** The page has a selection that Clip selection would clip. */
+  canClipSelection: boolean;
+  /**
+   * The pointer has come over the clip buttons, before any click on them
+   * (the browser sidebar asks the page whether it has a selection).
+   */
+  onClipActionsPointerEnter?: () => void;
   onOpenSettings: () => void;
   /** Shows a close button in the header. */
   onClose?: () => void;
@@ -133,6 +189,9 @@ export function SidebarPanel({
   recall,
   onRetryRecall,
   search,
+  clip,
+  canClipSelection,
+  onClipActionsPointerEnter,
   onOpenSettings,
   onClose,
 }: SidebarPanelProps) {
@@ -236,6 +295,43 @@ export function SidebarPanel({
             )
           )}
         </form>
+
+        <div
+          role="group"
+          aria-label="Clip"
+          className="mt-2 grid grid-cols-2 gap-2"
+          onPointerEnter={onClipActionsPointerEnter}
+        >
+          <ClipButton
+            action="page"
+            clip={clip}
+            icon={FilePlus}
+            label="Clip page"
+            disabled={clip.clipping !== null}
+            onClick={clip.clipPage}
+          />
+          <ClipButton
+            action="selection"
+            clip={clip}
+            icon={TextSelect}
+            label="Clip selection"
+            // It stays as it is while it shows that it has clipped, though
+            // the selection it clipped is gone.
+            disabled={clip.clipping !== null || (!canClipSelection && clip.done !== 'selection')}
+            onClick={() => {
+              if (canClipSelection) clip.clipSelection();
+            }}
+          />
+        </div>
+        {clip.error && (
+          <p
+            id="clip-error"
+            role="alert"
+            className="mt-2 whitespace-pre-line break-words text-xs text-destructive"
+          >
+            {clip.error.message}
+          </p>
+        )}
       </header>
 
       {notice && (

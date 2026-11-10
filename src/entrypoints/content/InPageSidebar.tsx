@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
@@ -6,6 +7,7 @@ import {
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { useClipActions } from '@/hooks/use-clip-actions';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
@@ -17,6 +19,7 @@ import { shadowRootMode } from '@/utils/shadow-mode';
 import { inPageSidebarOpenItem } from '@/utils/storage';
 import { zIndex } from '@/utils/z-index';
 import '@/assets/globals.css';
+import { hasClippableSelection, runClipCommand } from './QuickCapture';
 
 interface InPageSidebarProps {
   url: string;
@@ -38,9 +41,38 @@ const openSettings = () => {
 export function InPageSidebar({ url }: InPageSidebarProps) {
   const { highlights, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
-  const { retry: retryRecall, ...recall } = usePageRecall(url);
+  const {
+    retry: retryRecall,
+    refresh: refreshRecall,
+    ...recall
+  } = usePageRecall(url);
   // Not tied to the page: it stays while the page navigates, until cleared.
   const search = useLogseqSearch();
+
+  // The selection is in this document: follow it. The clip buttons keep it
+  // when pressed (SidebarPanel).
+  const [canClipSelection, setCanClipSelection] = useState(() =>
+    hasClippableSelection(),
+  );
+  useEffect(() => {
+    const follow = () => setCanClipSelection(hasClippableSelection());
+    follow();
+    document.addEventListener('selectionchange', follow);
+    return () => document.removeEventListener('selectionchange', follow);
+  }, []);
+
+  // The clip shortcut's own clips, with the failure shown in the sidebar
+  // instead of the page.
+  const clip = useClipActions(
+    {
+      clipPage: () => runClipCommand('page', { feedback: 'sender' }),
+      clipSelection: () =>
+        runClipCommand('selectionOrPage', { feedback: 'sender' }),
+      // The clip mentions the page: Logseq has one more block about it.
+      onClipped: refreshRecall,
+    },
+    url,
+  );
 
   const handleSelect = async (id: string) => {
     setNotice(null);
@@ -74,6 +106,8 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
           recall={recall}
           onRetryRecall={retryRecall}
           search={search}
+          clip={clip}
+          canClipSelection={canClipSelection}
           onOpenSettings={openSettings}
           onClose={close}
         />
