@@ -59,6 +59,7 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
 }));
 
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
+import { contentEvents } from '@/utils/content-events';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 import { InPageSidebar, startInPageSidebar } from './InPageSidebar';
@@ -254,6 +255,111 @@ describe('InPageSidebar', () => {
 
     expect(screen.queryByText(/about \/books/)).toBeNull();
     expect(await screen.findByText(/about \/next/)).not.toBeNull();
+  });
+
+  describe('clipping', () => {
+    const button = (name: string) =>
+      screen.getByRole('button', { name }) as HTMLButtonElement;
+
+    /** Text of the page, outside the sidebar, selected like a user would. */
+    const selectOnPage = (words: string) => {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = words;
+      document.body.prepend(paragraph);
+      const range = document.createRange();
+      range.selectNodeContents(paragraph);
+      act(() => {
+        getSelection()!.removeAllRanges();
+        getSelection()!.addRange(range);
+        document.dispatchEvent(new Event('selectionchange'));
+      });
+      return paragraph;
+    };
+
+    afterEach(() => {
+      getSelection()?.removeAllRanges();
+      document.querySelectorAll('body > p').forEach((p) => p.remove());
+    });
+
+    it('offers Clip selection while the page has a selection', async () => {
+      render(<InPageSidebar url={PAGE} />);
+      await screen.findByText(/about \/page/);
+      expect(button('Clip selection').disabled).toBe(true);
+
+      selectOnPage('words on the page');
+      expect(button('Clip selection').disabled).toBe(false);
+
+      act(() => {
+        getSelection()!.removeAllRanges();
+        document.dispatchEvent(new Event('selectionchange'));
+      });
+      expect(button('Clip selection').disabled).toBe(true);
+    });
+
+    it('keeps the selection when Clip selection is pressed, and clips it', async () => {
+      render(<InPageSidebar url={PAGE} />);
+      await screen.findByText(/about \/page/);
+      selectOnPage('words worth keeping');
+
+      const press = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        button: 0,
+      });
+      button('Clip selection').dispatchEvent(press);
+
+      expect(press.defaultPrevented).toBe(true);
+      expect(getSelection()!.toString()).toBe('words worth keeping');
+
+      await act(async () => {
+        fireEvent.click(button('Clip selection'));
+      });
+
+      // The content script's own clip, straight to the background.
+      await waitFor(() =>
+        expect(sendMessage).toHaveBeenCalledWith(
+          'logseq:clipWithSelection',
+          expect.stringContaining('words worth keeping'),
+        ),
+      );
+      expect(sendMessage).not.toHaveBeenCalledWith(
+        'content:quickCaptureWithSelection',
+        expect.anything(),
+      );
+    });
+
+    it('clips the page, then searches it again', async () => {
+      render(<InPageSidebar url={PAGE} />);
+      await screen.findByText(/about \/page/);
+
+      await act(async () => {
+        fireEvent.click(button('Clip page'));
+      });
+
+      expect(sendMessage).toHaveBeenCalledWith('logseq:clipPage');
+      await waitFor(() => expect(urlSearch).toHaveBeenCalledTimes(2));
+      expect(button('Clip page').dataset.done).toBe('true');
+    });
+
+    it('shows why a clip failed in the sidebar, not in the page', async () => {
+      const emitted = vi.spyOn(contentEvents, 'emit');
+      sendMessage.mockImplementation(async (type: string) => {
+        if (type === 'logseq:clipPage') throw new Error('The authorization token is wrong');
+      });
+      render(<InPageSidebar url={PAGE} />);
+      await screen.findByText(/about \/page/);
+
+      await act(async () => {
+        fireEvent.click(button('Clip page'));
+      });
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'The authorization token is wrong',
+      );
+      expect(button('Clip page').getAttribute('aria-invalid')).toBe('true');
+      expect(emitted).not.toHaveBeenCalled();
+    });
   });
 
   it('opens the settings', async () => {

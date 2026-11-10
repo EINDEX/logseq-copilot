@@ -18,18 +18,23 @@ import {
 import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing';
 
-// logseq:urlSearch (what Logseq has about the page) has a mock of its own,
-// so the counts of the other messages stay those of the user's actions.
+// logseq:urlSearch (what Logseq has about the page) and content:hasSelection
+// (asked as the page or focus changes) have mocks of their own, so the counts
+// of the other messages stay those of the user's actions.
 const sendMessage = vi.fn();
 const urlSearch = vi.fn();
+const hasSelection = vi.fn();
 vi.mock('@/types/messaging', () => ({
   sendMessage: (type: string, ...args: unknown[]) =>
     type === 'logseq:urlSearch'
       ? urlSearch(...args)
+      : type === 'content:hasSelection'
+      ? hasSelection(...args)
       : sendMessage(type, ...args),
 }));
 
 import App from './App';
+import { DONE_MS } from '@/hooks/use-clip-actions';
 import log from '@/utils/logger';
 import type { HighlightData } from '@/types/highlight';
 import type { LogseqBlockType, LogseqSearchResult } from '@/types/logseqBlock';
@@ -151,6 +156,8 @@ describe('sidepanel App', () => {
     sendMessage.mockResolvedValue(true);
     urlSearch.mockReset();
     urlSearch.mockResolvedValue(answer());
+    hasSelection.mockReset();
+    hasSelection.mockResolvedValue(false);
     vi.spyOn(log, 'warn').mockImplementation(() => {});
     vi.spyOn(log, 'error').mockImplementation(() => {});
 
@@ -566,6 +573,154 @@ describe('sidepanel App', () => {
       expect(notice()).toBeNull();
     });
   });
+  describe('clipping', () => {
+    const button = (name: string) =>
+      screen.getByRole('button', { name }) as HTMLButtonElement;
+    const clipCalls = () =>
+      sendMessage.mock.calls.filter(([type]) =>
+        ['logseq:clipPage', 'content:quickCaptureWithSelection'].includes(type),
+      );
+
+    it('clips the page of the tab beside it, naming the tab', async () => {
+      sendMessage.mockResolvedValue(undefined);
+      render(<App />);
+      await screen.findByText('Nothing for this page yet');
+
+      fireEvent.click(button('Clip page'));
+      await waitFor(() => expect(clipCalls()).toHaveLength(1));
+      await switchTo(2);
+      await waitFor(() =>
+        expect(urlSearch).toHaveBeenCalledWith({ url: 'https://two.example/article' }),
+      );
+      fireEvent.click(button('Clip page'));
+      await waitFor(() => expect(clipCalls()).toHaveLength(2));
+
+      expect(clipCalls()).toEqual([
+        ['logseq:clipPage', { tabId: 1 }],
+        ['logseq:clipPage', { tabId: 2 }],
+      ]);
+    });
+
+    it('asks the page whether it has a selection: at first, for another tab, on focus and when the pointer comes over the buttons', async () => {
+      render(<App />);
+      await screen.findByText('Nothing for this page yet');
+
+      await waitFor(() => expect(hasSelection).toHaveBeenCalledWith(undefined, 1));
+      expect(button('Clip selection').disabled).toBe(true);
+
+      // Selected on the page, then back to the sidebar.
+      hasSelection.mockResolvedValue(true);
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(false));
+
+      // Cleared on the page; the pointer comes over the buttons first.
+      hasSelection.mockResolvedValue(false);
+      fireEvent.pointerEnter(button('Clip selection').parentElement!);
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(true));
+
+      await switchTo(2);
+      await waitFor(() => expect(hasSelection).toHaveBeenLastCalledWith(undefined, 2));
+    });
+
+    it('drops an answer about the selection that is no longer the latest', async () => {
+      const first = deferred<boolean>();
+      hasSelection.mockReturnValueOnce(first.promise).mockResolvedValueOnce(false);
+      render(<App />);
+      await screen.findByText('Nothing for this page yet');
+
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(hasSelection).toHaveBeenCalledTimes(2));
+      await act(async () => first.resolve(true));
+
+      expect(button('Clip selection').disabled).toBe(true);
+    });
+
+    it('has no selection where the page has no content script', async () => {
+      hasSelection.mockRejectedValue(new Error('Receiving end does not exist'));
+      hasSelection.mockResolvedValueOnce(true);
+      tabs[1] = makeTab({ url: 'chrome://settings/' });
+      render(<App />);
+      await screen.findByText('Not available on this page');
+
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+
+      expect(hasSelection).not.toHaveBeenCalled();
+      expect(button('Clip selection').disabled).toBe(true);
+    });
+
+    it("clips the selection through the page's content script, and asks again after", async () => {
+      hasSelection.mockResolvedValue(true);
+      sendMessage.mockResolvedValue(undefined);
+      render(<App />);
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(false));
+      const asked = hasSelection.mock.calls.length;
+
+      hasSelection.mockResolvedValue(false);
+      fireEvent.click(button('Clip selection'));
+
+      await waitFor(() => expect(clipCalls()).toHaveLength(1));
+      // Shown here, not in the page.
+      expect(clipCalls()[0]).toEqual([
+        'content:quickCaptureWithSelection',
+        { feedback: 'sender' },
+        1,
+      ]);
+      await waitFor(() => expect(hasSelection.mock.calls.length).toBe(asked + 1));
+      // Done for a moment, then off: the selection is gone.
+      expect(button('Clip selection').dataset.done).toBe('true');
+      await waitFor(() => expect(button('Clip selection').disabled).toBe(true), {
+        timeout: DONE_MS + 1000,
+      });
+    });
+
+    it('shows why a clip failed, under the buttons', async () => {
+      sendMessage.mockRejectedValue(new Error('The authorization token is wrong'));
+      render(<App />);
+      await screen.findByText('Nothing for this page yet');
+
+      fireEvent.click(button('Clip page'));
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'The authorization token is wrong',
+      );
+      expect(button('Clip page').getAttribute('aria-invalid')).toBe('true');
+      expect(button('Clip page').disabled).toBe(false);
+    });
+
+    it('searches the page again after a clip, keeping what it shows until then', async () => {
+      sendMessage.mockResolvedValue(undefined);
+      logseqHas([logseqBlock('b1', '<p>an older note</p>')]);
+      render(<App />);
+      await screen.findByText('an older note');
+
+      const again = deferred<ReturnType<typeof answer>>();
+      urlSearch.mockReturnValueOnce(again.promise);
+      fireEvent.click(button('Clip page'));
+
+      await waitFor(() => expect(urlSearch).toHaveBeenCalledTimes(2));
+      expect(text('an older note')).not.toBeNull();
+      await act(async () =>
+        again.resolve(
+          answer([
+            logseqBlock('b1', '<p>an older note</p>'),
+            logseqBlock('b2', '<p>the clip</p>'),
+          ]),
+        ),
+      );
+      expect(text('the clip')).not.toBeNull();
+      expect(urlSearch.mock.calls.map(([data]) => data.url)).toEqual([
+        'https://one.example/page',
+        'https://one.example/page',
+      ]);
+    });
+  });
+
   describe('searching the graph', () => {
     const box = () =>
       screen.getByRole('searchbox', { name: 'Search Logseq' }) as HTMLInputElement;
