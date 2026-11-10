@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { HighlightList } from './HighlightList';
+import { HighlightList, quoteBarColor } from './HighlightList';
 import type { HighlightData } from '@/types/highlight';
 import { HIGHLIGHT_COLORS } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
@@ -44,7 +44,7 @@ describe('HighlightList', () => {
   });
 
   describe('what it shows', () => {
-    it('shows the text, note, site and age of every highlight', () => {
+    it('shows the text, note and age of every highlight, not its site', () => {
       render(
         <HighlightList
           highlights={[
@@ -62,8 +62,10 @@ describe('HighlightList', () => {
       expect(screen.getByText('text of a')).not.toBeNull();
       expect(screen.getByText('text of b')).not.toBeNull();
       expect(screen.getByText('my note')).not.toBeNull();
-      expect(screen.getByText('example.com')).not.toBeNull();
-      expect(screen.getByText('other.example')).not.toBeNull();
+      // Every highlight here is of the page in the tab: no host, no separator.
+      expect(screen.queryByText('example.com')).toBeNull();
+      expect(screen.queryByText('other.example')).toBeNull();
+      expect(screen.queryByText('·')).toBeNull();
       expect(screen.getByText('Just now')).not.toBeNull();
       expect(screen.getByText('2d ago')).not.toBeNull();
     });
@@ -104,7 +106,7 @@ describe('HighlightList', () => {
       expect(screen.getByText('+2')).not.toBeNull();
     });
 
-    it('marks the text with the tint the page paints it with', () => {
+    it('quotes the text, with a bar in the color the page paints it with', () => {
       render(
         <HighlightList
           highlights={[highlight('a'), highlight('b', { color: 'green' })]}
@@ -113,18 +115,15 @@ describe('HighlightList', () => {
         />,
       );
 
-      const tint = (text: string) => {
-        const { style } = screen.getByText(text);
-        return [style.getPropertyValue('--hl-light'), style.getPropertyValue('--hl-dark')];
-      };
-      expect(tint('text of a')).toEqual([
-        HIGHLIGHT_COLORS.yellow.light,
-        HIGHLIGHT_COLORS.yellow.dark,
-      ]);
-      expect(tint('text of b')).toEqual([
-        HIGHLIGHT_COLORS.green.light,
-        HIGHLIGHT_COLORS.green.dark,
-      ]);
+      const quote = (text: string) => screen.getByText(text).closest('blockquote')!;
+      expect(quote('text of a').style.borderLeftColor).toBe(quoteBarColor(undefined));
+      expect(quote('text of b').style.borderLeftColor).toBe(quoteBarColor('green'));
+      // The hue of the page's tint, opaque; no tint behind the text.
+      expect(quoteBarColor(undefined)).toBe('rgb(133, 200, 200)');
+      expect(HIGHLIGHT_COLORS.yellow.light).toMatch(/^rgba\(133, 200, 200,/);
+      expect(quoteBarColor('green')).toBe('rgb(0, 255, 0)');
+      expect(quote('text of a').textContent).toBe('text of a');
+      expect(quote('text of a').className).not.toMatch(/\bbg-/);
     });
 
     it('shows the empty state instead of the list', () => {
