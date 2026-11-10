@@ -107,8 +107,10 @@ export interface ExtPage {
   inputValue: (selector: string) => Promise<string>;
   /** Fill the `nth` element matching the CSS selector. */
   fill: (selector: string, value: string, nth?: number) => Promise<void>;
-  press: (selector: string, key: 'Enter', nth?: number) => Promise<void>;
+  press: (selector: string, key: 'Enter' | 'Escape', nth?: number) => Promise<void>;
   click: (selector: string) => Promise<void>;
+  /** Move the pointer over the first visible element matching the CSS selector. */
+  hover: (selector: string) => Promise<void>;
   /** Checked state of a checkbox (`aria-checked` or `checked`). */
   isChecked: (selector: string) => Promise<boolean>;
   close: () => Promise<void>;
@@ -156,6 +158,16 @@ export interface Extension {
    * without a user gesture by `extensions.openPopupWithoutUserGesture.enabled`).
    */
   openPopup: (target: Page) => Promise<ExtPage>;
+  /**
+   * Open the browser sidebar page beside `target`. The real sidebar (Chrome
+   * side panel, Firefox sidebar) is not exposed to Playwright: sidepanel.html
+   * goes into a background tab of `target`'s window, which leaves `target`
+   * the active tab it follows, as the sidebar would. Clicks in it are DOM
+   * clicks, as in the popup: a Playwright click would not activate that tab
+   * (the sidebar's clicks do not either), but keep it the same in both
+   * browsers.
+   */
+  openSidePanel: (target: Page) => Promise<ExtPage>;
 }
 
 type Fixtures = {
@@ -270,6 +282,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     | { op: 'fill'; selector: string; nth: number; value: string }
     | { op: 'press'; selector: string; nth: number; key: string }
     | { op: 'click'; selector: string }
+    | { op: 'hover'; selector: string }
     | { op: 'isChecked'; selector: string }
     | { op: 'value'; selector: string };
   const run = (action: Action) =>
@@ -314,8 +327,9 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
             if (!el) return false;
             el.focus();
             let submit = a.key === 'Enter';
+            const keyCode = a.key === 'Enter' ? 13 : 27;
             for (const type of ['keydown', 'keypress', 'keyup']) {
-              const init = { key: a.key, code: a.key, keyCode: 13, which: 13, charCode: type === 'keypress' ? 13 : 0 };
+              const init = { key: a.key, code: a.key, keyCode, which: keyCode, charCode: type === 'keypress' ? keyCode : 0 };
               const allowed = el.dispatchEvent(new KeyboardEvent(type, { ...init, bubbles: true, cancelable: true }));
               if (type !== 'keyup' && !allowed) submit = false;
             }
@@ -329,6 +343,13 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
           case 'click': {
             const el = [...document.querySelectorAll<HTMLElement>(a.selector)].find(visible);
             el?.click();
+            return !!el;
+          }
+          case 'hover': {
+            const el = [...document.querySelectorAll<HTMLElement>(a.selector)].find(visible);
+            // React's onPointerEnter listens to pointerover.
+            el?.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true }));
+            el?.dispatchEvent(new PointerEvent('pointerenter'));
             return !!el;
           }
           case 'value':
@@ -369,6 +390,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
     fill: (selector, value, nth = 0) => until(`fill ${selector}`, { op: 'fill', selector, nth, value }),
     press: (selector, key, nth = 0) => until(`press ${selector}`, { op: 'press', selector, nth, key }),
     click: (selector) => until(`click ${selector}`, { op: 'click', selector }),
+    hover: (selector) => until(`hover ${selector}`, { op: 'hover', selector }),
     isChecked: async (selector) => {
       // Waits for the element, like Playwright's locator.isChecked().
       const deadline = Date.now() + 15_000;
@@ -412,6 +434,7 @@ function playwrightExtPage(page: Page, { domClicks = false } = {}): ExtPage {
     fill: (selector, value, nth = 0) => page.locator(selector).nth(nth).fill(value),
     press: (selector, key, nth = 0) => page.locator(selector).nth(nth).press(key),
     click: (selector) => click(page.locator(selector)),
+    hover: (selector) => page.locator(selector).first().hover(),
     isChecked: (selector) => page.locator(selector).isChecked(),
     close: () => page.close(),
     page,
@@ -591,6 +614,20 @@ export const test = base.extend<Fixtures>({
           await popup.waitForLoadState('domcontentloaded');
           return playwrightExtPage(popup, { domClicks: true });
         },
+        openSidePanel: async (target) => {
+          const { windowId } = await tabOf(target);
+          const sidebarPage = context.waitForEvent('page');
+          await worker.evaluate(
+            ({ url, windowId }) => chrome.tabs.create({ url, windowId, active: false }),
+            { url: ext.url('sidepanel.html'), windowId },
+          );
+          const sidebar = await sidebarPage;
+          // As narrow as a sidebar.
+          await sidebar.setViewportSize({ width: 400, height: 720 });
+          await sidebar.waitForLoadState('domcontentloaded');
+          await ext.activate(target);
+          return playwrightExtPage(sidebar, { domClicks: true });
+        },
       };
     } else {
       const session = firefoxSessions.get(context)!;
@@ -639,6 +676,22 @@ export const test = base.extend<Fixtures>({
             client.evaluate(target.consoleActor, () => {
               setTimeout(() => window.close(), 0);
             }),
+          );
+        },
+        openSidePanel: async (page) => {
+          const { windowId } = await tabOf(page);
+          let tabId: number | undefined;
+          const target = await openTarget(ext.url('sidepanel.html'), async () => {
+            tabId = await ext.evaluate(
+              async ({ url, windowId }) => (await chrome.tabs.create({ url, windowId, active: false })).id!,
+              { url: ext.url('sidepanel.html'), windowId },
+            );
+          });
+          await ext.activate(page);
+          return rdpExtPage(addon, target, () =>
+            ext.evaluate(async (tabId) => {
+              await chrome.tabs.remove(tabId);
+            }, tabId!),
           );
         },
       };
