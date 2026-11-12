@@ -33,7 +33,7 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
     `-start-debugger-server <free port>` and prefs: remote debugging on, no
     connection prompt, a fixed extension UUID
     (`extensions.webextensions.uuids`, `FIREFOX_UUID` in `fixtures.ts`),
-    `extensions.openPopupWithoutUserGesture.enabled`, and a long
+    and a long
     `extensions.background.idle.timeout` so the event page is not suspended
     mid-test;
   - sets up routes and tracing, then installs the build over the remote
@@ -46,13 +46,14 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
   - runs extension code (`ext.evaluate`, storage, messages) in the background
     page through its console actor (`evaluateJSAsync`), found with the
     add-on's watcher.
-- **Extension pages** (`ext.openPage`, `ext.openPopup`) return an `ExtPage`
+- **Extension pages** (`ext.openPage`, `ext.openSidePanel`) return an `ExtPage`
   with a small API (`expectText`, `expectButton`, `fill`, `press`, `click`,
   `isChecked`, ...). Chromium backs it with Playwright locators; Firefox runs
   the same steps as DOM scripts in the page's console actor (untrusted
   events: `click()`, the native value setter plus `input`, synthetic key
-  events). Only `popup.spec.ts`, `options.spec.ts` and the highlight sync case
-  in `highlight.spec.ts` use it.
+  events). Only `sidepanel.spec.ts`, `options.spec.ts`,
+  `toolbar-button.spec.ts` and the highlight sync case in `highlight.spec.ts`
+  use it.
 - **Extension config**: written to `chrome.storage.local` from the background
   context (`logseqHostName`, `logseqPort`, `logseqAuthToken`,
   `enableClipNoteFloatButton`).
@@ -62,16 +63,14 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
   internet. Content scripts inject into routed pages in both browsers. Only
   the live site check (below) turns the routes off (fixture option
   `fixtureSites: false`).
-- **Popup**: Chromium: `popup.html` is opened in its own unfocused window
-  (`chrome.windows.create({ focused: false })`), so
-  `tabs.query({ active: true, lastFocusedWindow: true })` in the popup still
-  returns the page under test. Clicks in it are DOM `click()`s, as on
-  Firefox: a Playwright click would activate the popup window, and the
-  background, which clips `tabs.query({ active, currentWindow })`, would
-  clip popup.html. The real toolbar popup
-  (`chrome.action.openPopup()`) is not exposed to Playwright as a page.
-  Firefox: the real toolbar popup, `action.openPopup({ windowId })` on the
-  page's window (a popup window would become the last focused window there).
+- **Browser sidebar**: the real one (Chrome side panel, Firefox sidebar) is
+  not exposed to Playwright, and the toolbar button that opens it cannot be
+  clicked. `sidepanel.html` is opened in a background tab of the page's
+  window, which leaves the page under test the active tab the sidebar
+  follows. Clicks in it are DOM `click()`s in both browsers. Which sidebar
+  the toolbar button opens (the browser's own or the in-page one) is checked
+  through what decides it (`toolbar-button.spec.ts`); the click handlers are
+  unit tested.
 - **Clip shortcut**: Playwright key presses never reach `commands`, so the
   tests send the message the `clip` command handler sends
   (`content:quickCapture` to the tab, webext-core format) from the background,
