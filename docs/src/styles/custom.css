@@ -204,7 +204,6 @@ header.header {
 }
 .site-title img {
   max-height: 1.75rem;
-  border-radius: 22%;
 }
 .social-icons a {
   color: var(--sl-color-gray-3);
@@ -421,7 +420,7 @@ mobile-starlight-toc summary {
 }
 .site-title img {
   border: 0;
-  border-radius: 22%;
+  border-radius: 0;
   box-shadow: none;
 }
 
@@ -635,11 +634,6 @@ mobile-starlight-toc summary {
   font-size: 1.0625rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-
-/* In dark mode the app icon's tile matches the page; a hairline keeps its edge. */
-:root[data-theme='dark'] .site-title img {
-  box-shadow: 0 0 0 1px var(--sl-color-gray-5);
 }
 
 /* Narrow screens: 16px text, and the search button drawn like the menu button. */

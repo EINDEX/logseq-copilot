@@ -110,6 +110,14 @@ export default defineConfig({
 			],
 			head: [
 				{
+					tag: 'link',
+					attrs: { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+				},
+				{
+					tag: 'link',
+					attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+				},
+				{
 					tag: 'script',
 					attrs: {
 						src: 'https://a.eindex.me/api/script.js',
