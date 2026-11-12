@@ -9,6 +9,9 @@
  *   DOCS_SCREENSHOTS=1 E2E_DEVICE_SCALE_FACTOR=2 LOGSEQ_VARIANT=file LOGSEQ_BIN=$BIN \
  *     LOGSEQ_API_PORT=12399 pnpm test:e2e:run --project=chromium docs-screenshots
  *
+ * recall-card.png is taken on the real DuckDuckGo result page, so it needs
+ * the network and a headed browser; add DOCS_SCREENSHOTS_LIVE=1 E2E_HEADED=1.
+ *
  * The PNGs are quantized to a palette when `sharp` can be loaded (it is a
  * dependency of docs/), which keeps each one well under 400 KB.
  */
@@ -17,7 +20,6 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { expect, logseqInfo, test } from './fixtures';
-import { googleUrl } from './pages';
 
 const OUT_DIR = path.resolve(__dirname, '../../docs/public/screenshots');
 const ARTICLE_URL = 'https://example.com/blog/notes-for-busy-people';
@@ -166,18 +168,47 @@ test.describe('docs screenshots', () => {
     await sidebar.close();
   });
 
-  test('recall card on a search results page', async ({ page, ext }) => {
-    await page.setViewportSize({ width: 1280, height: 760 });
-    await ext.connect();
-    const host = page.locator('#rhs logseq-copilot-search-engine');
-    await expect(async () => {
-      await page.goto(googleUrl('zettelkasten'));
-      await expect(host.locator('.lc-page-name').getByText('Zettelkasten', { exact: true })).toBeVisible({ timeout: 4000 });
-      await expect(host.getByText(/Turn each fleeting note/)).toBeVisible({ timeout: 4000 });
-    }).toPass({ timeout: 60_000 });
-    await lightPage(page);
-    await page.mouse.move(0, 0);
-    await save('recall-card.png', await page.screenshot({ animations: 'disabled', clip: { x: 0, y: 0, width: 1280, height: 760 } }));
+  // The real DuckDuckGo result page, not a fixture: needs the network and a
+  // headed browser (E2E_HEADED=1), and DOCS_SCREENSHOTS_LIVE=1 on top of
+  // DOCS_SCREENSHOTS=1. The page can answer with a bot check; then the test
+  // fails and recall-card.png stays as it is.
+  test.describe('live', () => {
+    test.skip(process.env.DOCS_SCREENSHOTS_LIVE !== '1', 'live: set DOCS_SCREENSHOTS_LIVE=1');
+    test.use({ fixtureSites: false });
+
+    test('recall card on DuckDuckGo', async ({ page, ext }) => {
+      test.setTimeout(180_000);
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await ext.connect();
+      const host = page.locator('logseq-copilot-search-engine');
+      const organic = page.locator('li[data-layout="organic"]');
+      await expect(async () => {
+        await page.goto('https://duckduckgo.com/?q=zettelkasten');
+        await expect(organic.first()).toBeVisible({ timeout: 15_000 });
+        await expect(host.locator('.lc-page-name').getByText('Zettelkasten', { exact: true })).toBeVisible({ timeout: 8000 });
+        await expect(host.getByText(/Turn each fleeting note/)).toBeVisible({ timeout: 8000 });
+      }).toPass({ timeout: 120_000 });
+      // The browser promotion every new profile gets: close it with its X.
+      const promotion = page.getByText('Try the DuckDuckGo Browser');
+      if (await promotion.isVisible()) await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+      await expect(promotion).toBeHidden();
+      // Its closing note fades out by itself.
+      await expect(page.getByText('start.duckduckgo.com')).toBeHidden({ timeout: 30_000 });
+      await lightPage(page);
+      await page.mouse.move(0, 0);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const results = (await organic.first().boundingBox())!;
+      const card = (await host.boundingBox())!;
+      const second = (await organic.nth(1).boundingBox())!;
+      const margin = 24;
+      const x = Math.max(0, Math.min(results.x, card.x) - margin);
+      // From the card down: the bar above it holds the visitor's region.
+      const y = Math.max(0, card.y - 8);
+      await save('recall-card.png', await page.screenshot({
+        animations: 'disabled',
+        clip: { x, y, width: Math.min(1280 - x, card.x + card.width + margin - x), height: second.y + second.height + margin - y },
+      }));
+    });
   });
 
   test('Settings, Sidebar, In-page sidebar', async ({ page, ext }) => {
