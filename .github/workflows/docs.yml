@@ -21,7 +21,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Only docs/: the site is its own project. With the whole repository,
+      # Astro falls back to loading its config through Vite (starlight-blog
+      # ships TypeScript), and Vite then reads the root tsconfig.json, which
+      # extends .wxt/tsconfig.json, a file only `wxt prepare` creates.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: docs/
+          sparse-checkout-cone-mode: false
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         name: Install pnpm
