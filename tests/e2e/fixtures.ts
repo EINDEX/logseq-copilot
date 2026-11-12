@@ -153,8 +153,16 @@ export interface Extension {
   openSidePanel: (target: Page) => Promise<ExtPage>;
 }
 
+/** Playwright's `recordVideo` context option. */
+type RecordVideo = { dir: string; size?: { width: number; height: number } };
+
 type Fixtures = {
   extensionBuild: ExtensionBuild;
+  /**
+   * Record a video of every page (Chromium only), for the store video clips
+   * (store-video.spec.ts). Off by default.
+   */
+  recordVideo: RecordVideo | undefined;
   /**
    * Serve the fixture sites (pages.ts) and abort every other request. Only
    * the live site check (tests/e2e/live) turns this off.
@@ -198,8 +206,9 @@ interface FirefoxSession {
 }
 const firefoxSessions = new WeakMap<BrowserContext, FirefoxSession>();
 
-async function launchChromium(extensionPath: string, userDataDir: string) {
+async function launchChromium(extensionPath: string, userDataDir: string, recordVideo?: RecordVideo) {
   return chromium.launchPersistentContext(userDataDir, {
+    ...(recordVideo && { recordVideo }),
     // The full Chromium build; its new headless mode supports extensions
     // (the default headless shell does not).
     channel: 'chromium',
@@ -446,12 +455,13 @@ async function closeExtensionTabs(context: BrowserContext) {
 export const test = base.extend<Fixtures>({
   extensionBuild: ['e2e', { option: true }],
   fixtureSites: [true, { option: true }],
+  recordVideo: [undefined, { option: true }],
 
   articles: async ({}, use) => {
     await use(new Map());
   },
 
-  context: async ({ browserName, extensionBuild, fixtureSites, articles }, use, testInfo) => {
+  context: async ({ browserName, extensionBuild, fixtureSites, articles, recordVideo }, use, testInfo) => {
     if (browserName !== 'chromium' && browserName !== 'firefox') {
       throw new Error(`no E2E support for ${browserName}`);
     }
@@ -462,7 +472,7 @@ export const test = base.extend<Fixtures>({
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), `copilot-e2e-${browserName}-`));
     const launched =
       browserName === 'chromium'
-        ? { context: await launchChromium(extensionPath, userDataDir) }
+        ? { context: await launchChromium(extensionPath, userDataDir, recordVideo) }
         : await launchFirefox(userDataDir);
     const { context } = launched;
     // Fail a stuck action quickly instead of at the test timeout.
