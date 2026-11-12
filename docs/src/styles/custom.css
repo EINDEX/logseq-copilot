@@ -1,39 +1,472 @@
-/* Custom styles for Logseq Copilot documentation */
+/*
+ * Logseq Copilot docs, "logseq" theme.
+ *
+ * The docs should read as part of the same product as Logseq and the
+ * extension: a white page with a very light gray left sidebar in light mode,
+ * and Logseq's solarized dark (#002b36 page, #073642 surfaces, #85c8c8 teal)
+ * in dark mode. Bitter sets the page titles, content headings, site title and
+ * hero title; Inter sets body text and all UI chrome; JetBrains Mono sets
+ * code. Hierarchy comes from type and spacing.
+ * Teal marks links, the current page, quotes and asides, and the primary
+ * button. Fonts are self-hosted with Fontsource and loaded through `customCss`
+ * in astro.config.mjs.
+ *
+ * Brand teal, from the extension UI (src/assets/globals.css):
+ *   light primary oklch(0.5 0.075 206)   ~ #206f78 (5.8:1 as text on white)
+ *   dark primary  oklch(0.788 0.068 196) ~ #85c8c8, its foreground #002b36
+ */
 
-/* Import Bitter font */
-@import url('https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,100..900;1,100..900&display=swap');
+/* ---------------------------------------------------------------- tokens */
 
-/* Root variables */
 :root {
-  --sl-font: 'Bitter', 'Times New Roman', serif;
-  --sl-font-system: 'Bitter', 'Times New Roman', serif;
+  --sl-font: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sl-font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --lc-font-display: 'Bitter Variable', 'Iowan Old Style', Georgia, serif;
+
+  --sl-text-body: 1rem;
+  --sl-line-height: 1.7;
+  --sl-line-height-headings: 1.2;
+  --sl-text-code: 0.8125rem;
+
+  --sl-text-h1: 1.875rem;
+  --sl-text-h2: 1.375rem;
+  --sl-text-h3: 1.1875rem;
+  --sl-text-h4: 1.0625rem;
+  --sl-text-h5: 1rem;
+
+  --lc-radius: 8px;
+  --lc-radius-sm: 6px;
+
+  /* Used by Reviews.astro */
+  --lc-brand: var(--sl-color-bg-accent);
+  --lc-brand-foreground: var(--sl-color-text-invert);
 }
 
-/* Typography */
+@media (min-width: 50em) {
+  :root {
+    --sl-text-h1: 2.25rem;
+    --sl-text-h2: 1.5rem;
+    --sl-text-h3: 1.1875rem;
+    --sl-text-h4: 1.0625rem;
+  }
+}
+
+/* Light: white page, #f7f7f8 sidebar, zinc grays. */
+:root[data-theme='light'] {
+  --sl-color-accent-low: oklch(0.948 0.022 200);
+  --sl-color-accent: oklch(0.5 0.075 206);
+  --sl-color-accent-high: oklch(0.38 0.06 208);
+
+  --sl-color-white: oklch(0.18 0.006 286);
+  --sl-color-gray-1: oklch(0.24 0.008 286);
+  --sl-color-gray-2: oklch(0.33 0.011 286);
+  --sl-color-gray-3: oklch(0.46 0.014 286);
+  --sl-color-gray-4: oklch(0.58 0.014 286);
+  --sl-color-gray-5: oklch(0.885 0.005 286);
+  --sl-color-gray-6: oklch(0.94 0.003 286);
+  --sl-color-gray-7: oklch(0.975 0.002 286);
+  --sl-color-black: oklch(1 0 0);
+
+  --lc-surface: #f7f7f8;
+  --lc-surface-hover: oklch(0.94 0.003 286);
+  --lc-tint: oklch(0.965 0.016 200);
+
+  --sl-color-bg-nav: var(--sl-color-black);
+  --sl-color-bg-sidebar: var(--lc-surface);
+  --sl-color-bg-inline-code: oklch(0.955 0.003 286);
+  --sl-color-hairline: oklch(0.92 0.004 286);
+  --sl-color-hairline-light: oklch(0.92 0.004 286);
+  --sl-color-hairline-shade: oklch(0.92 0.004 286);
+}
+
+/* Dark: Logseq's solarized dark. Body text #a9bcbd on #002b36 is ~7.6:1. */
+:root[data-theme='dark'] {
+  --sl-color-accent-low: color-mix(in oklch, #85c8c8 16%, #073642);
+  --sl-color-accent: #5fa8aa;
+  --sl-color-accent-high: #85c8c8;
+
+  --sl-color-white: #e6eeee;
+  --sl-color-gray-1: #cdd9d9;
+  --sl-color-gray-2: #a9bcbd;
+  --sl-color-gray-3: #8fa5a7;
+  --sl-color-gray-4: #6a8589;
+  --sl-color-gray-5: #0e5263;
+  --sl-color-gray-6: #073642;
+  --sl-color-black: #002b36;
+
+  --lc-surface: #073642;
+  --lc-surface-hover: #08404f;
+  --lc-tint: color-mix(in oklch, #85c8c8 10%, #002b36);
+
+  --sl-color-text-invert: #002b36;
+  --sl-color-bg-nav: var(--sl-color-black);
+  --sl-color-bg-sidebar: var(--lc-surface);
+  --sl-color-bg-inline-code: #073642;
+  --sl-color-hairline: #0b4452;
+  --sl-color-hairline-light: #0b4452;
+  --sl-color-hairline-shade: #0b4452;
+  --sl-color-backdrop-overlay: color-mix(in srgb, #001e26 70%, transparent);
+}
+
+/* ------------------------------------------------------------ typography */
+
 body {
-  font-family: 'Bitter', 'Times New Roman', serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Header and navigation styling */
-.site-title {
+.sl-markdown-content {
+  font-size: 1.0625rem;
+}
+.sl-markdown-content > :is(p, ul, ol, blockquote),
+.sl-markdown-content .starlight-aside__content > :is(p, ul, ol) {
+  max-width: 70ch;
+}
+.sl-markdown-content :is(strong, b) {
   font-weight: 600;
+  color: var(--sl-color-gray-1);
+}
+.sl-markdown-content li::marker {
+  color: var(--sl-color-gray-4);
 }
 
-/* Content styling */
-.content-panel {
-  font-family: 'Bitter', 'Times New Roman', serif;
+/*
+ * Headings in Bitter. A slab serif needs far less negative tracking than a
+ * sans: a touch at title sizes, none from h3 down.
+ */
+h1#_top,
+.sl-markdown-content :is(h1, h2, h3, h4):not(:where(.not-content *)),
+.hero h1 {
+  font-family: var(--lc-font-display);
+  font-weight: 650;
+  letter-spacing: -0.004em;
+  text-wrap: balance;
+}
+h1#_top,
+.sl-markdown-content h1:not(:where(.not-content *)) {
+  font-weight: 700;
+  letter-spacing: -0.008em;
+}
+.sl-markdown-content :is(h3, h4):not(:where(.not-content *)) {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+/* h5 and h6 are small labels: Inter. */
+.sl-markdown-content :is(h5, h6):not(:where(.not-content *)) {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.sl-markdown-content h2:not(:where(.not-content *)) {
+  margin-top: 2.75rem;
+}
+.sl-markdown-content :is(h3, h4):not(:where(.not-content *)) {
+  margin-top: 2rem;
 }
 
-/* Custom badge styles */
+/* The page title sits on the page without a rule under it. */
+.content-panel:first-of-type {
+  border-top: 0;
+}
+.content-panel + .content-panel {
+  border-top: 0;
+}
+.content-panel:has(h1#_top) {
+  padding-bottom: 0.5rem;
+}
+
+/* Links: teal, quiet underline that firms up on hover. */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--sl-color-text-accent);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+  transition: text-decoration-color 0.15s ease;
+}
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-color: currentColor;
+}
+
+/* ---------------------------------------------------------------- header */
+
+header.header {
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+.site-title {
+  font-family: var(--lc-font-display);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--sl-color-white);
+}
+.site-title img {
+  max-height: 1.75rem;
+  border-radius: 22%;
+}
+.social-icons a {
+  color: var(--sl-color-gray-3);
+}
+.social-icons a:hover {
+  color: var(--sl-color-white);
+}
+.social-icons::after {
+  border-inline-end-color: var(--sl-color-hairline);
+}
+site-search button[data-open-modal] {
+  border-radius: var(--lc-radius-sm);
+  border-color: var(--sl-color-hairline);
+  background-color: var(--lc-surface);
+  color: var(--sl-color-gray-3);
+  font-size: 0.875rem;
+}
+site-search button[data-open-modal]:hover {
+  border-color: var(--sl-color-gray-5);
+  color: var(--sl-color-white);
+}
+site-search button[data-open-modal] kbd {
+  background-color: transparent;
+}
+.sl-menu-button,
+:root[data-theme='light'] .sl-menu-button {
+  background-color: transparent;
+  color: var(--sl-color-white);
+  box-shadow: none;
+}
+.sl-menu-button:has(~ :popover-open) {
+  background-color: var(--lc-surface);
+}
+
+/* --------------------------------------------------------------- sidebar */
+
+.sidebar-pane {
+  border-inline-end-color: var(--sl-color-hairline);
+}
+.sidebar-content {
+  --sl-sidebar-item-padding-inline: 0.625rem;
+}
+.sidebar-content .large {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sl-color-white);
+}
+.sidebar-content summary {
+  padding-block: 0.25rem;
+}
+.sidebar-content .caret {
+  color: var(--sl-color-gray-4);
+}
+.sidebar-content a {
+  font-size: 0.875rem;
+  color: var(--sl-color-gray-3);
+  border-radius: var(--lc-radius-sm);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.sidebar-content a:hover {
+  color: var(--sl-color-white);
+  background-color: var(--lc-surface-hover);
+}
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+  font-weight: 500;
+  color: var(--sl-color-text-accent);
+  background-color: var(--sl-color-accent-low);
+}
+/* No tree lines: indentation alone shows the nesting. */
+.sidebar-content ul ul li {
+  border-inline-start: 0;
+  margin-inline-start: 0;
+}
+.sidebar-content ul ul {
+  margin-top: 0.125rem;
+}
+
+/* ---------------------------------------------------------------- TOC */
+
+.right-sidebar {
+  border-inline-start-color: var(--sl-color-hairline);
+}
+.right-sidebar-panel h2 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--sl-color-white);
+}
+starlight-toc a {
+  font-size: 0.8125rem;
+  color: var(--sl-color-gray-3);
+  transition: color 0.12s ease;
+}
+starlight-toc a:hover {
+  color: var(--sl-color-white);
+}
+starlight-toc a[aria-current='true'] {
+  color: var(--sl-color-text-accent);
+  font-weight: 500;
+}
+mobile-starlight-toc nav {
+  border-bottom-color: var(--sl-color-hairline);
+}
+mobile-starlight-toc summary {
+  border-color: var(--sl-color-hairline);
+  font-size: 0.8125rem;
+}
+
+/* ------------------------------------------------------ quotes and asides */
+
+/* Logseq's quote: a teal rule on the left and a tinted block. */
+.sl-markdown-content blockquote:not(:where(.not-content *)) {
+  border-inline-start: 3px solid var(--sl-color-accent);
+  background-color: var(--lc-tint);
+  border-radius: 0 var(--lc-radius-sm) var(--lc-radius-sm) 0;
+  padding: 0.75rem 1rem;
+  color: var(--sl-color-gray-1);
+}
+
+.starlight-aside {
+  border-inline-start-width: 3px;
+  border-radius: 0 var(--lc-radius-sm) var(--lc-radius-sm) 0;
+  padding: 0.875rem 1.125rem;
+}
+.starlight-aside__title {
+  font-size: 0.9375rem;
+  letter-spacing: -0.005em;
+}
+.starlight-aside__icon {
+  font-size: 1.1em;
+}
+.starlight-aside--tip {
+  --sl-color-asides-text-accent: var(--sl-color-text-accent);
+  --sl-color-asides-border: var(--sl-color-accent);
+  background-color: var(--lc-tint);
+}
+.starlight-aside--note {
+  --sl-color-asides-text-accent: var(--sl-color-white);
+  --sl-color-asides-border: var(--sl-color-accent);
+  background-color: var(--lc-surface);
+}
+.starlight-aside .starlight-aside__content {
+  color: var(--sl-color-gray-1);
+  font-size: 1rem;
+}
+
+/* ----------------------------------------------------------------- code */
+
+.sl-markdown-content code:not(:where(.not-content *, pre *)) {
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 4px;
+  color: var(--sl-color-gray-1);
+  background-color: var(--sl-color-bg-inline-code);
+}
+:root[data-theme='dark'] .sl-markdown-content code:not(:where(.not-content *, pre *)) {
+  color: #c6d4d4;
+}
+
+/* Code blocks sit on the same surface as the sidebar, like Logseq's editor. */
+.expressive-code {
+  --ec-brdRad: var(--lc-radius-sm);
+  --ec-brdCol: var(--sl-color-hairline);
+  --ec-frm-frameBoxShdCssVal: none;
+}
+:root[data-theme='light'] .expressive-code {
+  --ec-codeBg: var(--lc-surface);
+  --ec-frm-edBg: var(--lc-surface);
+  --ec-frm-trmBg: var(--lc-surface);
+  --ec-frm-edTabBarBg: oklch(0.955 0.003 286);
+  --ec-frm-trmTtbBg: oklch(0.955 0.003 286);
+  --ec-frm-edActTabBg: var(--lc-surface);
+}
+:root[data-theme='dark'] .expressive-code {
+  --ec-codeFg: #b4c4c5;
+  --ec-codeBg: #073642;
+  --ec-frm-edBg: #073642;
+  --ec-frm-trmBg: #073642;
+  --ec-frm-edTabBarBg: #002f3b;
+  --ec-frm-trmTtbBg: #002f3b;
+  --ec-frm-edActTabBg: #073642;
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.sl-markdown-content table:not(:where(.not-content *)) {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  padding: 0.5rem 0.875rem;
+}
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+  padding-inline-start: 0;
+}
+.sl-markdown-content th:not(:where(.not-content *)) {
+  font-weight: 600;
+  color: var(--sl-color-white);
+  border-bottom-color: var(--sl-color-gray-5);
+}
+
+/* --------------------------------------------------------------- images */
+
+.sl-markdown-content img:not(:where(.not-content *)) {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--lc-radius);
+  box-shadow: none;
+}
+.site-title img,
+.hero > img {
+  border: 0;
+  border-radius: 22%;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- badges */
+
 .sl-badge {
-  font-family: system-ui, sans-serif;
-  font-size: 0.8rem;
+  font-family: var(--__sl-font);
+  font-size: 0.75em;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 0.125em 0.5em;
+  border-radius: 999px;
+  vertical-align: 0.15em;
+}
+:root {
+  --sl-badge-default-border: transparent;
+  --sl-badge-default-bg: var(--sl-color-accent-low);
+  --sl-badge-default-text: var(--sl-color-text-accent);
+  --sl-badge-tip-border: transparent;
+  --sl-badge-tip-bg: var(--sl-color-accent-low);
+  --sl-badge-tip-text: var(--sl-color-text-accent);
+  --sl-badge-note-border: transparent;
+  --sl-badge-note-bg: var(--lc-surface);
+  --sl-badge-note-text: var(--sl-color-gray-2);
+  --sl-badge-success-border: transparent;
+  --sl-badge-success-bg: var(--lc-surface);
+  --sl-badge-success-text: var(--sl-color-gray-2);
 }
 
-/* Code block styling */
-pre,
-code {
-  font-family: 'Fira Code', 'Menlo', 'Monaco', 'Consolas', monospace;
+/* ----------------------------------------------------- buttons and cards */
+
+.sl-link-button {
+  border-radius: var(--lc-radius-sm);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  padding: 0.625rem 1.125rem;
+}
+.sl-link-button.secondary {
+  border-color: var(--sl-color-gray-5);
+  color: var(--sl-color-white);
+}
+:root[data-theme='light'] .sl-link-button.secondary {
+  border-color: oklch(0.86 0.005 286);
+}
+.sl-link-button.secondary:hover {
+  background-color: var(--lc-surface);
 }
 
 /* One teal for every card icon, instead of Starlight's rotating hues. */
@@ -41,212 +474,159 @@ code {
 .card:nth-child(n) {
   --sl-card-border: var(--sl-color-accent);
   --sl-card-bg: var(--sl-color-accent-low);
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--lc-radius);
+  background-color: var(--sl-color-black);
+  padding: 1.25rem 1.375rem;
+  gap: 0.5rem;
+}
+:root[data-theme='dark'] .card {
+  background-color: var(--lc-surface);
+  border-color: transparent;
+}
+.card .title {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  gap: 0.625rem;
+}
+/* The icon is a plain teal glyph, no box around it. */
+.card .icon {
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: 1.25rem;
+  color: var(--sl-color-text-accent);
+}
+.card .body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--sl-color-gray-2);
+}
+.card .body a {
+  font-weight: 500;
 }
 
-/* Card hover effects */
-.sl-card:hover {
-  transform: translateY(-2px);
-  transition: transform 0.2s ease;
-}
-
-/* Logo styling */
-.site-title img {
-  max-height: 2rem;
-}
-
-/* The logo is a rounded square already: no generic image shadow on it. */
-.site-title img,
-.hero > img {
-  border-radius: 22%;
+.sl-link-card {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--lc-radius);
   box-shadow: none;
+  background-color: var(--sl-color-black);
 }
+:root[data-theme='dark'] .sl-link-card {
+  background-color: var(--lc-surface);
+  border-color: transparent;
+}
+.sl-link-card:hover {
+  border-color: var(--sl-color-accent);
+  background-color: var(--lc-tint);
+}
+.sl-link-card .title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ----------------------------------------------------------------- hero */
 
 /*
- * Logseq teal, taken from the extension UI (src/assets/globals.css):
- *   light primary oklch(0.5 0.075 206)   ~ #206f78 (5.8:1 as text on white)
- *   dark primary  oklch(0.788 0.068 196) ~ #85c8c8, its foreground #002b36
- * Starlight paints the primary button with --sl-color-bg-accent and the text
- * on it with --sl-color-text-invert, so the three accent steps below give the
- * same primary/foreground pairs as the extension in both themes. The grays are
- * the extension's neutral zinc scale instead of Starlight's blue-tinted one.
+ * One left-aligned column: the app icon, the title, the tagline, the actions.
+ * The icon is shown at app-icon size, not as a poster.
  */
-:root {
-  --lc-brand: oklch(0.5 0.075 206);
-  --lc-brand-foreground: oklch(0.985 0.005 206);
-  --lc-surface: var(--sl-color-bg-nav);
-  --lc-border: var(--sl-color-hairline);
+.hero {
+  grid-template-columns: 100%;
+  justify-items: start;
+  gap: 1.5rem;
+  padding-block: 2.5rem 1rem;
 }
-
-:root[data-theme='light'] {
-  --sl-color-accent-low: oklch(0.94 0.03 196);
-  --sl-color-accent: oklch(0.5 0.075 206);
-  --sl-color-accent-high: oklch(0.36 0.06 208);
-
-  --sl-color-white: oklch(0.141 0.005 286);
-  --sl-color-gray-1: oklch(0.21 0.006 286);
-  --sl-color-gray-2: oklch(0.3 0.008 286);
-  --sl-color-gray-3: oklch(0.44 0.012 286);
-  --sl-color-gray-4: oklch(0.552 0.016 286);
-  --sl-color-gray-5: oklch(0.87 0.004 286);
-  --sl-color-gray-6: oklch(0.92 0.004 286);
-  --sl-color-gray-7: oklch(0.967 0.001 286);
-  --sl-color-black: oklch(1 0 0);
-
-  --lc-brand: oklch(0.5 0.075 206);
-  --lc-brand-foreground: oklch(0.985 0.005 206);
+.hero > img {
+  order: 0;
+  width: 4.5rem;
+  margin-inline: 0;
 }
-
-:root[data-theme='dark'] {
-  --sl-color-accent-low: oklch(0.267 0.049 220);
-  --sl-color-accent: oklch(0.65 0.09 196);
-  --sl-color-accent-high: oklch(0.788 0.068 196);
-
-  --sl-color-white: oklch(0.985 0 0);
-  --sl-color-gray-1: oklch(0.94 0.003 286);
-  --sl-color-gray-2: oklch(0.8 0.008 286);
-  --sl-color-gray-3: oklch(0.65 0.014 286);
-  --sl-color-gray-4: oklch(0.44 0.01 286);
-  --sl-color-gray-5: oklch(0.274 0.006 286);
-  --sl-color-gray-6: oklch(0.21 0.006 286);
-  --sl-color-black: oklch(0.141 0.005 286);
-
-  --lc-brand: oklch(0.788 0.068 196);
-  --lc-brand-foreground: oklch(0.267 0.049 220);
+.hero .stack {
+  text-align: start;
+  gap: 1.75rem;
 }
-
-/* External link indicators */
-/* Target all links that don't start with relative paths, anchors, or internal references */
-.content a[href^="http://"]:after,
-.content a[href^="https://"]:after,
-.content a[href^="www."]:after,
-.content-panel a[href^="http://"]:after,
-.content-panel a[href^="https://"]:after,
-.content-panel a[href^="www."]:after,
-main a[href^="http://"]:after,
-main a[href^="https://"]:after,
-main a[href^="www."]:after {
-  content: '';
-  display: inline-block;
-  width: 0.75em;
-  height: 0.75em;
-  margin-left: 0.25em;
-  vertical-align: middle;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+.hero .copy {
+  align-items: flex-start;
+  gap: 1rem;
 }
-
-/* Hover effect for external link icons */
-.content a[href^="http://"]:hover:after,
-.content a[href^="https://"]:hover:after,
-.content a[href^="www."]:hover:after,
-.content-panel a[href^="http://"]:hover:after,
-.content-panel a[href^="https://"]:hover:after,
-.content-panel a[href^="www."]:hover:after,
-main a[href^="http://"]:hover:after,
-main a[href^="https://"]:hover:after,
-main a[href^="www."]:hover:after {
-  opacity: 1;
+.hero .actions {
+  justify-content: flex-start;
+  gap: 0.75rem 1rem;
 }
-
-/* Exclude certain elements from external link styling */
-/* Don't add icons to links that already have Starlight's external icon */
-a[data-astro-source-loc]:after,
-.sl-link-card a:after,
-.hero-actions a:after,
-.social-icons a:after,
-a[class*='icon']:after,
-a[href*='icon']:after,
-nav a:after,
-.starlight-toc a:after,
-.sidebar a:after,
-.sl-nav a:after {
-  display: none !important;
+.hero h1 {
+  font-size: clamp(2.25rem, calc(1.25rem + 3.5vw), 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
-
-/* Remove external link tooltip styles - only keep the icon indicator */
-
-/* Removed tooltip animation - no longer needed */
-
-/* Dark mode adjustments for external link icons */
-:root[data-theme='dark'] .content a[href^="http://"]:after,
-:root[data-theme='dark'] .content a[href^="https://"]:after,
-:root[data-theme='dark'] .content a[href^="www."]:after,
-:root[data-theme='dark'] .content-panel a[href^="http://"]:after,
-:root[data-theme='dark'] .content-panel a[href^="https://"]:after,
-:root[data-theme='dark'] .content-panel a[href^="www."]:after,
-:root[data-theme='dark'] main a[href^="http://"]:after,
-:root[data-theme='dark'] main a[href^="https://"]:after,
-:root[data-theme='dark'] main a[href^="www."]:after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2385c8c8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpolyline points='15,3 21,3 21,9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3C/svg%3E");
+.hero .tagline {
+  font-size: clamp(1.0625rem, calc(0.85rem + 0.6vw), 1.25rem);
+  line-height: 1.6;
+  color: var(--sl-color-gray-3);
+  max-width: 36rem;
+  text-wrap: pretty;
 }
-
-/* Responsive image adjustments */
-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Screenshot specific styling */
-img[src*='screenshots/'] {
-  border: 1px solid var(--sl-color-gray-5);
-  margin: 1rem 0;
-}
-
-/* Step component styling */
-.steps {
-  counter-reset: step;
-}
-
-.steps > div {
-  counter-increment: step;
-}
-
-/* Link styling */
-a {
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* Table of contents */
-.right-sidebar {
-  font-family: 'Bitter', 'Times New Roman', serif;
-}
-
-/* Custom button styles */
-.sl-button {
-  font-family: system-ui, sans-serif;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.sl-button:hover {
-  transform: translateY(-1px);
-}
-
-/* Search styling */
-.pagefind-ui {
-  font-family: 'Bitter', 'Times New Roman', serif;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .sl-card-grid {
-    grid-template-columns: 1fr;
+@media (min-width: 50rem) {
+  .hero {
+    grid-template-columns: 100%;
+    gap: 2rem;
+    padding-block: 4rem 2rem;
   }
-
-  img[src*='screenshots/'] {
-    margin: 0.5rem 0;
+  .hero > img {
+    order: 0;
+    width: 5rem;
   }
+}
 
-  /* External link icons work well on mobile - no special handling needed */
+/* Landing page sections */
+[data-has-hero] .sl-markdown-content h2:not(:where(.not-content *)) {
+  font-size: 1.25rem;
+  margin-top: 3.5rem;
+  margin-bottom: 1rem;
+}
+[data-has-hero] .sl-markdown-content h2:first-child {
+  margin-top: 1rem;
+}
+
+/* ------------------------------------------------------------ pagination */
+
+.pagination-links a {
+  border-color: var(--sl-color-hairline);
+  border-radius: var(--lc-radius);
+  box-shadow: none;
+}
+.pagination-links a:hover {
+  border-color: var(--sl-color-accent);
+}
+.pagination-links .link-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* In dark mode the app icon's tile matches the page; a hairline keeps its edge. */
+:root[data-theme='dark'] :is(.hero > img, .site-title img) {
+  box-shadow: 0 0 0 1px #0e5263;
+}
+
+/* Narrow screens: 16px text, and the search button drawn like the menu button. */
+@media (max-width: 49.99rem) {
+  .sl-markdown-content {
+    font-size: 1rem;
+  }
+  site-search button[data-open-modal] {
+    background-color: transparent;
+    border: 0;
+    color: var(--sl-color-white);
+  }
+}
+
+/* Focus rings in the brand teal instead of the browser's blue. */
+:focus-visible {
+  outline-color: var(--sl-color-accent);
+}
+#starlight__search input:focus {
+  outline: 2px solid color-mix(in oklch, var(--sl-color-accent) 40%, transparent);
+  outline-offset: 1px;
 }
