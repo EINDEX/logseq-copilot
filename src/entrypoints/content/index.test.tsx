@@ -27,11 +27,13 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
 vi.mock('@/assets/globals.css', () => ({}));
 vi.mock('./index.module.scss', () => ({ default: {} }));
 vi.mock('../../assets/img/logo.png', () => ({ default: '' }));
+vi.mock('./arc-detection', () => ({ detectArc: vi.fn() }));
 
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
+import { detectArc } from './arc-detection';
 import contentScript from './index';
 
 const saved: HighlightData = {
@@ -161,7 +163,7 @@ describe('content script startup', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('tells the toolbar popup whether there is a selection to clip, from the start', async () => {
+  it('tells the browser sidebar whether there is a selection to clip, from the start', async () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       new Promise(() => {}),
     );
@@ -179,7 +181,7 @@ describe('content script startup', () => {
     expect(await hasSelection({ data: undefined })).toBe(true);
   });
 
-  it('answers a clip command once the clip is done, with the failure when the popup asks for it', async () => {
+  it('answers a clip command once the clip is done, with the failure when the sidebar asks for it', async () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       new Promise(() => {}),
     );
@@ -190,7 +192,7 @@ describe('content script startup', () => {
     await expect(
       messaging.handlers.get('content:quickCapturePage')!({ data: undefined }),
     ).resolves.toBeUndefined();
-    // From the popup: the popup shows it.
+    // From the browser sidebar: the sidebar shows it.
     await expect(
       messaging.handlers.get('content:quickCaptureWithSelection')!({
         data: { feedback: 'sender' },
@@ -342,5 +344,39 @@ describe('content script in-page highlights sidebar', () => {
     await flush();
 
     expect(sidebarCreated()).toBe(false);
+  });
+
+  // Arc has the side panel API but never shows the panel.
+  describe('looking for Arc', () => {
+    beforeEach(() => {
+      vi.mocked(detectArc).mockClear();
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('looks in the top frame of pages', async () => {
+      await (contentScript as any).main(ctx);
+
+      expect(detectArc).toHaveBeenCalledTimes(1);
+      expect(detectArc).toHaveBeenCalledWith(ctx);
+    });
+
+    it('does not look in a frame', async () => {
+      vi.spyOn(window, 'top', 'get').mockReturnValue({} as Window);
+
+      await (contentScript as any).main(ctx);
+
+      expect(detectArc).not.toHaveBeenCalled();
+    });
+
+    it('does not look in Firefox', async () => {
+      vi.stubEnv('FIREFOX', 'true');
+
+      await (contentScript as any).main(ctx);
+
+      expect(detectArc).not.toHaveBeenCalled();
+    });
   });
 });
