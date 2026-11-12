@@ -202,7 +202,6 @@ const FloatButton = () => {
           width: `${FLOAT_BUTTON_ICON}px`,
           height: `${FLOAT_BUTTON_ICON}px`,
           maxWidth: 'none',
-          borderRadius: '9999px',
         }}
       />
     </div>
@@ -275,7 +274,6 @@ const ClipError = () => {
           height: '16px',
           maxWidth: 'none',
           marginTop: '1px',
-          borderRadius: '9999px',
         }}
       />
       <span>{message}</span>
