@@ -533,20 +533,20 @@ mobile-starlight-toc summary {
 /* ----------------------------------------------------------------- hero */
 
 /*
- * Split hero: title, tagline and the store buttons on the left, the sidebar
- * screenshot on the right. On narrow screens the screenshot follows the
- * buttons, so the buttons are on the first screen.
+ * Stacked hero (variant B): the title, tagline and store buttons centered,
+ * and the sidebar screenshot large under them, its top on the first screen.
  */
 .hero {
   grid-template-columns: 100%;
-  align-items: center;
+  justify-items: center;
   gap: 2rem;
   padding-block: 2rem 1.5rem;
 }
 .hero > .hero-html {
   order: 2;
   width: 100%;
-  margin-inline: 0;
+  max-width: 64rem;
+  margin-inline: auto;
 }
 .hero > .hero-html img {
   display: block;
@@ -556,18 +556,19 @@ mobile-starlight-toc summary {
   border-radius: var(--lc-radius);
 }
 .hero .stack {
-  text-align: start;
+  text-align: center;
+  align-items: center;
   gap: 1.5rem;
 }
 .hero .copy {
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
 }
 .hero .copy > * {
-  max-width: 36rem;
+  max-width: 40rem;
 }
 .hero .actions {
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 0.75rem;
 }
@@ -585,12 +586,22 @@ mobile-starlight-toc summary {
 }
 @media (min-width: 50rem) {
   .hero {
-    grid-template-columns: 5fr 6fr;
-    gap: 3rem;
-    padding-block: 3.5rem 2.5rem;
+    grid-template-columns: 100%;
+    gap: 2.5rem;
+    padding-block: 3rem 2.5rem;
   }
   .hero > .hero-html {
+    order: 2;
     width: 100%;
+  }
+  .hero .stack {
+    text-align: center;
+  }
+  .hero .copy {
+    align-items: center;
+  }
+  .hero .actions {
+    justify-content: center;
   }
 }
 

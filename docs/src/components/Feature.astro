@@ -2,25 +2,26 @@
 /**
  * One row of the landing page: a screenshot beside a title, a few sentences
  * and a link to the feature page. `flip` puts the screenshot on the left.
+ * Without `image` the row is text only.
  */
 interface Props {
 	title: string;
 	href: string;
 	link: string;
-	image: { src: string; alt: string; width: number; height: number };
+	image?: { src: string; alt: string; width: number; height: number };
 	flip?: boolean;
 }
 
 const { title, href, link, image, flip = false } = Astro.props;
 ---
 
-<section class:list={['lc-feature', 'not-content', { flip }]}>
+<section class:list={['lc-feature', 'not-content', { flip, plain: !image }]}>
 	<div class="text">
 		<h2>{title}</h2>
 		<slot />
 		<a class="more" href={href}>{link} <span aria-hidden="true">→</span></a>
 	</div>
-	<img src={image.src} alt={image.alt} width={image.width} height={image.height} loading="lazy" decoding="async" />
+	{image && <img src={image.src} alt={image.alt} width={image.width} height={image.height} loading="lazy" decoding="async" />}
 </section>
 
 <style>
@@ -87,6 +88,12 @@ const { title, href, link, image, flip = false } = Astro.props;
 		}
 		.flip {
 			grid-template-columns: 3fr 2fr;
+		}
+		.plain {
+			grid-template-columns: 1fr;
+		}
+		.plain .text {
+			max-width: 44rem;
 		}
 		.flip img {
 			order: -1;
