@@ -97,9 +97,9 @@ export default defineConfig({
 					rss: true,
 				}),
 			],
-			// Code blocks: solarized dark as in Logseq's editor; a plain light theme.
+			// Code blocks: github dark dimmed, the dark sibling of the light theme; a plain light theme.
 			expressiveCode: {
-				themes: ['solarized-dark', 'github-light'],
+				themes: ['github-dark-dimmed', 'github-light'],
 			},
 			customCss: [
 				'@fontsource-variable/inter/opsz.css',
