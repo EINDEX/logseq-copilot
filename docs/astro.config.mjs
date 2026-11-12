@@ -90,32 +90,18 @@ export default defineConfig({
 					rss: true,
 				}),
 			],
+			// Code blocks: solarized dark as in Logseq's editor; a plain light theme.
+			expressiveCode: {
+				themes: ['solarized-dark', 'github-light'],
+			},
 			customCss: [
+				'@fontsource-variable/inter/opsz.css',
+				'@fontsource-variable/inter/opsz-italic.css',
+				'@fontsource-variable/bitter',
+				'@fontsource-variable/jetbrains-mono',
 				'./src/styles/custom.css',
 			],
 			head: [
-				{
-					tag: 'link',
-					attrs: {
-						rel: 'preconnect',
-						href: 'https://fonts.googleapis.com',
-					},
-				},
-				{
-					tag: 'link',
-					attrs: {
-						rel: 'preconnect',
-						href: 'https://fonts.gstatic.com',
-						crossorigin: true,
-					},
-				},
-				{
-					tag: 'link',
-					attrs: {
-						rel: 'stylesheet',
-						href: 'https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,100..900;1,100..900&display=swap',
-					},
-				},
 				{
 					tag: 'script',
 					attrs: {
