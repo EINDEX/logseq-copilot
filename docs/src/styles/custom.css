@@ -469,6 +469,16 @@ mobile-starlight-toc summary {
   background-color: var(--lc-surface);
 }
 
+/* Button icons share one size; Starlight sets 1.5rem inline, too large for a filled glyph. */
+.sl-link-button {
+  gap: 0.5rem;
+  align-items: center;
+}
+.sl-link-button svg {
+  --sl-icon-size: 1.125rem !important;
+  flex: none;
+}
+
 /* One teal for every card icon, instead of Starlight's rotating hues. */
 .card,
 .card:nth-child(n) {
@@ -629,4 +639,202 @@ mobile-starlight-toc summary {
 #starlight__search input:focus {
   outline: 2px solid color-mix(in oklch, var(--sl-color-accent) 40%, transparent);
   outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------------ blog */
+
+/*
+ * starlight-blog's own markup. The index, tag pages and author page share
+ * .sl-blog-posts: a calm list, one post under the other with a hairline
+ * between. Each post is a Bitter title, one muted line of Inter (date, author),
+ * the excerpt, and small tag pills.
+ */
+
+/* Nested under :root so these win over the plugin's scoped component styles. */
+:root {
+  /* Header: "Blog" is a nav link like the others, not a teal heading. */
+  .sl-blog-header-links {
+    border-color: var(--sl-color-hairline);
+  }
+  .sl-blog-header-link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-2);
+    transition: color 0.12s ease;
+  }
+  .sl-blog-header-link:hover {
+    color: var(--sl-color-white);
+  }
+
+  /* The list */
+  .sl-blog-posts {
+    gap: 0;
+    max-width: 44rem;
+  }
+  .sl-blog-posts .sl-blog-preview {
+    gap: 0.75rem;
+    padding-block: 2rem;
+    border-top: 1px solid var(--sl-color-hairline);
+  }
+  .sl-blog-posts .sl-blog-preview:first-child {
+    padding-top: 0.5rem;
+    border-top: 0;
+  }
+  .sl-blog-preview-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  .sl-blog-posts .sl-blog-preview-link {
+    margin-bottom: 0;
+    text-decoration: none;
+  }
+  .sl-blog-posts .sl-blog-preview-link .sl-blog-preview-title {
+    margin: 0;
+    font-family: var(--lc-font-display);
+    font-size: 1.5rem;
+    font-weight: 650;
+    letter-spacing: -0.004em;
+    line-height: 1.25;
+    color: var(--sl-color-white);
+    transition: color 0.12s ease;
+  }
+  .sl-blog-posts .sl-blog-preview-link:hover .sl-blog-preview-title {
+    color: var(--sl-color-text-accent);
+  }
+  .sl-blog-preview-excerpt {
+    margin-top: 0;
+    font-size: 1rem;
+    color: var(--sl-color-gray-2);
+  }
+  .sl-blog-preview-excerpt > :first-child {
+    margin-top: 0;
+  }
+  .sl-blog-preview-excerpt > :last-child {
+    margin-bottom: 0;
+  }
+  .sl-blog-preview-footer:empty {
+    display: none;
+  }
+
+  /* Metadata: one muted line, date · author. */
+  .sl-blog-metadata {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--sl-color-gray-3);
+  }
+  .sl-blog-metadata-items {
+    font-size: inherit;
+  }
+  .sl-blog-metadata-secondary {
+    color: inherit;
+  }
+  .sl-blog-metadata-authors {
+    display: inline-flex;
+    gap: 0;
+  }
+  .sl-blog-metadata-authors::before {
+    content: '\00b7';
+    margin-inline: 0.5rem;
+  }
+  .sl-blog-author {
+    text-decoration: none;
+    line-height: inherit;
+    color: inherit;
+  }
+  .sl-blog-author-details {
+    display: block;
+  }
+  .sl-blog-author-name {
+    font-size: inherit;
+    font-weight: 400;
+    color: inherit;
+  }
+  .sl-blog-author[href] .sl-blog-author-name {
+    color: inherit;
+  }
+  .sl-blog-author[href]:hover .sl-blog-author-name {
+    color: var(--sl-color-text-accent);
+  }
+  .sl-blog-author-title {
+    display: none;
+  }
+  /* In the list the line is date and author; the update date belongs to the post. */
+  .sl-blog-preview .sl-blog-metadata-last-updated {
+    display: none;
+  }
+  .sl-blog-metadata:has(.sl-blog-metadata-last-updated) {
+    margin-bottom: 0;
+  }
+
+  /* A post: the line sits under the title with room before the text. */
+  .sl-markdown-content > .sl-blog-metadata {
+    margin-block: -0.25rem 1.75rem;
+  }
+
+  /* Tags: small pills. The "Tags:" label stays for screen readers only. */
+  .sl-blog-tags-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sl-blog-tags-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sl-blog-tags-list li {
+    margin: 0;
+  }
+  .sl-blog-tags-list .sl-blog-tag {
+    display: inline-block;
+    text-decoration: none;
+    margin: 0;
+    padding: 0.125rem 0.625rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--sl-color-gray-2);
+    background-color: var(--lc-surface);
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  &[data-theme='light'] .sl-blog-tags-list .sl-blog-tag {
+    background-color: var(--sl-color-gray-6);
+  }
+  .sl-blog-tags-list .sl-blog-tag:hover {
+    color: var(--sl-color-text-accent);
+    background-color: var(--sl-color-accent-low);
+  }
+  .sl-blog-post-footer {
+    gap: 2rem;
+  }
+
+  /* Tag and author pages: the count line is a quiet sentence under the title. */
+  .sl-blog-post-count {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--sl-color-gray-3);
+  }
+
+  /* Older and newer posts: plain link cards, titled in the display face only on hover. */
+  .sl-blog-pagination .sl-link-card .title {
+    font-size: 0.9375rem;
+  }
+
+  /* Blog sidebar: the same quiet items as the docs. */
+  .sidebar-content a.large {
+    padding-block: 0.3125rem;
+  }
 }
