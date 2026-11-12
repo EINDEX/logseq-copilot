@@ -300,3 +300,19 @@ file on `main`.
 4. If the site has its own captcha or consent page, add a rule to `SPECIFIC`
    in `sites.ts`.
 5. `SITE_CHECK_SITES=<id> pnpm test:live`.
+
+## Docs screenshots
+
+`docs-screenshots.spec.ts` takes the pictures of the docs site
+(`docs/public/screenshots/`: `sidebar.png`, `recall-card.png`,
+`in-page-sidebar.png`, `settings-in-page-sidebar.png`,
+`recall-rule-editor.png`) from the built extension, with demo notes written
+to the test Logseq. It is skipped unless `DOCS_SCREENSHOTS=1`. File graph,
+Chromium, light mode:
+
+```bash
+BIN=$(scripts/download-logseq.sh file 0.10.15 .logseq-bin | tail -n 1)
+pnpm build && pnpm build:e2e
+DOCS_SCREENSHOTS=1 E2E_DEVICE_SCALE_FACTOR=2 LOGSEQ_VARIANT=file LOGSEQ_BIN=$BIN \
+  LOGSEQ_API_PORT=12399 pnpm test:e2e:run --project=chromium docs-screenshots
+```

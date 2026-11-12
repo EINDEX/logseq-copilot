@@ -205,6 +205,8 @@ async function launchChromium(extensionPath: string, userDataDir: string) {
     channel: 'chromium',
     headless: !process.env.E2E_HEADED,
     viewport: { width: 1400, height: 900 },
+    // E2E_DEVICE_SCALE_FACTOR=2 for the docs screenshots (docs-screenshots.spec.ts).
+    deviceScaleFactor: Number(process.env.E2E_DEVICE_SCALE_FACTOR) || 1,
     args: [
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
