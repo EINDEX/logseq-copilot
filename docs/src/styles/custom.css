@@ -3,8 +3,8 @@
  *
  * The docs should read as part of the same product as Logseq and the
  * extension: a white page with a very light gray left sidebar in light mode,
- * and Logseq's solarized dark (#002b36 page, #073642 surfaces, #85c8c8 teal)
- * in dark mode. Bitter sets the page titles, content headings, site title and
+ * and the extension's own zinc near-black in dark mode (#09090b page, #18181b
+ * surfaces, #85c8c8 teal). Bitter sets the page titles, content headings, site title and
  * hero title; Inter sets body text and all UI chrome; JetBrains Mono sets
  * code. Hierarchy comes from type and spacing.
  * Teal marks links, the current page, quotes and asides, and the primary
@@ -13,7 +13,7 @@
  *
  * Brand teal, from the extension UI (src/assets/globals.css):
  *   light primary oklch(0.5 0.075 206)   ~ #206f78 (5.8:1 as text on white)
- *   dark primary  oklch(0.788 0.068 196) ~ #85c8c8, its foreground #002b36
+ *   dark primary  oklch(0.788 0.068 196) ~ #85c8c8, its foreground the page
  */
 
 /* ---------------------------------------------------------------- tokens */
@@ -75,33 +75,39 @@
   --sl-color-hairline-shade: oklch(0.92 0.004 286);
 }
 
-/* Dark: Logseq's solarized dark. Body text #a9bcbd on #002b36 is ~7.6:1. */
+/* Dark: the extension's zinc near-black (src/assets/globals.css). The sidebar is
+ * a shade above the page; cards, code and asides sit on the extension's card
+ * gray. Body text is 11.6:1 on the page, muted text 6.7:1 on surfaces. */
 :root[data-theme='dark'] {
-  --sl-color-accent-low: color-mix(in oklch, #85c8c8 16%, #073642);
-  --sl-color-accent: #5fa8aa;
-  --sl-color-accent-high: #85c8c8;
+  --sl-color-accent-low: oklch(0.27 0.032 198);
+  --sl-color-accent: oklch(0.66 0.072 198);
+  --sl-color-accent-high: oklch(0.788 0.068 196);
 
-  --sl-color-white: #e6eeee;
-  --sl-color-gray-1: #cdd9d9;
-  --sl-color-gray-2: #a9bcbd;
-  --sl-color-gray-3: #8fa5a7;
-  --sl-color-gray-4: #6a8589;
-  --sl-color-gray-5: #0e5263;
-  --sl-color-gray-6: #073642;
-  --sl-color-black: #002b36;
+  --sl-color-white: oklch(0.97 0.002 286);
+  --sl-color-gray-1: oklch(0.9 0.004 286);
+  --sl-color-gray-2: oklch(0.825 0.008 286);
+  --sl-color-gray-3: oklch(0.705 0.015 286);
+  --sl-color-gray-4: oklch(0.55 0.014 286);
+  --sl-color-gray-5: oklch(0.33 0.008 286);
+  --sl-color-gray-6: oklch(0.21 0.006 286);
+  --sl-color-black: oklch(0.141 0.005 286);
 
-  --lc-surface: #073642;
-  --lc-surface-hover: #08404f;
-  --lc-tint: color-mix(in oklch, #85c8c8 10%, #002b36);
+  --lc-sidebar: oklch(0.168 0.005 286);
+  --lc-surface: oklch(0.21 0.006 286);
+  --lc-surface-hover: oklch(0.245 0.006 286);
+  --lc-tint: oklch(0.185 0.016 198);
+  --lc-code-fg: oklch(0.86 0.006 286);
+  --lc-code-tab-bar: oklch(0.18 0.005 286);
+  --lc-inline-code: oklch(0.88 0.006 286);
 
-  --sl-color-text-invert: #002b36;
+  --sl-color-text-invert: var(--sl-color-black);
   --sl-color-bg-nav: var(--sl-color-black);
-  --sl-color-bg-sidebar: var(--lc-surface);
-  --sl-color-bg-inline-code: #073642;
-  --sl-color-hairline: #0b4452;
-  --sl-color-hairline-light: #0b4452;
-  --sl-color-hairline-shade: #0b4452;
-  --sl-color-backdrop-overlay: color-mix(in srgb, #001e26 70%, transparent);
+  --sl-color-bg-sidebar: var(--lc-sidebar);
+  --sl-color-bg-inline-code: var(--lc-surface);
+  --sl-color-hairline: oklch(0.262 0.006 286);
+  --sl-color-hairline-light: oklch(0.262 0.006 286);
+  --sl-color-hairline-shade: oklch(0.262 0.006 286);
+  --sl-color-backdrop-overlay: color-mix(in srgb, oklch(0.1 0.004 286) 70%, transparent);
 }
 
 /* ------------------------------------------------------------ typography */
@@ -359,7 +365,7 @@ mobile-starlight-toc summary {
   background-color: var(--sl-color-bg-inline-code);
 }
 :root[data-theme='dark'] .sl-markdown-content code:not(:where(.not-content *, pre *)) {
-  color: #c6d4d4;
+  color: var(--lc-inline-code);
 }
 
 /* Code blocks sit on the same surface as the sidebar, like Logseq's editor. */
@@ -377,13 +383,13 @@ mobile-starlight-toc summary {
   --ec-frm-edActTabBg: var(--lc-surface);
 }
 :root[data-theme='dark'] .expressive-code {
-  --ec-codeFg: #b4c4c5;
-  --ec-codeBg: #073642;
-  --ec-frm-edBg: #073642;
-  --ec-frm-trmBg: #073642;
-  --ec-frm-edTabBarBg: #002f3b;
-  --ec-frm-trmTtbBg: #002f3b;
-  --ec-frm-edActTabBg: #073642;
+  --ec-codeFg: var(--lc-code-fg);
+  --ec-codeBg: var(--lc-surface);
+  --ec-frm-edBg: var(--lc-surface);
+  --ec-frm-trmBg: var(--lc-surface);
+  --ec-frm-edTabBarBg: var(--lc-code-tab-bar);
+  --ec-frm-trmTtbBg: var(--lc-code-tab-bar);
+  --ec-frm-edActTabBg: var(--lc-surface);
 }
 
 /* ---------------------------------------------------------------- tables */
@@ -633,7 +639,7 @@ mobile-starlight-toc summary {
 
 /* In dark mode the app icon's tile matches the page; a hairline keeps its edge. */
 :root[data-theme='dark'] .site-title img {
-  box-shadow: 0 0 0 1px #0e5263;
+  box-shadow: 0 0 0 1px var(--sl-color-gray-5);
 }
 
 /* Narrow screens: 16px text, and the search button drawn like the menu button. */
