@@ -71,6 +71,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 162c9bc5d98e73ac9c64f756da29d06d
+          # Exact version: the action installs Wrangler at run time and hands
+          # it the token, so a floating `wrangler@4` would run whatever npm
+          # serves that day with the token.
+          wranglerVersion: '4.160.1'
           workingDirectory: docs
           packageManager: pnpm
           command: pages deploy dist --project-name=logseq-copilot-page --branch=${{ steps.alias.outputs.value }}
@@ -95,6 +99,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 162c9bc5d98e73ac9c64f756da29d06d
+          # Exact version: the action installs Wrangler at run time and hands
+          # it the token, so a floating `wrangler@4` would run whatever npm
+          # serves that day with the token.
+          wranglerVersion: '4.160.1'
           # Optional: Enable this if you want to have GitHub Deployments triggered
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           # Run Wrangler inside docs/ with pnpm. The action installs Wrangler in its
