@@ -1,0 +1,1 @@
+Your Logseq notes next to your search results and in a sidebar for the page you are reading. Clip a selection or a page link into your graph with a template, and keep highlights with comments. Needs the Logseq HTTP API server.

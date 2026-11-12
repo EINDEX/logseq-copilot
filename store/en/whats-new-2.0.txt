@@ -1,0 +1,9 @@
+Logseq Copilot 2.0 is a rebuild of the extension.
+
+- The toolbar icon opens a sidebar for the page: its highlights, the notes that mention it, a search of your graph and clip buttons. It replaces the popup.
+- The card on search result pages is redesigned. Brave Search is a new built-in engine.
+- Recall rules can also recall notes about the parent paths of a page.
+- Clips use your graph's journal date format. A failed clip tells you why.
+- Firefox 127 or later is required.
+
+Your settings carry over.
