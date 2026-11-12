@@ -44,9 +44,44 @@ jobs:
         working-directory: docs
         run: pnpm build
 
+      # A push to a branch other than main publishes a preview of that branch,
+      # at https://<branch>.logseq-copilot-page.pages.dev (Cloudflare marks
+      # previews noindex). The alias keeps letters, digits and dashes only, as
+      # Cloudflare does.
+      - name: Name the preview
+        id: alias
+        if: github.event_name == 'push' && github.ref_name != 'main'
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          ALIAS=$(printf '%s' "$REF" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-')
+          echo "value=$ALIAS" >> "$GITHUB_OUTPUT"
+
+      - name: Publish a preview to Cloudflare Pages
+        id: preview
+        if: steps.alias.outputs.value
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 162c9bc5d98e73ac9c64f756da29d06d
+          workingDirectory: docs
+          packageManager: pnpm
+          command: pages deploy dist --project-name=logseq-copilot-page --branch=${{ steps.alias.outputs.value }}
+
+      - name: Show the preview address
+        if: steps.preview.outcome == 'success'
+        env:
+          ALIAS_URL: ${{ steps.preview.outputs.pages-deployment-alias-url }}
+          URL: ${{ steps.preview.outputs.deployment-url }}
+        run: |
+          {
+            echo "### Docs preview"
+            echo "- Branch: ${ALIAS_URL:-https://${{ steps.alias.outputs.value }}.logseq-copilot-page.pages.dev}"
+            echo "- This deployment: $URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # Production deploys happen on a release (called from release-please.yml,
-      # or the `release` event) or by hand from the Actions tab. A push only
-      # builds the docs.
+      # or the `release` event) or by hand from the Actions tab.
       - name: Publish to Cloudflare Pages
         if: inputs.deploy || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
