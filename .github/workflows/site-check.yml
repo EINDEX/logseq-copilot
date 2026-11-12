@@ -6,10 +6,10 @@ name: Site check
 # tests/e2e/README.md). The job fails when a site is `broken` or `degraded`;
 # `blocked` (captcha, consent page) and `skipped` do not fail it.
 #
-# Scheduled runs check out `wxt`, the branch releases are built from. GitHub
-# starts `schedule` runs only from the workflow file on the default branch
-# (`main`): the daily run starts once this file is on main. Manual runs check
-# out the ref picked in "Use workflow from".
+# Scheduled runs check out `wxt`, the development branch, so a broken site is
+# found before it is released. GitHub starts `schedule` runs only from the
+# workflow file on the default branch (`main`): the daily run starts once this
+# file is on main. Manual runs check out the ref picked in "Use workflow from".
 
 on:
   schedule:
