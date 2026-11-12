@@ -413,8 +413,7 @@ mobile-starlight-toc summary {
   border-radius: var(--lc-radius);
   box-shadow: none;
 }
-.site-title img,
-.hero > img {
+.site-title img {
   border: 0;
   border-radius: 22%;
   box-shadow: none;
@@ -534,31 +533,43 @@ mobile-starlight-toc summary {
 /* ----------------------------------------------------------------- hero */
 
 /*
- * One left-aligned column: the app icon, the title, the tagline, the actions.
- * The icon is shown at app-icon size, not as a poster.
+ * Split hero: title, tagline and the store buttons on the left, the sidebar
+ * screenshot on the right. On narrow screens the screenshot follows the
+ * buttons, so the buttons are on the first screen.
  */
 .hero {
   grid-template-columns: 100%;
-  justify-items: start;
-  gap: 1.5rem;
-  padding-block: 2.5rem 1rem;
+  align-items: center;
+  gap: 2rem;
+  padding-block: 2rem 1.5rem;
 }
-.hero > img {
-  order: 0;
-  width: 4.5rem;
+.hero > .hero-html {
+  order: 2;
+  width: 100%;
   margin-inline: 0;
+}
+.hero > .hero-html img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--lc-radius);
 }
 .hero .stack {
   text-align: start;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 .hero .copy {
   align-items: flex-start;
   gap: 1rem;
 }
+.hero .copy > * {
+  max-width: 36rem;
+}
 .hero .actions {
   justify-content: flex-start;
-  gap: 0.75rem 1rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 .hero h1 {
   font-size: clamp(2.25rem, calc(1.25rem + 3.5vw), 3.25rem);
@@ -567,21 +578,19 @@ mobile-starlight-toc summary {
   line-height: 1.1;
 }
 .hero .tagline {
-  font-size: clamp(1.0625rem, calc(0.85rem + 0.6vw), 1.25rem);
+  font-size: clamp(1.0625rem, calc(0.85rem + 0.6vw), 1.1875rem);
   line-height: 1.6;
-  color: var(--sl-color-gray-3);
-  max-width: 36rem;
+  color: var(--sl-color-gray-2);
   text-wrap: pretty;
 }
 @media (min-width: 50rem) {
   .hero {
-    grid-template-columns: 100%;
-    gap: 2rem;
-    padding-block: 4rem 2rem;
+    grid-template-columns: 5fr 6fr;
+    gap: 3rem;
+    padding-block: 3.5rem 2.5rem;
   }
-  .hero > img {
-    order: 0;
-    width: 5rem;
+  .hero > .hero-html {
+    width: 100%;
   }
 }
 
@@ -612,7 +621,7 @@ mobile-starlight-toc summary {
 }
 
 /* In dark mode the app icon's tile matches the page; a hairline keeps its edge. */
-:root[data-theme='dark'] :is(.hero > img, .site-title img) {
+:root[data-theme='dark'] .site-title img {
   box-shadow: 0 0 0 1px #0e5263;
 }
 

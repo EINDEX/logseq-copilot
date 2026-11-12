@@ -1,0 +1,95 @@
+---
+/**
+ * One row of the landing page: a screenshot beside a title, a few sentences
+ * and a link to the feature page. `flip` puts the screenshot on the left.
+ */
+interface Props {
+	title: string;
+	href: string;
+	link: string;
+	image: { src: string; alt: string; width: number; height: number };
+	flip?: boolean;
+}
+
+const { title, href, link, image, flip = false } = Astro.props;
+---
+
+<section class:list={['lc-feature', 'not-content', { flip }]}>
+	<div class="text">
+		<h2>{title}</h2>
+		<slot />
+		<a class="more" href={href}>{link} <span aria-hidden="true">→</span></a>
+	</div>
+	<img src={image.src} alt={image.alt} width={image.width} height={image.height} loading="lazy" decoding="async" />
+</section>
+
+<style>
+	.lc-feature {
+		display: grid;
+		gap: 1.5rem;
+		align-items: center;
+		padding-block: 2.5rem;
+	}
+	/* The first row follows the hero, which has its own space below. */
+	.lc-feature:first-child {
+		padding-top: 0.5rem;
+	}
+	.lc-feature + :global(.lc-feature) {
+		border-top: 1px solid var(--sl-color-hairline);
+	}
+	.text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		max-width: 34rem;
+	}
+	h2 {
+		margin: 0;
+		font-family: var(--lc-font-display);
+		font-size: 1.5rem;
+		font-weight: 650;
+		line-height: 1.25;
+		letter-spacing: -0.004em;
+		color: var(--sl-color-white);
+		text-wrap: balance;
+	}
+	.text :global(p) {
+		margin: 0;
+		font-size: 1.0625rem;
+		line-height: 1.65;
+		color: var(--sl-color-gray-2);
+	}
+	.more {
+		margin-top: 0.25rem;
+		font-weight: 500;
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+	}
+	.more:hover {
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+	/* Tall screenshots keep their shape and stay within a screen's height. */
+	img {
+		justify-self: center;
+		width: auto;
+		max-width: 100%;
+		max-height: 30rem;
+		height: auto;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: var(--lc-radius);
+	}
+	@media (min-width: 50rem) {
+		.lc-feature {
+			grid-template-columns: 2fr 3fr;
+			gap: 3rem;
+			padding-block: 3.5rem;
+		}
+		.flip {
+			grid-template-columns: 3fr 2fr;
+		}
+		.flip img {
+			order: -1;
+		}
+	}
+</style>

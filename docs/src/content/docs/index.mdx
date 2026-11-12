@@ -5,102 +5,112 @@ template: splash
 hero:
   tagline: Your Logseq notes, right where you browse. See them next to your search results, recall them for the page you are on, clip pages into your graph, and keep highlights with comments.
   image:
-    file: ../../assets/logo.png
+    html: <img src="/screenshots/sidebar.png" width="2360" height="1400" fetchpriority="high" alt="The Logseq Copilot sidebar next to an article. The article has two highlighted passages. The sidebar lists them as quotes, one with a note, and below them the notes in the Logseq graph that mention the page. Its header has the search box, the Clip page and Clip selection buttons and the graph name.">
   actions:
-    - text: Install
-      link: /installation/
-      icon: right-arrow
+    - text: Add to Chrome
+      link: https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl
       variant: primary
+      attrs:
+        data-store: chrome
+    - text: Add to Firefox
+      link: https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/
+      variant: secondary
+      attrs:
+        data-store: firefox
+    - text: Add to Edge
+      link: https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi
+      variant: secondary
+      attrs:
+        data-store: edge
     - text: Quick start
       link: /setup/
-      icon: rocket
-      variant: secondary
-    - text: What's new in 2.0
-      link: /blog/
       icon: right-arrow
       variant: minimal
 ---
 
-import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import Columns from '../../components/Columns.astro';
+import Feature from '../../components/Feature.astro';
+import Stats from '../../components/Stats.astro';
+import StoreButtons from '../../components/StoreButtons.astro';
 
-## What it does
+<Feature
+  title="Notes for the page you are on"
+  href="/features/highlights-sidebar/"
+  link="Sidebar"
+  image={{
+    src: '/screenshots/in-page-sidebar.png',
+    width: 2560,
+    height: 1440,
+    alt: 'An article with two highlighted passages, and the sidebar on the right side of the page. The sidebar lists the two highlights, one with a note and a tag, and below them blocks from two pages of the Logseq graph, Reading List and Second brain, that contain the address of the article. Its header has the graph name, the search box and the Clip page and Clip selection buttons.',
+  }}
+>
+  <p>Click the toolbar icon on any page. The sidebar lists the highlights you saved there and the notes in your graph that mention its address, under a search of your graph and the clip buttons.</p>
+  <p>It opens in the browser's own sidebar: the side panel in Chrome and Edge, the sidebar in Firefox. In Arc, and in browsers without one, it is drawn on the page.</p>
+</Feature>
 
-<CardGrid>
-  <Card title="Notes next to your search" icon="magnifier">
-    On Google, Bing, DuckDuckGo, Kagi and other search engines, the blocks and pages of your graph that match your query show up beside the results. [Search engines →](/features/search-engines/)
-  </Card>
-  <Card title="Notes for the page you are on" icon="document">
-    Click the toolbar icon on any page to open the sidebar with the notes that mention its address. The icon shows how many there are. [How recall works →](/features/recall-rules/)
-  </Card>
-  <Card title="Recall rules" icon="setting">
-    Tune the recall for a website: ignore the URL hash or query, exclude or prefer keywords, search or skip certain pages, cap the number of results. [Recall rules →](/features/recall-rules/)
-  </Card>
-  <Card title="Clip with templates" icon="list-format">
-    Clip a selection, or the page link, into your journal, the current page or a page of your choice, in the shape of a template you write. [Clipping & templates →](/features/clipping-and-templates/)
-  </Card>
-  <Card title="Everything in the browser sidebar" icon="bars">
-    The highlights and notes of the page you are reading, a search of your graph and the clip buttons, in your browser's own sidebar: the side panel in Chrome and Edge, the sidebar in Firefox. It follows the active tab. [Sidebar →](/features/highlights-sidebar/)
-  </Card>
-  <Card title="Highlight comments" icon="pencil">
-    A clipped selection stays highlighted on the page. Click it to add a note. Highlights and notes are stored in your browser. [Highlight comments →](/features/highlight-comments/)
-  </Card>
-</CardGrid>
+<Feature
+  title="Recall rules"
+  href="/features/recall-rules/"
+  link="Recall rules"
+  flip
+  image={{
+    src: '/screenshots/recall-rule-editor.png',
+    width: 1256,
+    height: 1248,
+    alt: 'The Recall Rules editor for the GitHub Pull Request rule. The test box holds a pull request address and shows that the rule recalls notes up to github.com/acme/notes. Recall scope is set to 2 levels.',
+  }}
+>
+  <p>Tune the recall for a website: ignore the URL hash or query, exclude or prefer keywords, search or skip certain pages, cap the number of results.</p>
+</Feature>
+
+<Columns>
+  <div>
+    <h3>Notes next to your search</h3>
+    <p>On Google, Bing, DuckDuckGo, Kagi and other search engines, the blocks and pages of your graph that match your query show up beside the results.</p>
+    <a href="/features/search-engines/">Search engines →</a>
+  </div>
+  <div>
+    <h3>Clip with templates</h3>
+    <p>Clip a selection, or the page link, into your journal, the current page or a page of your choice, in the shape of a template you write.</p>
+    <a href="/features/clipping-and-templates/">Clipping & templates →</a>
+  </div>
+  <div>
+    <h3>Highlight comments</h3>
+    <p>A clipped selection stays highlighted on the page. Click it to add a note. Highlights and notes are stored in your browser.</p>
+    <a href="/features/highlight-comments/">Highlight comments →</a>
+  </div>
+</Columns>
 
 ## Built for your graph and your privacy
 
-<CardGrid>
-  <Card title="File graphs and DB graphs" icon="open-book">
-    Works with Logseq 0.10 (file graphs) and Logseq 2.x (DB graphs). The extension finds out which one is open, so there is nothing to switch.
-  </Card>
-  <Card title="Chrome, Edge and Firefox" icon="laptop">
-    Install it from the Chrome Web Store, Edge Add-ons or Firefox Add-ons. Firefox 127 or later. Safari is not supported.
-  </Card>
-  <Card title="Your notes stay yours" icon="approve-check-circle">
-    The extension only talks to the Logseq HTTP API server you run. The panels it draws on web pages sit in a closed shadow root, so scripts of the page cannot read your Logseq search results.
-  </Card>
-  <Card title="A Logseq look, light and dark" icon="moon">
-    The interface uses the Logseq teal and follows the theme of the page and of your system, in light and dark.
-  </Card>
-</CardGrid>
+<Columns>
+  <div>
+    <h3>File graphs and DB graphs</h3>
+    <p>Logseq 0.10 and Logseq 2.x. The extension finds out which one is open.</p>
+  </div>
+  <div>
+    <h3>Your notes stay yours</h3>
+    <p>The extension only talks to the Logseq HTTP API server you run. Its panels on web pages sit in a closed shadow root, so scripts of the page cannot read your Logseq search results.</p>
+  </div>
+  <div>
+    <h3>Chrome, Edge and Firefox</h3>
+    <p>Firefox 127 or later. Safari is not supported. The interface follows the theme of the page and of your system, in light and dark.</p>
+  </div>
+</Columns>
 
 ## What's new in 2.0
 
-Logseq Copilot 2.0 supports Logseq DB graphs next to file graphs, runs on Firefox, adds recall rules, page highlights with comments and templated clipping, and moves the highlights list into the browser's own sidebar. The extension is rebuilt on the [WXT](https://wxt.dev) framework.
-
-<LinkCard
-  title="Read what's new in 2.0"
-  description="The release notes and the story behind the new version."
-  href="/blog/"
-/>
+Logseq Copilot 2.0 supports Logseq DB graphs next to file graphs, runs on Firefox, adds recall rules, page highlights with comments and templated clipping, and moves the highlights list into the browser's own sidebar. The extension is rebuilt on the [WXT](https://wxt.dev) framework. [Read what's new in 2.0](/blog/logseq-copilot-2-0/)
 
 ## Get it for your browser
 
-<CardGrid>
-  <LinkCard
-    title="Chrome"
-    description="Chrome Web Store"
-    href="https://chrome.google.com/webstore/detail/logseq-copilot/hihgfcgbmnbomabfdbajlbpnacndeihl"
-  />
-  <LinkCard
-    title="Edge"
-    description="Microsoft Edge Add-ons"
-    href="https://microsoftedge.microsoft.com/addons/detail/logseq-copilot/ebigopegbohijaikegebaaboaomaifoi"
-  />
-  <LinkCard
-    title="Firefox"
-    description="Firefox Add-ons, Firefox 127 or later"
-    href="https://addons.mozilla.org/en-US/firefox/addon/logseq-copilot/"
-  />
-  <LinkCard
-    title="Set it up"
-    description="Connect the extension to Logseq in a few minutes"
-    href="/setup/"
-  />
-</CardGrid>
+<StoreButtons />
 
-## Community & Support
+<Stats />
 
-- [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions): get help and share ideas
-- [Report an issue](https://github.com/eindex/logseq-copilot/issues): help us improve
-- [Sponsor the project](/sponsor/): support continued development
-- [Follow @eindex](https://x.com/eindex): stay updated
+## Community
+
+- [GitHub Discussions](https://github.com/EINDEX/logseq-copilot/discussions)
+- [Report an issue](https://github.com/eindex/logseq-copilot/issues)
+- [Sponsor the project](/sponsor/)
+- [Follow @eindex](https://x.com/eindex)
