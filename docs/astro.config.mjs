@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import mdx from '@astrojs/mdx';
+import starlightBlog from 'starlight-blog';
 
 // https://astro.build/config
 export default defineConfig({
@@ -47,7 +48,6 @@ export default defineConfig({
 						{ label: 'Setup', slug: 'setup' },
 					],
 				},
-				{ label: 'Blog', items: [{ autogenerate: { directory: 'blog' } }] },
 				{
 					label: 'Features',
 					items: [
@@ -78,6 +78,17 @@ export default defineConfig({
 						},
 					],
 				},
+			],
+			plugins: [
+				starlightBlog({
+					title: 'Blog',
+					authors: {
+						eindex: { name: 'EINDEX', url: 'https://eindex.me' },
+					},
+					postCount: 10,
+					recentPostCount: 5,
+					rss: true,
+				}),
 			],
 			customCss: [
 				'./src/styles/custom.css',

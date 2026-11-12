@@ -13,6 +13,7 @@
     "@astrojs/mdx": "^8.1.5",
     "@astrojs/starlight": "^0.42.10",
     "astro": "^7.4.11",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "starlight-blog": "0.30.2"
   }
 }
