@@ -1,8 +1,7 @@
 /**
  * The browser sidebar (sidepanel.html) beside a page: what Logseq has about
- * the page, the search in its header, and its clip actions. The same cases
- * as popup.spec.ts, on the sidebar; see ext.openSidePanel for how it is
- * opened.
+ * the page, the search in its header, its task controls and its clip
+ * actions; see ext.openSidePanel for how it is opened.
  */
 import type { Page } from '@playwright/test';
 import { expect, nonce, test } from './fixtures';
@@ -64,6 +63,32 @@ test.describe('browser sidebar', () => {
     // So does emptying the box.
     await sidebar.fill(SEARCH, '');
     await sidebar.expectText('Reading notes from https://example.com/copilot/article');
+  });
+
+  test('checking a task in the sidebar marks it DONE in Logseq', async ({ page, ext, logseq }) => {
+    const id = nonce('sidetask');
+    const url = `https://example.com/e2e/${id}`;
+    const uuid = await logseq.createTask(`${id} read ${url}`);
+    expect(await logseq.taskMarker(uuid)).toBe('TODO');
+
+    await ext.connect();
+    await page.goto(url);
+    // The URL search goes through Logseq's search index, which picks up new
+    // blocks asynchronously: reopen the sidebar until the block shows up.
+    let sidebar = await ext.openSidePanel(page);
+    await expect(async () => {
+      if (!(await sidebar.hasText(id))) {
+        await sidebar.close();
+        sidebar = await ext.openSidePanel(page);
+      }
+      await sidebar.expectText(id, { timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+
+    const checkbox = '[role="checkbox"]';
+    expect(await sidebar.isChecked(checkbox)).toBe(false);
+    await sidebar.click(checkbox);
+    await expect.poll(() => sidebar.isChecked(checkbox)).toBe(true);
+    await expect.poll(() => logseq.taskMarker(uuid)).toBe('DONE');
   });
 
   test('"Clip page" clips the page beside it, and lists the clip', async ({ page, ext, logseq, articles }) => {

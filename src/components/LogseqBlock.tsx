@@ -11,7 +11,6 @@ import './logseq-results.css';
 type LogseqBlockProps = {
   graph: string;
   blocks: LogseqBlockType[];
-  isPopUp?: boolean;
 };
 
 /** Markers Logseq draws an unchecked / checked box for (block-checkbox). */

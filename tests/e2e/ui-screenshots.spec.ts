@@ -1,6 +1,6 @@
 /**
  * UI screenshots for review, not a visual regression test: every options
- * page, the popup, the browser sidebar page and the in-page UI (search engine
+ * page, the browser sidebar page and the in-page UI (search engine
  * sidebar, page highlight and float button, highlight comment popup, in-page
  * highlights sidebar) in light and dark, against the seeded Logseq. The tests
  * only assert that the key elements are visible.
@@ -12,7 +12,7 @@
  * under a hit and "+N" (`recallprobe`), two hits under one context line
  * (`deepnest`), a journal day with two topics (`journaldeep`), more pages
  * than shown (`notes`), and the hover, no result, loading and error states.
- * The popup also with the rich content.
+ * The browser sidebar also with the rich content.
  *
  * Output: test-results/ui-screenshots/<name>-<light|dark>.png (uploaded by
  * CI as the `ui-screenshots-<variant>` artifact on every run). Runs on
@@ -211,63 +211,32 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('popup with results', async ({ page, ext }) => {
-    fileGraphOnly();
-    await ext.connect();
-    await page.goto('https://example.com/copilot/article');
-
-    for (const scheme of SCHEMES) {
-      const popup = (await ext.openPopup(page)).page!;
-      await setScheme(popup, scheme);
-      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
-      await shoot(popup.locator('#app-container > *').first(), 'popup', scheme);
-      await popup.close();
-    }
-  });
-
-  test('popup clip actions: with a selection, and a failed clip', async ({ page, ext }) => {
+  test('browser sidebar clip actions: with a selection, and a failed clip', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();
     await page.goto('https://example.com/copilot/article');
     await selectParagraph(page);
 
+    const sidebar = (await ext.openSidePanel(page)).page!;
     for (const scheme of SCHEMES) {
-      const popup = (await ext.openPopup(page)).page!;
-      await setScheme(popup, scheme);
-      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
-      await expect(popup.getByRole('button', { name: 'Clip selection' })).toBeEnabled();
-      await shoot(popup.locator('#app-container > *').first(), 'popup-selection', scheme);
-      await popup.close();
+      await setScheme(sidebar, scheme);
+      await expect(sidebar.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+      await expect(sidebar.getByRole('button', { name: 'Clip selection' })).toBeEnabled();
+      await shoot(sidebar.locator('#app > *').first(), 'sidepanel-selection', scheme);
     }
 
-    // The search of the page worked, the clip after it fails: the error
-    // is shown on the action.
-    for (const scheme of SCHEMES) {
-      await ext.connect();
-      const popup = (await ext.openPopup(page)).page!;
-      await setScheme(popup, scheme);
-      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
-      await ext.connect({ token: 'wrong-token' });
-      await popup.getByRole('button', { name: 'Clip page' }).first().click();
-      await expect(popup.getByRole('alert')).toContainText('The authorization token is wrong');
-      await shoot(popup.locator('#app-container > *').first(), 'popup-clip-error', scheme);
-      await popup.close();
-    }
-
-    // A wrong token from the start: the search shows the error, the failed
-    // clip only marks its button.
+    // The search of the page worked, the clip after it fails: the error is
+    // shown under the actions.
     await ext.connect({ token: 'wrong-token' });
+    const clipPage = sidebar.getByRole('button', { name: 'Clip page' }).first();
+    // A DOM click: the sidebar tab stays in the background (see openSidePanel).
+    await clipPage.evaluate((el) => (el as HTMLElement).click());
+    await expect(sidebar.getByRole('alert')).toContainText('The authorization token is wrong');
     for (const scheme of SCHEMES) {
-      const popup = (await ext.openPopup(page)).page!;
-      await setScheme(popup, scheme);
-      await expect(popup.getByText(/The authorization token is wrong/)).toBeVisible();
-      const clipPage = popup.getByRole('button', { name: 'Clip page' }).first();
-      await clipPage.click();
-      await expect(clipPage).toHaveAttribute('aria-invalid', 'true');
-      await expect(popup.getByRole('alert')).toHaveCount(0);
-      await shoot(popup.locator('#app-container > *').first(), 'popup-clip-error-search', scheme);
-      await popup.close();
+      await setScheme(sidebar, scheme);
+      await shoot(sidebar.locator('#app > *').first(), 'sidepanel-clip-error', scheme);
     }
+    await sidebar.close();
   });
 
   test('page clip error', async ({ page, ext, articles }) => {
@@ -300,20 +269,20 @@ test.describe('UI screenshots', () => {
     }
   });
 
-  test('popup with rich content', async ({ page, ext }) => {
+  test('browser sidebar with rich content', async ({ page, ext }) => {
     await ext.connect();
     await page.goto('https://example.com/copilot/article');
 
+    const sidebar = (await ext.openSidePanel(page)).page!;
+    await expect(sidebar.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
+    await sidebar.locator('input[type="search"]').fill('showcase');
+    await sidebar.locator('input[type="search"]').press('Enter');
+    await expect(sidebar.getByText('showcase parent block')).toBeVisible();
     for (const scheme of SCHEMES) {
-      const popup = (await ext.openPopup(page)).page!;
-      await setScheme(popup, scheme);
-      await expect(popup.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
-      await popup.getByPlaceholder(/Search in your Logseq graph/).fill('showcase');
-      await popup.getByPlaceholder(/Search in your Logseq graph/).press('Enter');
-      await expect(popup.getByText('showcase parent block')).toBeVisible();
-      await shoot(popup.locator('#app-container > *').first(), `popup-rich${variantSuffix()}`, scheme);
-      await popup.close();
+      await setScheme(sidebar, scheme);
+      await shoot(sidebar.locator('#app > *').first(), `sidepanel-rich${variantSuffix()}`, scheme);
     }
+    await sidebar.close();
   });
 
   test('search engine sidebar on Google, Bing, DuckDuckGo and Brave Search', async ({ page, ext }) => {
@@ -569,8 +538,8 @@ test.describe('UI screenshots', () => {
       hostname: 'example.com',
     });
 
-    // Browsers without a sidebar of their own (Safari) show this one; here
-    // the open state is set the way their popup button sets it.
+    // Browsers without a sidebar of their own (Safari) and Arc show this one;
+    // here the open state is set the way their toolbar button sets it.
     await ext.connect();
     await ext.setStorage({
       highlights: [

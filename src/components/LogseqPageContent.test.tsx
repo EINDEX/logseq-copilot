@@ -118,16 +118,6 @@ describe('LogseqPageContent Component', () => {
         expect(link.getAttribute('href')).toBe('logseq://graph/different-graph?page=Test%20Page');
     });
 
-    it('should render with isPopUp prop', () => {
-        const { container } = render(
-            <LogseqPageContent {...defaultProps} isPopUp={true} />
-        );
-
-        // Component should still render normally
-        expect(container.firstChild).toBeTruthy();
-        expect(screen.getByText('Simple text content')).toBeTruthy();
-    });
-
     describe('content with special elements', () => {
         it('should render code blocks', () => {
             const codeContent = createMockPageContent('<pre><code>const x = 1;</code></pre>');

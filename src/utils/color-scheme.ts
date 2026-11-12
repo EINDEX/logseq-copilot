@@ -1,7 +1,7 @@
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /**
- * Extension pages (options, popup) follow the system color scheme: `.dark`
+ * Extension pages (options, browser sidebar) follow the system color scheme: `.dark`
  * on the root element switches the design tokens in globals.css. The in-page
  * UI follows the host page instead (ThemeProvider). Returns the cleanup.
  */

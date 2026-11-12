@@ -1,5 +1,5 @@
 /*
- * Search results (search engine sidebar and popup).
+ * Search results (the sidebars).
  *
  * Plain CSS in px: the sidebar lives in a shadow root on any site, where
  * `rem` is the host page's root font size and `:host` cannot change it.
@@ -457,7 +457,6 @@
  * Browser sidebars (`variant="sidebar"`): a Logseq outline at body size.
  * Page rows at 13px, the text a step softer than the titles, a task's box in
  * place of its bullet, guide lines down nested blocks, "+N" for the rest.
- * The popup keeps the rules above.
  */
 .lc-results--sidebar {
   --lc-indent: 14px;
