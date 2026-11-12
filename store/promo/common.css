@@ -1,0 +1,40 @@
+@font-face {
+  font-family: 'Bitter Variable';
+  font-weight: 100 900;
+  src: url(../../docs/node_modules/@fontsource-variable/bitter/files/bitter-latin-wght-normal.woff2) format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-weight: 100 900;
+  src: url(../../docs/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2) format('woff2-variations');
+}
+:root {
+  --teal: #206f78;
+  --deep: #002b36;
+  --ground: #d9edec;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: var(--w); height: var(--h); overflow: hidden; }
+body {
+  position: relative;
+  background: var(--ground);
+  color: var(--deep);
+  font-family: 'Inter Variable', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.logo { display: block; }
+.name {
+  font-family: 'Bitter Variable', serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.tagline { font-weight: 500; color: var(--teal); }
+.shot {
+  position: absolute;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(0, 43, 54, 0.22);
+  box-shadow: 0 10px 28px rgba(0, 43, 54, 0.18);
+}
+.shot img { position: absolute; max-width: none; display: block; }
