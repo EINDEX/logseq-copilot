@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The shared result list (search engine sidebar and popup): page groups,
+ * The shared result list (the sidebars): page groups,
  * nesting under parent results, "Show all", page-only hits, and Logseq-style
  * task rendering.
  */

@@ -7,7 +7,7 @@
  *
  * - `installTemporaryAddon` on the addons actor loads the unpacked build;
  * - the addon's watcher reports every extension document (background page,
- *   options tab, toolbar popup) as a frame target with a console actor;
+ *   options tab, sidebar page) as a frame target with a console actor;
  * - `evaluateJSAsync` on that console actor runs code in the document.
  *
  * Wire format: `<byte length>:<JSON>`. Replies come back from the addressed

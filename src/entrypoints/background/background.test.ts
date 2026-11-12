@@ -97,7 +97,7 @@ describe('logseq:changeBlockMarker', () => {
     expect(result.msg).toBe('Not support scheduled task.');
   });
 
-  test('does not need an active tab (popup has none)', async () => {
+  test('does not need an active tab (the browser sidebar has none)', async () => {
     service.changeBlockMarker.mockResolvedValue({
       type: 'change-block-marker-result',
       uuid: 'u3',
@@ -196,7 +196,7 @@ describe('logseq:clipPage', () => {
       expect(clippedBlock()).not.toContain(activeTab.url);
     });
 
-    test('without one (the popup), the active tab of the current window', async () => {
+    test('without one (the page clip of the content script), the active tab of the current window', async () => {
       await sendMessage('logseq:clipPage', undefined);
 
       expect(fakeBrowser.tabs.get).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('logseq:clipPage', () => {
     });
   });
 
-  // Issue #48: the sender (popup, content script) shows why nothing was clipped.
+  // Issue #48: the sender (sidebar, content script) shows why nothing was clipped.
   describe('rejects with a readable message when nothing was clipped', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -242,17 +242,17 @@ describe('logseq:clipPage', () => {
 });
 
 describe('logseq:clipWithSelection', () => {
-  const popupTab = {
+  const otherTab = {
     id: 9,
-    url: 'chrome-extension://abc/popup.html',
-    title: 'Logseq Copilot',
+    url: 'https://other.example/',
+    title: 'Other Page',
   };
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    // The active tab of the current window is not the clipped page (the popup
-    // window has focus).
-    vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([popupTab as any]);
+    // The active tab of the current window is not the clipped page (focus has
+    // moved to another window).
+    vi.spyOn(fakeBrowser.tabs, 'query').mockResolvedValue([otherTab as any]);
     service.client.getUserConfig.mockResolvedValue({ preferredDateFormat: 'yyyy-MM-dd' });
     service.client.appendBlock.mockResolvedValue(undefined);
   });
@@ -283,14 +283,14 @@ describe('logseq:clipWithSelection', () => {
     expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
     expect(clippedBlock()).toContain('the selection');
     expect(clippedBlock()).toContain('[Clipped Page](https://clipped.example/post)');
-    expect(clippedBlock()).not.toContain(popupTab.url);
+    expect(clippedBlock()).not.toContain(otherTab.url);
   });
 
   test('without a sender tab, clips the active tab of the current window', async () => {
     await sendMessage('logseq:clipWithSelection', 'the selection');
 
     expect(service.client.appendBlock).toHaveBeenCalledTimes(1);
-    expect(clippedBlock()).toContain(`[${popupTab.title}](${popupTab.url})`);
+    expect(clippedBlock()).toContain(`[${otherTab.title}](${otherTab.url})`);
   });
 });
 
@@ -507,7 +507,7 @@ describe('logseq:openLink', () => {
     expect(fakeBrowser.tabs.update).not.toHaveBeenCalled();
   });
 
-  test('ignores a message without a sender tab (popup, side panel)', async () => {
+  test('ignores a message without a sender tab (the browser sidebar)', async () => {
     await sendMessage('logseq:openLink', { url: LINK });
 
     expect(fakeBrowser.tabs.update).not.toHaveBeenCalled();

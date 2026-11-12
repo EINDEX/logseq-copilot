@@ -61,7 +61,7 @@ export const isLogseqClientError = (value: unknown): value is LogseqClientError 
  *
  * webext-core serializes a thrown value with serialize-error, so only a real
  * Error keeps a readable `message` on the receiving side (content script,
- * popup). A plain `{ msg, status }` object would turn `err.message` into a JSON
+ * sidebar). A plain `{ msg, status }` object would turn `err.message` into a JSON
  * dump. `msg` and `status` are kept as own properties for callers that want the
  * HTTP-like status.
  */

@@ -61,7 +61,7 @@ type LogseqResultListProps = {
   initialCount?: number;
   /**
    * `sidebar`: the browser sidebars' outline (checkbox in place of the
-   * bullet, guide lines, a "+N" for the rest). The popup keeps the default.
+   * bullet, guide lines, a "+N" for the rest).
    */
   variant?: 'default' | 'sidebar';
 };

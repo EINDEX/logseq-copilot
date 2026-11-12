@@ -8,7 +8,6 @@ import './logseq-results.css';
 type LogseqPageLinkProps = {
   page: LogseqPageIdenity;
   graph: string;
-  isPopUp?: boolean;
   className?: string;
 };
 
