@@ -9,7 +9,7 @@ Text for the Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons (AMO).
 | `en/firefox-summary.txt` | AMO, Summary field. | 250 characters. |
 | `en/whats-new-2.0.txt` | AMO release notes of the 2.0 version, or wherever a store takes notes for an update. | None set here. |
 | `en/video-script.md` | The intro video, recorded from the real UI. | 45 to 60 seconds. Captions of at most 8 words. |
-| `en/tagline.txt` | Promo tiles and the end card of the video. Three candidates, one per line. Pick one. | About 8 words. |
+| `en/tagline.txt` | Promo tiles and the end card of the video. Same as the docs landing page tagline. | About 8 words. |
 
 ## Formatting
 

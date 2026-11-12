@@ -40,6 +40,6 @@ Caption: Add a comment to any highlight
 
 ## Scene 7 (0:47-0:54) End card
 
-On screen: the Logseq Copilot icon, the name "Logseq Copilot", the tagline the maintainer picks from tagline.txt, and the URL logseq-copilot.eindex.me. Below it: Chrome, Edge, Firefox.
+On screen: the Logseq Copilot icon, the name "Logseq Copilot", the tagline from tagline.txt ("Your Logseq notes, right where you browse"), and the URL logseq-copilot.eindex.me. Below it: Chrome, Edge, Firefox.
 
 Caption: none. The end card text is the content.
