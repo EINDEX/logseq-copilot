@@ -115,7 +115,7 @@ describe('a failed clip (#48)', () => {
     expect(failures).toEqual([CannotConnectWithLogseq.msg]);
   });
 
-  it('asked for by the popup rejects with the message, and shows nothing in the page', async () => {
+  it('asked for by the browser sidebar rejects with the message, and shows nothing in the page', async () => {
     const { runClipCommand } = await import('./QuickCapture');
     selectParagraph();
     sendMessage.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));

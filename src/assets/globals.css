@@ -142,7 +142,7 @@
   :host body {
     background-color: transparent;
   }
-  /* Search keyword marks in results (popup and in-page UI; this sheet only
+  /* Search keyword marks in results (browser sidebar and in-page UI; this sheet only
      loads on extension pages and in our shadow roots), tinted like the page
      highlights. */
   mark {

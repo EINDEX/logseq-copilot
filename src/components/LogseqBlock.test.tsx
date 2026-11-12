@@ -2,7 +2,7 @@
 /**
  * Drives LogseqBlock's TODO/DONE controls through real webext-core messaging
  * (fakeBrowser). The component uses the same sendMessage in the content script
- * and in the popup, so one context covers both.
+ * and in the browser sidebar, so one context covers both.
  */
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { act } from 'react';

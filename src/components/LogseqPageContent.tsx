@@ -8,13 +8,11 @@ import { sanitizeHtml } from '@/utils/sanitize-html';
 type LogseqPageContentProps = {
   graph: string;
   pageContent: LogseqPageContentType;
-  isPopUp?: boolean;
 };
 
 export const LogseqPageContent = ({
   graph,
   pageContent,
-  isPopUp = false,
 }: LogseqPageContentProps) => {
   if (!pageContent.content) {
     return null;

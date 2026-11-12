@@ -18,7 +18,7 @@ import './recall-card.css';
 const HIT_SNIPPET = 90;
 const CONTEXT_SNIPPET = 50;
 
-// In a module of their own so the popup can use them without this card's CSS.
+// In a module of their own so the sidebar can use them without this card's CSS.
 import { blockUrl, graphUrl, pageUrl } from '@/utils/logseq-url';
 export { blockUrl, graphUrl, pageUrl };
 

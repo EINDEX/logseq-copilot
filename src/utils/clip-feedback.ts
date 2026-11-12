@@ -6,8 +6,8 @@ import { UnknownIssues } from '@/entrypoints/background/logseq/error';
  * - `page` (default; the clip shortcut and the context menu): shown in the
  *   page, and the command still resolves. A rejected command then only means
  *   that the content script could not be reached.
- * - `sender` (the toolbar popup, the sidebars): the command rejects with the
- *   readable message, nothing is shown in the page.
+ * - `sender` (the sidebars): the command rejects with the readable message,
+ *   nothing is shown in the page.
  */
 export interface ClipCommandOptions {
   feedback?: 'page' | 'sender';

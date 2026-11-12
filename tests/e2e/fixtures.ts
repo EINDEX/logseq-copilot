@@ -83,7 +83,7 @@ export interface Logseq extends LogseqInfo {
 }
 
 /**
- * An extension page (options tab, toolbar popup). Playwright drives these in
+ * An extension page (options tab, browser sidebar). Playwright drives these in
  * Chromium; in Firefox it cannot attach to moz-extension:// documents, so the
  * same calls run as DOM scripts over the remote debugging protocol (untrusted
  * events: `click()`, value setter + `input`, synthetic key events).
@@ -143,29 +143,12 @@ export interface Extension {
   /** Open an extension page (e.g. `options.html#/settings`) in a new tab. */
   openPage: (page: string) => Promise<ExtPage>;
   /**
-   * Open the toolbar popup for `target`, the way the toolbar button would.
-   *
-   * Chromium: the real action popup (chrome.action.openPopup) is not exposed
-   * to Playwright as a page, and opening popup.html as a tab makes that tab
-   * the active one, so Popup.tsx would see its own URL. Instead the popup
-   * goes into its own unfocused window: `tabs.query({ active: true,
-   * lastFocusedWindow: true })` keeps returning `target`. Clicks in it are
-   * DOM clicks (as on Firefox): a Playwright click activates the popup
-   * window, which the real popup never is, and the background, which clips
-   * `tabs.query({ active, currentWindow })`, would clip popup.html.
-   *
-   * Firefox: the real popup panel, `action.openPopup({ windowId })` (allowed
-   * without a user gesture by `extensions.openPopupWithoutUserGesture.enabled`).
-   */
-  openPopup: (target: Page) => Promise<ExtPage>;
-  /**
    * Open the browser sidebar page beside `target`. The real sidebar (Chrome
    * side panel, Firefox sidebar) is not exposed to Playwright: sidepanel.html
    * goes into a background tab of `target`'s window, which leaves `target`
    * the active tab it follows, as the sidebar would. Clicks in it are DOM
-   * clicks, as in the popup: a Playwright click would not activate that tab
-   * (the sidebar's clicks do not either), but keep it the same in both
-   * browsers.
+   * clicks: a Playwright click would not activate that tab (the sidebar's
+   * clicks do not either), but keep it the same in both browsers.
    */
   openSidePanel: (target: Page) => Promise<ExtPage>;
 }
@@ -245,7 +228,6 @@ async function launchFirefox(userDataDir: string) {
       'devtools.debugger.prompt-connection': false,
       'devtools.chrome.enabled': true,
       'extensions.webextensions.uuids': JSON.stringify({ [GECKO_ID]: FIREFOX_UUID }),
-      'extensions.openPopupWithoutUserGesture.enabled': true,
       // Keep the event page alive for the whole test: ext.evaluate() talks
       // to it (default idle timeout is 30 s).
       'extensions.background.idle.timeout': 3_600_000,
@@ -411,7 +393,7 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
 /** Chromium ExtPage: plain Playwright locators. */
 function playwrightExtPage(page: Page, { domClicks = false } = {}): ExtPage {
   // The DOM click() of the element, once it is visible and enabled: no input
-  // event, so the window the page is in is not activated (see openPopup).
+  // event, so the window the page is in is not activated.
   const domClick = async (locator: Locator) => {
     await expect(locator).toBeVisible();
     await expect(locator).toBeEnabled();
@@ -441,7 +423,7 @@ function playwrightExtPage(page: Page, { domClicks = false } = {}): ExtPage {
   };
 }
 
-/** Firefox: close every moz-extension:// tab (options tabs, the popup has no tab). */
+/** Firefox: close every moz-extension:// tab (options tabs, sidebar pages). */
 async function closeExtensionTabs(context: BrowserContext) {
   const session = firefoxSessions.get(context);
   if (!session) return;
@@ -602,18 +584,6 @@ export const test = base.extend<Fixtures>({
           await page.goto(ext.url(path));
           return playwrightExtPage(page);
         },
-        openPopup: async (target) => {
-          await ext.activate(target);
-          await target.bringToFront();
-          const popupPage = context.waitForEvent('page');
-          await worker.evaluate(
-            (url) => chrome.windows.create({ url, type: 'popup', focused: false, width: 420, height: 640 }),
-            ext.url('popup.html'),
-          );
-          const popup = await popupPage;
-          await popup.waitForLoadState('domcontentloaded');
-          return playwrightExtPage(popup, { domClicks: true });
-        },
         openSidePanel: async (target) => {
           const { windowId } = await tabOf(target);
           const sidebarPage = context.waitForEvent('page');
@@ -662,20 +632,6 @@ export const test = base.extend<Fixtures>({
             ext.evaluate(async (tabId) => {
               await chrome.tabs.remove(tabId);
             }, tabId!),
-          );
-        },
-        openPopup: async (page) => {
-          const { windowId } = await tabOf(page);
-          await ext.activate(page);
-          const target = await openTarget(ext.url('popup.html'), () =>
-            ext.evaluate((windowId) => chrome.action.openPopup({ windowId }), windowId),
-          );
-          // Closing the panel is the popup's own window.close() (Popup.tsx
-          // does the same); deferred so the evaluation can still answer.
-          return rdpExtPage(addon, target, () =>
-            client.evaluate(target.consoleActor, () => {
-              setTimeout(() => window.close(), 0);
-            }),
           );
         },
         openSidePanel: async (page) => {
