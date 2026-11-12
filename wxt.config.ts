@@ -28,7 +28,7 @@ export default defineConfig({
     ...(previewVersionName && { version_name: previewVersionName }),
     name,
     description:
-      'Logseq Copilot, Connect with you logseq API server, bring your information when you browsing.',
+      'Your Logseq notes next to search results and in a sidebar for the page you are on. Clip text and links into your graph.',
     // Firefox requires a string here; Chromium browsers take { email }.
     author:
       browser === 'firefox'
