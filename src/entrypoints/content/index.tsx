@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { LogseqCopliot } from './LogseqCopliot';
 import { startInPageSidebar } from './InPageSidebar';
+import { detectArc } from './arc-detection';
 import mountQuickCapture, {
   hasClippableSelection,
   runClipCommand,
@@ -46,7 +47,7 @@ export default defineContentScript({
     // starting up (or restoring highlights) is never dropped.
     // Setup message listeners for background script communication
     // Clip commands: the clip shortcut and the context menu (from the
-    // background), "Clip selection" (from the toolbar popup).
+    // background), "Clip selection" (from the browser sidebar).
     onMessage('content:quickCapture', ({ data }) =>
       runClipCommand('selectionOrPage', data),
     );
@@ -59,7 +60,8 @@ export default defineContentScript({
       runClipCommand('page', data),
     );
 
-    // From the toolbar popup: it offers "Clip selection" only when there is one.
+    // From the browser sidebar: it offers "Clip selection" only when there is
+    // one.
     onMessage('content:hasSelection', () => hasClippableSelection());
 
     // From the browser sidebar: scroll to a highlight of this page. The
@@ -68,12 +70,15 @@ export default defineContentScript({
       return HighlightManager.getInstance().scrollToHighlight(message.data.id);
     });
 
-    // Browsers without a sidebar of their own get it drawn on the page
-    // (src/utils/sidebar.ts): once per tab, so in the top frame of web pages.
+    // Browsers without a sidebar of their own, and Arc, get it drawn on the
+    // page (src/utils/sidebar.ts): once per tab, so in the top frame of web
+    // pages.
     if (window.top === window && /^https?:$/.test(location.protocol)) {
       startInPageSidebar(ctx).catch((error) =>
         log.error('[content] Failed to start the in-page sidebar', error),
       );
+      // Arc is a Chromium browser.
+      if (!import.meta.env.FIREFOX) detectArc(ctx);
     }
 
     async function getEngine() {
