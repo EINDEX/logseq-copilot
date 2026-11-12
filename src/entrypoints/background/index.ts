@@ -10,7 +10,6 @@ import { SearchEngineConfigMigration } from '@/utils/migration';
 import { inPageSidebarOpenItem } from '@/utils/storage';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
-import { hasNativeSidebar, openSidebar } from '@/utils/sidebar';
 import type { RecallResult } from '@/types/recall';
 import log from '@/utils/logger';
 import {
@@ -25,6 +24,7 @@ import {
 } from './clip-error-badge';
 import { clipErrorMessage } from '@/utils/clip-feedback';
 import { isLogseqUrl } from '@/utils/logseq-url';
+import { startSidebarAction } from './sidebar-action';
 
 const CANNOT_CLIP_PAGE = 'Cannot clip this page: extensions cannot run on it.';
 
@@ -100,10 +100,10 @@ export default defineBackground({
     });
 
     // A failed clip rejects with a readable message (LogseqError), which the
-    // sender (content script, popup) shows.
+    // sender (content script, sidebar) shows.
     // The content script sends this from the page it clips, so clip its tab:
-    // the active tab of the current window can be another page, or the popup
-    // window, once focus has moved.
+    // the active tab of the current window can be another page once focus has
+    // moved.
     onMessage('logseq:clipWithSelection', async ({ data, sender }) => {
       await quickCapture(data, sender.tab);
     });
@@ -139,7 +139,7 @@ export default defineBackground({
     });
 
     onMessage('logseq:changeBlockMarker', async ({ data }) => {
-      // The sender (content script or popup) updates its UI from this return
+      // The sender (content script or sidebar) updates its UI from this return
       // value, so report the service's real outcome.
       const logseqService = await getLogseqService();
       return await logseqService.changeBlockMarker(data.uuid, data.marker);
@@ -242,26 +242,23 @@ export default defineBackground({
         visible: true,
         contexts: ['page'],
       });
+      // The id predates the sidebar showing more than highlights.
       browser.contextMenus.create({
         id: 'open-highlights-sidebar',
-        title: 'Open highlights sidebar',
+        title: 'Open sidebar',
         visible: true,
         contexts: ['page', 'selection'],
       });
     };
 
-    // Call it first in the handler of a menu item or command: the browser opens
-    // the sidebar only while the user action is still alive, so nothing may be
-    // awaited before it. The sidebar drawn on the page needs no window.
-    const openSidebarForTab = (tab: Browser.tabs.Tab | undefined) => {
-      if (tab?.windowId === undefined && hasNativeSidebar()) {
-        log.warn('[background] No tab to open the highlights sidebar for');
-        return;
-      }
-      openSidebar(tab?.windowId).catch((err) =>
-        log.error('Failed to open the highlights sidebar:', err),
-      );
-    };
+    // Call sidebar.open / sidebar.toggle first in the handler of a click, menu
+    // item or command: the browser opens its sidebar only while the user
+    // action is still alive, so nothing may be awaited before it.
+    const sidebar = startSidebarAction();
+
+    // The toolbar button. Chrome opens its side panel itself, without this
+    // event, unless the sidebar drawn on pages is in use (sidebar-action.ts).
+    browser.action.onClicked.addListener((tab) => sidebar.toggle(tab));
 
     // Clip commands (shortcut, context menu) go to the content script: it
     // clips the selection as Markdown, highlights it, and shows a failure in
@@ -292,7 +289,7 @@ export default defineBackground({
 
     browser.contextMenus.onClicked.addListener((info, tab) => {
       if (info.menuItemId === 'open-highlights-sidebar') {
-        openSidebarForTab(tab);
+        sidebar.open(tab);
       } else if (info.menuItemId === 'clip-with-selection') {
         void relayClipCommand(
           (tabId) =>
@@ -342,7 +339,7 @@ export default defineBackground({
 
     browser.commands.onCommand.addListener((command, tab) => {
       if (command === 'open-sidebar') {
-        openSidebarForTab(tab);
+        sidebar.open(tab);
       } else if (command === 'clip' && tab !== undefined) {
         void relayClipCommand(
           (tabId) => sendMessage('content:quickCapture', undefined, { tabId }),

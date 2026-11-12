@@ -310,6 +310,30 @@ export const inPageSidebarOpenItem = storage.defineItem<boolean>(
   },
 );
 
+/**
+ * The user's choice of the sidebar drawn on pages over the browser's own
+ * (options page). `null` until the user picks: then it follows Arc detection
+ * (src/utils/sidebar.ts).
+ */
+export const inPageSidebarItem = storage.defineItem<boolean | null>(
+  'local:inPageSidebar',
+  {
+    fallback: null,
+  },
+);
+
+/**
+ * A content script saw Arc's palette on a page. Arc has the side panel API
+ * but never shows the panel. Kept: the toolbar button needs to know before
+ * any page has loaded.
+ */
+export const arcDetectedItem = storage.defineItem<boolean>(
+  'local:arcDetected',
+  {
+    fallback: false,
+  },
+);
+
 // Recall rules storage - stores rules for customizing search behavior per website
 export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
   'local:recallRulesConfig',
@@ -336,7 +360,7 @@ export const recallRulesConfig = storage.defineItem<RecallRuleConfig[]>(
           },
         },
         // No maxResults: this rule matches every site, and a limit here
-        // capped every search (sidebar and popup) at 10 blocks. The result
+        // capped every search (the sidebars) at 10 blocks. The result
         // lists show the first 10 and the rest behind "Show all".
         resultFiltering: {
           prioritizeRecent: false,
