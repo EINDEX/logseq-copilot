@@ -36,10 +36,6 @@
 
   --lc-radius: 8px;
   --lc-radius-sm: 6px;
-
-  /* Used by Reviews.astro */
-  --lc-brand: var(--sl-color-bg-accent);
-  --lc-brand-foreground: var(--sl-color-text-invert);
 }
 
 @media (min-width: 50em) {
