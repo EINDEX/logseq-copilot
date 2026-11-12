@@ -1,31 +1,31 @@
 ---
-title: Highlights Sidebar
-description: See and manage the highlights of the page you are reading in your browser's own sidebar.
+title: Sidebar
+description: The notes Logseq has about the page you are reading, a search of your graph, clipping and the highlights of the page, in your browser's own sidebar.
 ---
 
-# Highlights Sidebar
+# Sidebar
 
-The highlights sidebar lists the highlights you saved on the page you are reading. From there you can jump to a highlight, edit its note, or delete it.
+The sidebar is about the page you are reading. It lists the highlights you saved on it and the notes in your graph that mention its address. Its header has a search of your graph and the **Clip page** and **Clip selection** buttons.
 
 It opens in your browser's own sidebar: the **side panel** in Chrome and Edge, and the **sidebar** in Firefox. Nothing is drawn on top of the web page.
 
-Browsers without a built-in sidebar, such as Safari, show the same sidebar on the right side of the page instead. It stays open when you go to another page, in every tab, until you close it with its **×** button.
+Browsers without a built-in sidebar, such as Safari, show the same sidebar on the right side of the page instead. It stays open when you go to another page, in every tab, until you close it with its **×** button. Arc has a side panel but does not show it, so Logseq Copilot draws the sidebar on the page there too. In other browsers you can choose the sidebar on the page in the options, under **Settings**, **Sidebar**, **In-page sidebar**.
 
 ## Opening the Sidebar
 
 There are three ways to open it:
 
-1. **Popup button**: Click the Logseq Copilot icon in the toolbar, then click **Highlights**, the sidebar icon next to the gear at the top of the popup.
-2. **Right-click menu**: Right-click on the page, or on selected text, and choose **Open highlights sidebar**.
-3. **Keyboard shortcut**: Press your **Open highlights sidebar** shortcut. It has no default key, so you need to set one first.
+1. **Toolbar icon**: Click the Logseq Copilot icon in the toolbar. In Firefox and for the sidebar on the page, click it again to close the sidebar.
+2. **Right-click menu**: Right-click on the page, or on selected text, and choose **Open sidebar**.
+3. **Keyboard shortcut**: Press your **Open sidebar** shortcut. It has no default key, so you need to set one first.
 
 ### Setting the Keyboard Shortcut
 
 The shortcut is unbound by default, because any key combination can clash with the browser's own shortcuts or with another extension. Choose your own in the browser's shortcut settings:
 
-- **Chrome**: Open `chrome://extensions/shortcuts`, find Logseq Copilot, and set a key for **Open highlights sidebar**.
+- **Chrome**: Open `chrome://extensions/shortcuts`, find Logseq Copilot, and set a key for **Open sidebar**.
 - **Edge**: Open `edge://extensions/shortcuts` and do the same.
-- **Firefox**: Open `about:addons`, click the gear icon, choose **Manage Extension Shortcuts**, and set a key for **Open highlights sidebar** under Logseq Copilot.
+- **Firefox**: Open `about:addons`, click the gear icon, choose **Manage Extension Shortcuts**, and set a key for **Open sidebar** under Logseq Copilot.
 
 :::note
 Browsers do not allow links to their settings pages. Copy the address into the address bar of a new tab.
@@ -33,12 +33,21 @@ Browsers do not allow links to their settings pages. Copy the address into the a
 
 ## What the Sidebar Shows
 
-- **The page in the active tab**: The highlights saved for the exact address of that page, newest first. The header shows the page title and how many highlights it has.
-- **It follows the active tab**: Switch to another tab, or open another page in the same tab, and the list changes to match. The sidebar stays open, so you do not need to close and reopen it.
+- **The page in the active tab**: The highlights saved for the exact address of that page, newest first, then the notes in your graph that mention the page. What counts as a match is tunable per website with [Recall Rules](/features/recall-rules/).
+- **It follows the active tab**: Switch to another tab, or open another page in the same tab, and the sidebar changes to match. It stays open, so you do not need to close and reopen it.
 - **Each highlight** shows the highlighted text, your note (if any), the site, when you created it, and its tags.
-- **A page without highlights** shows "No highlights on this page".
+- **A page without highlights or notes** shows "Nothing for this page yet".
+- **The header** names your graph: click it to open the graph in Logseq. The gear opens the extension options.
 
 To close the sidebar, use the close button the browser gives its side panel or sidebar.
+
+## Search and Clip
+
+- **Search**: Type in **Search Logseq** and press `Enter`. The results take the place of the page's notes until you clear the box or press `Escape`. The search stays when the tab goes to another page. Recall rules do not change it.
+- **Clip page**: Clip the link of the page in the active tab. See [Clipping & Templates](/features/clipping-and-templates/).
+- **Clip selection**: Clip the text you selected on the page. It is available only while the page has a selection.
+
+When a clip fails, the sidebar says why under the buttons.
 
 ## Working with Highlights
 
@@ -50,9 +59,9 @@ Move the pointer over a highlight, or move to it with the keyboard, to show its 
 
 Highlights are created on the page itself by clipping a selection. See [Highlight Comments](/features/highlight-comments) for how to create them.
 
-## Pages Without Highlights
+## Pages It Cannot Read
 
-Highlights work on web pages only, the ones whose address starts with `http://` or `https://`. On any other page, such as the new tab page, browser pages like `chrome://extensions` or `about:addons`, local files, or the pages of other extensions, the sidebar shows **Highlights aren't available on this page**. Open a web page and the list appears on its own.
+The sidebar works on web pages only, the ones whose address starts with `http://` or `https://`. On any other page, such as the new tab page, browser pages like `chrome://extensions` or `about:addons`, local files, or the pages of other extensions, it shows **Not available on this page**. Open a web page and the sidebar fills in on its own.
 
 ## Troubleshooting
 

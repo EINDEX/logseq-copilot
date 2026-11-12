@@ -54,7 +54,7 @@ export default defineConfig({
 						{ label: 'Search Engines', slug: 'features/search-engines' },
 						{ label: 'Recall Rules', slug: 'features/recall-rules' },
 						{ label: 'Clipping & Templates', slug: 'features/clipping-and-templates' },
-						{ label: 'Highlights Sidebar', slug: 'features/highlights-sidebar' },
+						{ label: 'Sidebar', slug: 'features/highlights-sidebar' },
 						{ label: 'Highlight Comments', slug: 'features/highlight-comments' },
 					],
 				},
