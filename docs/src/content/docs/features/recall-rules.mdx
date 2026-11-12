@@ -28,6 +28,7 @@ Several rules can match one page. All enabled rules that match are applied toget
 | Setting | When several rules match |
 | --- | --- |
 | Ignore hash, query, path segments | Applied one after the other to the address |
+| Recall scope | The deepest scope (the most levels) |
 | Exclude and prefer keywords | Collected from all rules |
 | Restrict to pages | Only pages named in every rule |
 | Exclude pages | Pages named in any rule |
@@ -42,8 +43,11 @@ How the address of the page is turned into a lookup.
 - **Ignore hash fragments**: drop the `#…` part of the address first. Useful for single-page apps that route with the hash.
 - **Ignore query parameters**: drop the `?…` part of the address first.
 - **Ignore path segments**: remove the listed segments from the path of the address first, such as `files` or `commits`.
+- **Recall scope**: also recall notes about the parent paths of the page. **This page** recalls notes about the page only. **1 level**, **2 levels** and **3 levels** also recall notes about the paths above it, down to that many path segments. On `github.com/owner/repo/pull/42`, **2 levels** recalls notes about the pull request, then notes about `github.com/owner/repo`. It never goes up to the bare host. The **Test the URL pattern** box in the editor shows the address a rule recalls up to.
 - **Exclude keywords**: hide the blocks whose text contains one of these words (case-insensitive).
 - **Prefer keywords**: show the blocks that contain these words first.
+
+![The Recall Rules editor for the GitHub Pull Request rule. The test box holds a pull request address and shows that the rule recalls notes up to github.com/acme/notes. Recall scope is set to 2 levels.](/screenshots/recall-rule-editor.png)
 
 ### Search scope
 
@@ -56,18 +60,19 @@ A name has to match the whole page name. It ignores case and surrounding spaces,
 
 ### Result filtering
 
-- **Max results**: show at most this many results.
+- **Max results**: show at most this many results. In the sidebar it counts blocks. In the search engine panel it counts pages, and the panel never shows more than 6. Empty means no limit.
+- **Show recent results first**: sort the results from the newest to the oldest.
 
 <Aside type="caution" title="Not applied yet">
-The rule editor also has **Journals: last N days**, **Minimum relevance score** and **Prioritize recent results**. The current version stores them but does not use them yet, so they change nothing in the results. Use the options above for now.
+The rule editor also has **Minimum relevance score** and **Limit journal dates**. The current version stores them but does not use them yet, so they change nothing in the results.
 </Aside>
 
 ## Built-in Rules
 
 Two rules come with the extension. You can edit or delete both.
 
-- **Single-page apps** (on): matches every page, ignores the hash of the address, and shows at most 10 results.
-- **GitHub Pull Request** (off): matches pull requests and issues on GitHub. It ignores the hash and the query, drops the `files` and `commits` path segments, excludes blocks mentioning `comment`, `discussion` or `review`, prefers blocks mentioning `code`, `bug`, `feature` or `implementation`, hides the page `Daily Notes`, and shows at most 15 results.
+- **Single-page apps** (on): matches every page and ignores the hash of the address. It has no result limit.
+- **GitHub Pull Request** (off): matches pull requests and issues on GitHub. It ignores the hash and the query, drops the `files` and `commits` path segments, and has a recall scope of 2 levels, so it also recalls the notes about the same repository. The notes about the page itself stay first.
 
 ## Create a Rule
 

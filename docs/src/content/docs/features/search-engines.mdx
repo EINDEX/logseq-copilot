@@ -7,6 +7,8 @@ import { Steps } from '@astrojs/starlight/components';
 
 When you search on a supported search engine, Logseq Copilot adds a panel to the results page. It lists the blocks and pages of your graph that match your keywords, so your own notes sit next to the web results.
 
+![The Logseq Copilot card next to Google results for "zettelkasten". It lists the pages of the graph that match, with their best blocks, and a gray parent line above a block that sits deep in an outline.](/screenshots/recall-card.png)
+
 ## Supported Search Engines
 
 These engines are built in and turned on by default:
@@ -28,7 +30,7 @@ Turn engines on and off in the extension options, under **Search Engine**. Turn 
 - **The best blocks of each page**, two at first. Click **+N** to show the others. A page that matches only by its title shows no blocks.
 - **The context of a block.** Above a nested block, a gray line shows its parent block. In a journal it also shows the top-level block, so you can tell the topics of a day apart. Blocks that share a parent are listed under it once.
 - **Your keywords marked** in the blocks and the context lines. Page references show in teal, tags in gray.
-- **Tasks** show a checkbox: checked and struck through for `DONE`, a dot for `DOING` and `NOW`.
+- **Tasks** show a checkbox: checked for `DONE` (the text is not struck through), a dot for `DOING` and `NOW`.
 
 Click a page, a block or a context line to open it in the Logseq desktop app, so Logseq has to be running.
 
