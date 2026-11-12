@@ -1,9 +1,9 @@
 /**
- * The highlights sidebar drawn on the page, for browsers without one of their
- * own (Safari, Firefox for Android). Chromium and Firefox have their own, so
- * the popup never opens this one there: the test sets the open state the
- * popup, menu item and command set on those browsers, and the content script
- * follows it.
+ * The sidebar drawn on the page, for browsers without one of their own
+ * (Safari, Firefox for Android) and Arc. Chromium and Firefox have their own,
+ * so the toolbar button does not open this one there: the test sets the open
+ * state the toolbar button, menu item and command set on those browsers, and
+ * the content script follows it.
  */
 import type { Page } from '@playwright/test';
 import { expect, nonce, test } from './fixtures';
@@ -27,7 +27,7 @@ const savedHighlight = (id: string, url: string, text: string) => ({
 
 const sidebar = (page: Page) => page.locator('logseq-copilot-highlights');
 
-test.describe('in-page highlights sidebar', () => {
+test.describe('in-page sidebar', () => {
   test('stays open from page to page, follows in-page navigation, and closes everywhere', async ({
     page,
     ext,
