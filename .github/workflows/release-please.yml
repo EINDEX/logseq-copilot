@@ -9,13 +9,13 @@ name: Release Please
 # publish.yml is called here instead of relying on the tag.
 #
 # Config: release-please-config.json, .release-please-manifest.json.
-# Releases are cut from `wxt`. The action targets the repository's default
-# branch unless `target-branch` is set, so it is set below.
+# Releases are cut from `main`: work lands on `wxt`, and a release starts when
+# `wxt` is merged into `main`.
 
 on:
   push:
     branches:
-      - wxt
+      - main
   workflow_dispatch:
 
 permissions:
@@ -43,7 +43,6 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          target-branch: wxt
 
       # The release PR branch is pushed with GITHUB_TOKEN, so its push and
       # pull_request runs never start (or wait for approval). workflow_dispatch

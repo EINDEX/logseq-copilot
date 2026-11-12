@@ -3,8 +3,9 @@
 Releases are driven by [release-please](https://github.com/googleapis/release-please)
 from [Conventional Commits](https://www.conventionalcommits.org/) on `main`.
 
-1. Merge work into `main` with conventional commit messages (`feat:`, `fix:`,
-   `perf:`, `refactor:`, `feat!:` / `BREAKING CHANGE:` for majors).
+1. Merge work into `wxt`, the development branch, with conventional commit
+   messages (`feat:`, `fix:`, `perf:`, `refactor:`, `feat!:` /
+   `BREAKING CHANGE:` for majors). To release, merge `wxt` into `main`.
 2. `.github/workflows/release-please.yml` opens or updates a "chore: release
    X.Y.Z" PR that bumps `package.json` and `.release-please-manifest.json` and
    writes `CHANGELOG.md`.
