@@ -69,7 +69,7 @@ describe('background context menus', () => {
     ]);
   });
 
-  describe('opening the highlights sidebar', () => {
+  describe('opening the sidebar', () => {
     const click = (
       menuItemId: string,
       tab?: { id: number; windowId: number },
@@ -99,6 +99,7 @@ describe('background context menus', () => {
         .map(([o]) => o)
         .find((o) => o.id === 'open-highlights-sidebar');
       expect(menu.contexts).toEqual(['page', 'selection']);
+      expect(menu.title).toBe('Open sidebar');
     });
 
     it('opens the sidebar of the window from the menu item, right away', () => {
@@ -116,6 +117,18 @@ describe('background context menus', () => {
       expect(sidePanelOpen).toHaveBeenCalledTimes(1);
       expect(sidePanelOpen).toHaveBeenCalledWith({ windowId: 3 });
       expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('opens the sidebar of the window from the toolbar button, right away', () => {
+      background.main();
+
+      void fakeBrowser.action.onClicked.trigger(
+        { id: 7, windowId: 3 } as any,
+        undefined,
+      );
+
+      expect(sidePanelOpen).toHaveBeenCalledTimes(1);
+      expect(sidePanelOpen).toHaveBeenCalledWith({ windowId: 3 });
     });
 
     it('does nothing but warn when there is no tab', () => {
