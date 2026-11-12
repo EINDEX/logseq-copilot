@@ -1,0 +1,46 @@
+---
+/**
+ * The three store buttons and the Quick start link. Chrome is the primary
+ * button in the HTML. The script below makes the visitor's own browser the
+ * primary button and moves it first, in every group of store buttons on the
+ * page (the hero's actions carry the same `data-store` attributes). Without
+ * JavaScript all three buttons still work.
+ */
+import { LinkButton } from '@astrojs/starlight/components';
+import { stores } from './stores';
+---
+
+<div class="lc-store-buttons sl-flex not-content">
+	{
+		stores.map((store) => (
+			<LinkButton href={store.href} variant={store.id === 'chrome' ? 'primary' : 'secondary'} data-store={store.id}>
+				{store.text}
+			</LinkButton>
+		))
+	}
+	<LinkButton href="/setup/" variant="minimal" icon="right-arrow">Quick start</LinkButton>
+</div>
+
+<script>
+	const ua = navigator.userAgent;
+	const own = /Firefox\//.test(ua) ? 'firefox' : /Edg\//.test(ua) ? 'edge' : null;
+	if (own) {
+		for (const button of document.querySelectorAll<HTMLAnchorElement>(`a[data-store="${own}"]`)) {
+			const group = button.parentElement;
+			if (!group) continue;
+			for (const other of group.querySelectorAll<HTMLAnchorElement>('a[data-store]')) {
+				other.classList.replace('primary', 'secondary');
+			}
+			button.classList.replace('secondary', 'primary');
+			group.prepend(button);
+		}
+	}
+</script>
+
+<style>
+	.lc-store-buttons {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+	}
+</style>

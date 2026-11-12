@@ -1,0 +1,98 @@
+---
+/**
+ * Numbers from official sources, fetched when the page is built (and on each
+ * request in `astro dev`). An item whose source fails or times out is left
+ * out; there is no fallback number. The Chrome Web Store has no official API,
+ * so it has no item.
+ */
+const TIMEOUT_MS = 5000;
+
+const GITHUB_API = 'https://api.github.com/repos/EINDEX/logseq-copilot';
+const GITHUB_PAGE = 'https://github.com/EINDEX/logseq-copilot';
+const AMO_API = 'https://addons.mozilla.org/api/v5/addons/addon/logseq-copilot/';
+
+interface Item {
+	text: string;
+	href: string;
+}
+
+async function getJson(url: string): Promise<any | undefined> {
+	try {
+		const res = await fetch(url, {
+			headers: { Accept: 'application/json' },
+			signal: AbortSignal.timeout(TIMEOUT_MS),
+		});
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		return await res.json();
+	} catch (error) {
+		console.warn(`[Stats] Left out ${url}: ${error instanceof Error ? error.message : error}`);
+		return undefined;
+	}
+}
+
+const isCount = (value: unknown): value is number =>
+	typeof value === 'number' && Number.isFinite(value) && value >= 0;
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+const count = (n: number) => n.toLocaleString('en-US');
+
+const [github, amo] = await Promise.all([getJson(GITHUB_API), getJson(AMO_API)]);
+
+const items: Item[] = [];
+
+if (isCount(github?.stargazers_count)) {
+	const n = github.stargazers_count;
+	items.push({ text: `${count(n)} ${plural(n, 'star', 'stars')} on GitHub`, href: GITHUB_PAGE });
+}
+
+const amoPage = typeof amo?.url === 'string' ? amo.url : undefined;
+const ratings = amo?.ratings;
+if (amoPage && isCount(ratings?.count) && ratings.count > 0 && isCount(ratings?.average)) {
+	const n = ratings.count;
+	items.push({
+		text: `${ratings.average.toFixed(1)} from ${count(n)} ${plural(n, 'rating', 'ratings')} on Firefox Add-ons`,
+		href: typeof amo.ratings_url === 'string' ? amo.ratings_url : amoPage,
+	});
+}
+if (amoPage && isCount(amo?.average_daily_users)) {
+	const n = amo.average_daily_users;
+	items.push({ text: `${count(n)} daily ${plural(n, 'user', 'users')} on Firefox Add-ons`, href: amoPage });
+}
+---
+
+{
+	items.length > 0 && (
+		<ul class="lc-stats not-content">
+			{items.map((item) => (
+				<li>
+					<a href={item.href}>{item.text}</a>
+				</li>
+			))}
+		</ul>
+	)
+}
+
+<style>
+	.lc-stats {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 1.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: var(--sl-color-gray-3);
+		font-variant-numeric: tabular-nums;
+	}
+	.lc-stats a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.2em;
+		text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+	}
+	.lc-stats a:hover {
+		color: var(--sl-color-text-accent);
+		text-decoration-color: currentColor;
+	}
+</style>

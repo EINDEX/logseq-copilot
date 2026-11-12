@@ -1,0 +1,57 @@
+---
+/**
+ * Short items side by side: each child is a block with a title (h3), a
+ * sentence or two, and an optional link. One column on narrow screens.
+ */
+---
+
+<div class="lc-columns not-content">
+	<slot />
+</div>
+
+<style>
+	.lc-columns {
+		display: grid;
+		gap: 1.75rem 2.5rem;
+		padding-block: 1rem;
+	}
+	/* After the feature rows it is one more row, under the same hairline. */
+	:global(.lc-feature) + .lc-columns {
+		padding-block: 2.5rem;
+		border-top: 1px solid var(--sl-color-hairline);
+	}
+	@media (min-width: 50rem) {
+		.lc-columns {
+			grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+		}
+	}
+	.lc-columns > :global(*) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.lc-columns :global(h3) {
+		margin: 0;
+		font-family: var(--lc-font-display);
+		font-size: 1.125rem;
+		font-weight: 600;
+		line-height: 1.3;
+		color: var(--sl-color-white);
+	}
+	.lc-columns :global(p) {
+		margin: 0;
+		font-size: 0.9375rem;
+		line-height: 1.6;
+		color: var(--sl-color-gray-2);
+	}
+	.lc-columns :global(a) {
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+	}
+	.lc-columns :global(a:hover) {
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+</style>
