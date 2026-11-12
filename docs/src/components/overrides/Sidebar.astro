@@ -1,0 +1,52 @@
+---
+/**
+ * Below 50rem the header has no room for the Docs and Blog links: they open
+ * the menu instead, above the sidebar of the section, as starlight-blog does
+ * with its own mobile link.
+ */
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import { ariaCurrent, sections } from '../site-sections';
+
+const { pathname } = Astro.url;
+---
+
+<nav class="lc-menu-links md:sl-hidden" aria-label="Site">
+	<ul>
+		{
+			sections.map((section) => (
+				<li>
+					<a class="lc-menu-link" href={section.href} aria-current={ariaCurrent(section, pathname)}>
+						{section.label}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>
+<Default><slot /></Default>
+
+<style>
+	.lc-menu-links ul {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		margin: 0 0 1rem;
+		padding: 0 0 1rem;
+		list-style: none;
+		border-bottom: 1px solid var(--sl-color-hairline);
+	}
+	/* Quiet like the header links: teal text for the current section, no block. */
+	.lc-menu-links .lc-menu-link {
+		display: block;
+		padding: 0.3125rem var(--sl-sidebar-item-padding-inline, 0.5rem);
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+	}
+	.lc-menu-links .lc-menu-link[aria-current],
+	.lc-menu-links .lc-menu-link[aria-current]:is(:hover, :focus) {
+		color: var(--sl-color-text-accent);
+		background-color: transparent;
+	}
+</style>

@@ -657,20 +657,6 @@ mobile-starlight-toc summary {
 
 /* Nested under :root so these win over the plugin's scoped component styles. */
 :root {
-  /* Header: "Blog" is a nav link like the others, not a teal heading. */
-  .sl-blog-header-links {
-    border-color: var(--sl-color-hairline);
-  }
-  .sl-blog-header-link {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--sl-color-gray-2);
-    transition: color 0.12s ease;
-  }
-  .sl-blog-header-link:hover {
-    color: var(--sl-color-white);
-  }
-
   /* The list */
   .sl-blog-posts {
     gap: 0;

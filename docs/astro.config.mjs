@@ -36,6 +36,12 @@ export default defineConfig({
 					href: 'https://x.com/eindex'
 				}
 			],
+			// The Docs and Blog links of the header (and of the menu on narrow
+			// screens). starlight-blog's own header link is off: navigation 'none'.
+			components: {
+				ThemeSelect: './src/components/overrides/ThemeSelect.astro',
+				Sidebar: './src/components/overrides/Sidebar.astro',
+			},
 			editLink: {
 				baseUrl: 'https://github.com/eindex/logseq-copilot/edit/main/docs/',
 			},
@@ -82,6 +88,7 @@ export default defineConfig({
 			plugins: [
 				starlightBlog({
 					title: 'Blog',
+					navigation: 'none',
 					authors: {
 						eindex: { name: 'EINDEX', url: 'https://eindex.me' },
 					},

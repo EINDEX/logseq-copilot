@@ -1,0 +1,60 @@
+---
+/**
+ * The Docs and Blog links before the theme switcher, from 50rem up (Starlight
+ * hides the whole right group of the header below that). starlight-blog's own
+ * header link is turned off (navigation: 'none' in astro.config.mjs) so both
+ * links share one style and show the current section.
+ */
+import Default from '@astrojs/starlight/components/ThemeSelect.astro';
+import { ariaCurrent, sections } from '../site-sections';
+
+const { pathname } = Astro.url;
+---
+
+<nav class="lc-header-links" aria-label="Site">
+	{
+		sections.map((section) => (
+			<a class="lc-header-link" href={section.href} aria-current={ariaCurrent(section, pathname)}>
+				{section.label}
+			</a>
+		))
+	}
+</nav>
+<Default><slot /></Default>
+
+<style>
+	/* The menu on narrow screens has the theme switcher too: the links there are
+	   the ones at the top of the menu (Sidebar override). */
+	.lc-header-links {
+		display: none;
+	}
+	@media (min-width: 50rem) {
+		.lc-header-links {
+			display: flex;
+		}
+	}
+	.lc-header-links {
+		align-items: center;
+		gap: 1rem;
+		min-inline-size: 0;
+		padding-inline-end: 1rem;
+		border-inline-end: 1px solid var(--sl-color-hairline);
+	}
+	:global(.header > .right-group) {
+		min-inline-size: 0;
+	}
+	.lc-header-link {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		white-space: nowrap;
+		transition: color 0.12s ease;
+	}
+	.lc-header-link:hover {
+		color: var(--sl-color-white);
+	}
+	.lc-header-link[aria-current] {
+		color: var(--sl-color-text-accent);
+	}
+</style>
