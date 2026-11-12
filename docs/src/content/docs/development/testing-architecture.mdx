@@ -40,7 +40,7 @@ Unit tests sit next to the code they cover, as `src/**/*.test.ts` and `src/**/*.
 - **[Vitest](https://vitest.dev)** is the test runner.
 - **happy-dom** is the DOM, set as the test `environment`.
 - **`WxtVitest()`**, from `wxt/testing`, is a Vite plugin that sets up what WXT code needs: the auto-imports and an in-memory `fakeBrowser` in place of the real `browser` APIs, such as storage, tabs and messaging.
-- **React Testing Library** (`@testing-library/react`) renders and drives the React components, in the popup, the options pages, the side panel and the content script UI.
+- **React Testing Library** (`@testing-library/react`) renders and drives the React components, in the options pages, the side panel and the content script UI.
 - **Coverage** uses V8 and covers `src/**/*.{ts,tsx}`, except the test files and the generated UI primitives in `src/components/ui`. It writes a JSON summary, a text report and `lcov`.
 
 A typical test runs real code and fakes only the edge. For example `src/entrypoints/background/background.test.ts` runs the real background entrypoint against `fakeBrowser` and talks to it with the real `@webext-core/messaging` client, so message names and payloads are checked at both ends. Only the Logseq service is replaced.
@@ -76,7 +76,7 @@ On Linux, run them under `xvfb-run -a`, because Logseq needs a display. On macOS
 
 The E2E tests (`tests/e2e`) use [Playwright](https://playwright.dev) to load the **built extension** in a real browser, with a real Logseq behind it. The config is `tests/e2e/playwright.config.ts`. It defines two projects, `chromium` and `firefox`, and both run the same specs. The tests run one at a time and share a single Logseq.
 
-The specs cover the user flows: clipping, the floating button, highlights and the comment popup, the connection and recall rule pages in the options, the popup, the search engine panel, and changing a task status from the results.
+The specs cover the user flows: clipping, the floating button, highlights and the comment popup, the connection and recall rule pages in the options, the browser sidebar and which sidebar the toolbar button opens, the search engine panel, and changing a task status from the results.
 
 ### Builds
 

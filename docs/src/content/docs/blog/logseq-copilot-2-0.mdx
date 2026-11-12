@@ -28,6 +28,8 @@ The end-to-end suite runs in Firefox as well as Chromium, against both graph typ
 
 When you clip a text selection, the extension also saves it as a highlight on the page. The highlights of the page you are reading are listed in your browser's own sidebar: the side panel in Chrome and Edge, the sidebar in Firefox. The list follows the active tab and stays open when you switch tabs. Click a highlight to jump to it on the page, edit its note, or delete it.
 
+The toolbar icon opens this sidebar; the 1.x popup is gone. Below the highlights, the sidebar lists the notes in your graph that mention the page. Its header has a search of your graph and the **Clip page** and **Clip selection** buttons. Browsers that do not show a sidebar of their own, such as Safari and Arc, get the same sidebar drawn on the right side of the page. See [Sidebar](/features/highlights-sidebar/).
+
 Highlights are stored in your browser only. They are not written to Logseq. The clipped text still goes to Logseq as before. [Highlights in the browser sidebar](/blog/highlights-in-the-browser-sidebar) walks through the whole workflow.
 
 ## Recall rules
@@ -51,11 +53,11 @@ Related changes: the content script no longer trusts DOM events that a page scri
 
 ## New UI
 
-The orange theme is replaced by Logseq teal, `#206f78` in light mode and `#85c8c8` in dark mode. The popup and the options pages follow your system's dark mode, and highlights on the page use the teal on both light and dark pages. The options pages are flat, with plain lists instead of nested cards, and are capped at a centered 768 px width. The built-in recall rules now have English names and descriptions.
+The orange theme is replaced by Logseq teal, `#206f78` in light mode and `#85c8c8` in dark mode. The browser sidebar and the options pages follow your system's dark mode, and highlights on the page use the teal on both light and dark pages. The options pages are flat, with plain lists instead of nested cards, and are capped at a centered 768 px width. The built-in recall rules now have English names and descriptions.
 
 ## Smaller changes
 
-- The popup searches the current tab as soon as it opens.
+- The sidebar searches the active tab as soon as it opens, and again when you switch tabs.
 - Connection and API failures show a readable message.
 - The options page checks the connection as you type, and shows the extension version in its sidebar.
 
