@@ -56,7 +56,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <img src={logo} alt="Logseq Copilot" className="w-10 h-10 rounded-full" />
+          <img src={logo} alt="Logseq Copilot" className="w-10 h-10" />
           <span className="text-lg font-bold">Logseq Copilot</span>
         </div>
       </SidebarHeader>

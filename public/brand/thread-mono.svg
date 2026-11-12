@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Thread, one colour: the glyph is cut out of the tile. -->
+  <mask id="cut">
+    <rect width="128" height="128" fill="#fff"/>
+    <circle cx="40" cy="42" r="20" fill="#000"/>
+    <path d="M40 42V80a16 16 0 0 0 16 16H96" fill="none" stroke="#000" stroke-width="16" stroke-linecap="round"/>
+  </mask>
+  <rect width="128" height="128" rx="28" fill="#206f78" mask="url(#cut)"/>
+</svg>
