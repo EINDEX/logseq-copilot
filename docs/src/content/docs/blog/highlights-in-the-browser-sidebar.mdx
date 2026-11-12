@@ -6,7 +6,7 @@ lastUpdated: 2026-10-22
 
 import { Aside, Steps } from '@astrojs/starlight/components';
 
-Logseq Copilot 2.0 keeps the highlights of the page you are reading in your browser's own sidebar. In Chrome and Edge that is the side panel (the extension uses the `sidePanel` API). In Firefox it is the sidebar (`sidebar_action`). This post follows a highlight from creation to deletion. The reference version is on the [Sidebar](/features/highlights-sidebar) page.
+Logseq Copilot 2.0 keeps the highlights of the page you are reading in your browser's own sidebar. In Chrome and Edge that is the side panel (the extension uses the `sidePanel` API). In Firefox it is the sidebar (`sidebar_action`). Browsers without a sidebar of their own, and Arc, get the same sidebar drawn on the page instead. This post follows a highlight from creation to deletion. The reference version is on the [Sidebar](/features/highlights-sidebar) page.
 
 ## Create a highlight
 
@@ -51,7 +51,7 @@ To bind the command:
 </Steps>
 
 <Aside type="note">
-Browsers only open a sidebar in response to a user action: a click, a menu item or a shortcut. That is why the extension cannot open it on its own when a page loads. Close it with the button the browser puts on the panel.
+Browsers only open a sidebar in response to a user action: a click, a menu item or a shortcut. That is why the extension cannot open it on its own when a page loads. Close it with the button the browser puts on the panel. The sidebar drawn on the page has its own **×** button.
 </Aside>
 
 ## The sidebar follows your tab
