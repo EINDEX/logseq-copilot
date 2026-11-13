@@ -79,6 +79,16 @@ Logseq, for both graph types (`LOGSEQ_VARIANT=file|db`, same matrix as
 - **Highlights**: the CSS Custom Highlight API needs Firefox 140+; Playwright's
   Firefox is newer (157 with Playwright 1.64), so the highlight specs run in
   both browsers.
+- **Coverage**: with `E2E_COVERAGE=true` the E2E build is instrumented with
+  istanbul (`vite-plugin-istanbul` in `wxt.config.ts`; the packaged build
+  never is) and gets the `scripting` permission. The fixtures save
+  `__coverage__` of extension pages before they close, and at the end of
+  each test of the extension pages still open, the content scripts of every
+  tab (`scripting.executeScript`, the content scripts' world) and the
+  background (`coverage.ts`), to `test-results/e2e-coverage/raw/`.
+  `pnpm test:e2e:coverage-report` merges them into
+  `test-results/e2e-coverage/lcov.info` (`src/...` paths). Counters of a page
+  navigated away or a restarted service worker are lost.
 
 Failures keep a screenshot of every open page and a Playwright trace in
 `test-results/e2e/<test>/` (`pnpm exec playwright show-trace <trace.zip>`), and
@@ -89,8 +99,9 @@ an HTML report in `playwright-report/`.
 `.github/workflows/integration.yml`, job `e2e` (matrix `chromium` / `firefox`
 x `file` / `db`): same Logseq cache and Xvfb as the integration job,
 `playwright install --with-deps` for that browser,
-`xvfb-run -a pnpm test:e2e:<browser>`, test results uploaded as an artifact on
-failure.
+`xvfb-run -a pnpm test:e2e:<browser>` with `E2E_COVERAGE=true`, test results
+uploaded as an artifact on failure, the coverage report uploaded to Codecov
+(flag `e2e`; unit tests: flag `unit`, `build.yml`; see `codecov.yml`).
 
 ## Run locally
 

@@ -34,6 +34,7 @@
     "test:e2e:chromium": "pnpm build && pnpm build:e2e && pnpm test:e2e:run --project=chromium",
     "test:e2e:firefox": "pnpm build:firefox && pnpm build:e2e:firefox && pnpm test:e2e:run --project=firefox",
     "test:e2e:run": "playwright test -c tests/e2e/playwright.config.ts",
+    "test:e2e:coverage-report": "node scripts/e2e-coverage-report.mjs",
     "test:live": "pnpm build:e2e && pnpm test:live:run",
     "test:live:run": "playwright test -c tests/e2e/live/playwright.config.ts"
   },
