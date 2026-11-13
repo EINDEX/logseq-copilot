@@ -1,0 +1,23 @@
+# Two uploads per commit, merged into one project total:
+# - `unit`: vitest (build.yml, `pnpm test:coverage`);
+# - `e2e`: the instrumented E2E build in Chromium and Firefox
+#   (integration.yml, tests/e2e/coverage.ts).
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # A drop of up to 1% does not fail the check.
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+
+# A run that uploads only one flag keeps the other flag's last coverage.
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: unit
+    - name: e2e
+

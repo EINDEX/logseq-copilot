@@ -132,12 +132,30 @@ jobs:
         # Builds the packaged and the E2E extension for this browser, then
         # runs its Playwright project. Playwright's globalTimeout (20 min)
         # stops a stuck run before this.
+        # E2E_COVERAGE: the E2E build is instrumented and the tests save its
+        # coverage (tests/e2e/coverage.ts); the packaged build never is.
         run: xvfb-run -a pnpm test:e2e:${{ matrix.browser }}
         timeout-minutes: 22
         env:
           LOGSEQ_VARIANT: ${{ matrix.variant }}
           LOGSEQ_BIN: ${{ steps.logseq.outputs.bin }}
           LOGSEQ_DEBUG: ${{ runner.debug }}
+          E2E_COVERAGE: 'true'
+
+      - name: E2E coverage report
+        # Also after failed tests: the passing ones still count.
+        if: ${{ !cancelled() }}
+        run: pnpm test:e2e:coverage-report
+
+      - name: Upload E2E coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/e2e-coverage/lcov.info
+          flags: e2e
+          name: e2e-${{ matrix.browser }}-${{ matrix.variant }}
+          disable_search: true
 
       - name: Upload Playwright traces and screenshots
         if: failure()
