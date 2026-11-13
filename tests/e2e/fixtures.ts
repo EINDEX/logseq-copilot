@@ -154,7 +154,7 @@ export interface Extension {
 }
 
 /** Playwright's `recordVideo` context option. */
-type RecordVideo = { dir: string; size?: { width: number; height: number } };
+type RecordVideo = { dir: string; size?: { width: number; height: number }; fps?: number };
 
 type Fixtures = {
   extensionBuild: ExtensionBuild;
