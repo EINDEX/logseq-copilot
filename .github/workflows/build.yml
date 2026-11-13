@@ -3,7 +3,9 @@ name: Build
 on:
   push:
     branches:
-      - '*'
+      # Also branches with a slash (`*` stops at `/`), so every PR branch
+      # uploads unit coverage for Codecov to merge with E2E.
+      - '**'
   workflow_dispatch:
 
 jobs:
