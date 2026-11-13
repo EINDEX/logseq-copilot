@@ -2,6 +2,7 @@ import { defineConfig } from 'wxt';
 import { version } from './package.json';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import istanbul from 'vite-plugin-istanbul';
 import { stripRegisteredProperties } from './src/utils/content-css';
 
 // CI preview builds only (preview.yml, pr-preview.yml; see RELEASING.md), so
@@ -13,6 +14,12 @@ import { stripRegisteredProperties } from './src/utils/content-css';
 const previewLabel = process.env.WXT_PREVIEW_LABEL || undefined;
 const previewVersionName = process.env.WXT_PREVIEW_VERSION_NAME || undefined;
 const name = previewLabel ? `Logseq Copilot ${previewLabel}` : 'Logseq Copilot';
+
+// E2E coverage (integration.yml, tests/e2e/coverage.ts): only an E2E build
+// (its own output folder, see outDirTemplate) can be instrumented, so the
+// packaged and store builds never are.
+const e2eCoverage =
+  process.env.WXT_E2E === 'true' && process.env.E2E_COVERAGE === 'true';
 
 export default defineConfig({
   srcDir: 'src',
@@ -34,7 +41,14 @@ export default defineConfig({
       browser === 'firefox'
         ? 'eindex.lee@gmail.com'
         : { email: 'eindex.lee@gmail.com' },
-    permissions: ['storage', 'activeTab', 'contextMenus'],
+    permissions: [
+      'storage',
+      'activeTab',
+      'contextMenus',
+      // The E2E tests read the content scripts' coverage counters with
+      // scripting.executeScript (tests/e2e/coverage.ts).
+      ...(e2eCoverage ? ['scripting'] : []),
+    ],
     host_permissions: ['<all_urls>'],
     commands: {
       clip: {
@@ -98,6 +112,14 @@ export default defineConfig({
   vite: () => ({
     plugins: [
       tailwindcss(),
+      e2eCoverage &&
+        istanbul({
+          include: ['src/**'],
+          exclude: ['src/**/*.test.{ts,tsx}', 'src/components/ui/**'],
+          extension: ['.ts', '.tsx'],
+          cwd: __dirname,
+          forceBuildInstrument: true,
+        }),
       {
         // WXT lifts every @property rule of the content stylesheet into the
         // <head> of the page the extension runs on. Keep Tailwind's from

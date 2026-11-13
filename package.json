@@ -91,6 +91,10 @@
     "happy-dom": "^21.0.4",
     "html-loader": "^4.2.0",
     "husky": "^8.0.3",
+    "istanbul-lib-coverage": "^3.2.2",
+    "istanbul-lib-report": "^3.0.1",
+    "istanbul-lib-source-maps": "^5.0.6",
+    "istanbul-reports": "^3.2.0",
     "jsdom": "^31.0.0",
     "mockzilla": "^0.14.0",
     "playwright-core": "^1.64.1",
@@ -106,6 +110,7 @@
     "ts-loader": "^9.5.2",
     "type-fest": "^3.13.1",
     "typescript": "^5.9.3",
+    "vite-plugin-istanbul": "^7.2.1",
     "vitest": "^4.1.12",
     "web-ext": "^10.8.0",
     "wxt": "^0.20.27"
