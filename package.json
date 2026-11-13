@@ -23,6 +23,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "zip:edge": "wxt zip -b edge",
     "postinstall": "wxt prepare",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

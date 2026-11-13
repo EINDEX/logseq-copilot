@@ -10,12 +10,24 @@ on:
         description: 'Release tag to publish, e.g. v2.0.0'
         required: true
         type: string
+      platforms:
+        description: 'Comma-separated subset of chrome,edge,firefox,github; empty means all'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       tag:
         description: 'Existing release tag to publish, e.g. v2.0.0'
         required: true
         type: string
+      # To retry some stores only, e.g. `chrome,edge`: a store that already has
+      # this version (AMO after a successful upload) fails the whole run.
+      platforms:
+        description: 'Comma-separated subset of chrome,edge,firefox,github; empty means all'
+        required: false
+        type: string
+        default: ''
   push:
     tags:
       - 'v*'
@@ -24,10 +36,29 @@ permissions:
   contents: write
 
 jobs:
+  platforms:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.platforms.outputs.value }}
+    steps:
+      - name: Pick platforms
+        id: platforms
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          value=$(jq -cn --arg p "${PLATFORMS:-chrome,edge,firefox,github}" \
+            '$p | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != "")) | unique')
+          if ! jq -e 'length > 0 and all(.[]; IN("chrome", "edge", "firefox", "github"))' <<<"$value" >/dev/null; then
+            echo "::error::platforms must be a comma-separated subset of chrome,edge,firefox,github, got '$PLATFORMS'"
+            exit 1
+          fi
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+
   publish:
+    needs: platforms
     strategy:
       matrix:
-        platform: [chrome, edge, firefox, github]
+        platform: ${{ fromJSON(needs.platforms.outputs.value) }}
       fail-fast: false
     runs-on: ubuntu-latest
     environment: 'publish'
@@ -105,6 +136,31 @@ jobs:
           client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
           client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           refresh-token: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+
+      # Edge Add-ons rejects a manifest with `key` ("The manifest shouldn't
+      # contain the key field"). Tags from 2.0.1 on have `zip:edge`, which
+      # builds without it. Older tags (v2.0.0) don't: their publish script
+      # uploads the Chrome zip, so take `key` out of that zip here. It is
+      # this job's copy; the Chrome job and the GitHub release build their own.
+      - name: Package Edge
+        if: matrix.platform == 'edge'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          pnpm run --if-present zip:edge
+          zip=".output/logseq-copilot-$VERSION-edge.zip"
+          [[ -f "$zip" ]] || zip=".output/logseq-copilot-$VERSION-chrome.zip"
+          if unzip -p "$zip" manifest.json | jq -e 'has("key")' >/dev/null; then
+            echo "Removing key from $zip"
+            dir=$(mktemp -d)
+            unzip -q "$zip" -d "$dir"
+            jq 'del(.key)' "$dir/manifest.json" > "$dir/manifest.json.new"
+            mv "$dir/manifest.json.new" "$dir/manifest.json"
+            out="$PWD/$zip"
+            rm "$out"
+            (cd "$dir" && zip -qrX "$out" .)
+          fi
+          unzip -p "$zip" manifest.json | jq -e 'has("key") | not' >/dev/null
 
       - name: Edge Upload & release
         run: pnpm publish:edge

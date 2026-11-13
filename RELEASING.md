@@ -27,7 +27,18 @@ workflows, so `on: push: tags` in `publish.yml` never fires for release-please.
 
 - Push a `vX.Y.Z` tag, or
 - Actions > Publish > Run workflow, with the existing tag (for example to retry
-  one store after fixing a secret).
+  one store after fixing a secret). Set `platforms` (for example
+  `chrome,edge`) to skip the stores that already have this version: AMO
+  rejects a version it has, and that fails the run.
+
+  ```sh
+  gh workflow run publish.yml -f tag=v2.0.0 -f platforms=chrome,edge
+  ```
+
+Edge Add-ons rejects a manifest with `key`, so Edge gets its own zip
+(`pnpm zip:edge`) and only the Chrome build has `key`. For tags from before
+`zip:edge` (v2.0.0), the workflow takes `key` out of that run's Chrome zip
+before the Edge upload.
 
 `publish.yml` rejects anything that is not an existing `vX.Y.Z` tag and always
 builds `refs/tags/<tag>`, never a branch or SHA.
