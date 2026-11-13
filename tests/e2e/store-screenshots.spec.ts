@@ -8,10 +8,20 @@
  * (DuckDuckGo answers a headless one with a bot check):
  *
  *   BIN=$(scripts/download-logseq.sh file 0.10.15 .logseq-bin | tail -n 1)
- *   pnpm build:e2e
+ *   npm pkg set version=2.0.0 && pnpm build && pnpm build:e2e; pnpm version:reset
  *   STORE_SCREENSHOTS=1 E2E_HEADED=1 LOGSEQ_VARIANT=file LOGSEQ_BIN=$BIN \
  *     LOGSEQ_API_PORT=12399 pnpm test:e2e:run --project=chromium store-screenshots
  *
+ * Version: the shots are for the release being listed, while package.json
+ * keeps the last released version until release-please sets the new one
+ * (RELEASING.md). The extension (manifest and the options footer, which
+ * imports package.json) is built with that version for the capture only, and
+ * `pnpm version:reset` puts package.json back; never commit the change.
+ * STORE_VERSION (default 2.0.0) is the version the footer must show.
+ *
+ * Pages are set with their own settings and buttons, never painted over:
+ * DuckDuckGo in "All regions" (kl=wt-wt, and the region menu's recent
+ * countries cleared), Wikipedia's Appearance panel closed with its "hide".
  * 02-sidebar.png is a composite: the browser's side panel is not exposed to
  * Playwright, so the page and sidepanel.html are taken one by one, in the
  * same browser, and put side by side. The others are single captures.
@@ -22,24 +32,30 @@ import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { expect, logseqInfo, test } from './fixtures';
 import {
-  DUCKDUCKGO,
   NOTE,
   PASSAGES,
   SEARCH_QUERY,
+  aiControlsInView,
   articleBody,
   clickOn,
   dragSelect,
+  duckDuckGoUrl,
   inPageSidebar,
   openArticle,
+  referencePopup,
   savedHighlights,
   scrollTextTo,
   seedNotes,
+  settleDuckDuckGo,
   textBox,
 } from './store-demo';
 
 const OUT_DIR = path.resolve(__dirname, '../../store/screenshots');
 const WIDTH = 1280;
 const HEIGHT = 800;
+const STORE_VERSION = process.env.STORE_VERSION || '2.0.0';
+/** On the way to a passage, pass below its first line: no footnote on the way. */
+const FROM_BELOW = { dx: 40, dy: 34 };
 /** Stay under this size; the stores take more, but the repo keeps them. */
 const MAX_BYTES = 480 * 1024;
 
@@ -84,19 +100,17 @@ test.describe('store screenshots', () => {
     const host = page.locator('logseq-copilot-search-engine');
     const organic = page.locator('li[data-layout="organic"]');
     await expect(async () => {
-      await page.goto(`${DUCKDUCKGO}?q=${SEARCH_QUERY}`);
+      await page.goto(duckDuckGoUrl(SEARCH_QUERY));
       await expect(organic.first()).toBeVisible({ timeout: 15_000 });
       await expect(host.locator('.lc-page-name').getByText('Zettelkasten', { exact: true })).toBeVisible({ timeout: 8000 });
       await expect(host.getByText(/Principles of a/)).toBeVisible({ timeout: 8000 });
     }).toPass({ timeout: 120_000 });
-    // The browser promotion every new profile gets: close it with its X.
-    const promotion = page.getByText('Try the DuckDuckGo Browser');
-    if (await promotion.isVisible()) await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
-    await expect(promotion).toBeHidden();
+    await settleDuckDuckGo(page);
     await expect(page.getByText('start.duckduckgo.com')).toBeHidden({ timeout: 30_000 });
     await page.mouse.move(0, 0);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);
+    expect(await aiControlsInView(page)).toEqual([]);
     await save('01-recall-card-duckduckgo.png', await shot(page));
   });
 
@@ -112,7 +126,7 @@ test.describe('store screenshots', () => {
 
     // Two passages of the lead: select with the mouse, then Clip selection.
     for (const [i, passage] of [PASSAGES.noteTaking, PASSAGES.wikis].entries()) {
-      await dragSelect(page, body, passage, { ms: 300, glideMs: 100 });
+      await dragSelect(page, body, passage, { ms: 300, glideMs: 100, via: FROM_BELOW });
       const clip = sidebar.getByRole('button', { name: 'Clip selection' });
       await expect(clip).toBeEnabled();
       await clip.click();
@@ -155,10 +169,12 @@ test.describe('store screenshots', () => {
     await expect(sidebar).toHaveCount(0);
     // A line of the lead at the top edge, so no line is cut there.
     await scrollTextTo(page, body, 'such as numbers and', 6);
-    await dragSelect(page, body, PASSAGES.numbered, { ms: 300, glideMs: 100 });
+    await dragSelect(page, body, PASSAGES.numbered, { ms: 300, glideMs: 100, via: FROM_BELOW });
     const floatButton = page.locator('logseq-copilot-popup [title="Clip to Logseq"]');
     await expect(floatButton).toBeVisible();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(800);
+    await expect(referencePopup(page).filter({ visible: true })).toHaveCount(0);
+    await expect(page.locator('#vector-appearance-pinned-container')).toBeHidden();
     await save('04-clip-selection.png', await shot(page));
     await clickOn(page, floatButton.locator('img'), { ms: 100, pause: 50 });
     await expect.poll(async () => (await savedHighlights(ext)).length).toBe(3);
@@ -203,6 +219,11 @@ test.describe('store screenshots', () => {
     await page.locator('#testUrl').fill('https://github.com/EINDEX/logseq-copilot/pull/115');
     await expect(page.getByText('✓ Matches · github.com/EINDEX/logseq-copilot')).toBeVisible();
     await expect(page.getByRole('radiogroup', { name: 'Recall scope' })).toBeVisible();
+    // The rule switched on in the form, as it is when in use (not saved).
+    const enabled = page.locator('#enabled');
+    if ((await enabled.getAttribute('aria-checked')) !== 'true') await enabled.click();
+    await expect(enabled).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByText(`v${STORE_VERSION}`, { exact: true })).toBeVisible();
     await page.getByRole('heading', { name: 'Basics' }).click();
     await page.mouse.move(0, 0);
     await page.waitForTimeout(300);

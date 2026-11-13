@@ -20,6 +20,30 @@ export const SEARCH_QUERY = 'zettelkasten';
  */
 export const DUCKDUCKGO = 'https://noai.duckduckgo.com/';
 
+/** A DuckDuckGo result page in "All regions" (`kl=wt-wt`): no country. */
+export const duckDuckGoUrl = (query: string) => `${DUCKDUCKGO}?q=${encodeURIComponent(query)}&kl=wt-wt`;
+
+/**
+ * Settle DuckDuckGo on a result page, with its own controls, as a person
+ * does: close the browser promotion every new profile gets, and clear the
+ * "Recent" regions of the region menu (the country DuckDuckGo guessed from
+ * the IP address), so the filter bar reads "All regions" and no country. Both
+ * stay for the rest of the browser session.
+ */
+export async function settleDuckDuckGo(page: Page) {
+  const promotion = page.getByText('Try the DuckDuckGo Browser');
+  if (await promotion.isVisible()) await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+  await expect(promotion).toBeHidden();
+  const region = page.getByTestId('region-filter-label');
+  await expect(region).toBeVisible();
+  if ((await region.innerText()).trim() !== 'All regions') {
+    await region.click();
+    await page.getByText('Clear All', { exact: true }).click();
+    await page.keyboard.press('Escape');
+  }
+  await expect(region).toHaveText('All regions');
+}
+
 /** Passages of the live article that get highlighted (clipped). */
 export const PASSAGES = {
   noteTaking:
@@ -63,7 +87,10 @@ export const articleBody = (page: Page) => page.locator('#mw-content-text .mw-pa
 /**
  * Open the article. Wikipedia can show a fundraising banner over the top of
  * it (it loads after the page): close it with its own Close button, as a
- * reader does. Wikipedia remembers that for the rest of the browser session.
+ * reader does. The "Appearance" panel on the right is closed with its own
+ * "hide" button. Wikipedia remembers both for the browser session. The
+ * buttons are pressed from the keyboard: the in-page sidebar, when open, sits
+ * over them.
  */
 export async function openArticle(page: Page) {
   await page.goto(ARTICLE_URL);
@@ -71,8 +98,13 @@ export async function openArticle(page: Page) {
   const banner = page.getByRole('region', { name: /fundraising/i });
   await banner.first().waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
   if (await banner.first().isVisible()) {
-    await banner.first().getByRole('button', { name: 'Close' }).first().click();
+    await banner.first().getByRole('button', { name: 'Close' }).first().press('Enter');
     await expect(banner.first()).toBeHidden();
+  }
+  const appearance = page.locator('#vector-appearance-pinned-container');
+  if (await appearance.isVisible()) {
+    await appearance.getByRole('button', { name: 'hide' }).press('Enter');
+    await expect(appearance).toBeHidden();
   }
 }
 
@@ -222,11 +254,20 @@ export async function clickOn(page: Page, locator: Locator, { pause = 250, ms = 
 
 /**
  * Select `text` inside `root` by dragging the real mouse across it, the way a
- * reader does. Returns the selected text.
+ * reader does. Returns the selected text. `via` is a point (offset from the
+ * start of the text) the pointer passes on its way there: from below the
+ * line, it does not cross the footnote link just before the text, whose
+ * reference popup would open on hover.
  */
-export async function dragSelect(page: Page, root: Locator, text: string, { ms = 1400, glideMs = 700 } = {}) {
+export async function dragSelect(
+  page: Page,
+  root: Locator,
+  text: string,
+  { ms = 1400, glideMs = 700, via }: { ms?: number; glideMs?: number; via?: { dx: number; dy: number } } = {},
+) {
   const box = await textBox(root, text);
-  await glide(page, box.start.x + 1, box.start.y, glideMs);
+  if (via) await glide(page, box.start.x + via.dx, box.start.y + via.dy, glideMs);
+  await glide(page, box.start.x + 1, box.start.y, via ? Math.round(glideMs / 2) : glideMs);
   await sleep(250);
   await page.mouse.down();
   await glide(page, box.end.x - 1, box.end.y, ms);
@@ -240,6 +281,28 @@ export async function dragSelect(page: Page, root: Locator, text: string, { ms =
 /** The highlights the extension saved for the article. */
 export const savedHighlights = async (ext: Extension) =>
   ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === ARTICLE_URL);
+
+/**
+ * Visible text of DuckDuckGo's AI features inside the window ("AI images:
+ * hide", Search Assist, Duck.ai); expected to be empty in the store shots.
+ */
+export const aiControlsInView = (page: Page) =>
+  page.evaluate(() => {
+    const found: string[] = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = (n as Text).data;
+      if (!/AI images|Search Assist|Duck\.ai|Assist/i.test(text)) continue;
+      const el = n.parentElement!;
+      const r = el.getBoundingClientRect();
+      const inView = r.width > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+      if (inView && el.checkVisibility({ visibilityProperty: true, opacityProperty: true })) found.push(text.trim());
+    }
+    return found;
+  });
+
+/** Wikipedia's reference popup (Reference Previews), open on hover of a footnote. */
+export const referencePopup = (page: Page) => page.locator('.mwe-popups');
 
 /** The sidebar drawn on the page. */
 export const inPageSidebar = (page: Page) => page.locator('logseq-copilot-highlights');
