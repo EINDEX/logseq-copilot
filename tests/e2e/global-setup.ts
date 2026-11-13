@@ -5,11 +5,15 @@
  *
  * Env: LOGSEQ_VARIANT, LOGSEQ_BIN, LOGSEQ_API_PORT, LOGSEQ_DEBUG.
  */
+import fs from 'node:fs';
 import path from 'node:path';
+import { COVERAGE_ENABLED, RAW_DIR } from './coverage';
 import { optionsFromEnv, startLogseq } from '../support/logseq-app';
 import type { LogseqInfo } from './fixtures';
 
 export default async function globalSetup() {
+  // Coverage dumps of an earlier run would be merged into this one.
+  if (COVERAGE_ENABLED) fs.rmSync(RAW_DIR, { recursive: true, force: true });
   const logseq = await startLogseq({
     ...optionsFromEnv(),
     failureScreenshot: path.resolve(__dirname, '../../test-results/e2e/logseq-setup-failure.png'),

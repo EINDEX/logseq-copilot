@@ -20,6 +20,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { createApiCaller, type LogseqVariant } from '../support/logseq-app';
+import { COVERAGE_ENABLED, readContentCoverage, readCoverage, saveCoverage } from './coverage';
 import { FirefoxAddon, RdpClient, type FrameTarget } from './firefox-rdp';
 import { routeFixtureSites } from './pages';
 
@@ -395,10 +396,42 @@ function rdpExtPage(addon: FirefoxAddon, target: FrameTarget, onClose: () => Pro
       }
     },
     close: async () => {
+      if (COVERAGE_ENABLED) {
+        saveCoverage(await addon.client.evaluate(target.consoleActor, readCoverage).catch(() => null), 'page');
+      }
       await onClose();
       await addon.waitGone(target);
     },
   };
+}
+
+/** Chromium: `__coverage__` of an extension page, before it closes. */
+async function savePageCoverage(page: Page) {
+  if (!COVERAGE_ENABLED || page.isClosed()) return;
+  saveCoverage(await page.evaluate(readCoverage).catch(() => null), 'page');
+}
+
+/**
+ * Coverage of every extension context still alive at the end of a test:
+ * extension pages, content scripts, background (see coverage.ts).
+ */
+async function saveContextCoverage(context: BrowserContext, ext: Extension) {
+  if (!COVERAGE_ENABLED) return;
+  if (ext.browser === 'chromium') {
+    for (const page of context.pages()) {
+      if (page.url().startsWith('chrome-extension://')) await savePageCoverage(page);
+    }
+  } else {
+    const session = firefoxSessions.get(context)!;
+    const base = `moz-extension://${FIREFOX_UUID}/`;
+    for (const target of session.addon.targets.values()) {
+      if (!target.url.startsWith(base) || target.url.includes('_generated_background_page')) continue;
+      saveCoverage(await session.client.evaluate(target.consoleActor, readCoverage).catch(() => null), 'page');
+    }
+  }
+  const content = await ext.evaluate(readContentCoverage).catch(() => []);
+  for (const json of content) saveCoverage(json, 'content');
+  saveCoverage(await ext.evaluate(readCoverage).catch(() => null), 'background');
 }
 
 /** Chromium ExtPage: plain Playwright locators. */
@@ -429,7 +462,10 @@ function playwrightExtPage(page: Page, { domClicks = false } = {}): ExtPage {
     click: (selector) => click(page.locator(selector)),
     hover: (selector) => page.locator(selector).first().hover(),
     isChecked: (selector) => page.locator(selector).isChecked(),
-    close: () => page.close(),
+    close: async () => {
+      await savePageCoverage(page);
+      await page.close();
+    },
     page,
   };
 }
@@ -677,6 +713,7 @@ export const test = base.extend<Fixtures>({
       await closeExtensionTabs(context);
     }
     await use(ext);
+    await withTimeout(saveContextCoverage(context, ext), 30_000);
   },
 
   page: async ({ context, ext: _ext }, use) => {
