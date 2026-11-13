@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { EdgeAddonsAPI } from '@plasmohq/edge-addons-api';
 
-// WXT names zips after the package.json version; Edge uses the Chrome (MV3) build.
+// WXT names zips after the package.json version. The Edge zip (`pnpm zip:edge`)
+// is the Chrome build without the `key` field, which Edge Add-ons rejects.
 const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
 
 // Edge Add-ons API v1.1: an API key plus the client id, created under
@@ -15,7 +16,7 @@ const client = new EdgeAddonsAPI({
 
 try {
   const operationID = await client.submit({
-    filePath: `.output/logseq-copilot-${version}-chrome.zip`,
+    filePath: `.output/logseq-copilot-${version}-edge.zip`,
     notes: 'release note is here https://github.com/EINDEX/logseq-copilot/releases',
   });
 
