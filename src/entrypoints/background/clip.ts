@@ -43,17 +43,19 @@ export const clipToLogseq = async (source: ClipSource) => {
   const clipNoteLocation = defaultTemplate.clipNoteLocation || 'journal';
   const clipNoteCustomPage = defaultTemplate.clipNoteCustomPage || '';
 
+  const journalPage = () => formatLogseqDate(now, resp['preferredDateFormat']);
+
   if (clipNoteLocation === 'customPage') {
     await logseqService.client.appendBlock(clipNoteCustomPage, block);
   } else if (clipNoteLocation === 'currentPage') {
+    // Logseq has no current page on its home and All Journals views: clip to
+    // today's journal there.
     const currentPage = throwIfClientError(
       await logseqService.client.getCurrentPage(),
     )?.name;
-    if (!currentPage) throw new Error('No page is open in Logseq to clip to.');
-    await logseqService.client.appendBlock(currentPage, block);
+    await logseqService.client.appendBlock(currentPage || journalPage(), block);
   } else {
-    const journalPage = formatLogseqDate(now, resp['preferredDateFormat']);
-    await logseqService.client.appendBlock(journalPage, block);
+    await logseqService.client.appendBlock(journalPage(), block);
   }
 };
 
