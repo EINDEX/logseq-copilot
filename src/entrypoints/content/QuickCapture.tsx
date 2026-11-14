@@ -2,7 +2,9 @@ import { buildTurndownService } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
-import logo from '../../assets/img/logo.png';
+// `?inline` keeps the logo a data: URI whatever its size: the page cannot
+// load a chrome-extension:// URL that is not web accessible.
+import logo from '../../assets/img/logo.png?inline';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
