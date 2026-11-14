@@ -8,7 +8,9 @@ import {
   IconSettings,
 } from '@tabler/icons-react';
 import type { RecallHit, RecallPage, RecallResult } from '@/types/recall';
-import logo from '@/assets/img/logo.png';
+// `?inline` keeps the logo a data: URI whatever its size: the page cannot
+// load a chrome-extension:// URL that is not web accessible.
+import logo from '@/assets/img/logo.png?inline';
 import { buildPageTree, VISIBLE_PAGES, type RecallNode } from './recall-tree';
 import { RecallText } from './RecallText';
 import { formatRelativeTime } from './relative-time';
