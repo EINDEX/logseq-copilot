@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1](https://github.com/EINDEX/logseq-copilot/compare/v2.0.0...v2.0.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **manifest:** drop the web accessible logo that is not in the build ([95e344a](https://github.com/EINDEX/logseq-copilot/commit/95e344abe59cb5b041e41a4f90cb7fe5ba9e928e))
+* **publish:** upload Edge a package without the manifest key ([fe014ac](https://github.com/EINDEX/logseq-copilot/commit/fe014ac9cfd69680c54893f4a5ae0fe6440e77e0))
+
 ## [2.0.0](https://github.com/EINDEX/logseq-copilot/compare/v1.15.2...v2.0.0) (2026-11-13)
 
 
