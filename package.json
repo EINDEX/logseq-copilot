@@ -24,6 +24,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "zip:edge": "wxt zip -b edge",
+    "check:manifest": "node scripts/check-manifest-files.mjs .output/chrome-mv3 .output/edge-mv3 .output/firefox-mv3",
     "postinstall": "wxt prepare",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

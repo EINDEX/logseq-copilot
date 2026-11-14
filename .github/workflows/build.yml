@@ -35,6 +35,13 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unit
-      - run: pnpm run build
+      - name: Build Chrome, Edge and Firefox
+        run: |
+          pnpm run build
+          pnpm exec wxt build -b edge
+          pnpm run build:firefox
         env:
           VERSION: v0.0.0
+      # Edge Add-ons rejects a package whose manifest names a missing file.
+      # Chrome does not, so nothing else catches it.
+      - run: pnpm check:manifest
