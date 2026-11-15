@@ -13,7 +13,13 @@ import { stores } from './stores';
 <div class="lc-store-buttons sl-flex not-content">
 	{
 		stores.map((store) => (
-			<LinkButton href={store.href} variant={store.id === 'chrome' ? 'primary' : 'secondary'} data-store={store.id}>
+			<LinkButton
+				href={store.href}
+				variant={store.id === 'chrome' ? 'primary' : 'secondary'}
+				data-store={store.id}
+				icon={store.id}
+				iconPlacement="start"
+			>
 				{store.text}
 			</LinkButton>
 		))
