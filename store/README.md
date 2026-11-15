@@ -15,5 +15,6 @@ Text for the Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons (AMO).
 
 - `summary.txt` and `wxt.config.ts` must hold the same sentence. Change both together, then check the built `manifest.json`.
 - `description.md` is plain text with `- ` lists and bare URLs, so it reads the same where it is not rendered. Chrome and Edge show plain text: do not add Markdown links or headings.
+- Do not list brand or product names in `description.md`, such as every supported search engine. Chrome rejected 2.0.1 for "excessive keywords" (Spam and Placement in the Store, reference Yellow Argon) because of such a list. Name one example and link to the docs for the full list.
 - AMO: its docs say the description "can contain some Markdown" (addons-server API docs) and that "some fields support a limited set of Markdown" (Extension Workshop, "Create an appealing listing"). Neither page says whether HTML is accepted. HTML: not verified.
 - Edge: Partner Center has no "What's new" field in its publishing docs. "Notes for certification" goes to the testers, not to users.
