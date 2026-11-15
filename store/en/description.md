@@ -3,7 +3,7 @@ Logseq Copilot connects your browser to your own Logseq. It shows your notes nex
 What it does
 
 - Sidebar for the page. The toolbar icon opens it: the highlights you saved on the page, the notes in your graph that mention its address, a search of your graph, and Clip page and Clip selection buttons.
-- Notes next to search results. A card lists the pages and blocks of your graph that match your query. Built-in engines: Google, Bing, DuckDuckGo, Ecosia, Yandex, SearX, Baidu, Kagi, Startpage and Brave Search. You can add your own.
+- Notes next to search results. A card lists the pages and blocks of your graph that match your query. It works on Google and other popular search engines, and you can add your own.
 - Recall rules. Tune the lookup per website: ignore the URL hash or query, exclude or prefer keywords, include or skip pages, recall notes about parent paths, cap the results.
 - Clipping with templates. Clip a selection or the page link into today's journal, the current page or a page you name, in the shape of your template.
 - Highlights and comments. A clipped selection stays highlighted on the page. Click it to add a comment.
