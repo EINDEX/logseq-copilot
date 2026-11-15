@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/EINDEX/logseq-copilot/compare/v2.0.1...v2.1.0) (2026-11-15)
+
+
+### Features
+
+* **docs:** show browser icons on the store buttons ([8dc0dc5](https://github.com/EINDEX/logseq-copilot/commit/8dc0dc533ad40e695cd75d71d0107b40823d2626))
+
 ## [2.0.1](https://github.com/EINDEX/logseq-copilot/compare/v2.0.0...v2.0.1) (2026-11-14)
 
 
