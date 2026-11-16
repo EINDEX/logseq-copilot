@@ -226,10 +226,13 @@ export default defineBackground({
 
     const debounceBadgeSearch = debounce(badgeSearch, 1000);
 
-    // Menus persist across service worker restarts, so create them only on
-    // install/update. Creating at every startup fails with "duplicate id"
-    // (reported via runtime.lastError, which try/catch cannot catch).
-    const createContextMenus = () => {
+    // Menus persist across service worker restarts, so create them only in
+    // onInstalled. It also fires when the browser itself updates
+    // (chrome_update, browser_update) while the menus still exist, so clear
+    // them first: creating an existing id fails with "duplicate id" (reported
+    // via runtime.lastError, which try/catch cannot catch).
+    const createContextMenus = async () => {
+      await browser.contextMenus.removeAll();
       browser.contextMenus.create({
         id: 'clip-with-selection',
         title: 'Clip "%s"',
@@ -306,7 +309,11 @@ export default defineBackground({
     });
 
     browser.runtime.onInstalled.addListener(async (event) => {
-      createContextMenus();
+      // Not awaited: the rest (and opening the options page on install) does
+      // not wait for the menus.
+      void createContextMenus().catch((err) =>
+        log.error('Failed to create the context menus:', err),
+      );
 
       // Run migration for both install and update events
       await migrateLegacyClipSettingsToTemplates().catch((err) =>
