@@ -3,6 +3,7 @@ import log from './logger';
 import { caretRangeAtPoint } from './caret';
 import { contentEvents } from './content-events';
 import type { HighlightData } from '@/types/highlight';
+import type { LogseqLink } from '@/types/annotation';
 import { detectTheme, setupThemeChangeListeners } from './theme-detection';
 
 /**
@@ -351,10 +352,11 @@ export class HighlightManager {
     range: Range,
     note?: string,
     tags?: string[],
+    logseq?: LogseqLink,
   ): Promise<HighlightData | null> {
     try {
       // Save the highlight data
-      const result = await HighlightService.saveHighlight(range, note, tags);
+      const result = await HighlightService.saveHighlight(range, note, tags, logseq);
 
       if (!result.success || !result.data) {
         log.error(

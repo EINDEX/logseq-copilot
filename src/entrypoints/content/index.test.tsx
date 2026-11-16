@@ -81,6 +81,13 @@ describe('content script startup', () => {
     fakeBrowser.reset();
     messaging.handlers.clear();
     messaging.sendMessage.mockReset();
+    messaging.sendMessage.mockResolvedValue({
+      page: 'p',
+      graph: 'g',
+      templateId: 'clip',
+      rootUuid: 'r',
+      added: true,
+    });
     (globalThis as any).CSS = { highlights: new Map() };
     (globalThis as any).Highlight = class {
       add() {}

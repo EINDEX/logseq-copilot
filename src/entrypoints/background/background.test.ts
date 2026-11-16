@@ -26,6 +26,7 @@ const service = vi.hoisted(() => ({
   clipBlocks: vi.fn(async (page: string, root: { content: string }) => ({
     rootUuid: (await service.client.appendBlock(page, root.content))?.uuid ?? 'root',
   })),
+  getGraph: vi.fn(async () => 'test graph'),
   changeBlockMarker: vi.fn(),
   recall: vi.fn(),
   search: vi.fn(),
@@ -341,6 +342,7 @@ describe('clip results and notes', () => {
     expect(result).toEqual({
       templateId: expect.any(String),
       page: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      graph: 'test graph',
       rootUuid: 'root',
     });
   });
