@@ -25,6 +25,7 @@ import background from './index';
 
 describe('background context menus', () => {
   const create = vi.fn();
+  const removeAll = vi.fn();
   const onClicked = { addListener: vi.fn() };
   const onCommand = { addListener: vi.fn() };
   const sidePanelOpen = vi.fn();
@@ -33,6 +34,7 @@ describe('background context menus', () => {
     vi.restoreAllMocks();
     fakeBrowser.reset();
     create.mockReset();
+    removeAll.mockReset().mockResolvedValue(undefined);
     onClicked.addListener.mockReset();
     onCommand.addListener.mockReset();
     sidePanelOpen.mockReset().mockResolvedValue(undefined);
@@ -40,7 +42,7 @@ describe('background context menus', () => {
     vi.mocked(clipToLogseq).mockReset().mockResolvedValue(undefined);
     vi.mocked(showClipErrorBadge).mockReset().mockResolvedValue(undefined);
     vi.mocked(clearClipErrorBadges).mockReset().mockResolvedValue(undefined);
-    (fakeBrowser as any).contextMenus = { create, onClicked };
+    (fakeBrowser as any).contextMenus = { create, removeAll, onClicked };
     (fakeBrowser as any).commands = { onCommand };
     (fakeBrowser as any).sidePanel = { open: sidePanelOpen };
   });
@@ -63,6 +65,45 @@ describe('background context menus', () => {
       temporary: false,
     } as any);
     expect(create.mock.calls.map(([o]) => o.id)).toEqual([
+      'clip-with-selection',
+      'clip-page',
+      'open-highlights-sidebar',
+    ]);
+  });
+
+  it('never creates an existing menu id, however often onInstalled fires', async () => {
+    // Menus outlive the service worker, as in the browser; creating an
+    // existing id fails there with "duplicate id" in runtime.lastError.
+    const menus = new Set<string>();
+    const duplicates: string[] = [];
+    create.mockImplementation(({ id }: { id: string }) => {
+      if (menus.has(id)) duplicates.push(id);
+      menus.add(id);
+    });
+    removeAll.mockImplementation(async () => menus.clear());
+    const installed = (reason: string) =>
+      fakeBrowser.runtime.onInstalled.trigger({
+        reason,
+        previousVersion: '99.0.0',
+        temporary: false,
+      } as any);
+
+    // Install, then the service worker restarts and the browser updates
+    // itself (Chrome, Edge, Brave: chrome_update; Firefox: browser_update).
+    vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockResolvedValue();
+    background.main();
+    await installed('install');
+    // A new service worker registers its listeners afresh.
+    fakeBrowser.runtime.onInstalled.removeAllListeners();
+    fakeBrowser.runtime.onStartup.removeAllListeners();
+    background.main();
+    await fakeBrowser.runtime.onStartup.trigger();
+    await installed('chrome_update');
+    await installed('browser_update');
+    await installed('update');
+
+    expect(duplicates).toEqual([]);
+    expect([...menus]).toEqual([
       'clip-with-selection',
       'clip-page',
       'open-highlights-sidebar',
