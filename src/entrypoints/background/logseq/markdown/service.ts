@@ -4,6 +4,7 @@ import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
 import { blockUuid, withTagText, writeClipBlocks } from '../clip-blocks';
+import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import type { TemplateTag } from '@/utils/storage';
@@ -202,9 +203,18 @@ export default class LogseqService implements LogseqServiceInterface {
   public async clipBlocks(
     page: string,
     root: ClipBlock,
-    opts: { tag?: TemplateTag } = {},
+    opts: { tag?: TemplateTag; group?: GroupRequest } = {},
   ) {
     const name = opts.tag?.name.trim();
+    // A block of a file graph is a task when it has a marker.
+    const target = opts.group
+      ? findGroupTarget(
+          await this.client.getPageBlocksTree(page),
+          opts.group,
+          root.content,
+          (block) => Boolean(block?.marker),
+        )
+      : undefined;
     return await writeClipBlocks(
       page,
       name ? { ...root, content: withTagText(root.content, name) } : root,
@@ -218,6 +228,8 @@ export default class LogseqService implements LogseqServiceInterface {
           return { uuid: blockUuid(block) };
         },
       },
+      undefined,
+      target,
     );
   }
 

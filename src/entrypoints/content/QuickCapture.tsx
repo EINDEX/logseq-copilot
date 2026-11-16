@@ -8,6 +8,7 @@ import logo from '../../assets/img/logo.png?inline';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
+import { highlightClippedTextItem } from '@/utils/storage';
 import { ThemedHighlightCommentPopup } from '@/components/HighlightCommentPopup';
 import type { HighlightData } from '@/types/highlight';
 import { contentEvents } from '@/utils/content-events';
@@ -58,7 +59,8 @@ const captureSelection = (): Captured | null => {
 /**
  * Clip `captured` (or, without a selection, the page link). Resolves with the
  * clip once it is in Logseq and rejects with the readable error when it is not;
- * saving the highlight does not hold it up. `note` is what the user typed in
+ * the highlight is saved only once the clip is in Logseq, with the "Highlight
+ * clipped text" option on, and does not hold it up. `note` is what the user typed in
  * the picker panel: it goes to the template and to the highlight.
  */
 const sendClip = async (
@@ -69,8 +71,7 @@ const sendClip = async (
   if (!captured) return await clipPage(templateId, note);
   const { text, range } = captured;
   getSelection()?.empty();
-  // Clip first so a highlight failure never blocks the clip itself.
-  const clipped = sendMessage(
+  const clipped = await sendMessage(
     'logseq:clipWithSelection',
     templateId === undefined && !note
       ? text
@@ -80,8 +81,19 @@ const sendClip = async (
           ...(note && { note }),
         },
   );
-  void saveHighlight(range, note);
-  return await clipped;
+  // A failed clip threw above: it leaves no highlight.
+  void saveHighlightIfEnabled(range, note);
+  return clipped;
+};
+
+const saveHighlightIfEnabled = async (range: Range, note?: string) => {
+  try {
+    if (!(await highlightClippedTextItem.getValue())) return;
+  } catch (error) {
+    log.debug('[QuickCapture] Could not read the highlight option', error);
+    return;
+  }
+  await saveHighlight(range, note);
 };
 
 const capture = (templateId?: string) => sendClip(captureSelection(), templateId);

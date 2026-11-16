@@ -63,6 +63,7 @@ describe('background context menus', () => {
       page: 'p',
       templateId: 'clip',
       rootUuid: 'r',
+      added: true,
     });
     vi.mocked(showClipErrorBadge).mockReset().mockResolvedValue(undefined);
     vi.mocked(clearClipErrorBadges).mockReset().mockResolvedValue(undefined);
