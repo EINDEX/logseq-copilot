@@ -9,6 +9,7 @@ export type LogseqCopliotConfig = {
   logseqPort: number;
   logseqAuthToken: string;
   enableClipNoteFloatButton: boolean;
+  highlightClippedText: boolean;
   clipNoteLocation: string;
   clipNoteCustomPage: string;
   clipNoteTemplate: string;
@@ -455,6 +456,14 @@ export const enableClipNoteFloatButtonItem = storage.defineItem<boolean>(
   },
 );
 
+/** Highlight the text of a clipped selection on the page. */
+export const highlightClippedTextItem = storage.defineItem<boolean>(
+  'local:highlightClippedText',
+  {
+    fallback: true,
+  },
+);
+
 export const clipNoteLocationItem = storage.defineItem<string>(
   'local:clipNoteLocation',
   {
@@ -486,6 +495,7 @@ export const getLogseqCopliotConfig =
       logseqPort,
       logseqAuthToken,
       enableClipNoteFloatButton,
+      highlightClippedText,
       clipNoteLocation,
       clipNoteCustomPage,
       clipNoteTemplate,
@@ -495,6 +505,7 @@ export const getLogseqCopliotConfig =
       logseqPortItem.getValue(),
       logseqAuthTokenItem.getValue(),
       enableClipNoteFloatButtonItem.getValue(),
+      highlightClippedTextItem.getValue(),
       clipNoteLocationItem.getValue(),
       clipNoteCustomPageItem.getValue(),
       clipNoteTemplateItem.getValue(),
@@ -506,6 +517,7 @@ export const getLogseqCopliotConfig =
       logseqPort,
       logseqAuthToken,
       enableClipNoteFloatButton,
+      highlightClippedText,
       clipNoteLocation,
       clipNoteCustomPage,
       clipNoteTemplate,
@@ -537,6 +549,11 @@ export const saveLogseqCopliotConfig = async (
       enableClipNoteFloatButtonItem.setValue(updates.enableClipNoteFloatButton),
     );
   }
+  if (updates.highlightClippedText !== undefined) {
+    updatePromises.push(
+      highlightClippedTextItem.setValue(updates.highlightClippedText),
+    );
+  }
   if (updates.clipNoteLocation !== undefined) {
     updatePromises.push(
       clipNoteLocationItem.setValue(updates.clipNoteLocation),
@@ -563,6 +580,7 @@ export const storageItems = {
   logseqPort: logseqPortItem,
   logseqAuthToken: logseqAuthTokenItem,
   enableClipNoteFloatButton: enableClipNoteFloatButtonItem,
+  highlightClippedText: highlightClippedTextItem,
   clipNoteLocation: clipNoteLocationItem,
   clipNoteCustomPage: clipNoteCustomPageItem,
   clipNoteTemplate: clipNoteTemplateItem,

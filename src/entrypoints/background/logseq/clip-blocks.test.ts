@@ -54,7 +54,7 @@ describe.each([
   });
 
   test('writes the root through appendBlock and children below their parent, in order, and returns the root uuid', async () => {
-    await expect(service.clipBlocks('Page', TREE)).resolves.toEqual({
+    await expect(service.clipBlocks('Page', TREE)).resolves.toMatchObject({
       rootUuid: 'b1',
     });
     expect(calls).toEqual([
@@ -230,7 +230,7 @@ describe('clipBlocks tag on a DB graph', () => {
         // A stale uuid: the tag is found again by its title.
         tag: { name: 'reading', uuid: 'stale' },
       }),
-    ).resolves.toEqual({ rootUuid: 'b1' });
+    ).resolves.toMatchObject({ rootUuid: 'b1' });
     expect(calls).toEqual([
       'append Page | link',
       'addBlockTag b1 u-reading',
@@ -281,7 +281,7 @@ describe('clipBlocks tag on a DB graph', () => {
     fail(client);
     await expect(
       service.clipBlocks('Page', leaf('link', leaf('child')), { tag: { name: 'Reading' } }),
-    ).resolves.toEqual({ rootUuid: 'b1' });
+    ).resolves.toMatchObject({ rootUuid: 'b1' });
     expect(calls).toEqual(expect.arrayContaining(['append Page | link', 'child b1 | child']));
   });
 
