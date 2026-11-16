@@ -4,7 +4,24 @@
  * bare host would recall every note that mentions the site.
  */
 
+import { escapeForLogseq } from './utils';
+
 const segmentsOf = (url: URL) => url.pathname.split('/').filter(Boolean);
+
+/**
+ * `url.host + url.pathname` the way a clip writes it into a link destination.
+ * It is the same text unless the path has a parenthesis that no other one
+ * pairs with: the destination writes it as `%28` or `\)` (see
+ * `escapeForLogseq`, `linkDest`).
+ */
+export const storedHostPath = (url: URL): string => {
+  const plain = url.host + url.pathname;
+  const dest = escapeForLogseq(url.href, { context: 'linkDest' });
+  const from = dest.indexOf(url.host);
+  if (from < 0) return plain;
+  const end = dest.slice(from).search(/[?#]/);
+  return end < 0 ? dest.slice(from) : dest.slice(from, from + end);
+};
 
 /**
  * The prefixes (host + path, no scheme, no trailing slash) to search for a

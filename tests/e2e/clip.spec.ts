@@ -52,6 +52,30 @@ test.describe('clip (quick capture)', () => {
     expect(content).not.toContain('Nothing selected here');
   });
 
+  test('saves the page as a task', async ({ page, ext, logseq, articles }) => {
+    const id = nonce('cliptask');
+    const title = `Task page ${id}`;
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title, paragraph: 'Nothing selected here' });
+
+    await ext.connect();
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    // What the `clip-task` command sends.
+    await ext.sendToTab(page, 'content:quickCapture', { templateId: 'task' });
+
+    await expect.poll(async () => (await logseq.findBlocks(id)).length, { timeout: 30_000 }).toBeGreaterThan(0);
+    const [block] = await logseq.findBlocks(id);
+    const content: string = block.content ?? block.title ?? '';
+    expect(content).toContain(`[${title}](${url})`);
+    if (logseq.isDB) {
+      // DB graphs keep the task in the status property, not as text.
+      await expect.poll(() => logseq.taskMarker(block.uuid), { timeout: 30_000 }).toBe('TODO');
+    } else {
+      expect(content.startsWith(`TODO [${title}](${url})`)).toBe(true);
+    }
+  });
+
   test('shows in the page why nothing was clipped', async ({ page, ext, logseq, articles }) => {
     const id = nonce('clipfail');
     const url = `https://example.com/e2e/${id}`;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_TEMPLATE_CONTENT } from '@/utils/default-templates';
 import { useTemplates } from '@/hooks/use-templates';
 import { PageLayout, PageLoading } from '../components/page-layout';
 
@@ -20,8 +21,7 @@ const TemplatesIndexPage: React.FC = () => {
     const handleCreate = () => {
         addTemplate({
             name: 'New Template 1',
-            content: `#[[Clip]] [{{title}}]({{url}})
-{{content}}`,
+            content: DEFAULT_TEMPLATE_CONTENT,
             clipNoteLocation: 'journal',
             clipNoteCustomPage: '',
         });

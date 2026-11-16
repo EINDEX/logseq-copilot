@@ -11,6 +11,8 @@ import { UnknownIssues } from '@/entrypoints/background/logseq/error';
  */
 export interface ClipCommandOptions {
   feedback?: 'page' | 'sender';
+  /** The template to clip with; the first one without it. */
+  templateId?: string;
 }
 
 /**

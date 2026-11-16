@@ -22,6 +22,10 @@ import {
 } from './logseq/error';
 
 const service = vi.hoisted(() => ({
+  // Like the file graph service: the clip goes to the client's appendBlock.
+  clipBlock: vi.fn((page: string, content: string): unknown =>
+    service.client.appendBlock(page, content),
+  ),
   changeBlockMarker: vi.fn(),
   recall: vi.fn(),
   search: vi.fn(),
@@ -187,6 +191,12 @@ describe('logseq:clipPage', () => {
 
     const clippedBlock = () => service.client.appendBlock.mock.calls[0][1] as string;
 
+    test('with a templateId, clips with that template', async () => {
+      await sendMessage('logseq:clipPage', { templateId: 'task' });
+
+      expect(clippedBlock()).toBe('TODO [Active Page](https://active.example/)');
+    });
+
     test('with a tabId (the browser sidebar), the page in that tab', async () => {
       await sendMessage('logseq:clipPage', { tabId: besideTab.id });
 
@@ -284,6 +294,15 @@ describe('logseq:clipWithSelection', () => {
     expect(clippedBlock()).toContain('the selection');
     expect(clippedBlock()).toContain('[Clipped Page](https://clipped.example/post)');
     expect(clippedBlock()).not.toContain(otherTab.url);
+  });
+
+  test('with a templateId, clips the selection with that template', async () => {
+    await sendMessage('logseq:clipWithSelection', {
+      text: 'the selection',
+      templateId: 'task',
+    });
+
+    expect(clippedBlock()).toMatch(/^TODO \[Other Page\]\(https:\/\/other\.example\/\)\nthe selection/);
   });
 
   test('without a sender tab, clips the active tab of the current window', async () => {

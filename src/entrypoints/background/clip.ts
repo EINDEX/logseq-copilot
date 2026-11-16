@@ -1,5 +1,6 @@
 import { blockRending, formatLogseqDate } from '@/utils/utils';
-import { templates } from '@/utils/storage';
+import { templates, type TemplateItemV1 } from '@/utils/storage';
+import { TASK_TEMPLATE, TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import { getLogseqService } from './logseq/tool';
 import { throwIfClientError } from './logseq/error';
 
@@ -8,19 +9,37 @@ export interface ClipSource {
   url?: string;
   title?: string;
   data: string;
+  /** The template to clip with; the first one without it. */
+  templateId?: string;
 }
 
 /**
- * Render `source` with the default template and append it where the template
- * says. Throws when nothing was clipped, Logseq failures as LogseqError (a
+ * The template for `templateId`. Without one, the first template. The Task
+ * template comes back as the built-in when the user deleted it, any other
+ * missing id falls back to the first template.
+ */
+export const resolveTemplate = (
+  templateList: TemplateItemV1[],
+  templateId?: string,
+): TemplateItemV1 | undefined => {
+  if (templateId === undefined) return templateList[0];
+  const found = templateList.find((template) => template.id === templateId);
+  if (found) return found;
+  return templateId === TASK_TEMPLATE_ID ? TASK_TEMPLATE : templateList[0];
+};
+
+/**
+ * Render `source` with its template (the first by default) and append it
+ * where the template says. Throws when nothing was clipped, Logseq failures as LogseqError (a
  * readable message for the user).
  */
 export const clipToLogseq = async (source: ClipSource) => {
-  // Get the first template (default template) from the templates list
-  const templateList = await templates.getValue();
-  const defaultTemplate = templateList[0];
+  const template = resolveTemplate(
+    await templates.getValue(),
+    source.templateId,
+  );
 
-  if (!defaultTemplate) {
+  if (!template) {
     throw new Error('No clip template found. Add one in the extension settings.');
   }
 
@@ -35,27 +54,27 @@ export const clipToLogseq = async (source: ClipSource) => {
     url: source.url,
     title: source.title,
     data: source.data,
-    clipNoteTemplate: defaultTemplate.content,
+    clipNoteTemplate: template.content,
     preferredDateFormat: resp['preferredDateFormat'],
     time: now,
   });
 
-  const clipNoteLocation = defaultTemplate.clipNoteLocation || 'journal';
-  const clipNoteCustomPage = defaultTemplate.clipNoteCustomPage || '';
+  const clipNoteLocation = template.clipNoteLocation || 'journal';
+  const clipNoteCustomPage = template.clipNoteCustomPage || '';
 
   const journalPage = () => formatLogseqDate(now, resp['preferredDateFormat']);
 
   if (clipNoteLocation === 'customPage') {
-    await logseqService.client.appendBlock(clipNoteCustomPage, block);
+    await logseqService.clipBlock(clipNoteCustomPage, block);
   } else if (clipNoteLocation === 'currentPage') {
     // Logseq has no current page on its home and All Journals views: clip to
     // today's journal there.
     const currentPage = throwIfClientError(
       await logseqService.client.getCurrentPage(),
     )?.name;
-    await logseqService.client.appendBlock(currentPage || journalPage(), block);
+    await logseqService.clipBlock(currentPage || journalPage(), block);
   } else {
-    await logseqService.client.appendBlock(journalPage(), block);
+    await logseqService.clipBlock(journalPage(), block);
   }
 };
 
@@ -69,11 +88,13 @@ export const clipToLogseq = async (source: ClipSource) => {
 export const backgroundClipFallback = (
   info: { selectionText?: string; pageUrl?: string },
   tab?: { url?: string; title?: string },
+  templateId?: string,
 ): ClipSource | undefined => {
   if (!info.selectionText?.trim()) return undefined;
   return {
     url: info.pageUrl || tab?.url,
     title: tab?.title,
     data: info.selectionText,
+    ...(templateId && { templateId }),
   };
 };

@@ -3,11 +3,30 @@ import {
   broadestScopePrefix,
   mentionsScope,
   scopePrefixes,
+  storedHostPath,
 } from './recall-scope';
 import { RecallRuleProcessor } from './recall-rule-processor';
 import type { RecallRuleConfig } from './storage';
 
 const pr = new URL('https://github.com/foo/bar/pull/123');
+
+describe('storedHostPath', () => {
+  const stored = (href: string) => storedHostPath(new URL(href));
+
+  it('is host and path, as a clip writes them', () => {
+    expect(stored('https://example.com/a/b?q=1#f')).toBe('example.com/a/b');
+    expect(stored('https://example.com/a[b]c/Foo_(bar)')).toBe('example.com/a[b]c/Foo_(bar)');
+    expect(stored('https://example.com/')).toBe('example.com/');
+    expect(stored('https://user:pw@example.com:8080/a')).toBe('example.com:8080/a');
+  });
+
+  it('writes a parenthesis that no other pairs with as the destination does', () => {
+    expect(stored('https://example.com/a(b')).toBe('example.com/a%28b');
+    expect(stored('https://example.com/a)b')).toBe('example.com/a\\)b');
+    expect(stored('https://example.com/a(b?q=c)d')).toBe('example.com/a(b');
+    expect(stored('https://example.com/a(b#c')).toBe('example.com/a%28b');
+  });
+});
 
 describe('scopePrefixes', () => {
   it('is only the page without a depth', () => {

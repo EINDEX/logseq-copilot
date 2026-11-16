@@ -27,16 +27,22 @@ export interface MessagingProtocol {
    */
   'logseq:recall': (data: { query: string; url: string }) => RecallResult;
 
-  /** Rejects with a readable message (LogseqError) when nothing was clipped. */
-  'logseq:clipWithSelection': (data: string) => void;
+  /**
+   * The text is the selection as Markdown. With `templateId`, it is clipped
+   * with that template, without it (the bare text) with the first one.
+   * Rejects with a readable message (LogseqError) when nothing was clipped.
+   */
+  'logseq:clipWithSelection': (
+    data: string | { text: string; templateId: string },
+  ) => void;
 
   /**
    * Clips the link of the page in tab `tabId` or, without one, in the active
    * tab of the current window. Senders without a tab of their own (the
-   * browser sidebar) name the tab. Rejects with a readable message
+   * browser sidebar) name the tab. `templateId` picks the template. Rejects with a readable message
    * (LogseqError) when nothing was clipped.
    */
-  'logseq:clipPage': (data?: { tabId?: number }) => void;
+  'logseq:clipPage': (data?: { tabId?: number; templateId?: string }) => void;
 
   'logseq:changeBlockMarker': (data: {
     uuid: string;

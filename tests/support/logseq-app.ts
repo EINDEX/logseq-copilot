@@ -117,6 +117,7 @@ export interface LogseqApp {
   graph: string;
   version: string;
   callApi: (method: string, args?: unknown[]) => Promise<any>;
+  screenshot: (path: string) => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -527,6 +528,9 @@ export async function startLogseq(options: LogseqAppOptions): Promise<LogseqApp>
       graph: graph?.name,
       version: info?.version,
       callApi,
+      screenshot: async (file: string) => {
+        await win.screenshot({ path: file });
+      },
       close: async () => {
         step('closing');
         await cleanup();
