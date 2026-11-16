@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { GripVertical, Plus, Trash } from "lucide-react"
+import { GripVertical, Pin, Plus, Star, Trash } from "lucide-react"
 import {
   DndContext,
   DragEndEvent,
@@ -31,6 +31,7 @@ import { useState } from "react"
 import { CSS } from "@dnd-kit/utilities"
 import { NavLink, useLocation } from "react-router-dom"
 import { useTemplates } from "@/hooks/use-templates"
+import { useDefaultTemplateId } from "@/hooks/use-default-template-id"
 import { useCommandShortcuts } from "@/hooks/use-command-shortcuts"
 import {
   DropdownMenu,
@@ -39,17 +40,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TASK_TEMPLATE_ID, TEMPLATE_PRESETS, type TemplatePreset } from "@/utils/default-templates"
-import { TemplateItemV1 } from "@/utils/storage"
+import { defaultTemplateIdItem, TemplateItemV1 } from "@/utils/storage"
+import { isPinned, resolveDefaultTemplate } from "@/utils/template-choice"
+
+const rowButton =
+  'flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground focus-visible:opacity-100 disabled:pointer-events-none'
 
 // SortableTemplateItem component
 const SortableTemplateItem = ({
   id,
   name,
   shortcut,
+  isDefault,
+  pinned,
+  onPin,
+  onDefault,
   onDelete
 }: {
   id: string
   name: string
+  /** The default template: the one the clip shortcut uses; always pinned. */
+  isDefault: boolean
+  /** Offered in the picker panel (always, for the default). */
+  pinned: boolean
+  onPin: (id: string, pinned: boolean) => void
+  onDefault: (id: string) => void
   /** The keys of the command that clips with this template, if set. */
   shortcut?: string
   /** Without it the template is the last one and cannot be deleted. */
@@ -75,31 +90,52 @@ const SortableTemplateItem = ({
           className="group-hover/item:bg-accent" 
           isActive={isActive}
         >
-          <NavLink to={`/template/${id}`} className="flex items-center w-full gap-2">
+          <NavLink to={`/template/${id}`} className="flex items-center w-full gap-2 pr-14">
             <GripVertical {...listeners}
               className="cursor-grab active:cursor-grabbing touch-none p-1 flex items-center justify-center rounded"
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder" />
             <span className="flex-grow text-left">{name}</span>
             {shortcut && (
-              <kbd
-                className={`text-xs font-sans text-muted-foreground ${onDelete ? 'group-hover/item:hidden' : ''}`}
-              >
+              <kbd className="text-xs font-sans text-muted-foreground">
                 {shortcut}
               </kbd>
             )}
           </NavLink>
         </SidebarMenuButton>
 
-        {onDelete && (
-          <SidebarMenuAction
-            onClick={() => onDelete(id)}
-            className="hidden group-hover/item:block"
+        <div className="absolute right-1 top-1.5 flex items-center gap-0.5">
+          <button
+            type="button"
+            aria-label="Default template"
+            aria-pressed={isDefault}
+            onClick={() => onDefault(id)}
+            className={`${rowButton} ${isDefault ? '' : 'opacity-0 group-hover/item:opacity-100'}`}
           >
-            <Trash className="w-4 h-4" />
-            <span className="sr-only">Delete Template</span>
-          </SidebarMenuAction>
-        )}
+            <Star className={`size-3.5 ${isDefault ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            type="button"
+            aria-label="Pinned"
+            aria-pressed={pinned}
+            // The default is always pinned.
+            disabled={isDefault}
+            onClick={() => onPin(id, !pinned)}
+            className={`${rowButton} ${pinned ? '' : 'opacity-0 group-hover/item:opacity-100'}`}
+          >
+            <Pin className={`size-3.5 ${pinned ? 'fill-current' : ''}`} />
+          </button>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className={`${rowButton} hidden group-hover/item:flex`}
+            >
+              <Trash className="size-3.5" />
+              <span className="sr-only">Delete Template</span>
+            </button>
+          )}
+        </div>
       </SidebarMenuItem>
     </div>
 
@@ -115,7 +151,9 @@ const TemplateItem = ({ name }: { name: string }) => (
 )
 
 export const TemplatesSidebar = () => {
-  const { templates, loading, addTemplate, deleteTemplate, reorderTemplates } = useTemplates();
+  const { templates, loading, addTemplate, updateTemplate, deleteTemplate, reorderTemplates } = useTemplates();
+  const defaultId = useDefaultTemplateId()
+  const defaultTemplate = resolveDefaultTemplate(templates, defaultId)
   const [activeId, setActiveId] = useState<string | null>(null)
   const shortcuts = useCommandShortcuts()
 
@@ -216,19 +254,23 @@ export const TemplatesSidebar = () => {
             strategy={verticalListSortingStrategy}
           >
             <SidebarMenu>
-              {templates.map((template, index) => (
+              {templates.map((template) => (
                 <SortableTemplateItem
                   key={template.id}
                   id={template.id}
                   name={template.name}
-                  // The first template is what `clip` uses, Task what `clip-task` does.
+                  // The default template is what `clip` uses, Task what `clip-task` does.
                   shortcut={
                     template.id === TASK_TEMPLATE_ID
                       ? shortcuts['clip-task']
-                      : index === 0
+                      : template.id === defaultTemplate?.id
                         ? shortcuts['clip']
                         : undefined
                   }
+                  isDefault={template.id === defaultTemplate?.id}
+                  pinned={isPinned(template, templates, defaultId)}
+                  onPin={(templateId, pinned) => updateTemplate(templateId, { pinned })}
+                  onDefault={(templateId) => void defaultTemplateIdItem.setValue(templateId)}
                   onDelete={templates.length > 1 ? handleDeleteTemplate : undefined}
                 />
               ))}

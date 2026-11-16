@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { renderClip, type ClipBlock } from '@/utils/clip-template';
+import { renderClip, usesNote, type ClipBlock } from '@/utils/clip-template';
 
 /** What a selection looks like after turndown: two paragraphs and a nested list. */
 export const SAMPLE_SELECTION = `The first paragraph of the selected text.
@@ -10,6 +10,9 @@ The second paragraph, with a [link](https://example.com).
 *   First item
     *   Nested item
 *   Second item`;
+
+/** The note of the sample clip, for a template that has `{{note}}`. */
+export const SAMPLE_NOTE = 'A note of mine, with a [[link]].';
 
 const SAMPLE = {
   title: 'Sample page',
@@ -55,6 +58,8 @@ export const ClipPreview: React.FC<{ template: string }> = ({ template }) => {
           ...SAMPLE,
           data: mode === 'selection' ? SAMPLE_SELECTION : '',
           time,
+          // Without `{{note}}` a note would add a block of its own: not shown.
+          note: usesNote(template) ? SAMPLE_NOTE : undefined,
         }),
       };
     } catch (error) {

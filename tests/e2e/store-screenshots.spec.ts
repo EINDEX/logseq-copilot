@@ -122,12 +122,12 @@ test.describe('store screenshots', () => {
     await openArticle(page);
     const body = articleBody(page);
     const sidebar = inPageSidebar(page);
-    await expect(sidebar.getByRole('button', { name: 'Clip selection' })).toBeVisible();
+    await expect(sidebar.getByRole('button', { name: 'Clip selection', exact: true })).toBeVisible();
 
     // Two passages of the lead: select with the mouse, then Clip selection.
     for (const [i, passage] of [PASSAGES.noteTaking, PASSAGES.wikis].entries()) {
       await dragSelect(page, body, passage, { ms: 300, glideMs: 100, via: FROM_BELOW });
-      const clip = sidebar.getByRole('button', { name: 'Clip selection' });
+      const clip = sidebar.getByRole('button', { name: 'Clip selection', exact: true });
       await expect(clip).toBeEnabled();
       await clip.click();
       await expect.poll(async () => (await savedHighlights(ext)).length).toBe(i + 1);
@@ -158,7 +158,7 @@ test.describe('store screenshots', () => {
       window.scrollTo(0, 0);
     });
     // Past the moment of "done" after the last clip: nothing is selected.
-    await expect(sidebar.getByRole('button', { name: 'Clip selection' })).toBeDisabled();
+    await expect(sidebar.getByRole('button', { name: 'Clip selection', exact: true })).toBeDisabled();
     await page.mouse.move(0, HEIGHT / 2);
     await page.waitForTimeout(500);
     await save('03-in-page-sidebar.png', await shot(page));

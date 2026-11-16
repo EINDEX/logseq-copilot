@@ -45,20 +45,24 @@ export const withTagText = (content: string, name: string): string => {
  * the page, then the children of each block below it, in order, depth first.
  * `onRoot` runs once the root is written, before its children; what it throws
  * does not stop the clip. Fails with a readable message at the first block
- * Logseq refuses; what was written before it stays. Returns the root's uuid.
+ * Logseq refuses; what was written before it stays. Returns the root's uuid
+ * and, when a block of the tree holds the clip's note (`note` on the block),
+ * the uuid of that block.
  */
 export const writeClipBlocks = async (
   page: string,
   root: ClipBlock,
   writer: BlockWriter,
   onRoot?: (rootUuid: string) => Promise<void>,
-): Promise<{ rootUuid: string }> => {
+): Promise<{ rootUuid: string; noteUuid?: string }> => {
   let written = 0;
+  let noteUuid: string | undefined;
 
   const writeChildren = async (parentUuid: string, children: ClipBlock[]) => {
     for (const child of children) {
       const { uuid } = await writer.insertChild(parentUuid, child.content);
       written++;
+      if (child.note && noteUuid === undefined) noteUuid = uuid;
       await writeChildren(uuid, child.children);
     }
   };
@@ -67,6 +71,7 @@ export const writeClipBlocks = async (
   try {
     ({ uuid: rootUuid } = await writer.append(page, root.content));
     written++;
+    if (root.note) noteUuid = rootUuid;
     if (onRoot) {
       try {
         await onRoot(rootUuid);
@@ -84,5 +89,5 @@ export const writeClipBlocks = async (
       { cause },
     );
   }
-  return { rootUuid };
+  return { rootUuid, ...(noteUuid !== undefined && { noteUuid }) };
 };

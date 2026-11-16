@@ -139,7 +139,7 @@ async function makeHighlights(context: BrowserContext, ext: Extension) {
   const sidebar = inPageSidebar(page);
   for (const [i, passage] of [PASSAGES.noteTaking, PASSAGES.wikis].entries()) {
     await dragSelect(page, body, passage, { ms: 200, glideMs: 50, via: FROM_BELOW });
-    await sidebar.getByRole('button', { name: 'Clip selection' }).click();
+    await sidebar.getByRole('button', { name: 'Clip selection', exact: true }).click();
     await expect.poll(async () => (await savedHighlights(ext)).length).toBe(i + 1);
   }
   const first = await textBox(body, PASSAGES.noteTaking);
@@ -285,7 +285,7 @@ test.describe('store video', () => {
     });
     await dragSelect(c, body, PASSAGES.numbered, { ms: 2200, glideMs: 1000, via: FROM_BELOW });
     await pause(c, 900);
-    const clipButton = cSidebar.getByRole('button', { name: 'Clip selection' });
+    const clipButton = cSidebar.getByRole('button', { name: 'Clip selection', exact: true });
     await expect(clipButton).toBeEnabled();
     await mark(c, 'clip-button', clipButton);
     // Down off the line first: the footnote right after the passage stays unhovered.

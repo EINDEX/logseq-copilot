@@ -874,3 +874,195 @@ describe('renderClip, a prefix of template output before the content', () => {
     expect(text('- Note: {{content}}', 'TODO x')).toBe('Note: TODO x');
   });
 });
+
+describe('{{note}}', () => {
+  const FLAT = '#[[Clip]] [{{title}}]({{url}})\n{{note}}\n{{content}}';
+  const OUTLINE = '- [{{title}}]({{url}})\n  - {{note}}\n  - {{content}}';
+  const withNote = (template: string, note: string | undefined, data = 'quote') =>
+    renderClip(template, vars(data, { note }));
+
+  describe('in a flat template', () => {
+    it('is the text of the user, in the block', () => {
+      expect(withNote(FLAT, 'my thoughts')).toEqual([
+        {
+          content: '#[[Clip]] [Sample](https://example.com/a)\nmy thoughts\nquote',
+          children: [],
+        },
+      ]);
+    });
+
+    it('keeps its Logseq syntax live: links, tags, refs, tasks, properties', () => {
+      const note = 'see [[Page X]] #tag #[[a tag]] ((6f1b2c3d-0000-4000-8000-000000000000))\nkey:: value\nTODO later';
+      const [{ content }] = withNote(FLAT, note);
+      expect(content).toContain(note);
+    });
+
+    it('keeps several lines, trimmed', () => {
+      const [{ content }] = withNote(FLAT, '\n  one\n\ntwo  \n');
+      expect(content).toBe('#[[Clip]] [Sample](https://example.com/a)\none\n\ntwo\nquote');
+    });
+
+    it('does not let a line become a bullet: the marker is escaped', () => {
+      const [{ content }] = withNote(FLAT, 'a\n- b\n* c\n+ d\n  - e\n-\n1. f');
+      expect(content).toContain('a\n\\- b\n\\* c\n\\+ d\n  \\- e\n\\-\n1. f');
+    });
+
+    it('lets a closed fence stand, and neutralises the mark that has no mate', () => {
+      const [paired] = withNote(FLAT, '```js\nx - y\n- z\n```\n- out');
+      // A bullet-like line is escaped inside the fence too (a file graph splits there).
+      expect(paired.content).toContain('```js\nx - y\n\\- z\n```\n\\- out');
+      const [open] = withNote(FLAT, 'before\n```js\ncode');
+      expect(open.content).toContain('before\n\\```js\ncode');
+      // The last mark is the odd one.
+      const [three] = withNote(FLAT, '```\na\n```\n```\nb');
+      expect(three.content).toContain('```\na\n```\n\\```\nb');
+      const [tilde] = withNote(FLAT, '~~~\nb');
+      expect(tilde.content).toContain('\\~~~\nb');
+    });
+
+    it('is empty text for an empty note: the line goes, no blank line is left', () => {
+      expect(withNote(FLAT, '')).toEqual([
+        { content: '#[[Clip]] [Sample](https://example.com/a)\nquote', children: [] },
+      ]);
+      expect(withNote(FLAT, undefined)).toEqual(withNote(FLAT, '  \n '));
+      expect(withNote('{{note}}\n{{content}}', '')[0].content).toBe('quote');
+      expect(withNote('{{content}}\n  {{ note }}  ', '')[0].content).toBe('quote');
+    });
+
+    it('is empty inline when the line has more than the note', () => {
+      expect(withNote('Note: {{note}} - {{content}}', '')[0].content).toBe('Note:  - quote');
+    });
+
+    it('passes the filters of the template', () => {
+      expect(withNote('{{note | upcase}}', 'hi there')[0].content).toBe('HI THERE');
+    });
+
+    it('can be read by a tag', () => {
+      const template = '{% if note != "" %}Note: {{note}}{% else %}no note{% endif %}';
+      expect(withNote(template, 'x')[0].content).toBe('Note: x');
+      expect(withNote(template, '')[0].content).toBe('no note');
+    });
+
+    it('is no block of its own', () => {
+      expect(JSON.stringify(withNote(FLAT, 'my thoughts'))).not.toContain('"note":true');
+    });
+  });
+
+  describe('in an outline template', () => {
+    it('is a block of its own on a bullet that has only {{note}}, marked', () => {
+      expect(withNote(OUTLINE, 'my thoughts')).toEqual([
+        {
+          content: '[Sample](https://example.com/a)',
+          children: [
+            { content: 'my thoughts', children: [], note: true },
+            { content: 'quote', children: [] },
+          ],
+        },
+      ]);
+    });
+
+    it('keeps the lines of a note below the bullet, inside the block', () => {
+      const [root] = withNote(OUTLINE, 'one\ntwo\n- three');
+      expect(root.children[0]).toEqual({
+        content: 'one\ntwo\n\\- three',
+        children: [],
+        note: true,
+      });
+    });
+
+    it('drops a bullet that has only {{note}} with its subtree when the note is empty', () => {
+      const template = '- [{{title}}]({{url}})\n  - {{note}}\n    - about it\n      - deeper\n  - {{content}}';
+      expect(withNote(template, '')).toEqual([
+        {
+          content: '[Sample](https://example.com/a)',
+          children: [{ content: 'quote', children: [] }],
+        },
+      ]);
+      // With a note the subtree stays.
+      const [root] = withNote(template, 'n');
+      expect(root.children[0]).toEqual({
+        content: 'n',
+        children: [{ content: 'about it', children: [{ content: 'deeper', children: [] }] }],
+        note: true,
+      });
+    });
+
+    it('drops only the bullet’s own subtree, not what follows it', () => {
+      const template = '- root\n  - {{note}}\n    - a\n\n  - sibling\n- not the root';
+      const [root] = withNote(template, '');
+      expect(root.children.map((b) => b.content)).toEqual(['sibling', 'not the root']);
+    });
+
+    it('renders empty inline on a bullet with more than the note', () => {
+      const [root] = withNote('- root\n  - Note: {{note}}', '');
+      expect(root.children).toEqual([{ content: 'Note:', children: [] }]);
+      const [filled] = withNote('- root\n  - Note: {{note}}', 'x');
+      expect(filled.children).toEqual([{ content: 'Note: x', children: [] }]);
+    });
+
+    it('is not a note block when it is inline, only a bullet that has only {{note}} is', () => {
+      const [root] = withNote('- root\n  - Note: {{note}}\n  - {{note | upcase}}', 'x');
+      expect(root.children).toEqual([
+        { content: 'Note: x', children: [] },
+        { content: 'X', children: [] },
+      ]);
+    });
+
+    it('puts the lines of a note on a block of the template in its column', () => {
+      const [root] = withNote('- root {{note}}\n  - child', 'a\nb');
+      expect(root.content).toBe('root a\nb');
+    });
+
+    it('a note that is only a bullet marker is text, not an empty block', () => {
+      const [root] = withNote(OUTLINE, '-');
+      expect(root.children[0]).toEqual({ content: '\\-', children: [], note: true });
+    });
+
+    it('the mark of a note block never reaches the text, whatever the note holds', () => {
+      const [root] = withNote(OUTLINE, 'x\uE000y');
+      expect(root.children[0].content).toBe('xy');
+      expect(JSON.stringify(root)).not.toContain('\uE000');
+    });
+  });
+
+  describe('a template without {{note}}', () => {
+    it('gets a non-empty note as the last child of the root: a block of its own', () => {
+      const clip = withNote('#[[Clip]] [{{title}}]({{url}})\n{{content}}', 'my note');
+      expect(clip).toEqual([
+        {
+          content: '#[[Clip]] [Sample](https://example.com/a)\nquote',
+          children: [{ content: 'my note', children: [], note: true }],
+        },
+      ]);
+    });
+
+    it('is after the children of an outline template', () => {
+      const [root] = withNote('- [{{title}}]({{url}})\n  - {{content}}', 'my note');
+      expect(root.children.map((b) => b.content)).toEqual(['quote', 'my note']);
+      expect(root.children[1].note).toBe(true);
+    });
+
+    it('is a single block, its lines neutralised, nothing is indented', () => {
+      const [root] = withNote('x', '- a\nb');
+      expect(root.children).toEqual([{ content: '\\- a\nb', children: [], note: true }]);
+    });
+
+    it('is nothing for an empty note: the output is what it always was', () => {
+      for (const template of [DEFAULT_TEMPLATE_CONTENT, ...TEMPLATE_PRESETS.map((p) => p.content)]) {
+        expect(withNote(template, '', 'q')).toEqual(renderClip(template, vars('q')));
+        expect(withNote(template, undefined, 'q')).toEqual(renderClip(template, vars('q')));
+      }
+    });
+
+    it('the built-in Clip with an empty note is byte for byte what it was', () => {
+      const [{ content, children }] = withNote(DEFAULT_TEMPLATE_CONTENT, '', 'The quote\n\nTwo');
+      expect(content).toBe('#[[Clip]] [Sample](https://example.com/a)\nThe quote\n\nTwo');
+      expect(children).toEqual([]);
+    });
+
+    it('does not count a template that reads note in a tag as without it', () => {
+      const [root] = withNote('{% if note %}has{% endif %}', 'x');
+      expect(root).toEqual({ content: 'has', children: [] });
+    });
+  });
+});

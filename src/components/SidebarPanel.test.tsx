@@ -496,8 +496,11 @@ describe('SidebarPanel', () => {
       const page = button('Clip page');
       const selection = button('Clip selection');
       expect(screen.getByRole('banner').contains(page)).toBe(true);
-      expect(page.parentElement).toBe(selection.parentElement);
-      expect(page.parentElement!.className).toContain('grid-cols-2');
+      // Each in a cell of the group: a split button when there are templates.
+      const group = page.closest('[role="group"]')!;
+      expect(selection.closest('[role="group"]')).toBe(group);
+      expect(page.parentElement).not.toBe(selection.parentElement);
+      expect(group.className).toContain('grid-cols-2');
     });
 
     it('offers Clip selection only with a selection on the page', () => {
@@ -549,6 +552,132 @@ describe('SidebarPanel', () => {
 
       expect(clipPage).toHaveBeenCalledTimes(1);
       expect(clipSelection).toHaveBeenCalledTimes(1);
+    });
+
+    describe('with several templates', () => {
+      const TEMPLATES = [
+        { id: 'clip', name: 'Clip' },
+        { id: 'task', name: 'Task' },
+        { id: 'reading', name: 'Reading note' },
+      ];
+      const SHORTCUTS = { clip: '⇧⌘U', 'clip-task': '⌥T', 'open-sidebar': '⌘B' };
+
+      /** Radix opens a menu on the pointer, then on the key. */
+      const openMenu = (name: string) => {
+        const trigger = button(`${name} with a template`);
+        fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: 'mouse' });
+        return screen.getByRole('menu');
+      };
+      const items = () => screen.getAllByRole('menuitem');
+
+      it('has no chevron with a single template, nor without any', () => {
+        const { unmount } = renderPanel({ templates: [TEMPLATES[0]] });
+        expect(screen.queryByRole('button', { name: /with a template/ })).toBeNull();
+        unmount();
+        renderPanel();
+        expect(screen.queryByRole('button', { name: /with a template/ })).toBeNull();
+      });
+
+      it('joins a chevron to each clip button', () => {
+        renderPanel({ templates: TEMPLATES, canClipSelection: true });
+
+        for (const name of ['Clip page', 'Clip selection']) {
+          const chevron = button(`${name} with a template`);
+          expect(chevron.parentElement).toBe(button(name).parentElement);
+          expect(chevron.getAttribute('aria-haspopup')).toBe('menu');
+        }
+      });
+
+      it('lists the templates, the default first, with the shortcuts that are set', () => {
+        renderPanel({ templates: TEMPLATES, shortcuts: SHORTCUTS, canClipSelection: true });
+        openMenu('Clip page');
+
+        expect(items().map((item) => item.textContent)).toEqual([
+          'Clip⇧⌘U',
+          'Task⌥T',
+          'Reading note',
+        ]);
+      });
+
+      it('shows no shortcut that is not set', () => {
+        renderPanel({ templates: TEMPLATES, shortcuts: {}, canClipSelection: true });
+        openMenu('Clip page');
+        expect(items().map((item) => item.textContent)).toEqual(['Clip', 'Task', 'Reading note']);
+      });
+
+      it('clips the page with the template that is picked', () => {
+        const clipPage = vi.fn();
+        const clipSelection = vi.fn();
+        renderPanel({
+          templates: TEMPLATES,
+          clip: idleClip({ clipPage, clipSelection }),
+          canClipSelection: true,
+        });
+        openMenu('Clip page');
+        fireEvent.click(items()[1]);
+
+        expect(clipPage).toHaveBeenCalledTimes(1);
+        expect(clipPage).toHaveBeenCalledWith('task');
+        expect(clipSelection).not.toHaveBeenCalled();
+      });
+
+      it('clips the selection with the template that is picked', () => {
+        const clipPage = vi.fn();
+        const clipSelection = vi.fn();
+        renderPanel({
+          templates: TEMPLATES,
+          clip: idleClip({ clipPage, clipSelection }),
+          canClipSelection: true,
+        });
+        openMenu('Clip selection');
+        fireEvent.click(items()[2]);
+
+        expect(clipSelection).toHaveBeenCalledWith('reading');
+        expect(clipPage).not.toHaveBeenCalled();
+      });
+
+      it('leaves the main part as it was: the default template, no argument', () => {
+        const clipPage = vi.fn();
+        const clipSelection = vi.fn();
+        renderPanel({
+          templates: TEMPLATES,
+          clip: idleClip({ clipPage, clipSelection }),
+          canClipSelection: true,
+        });
+        fireEvent.click(button('Clip page'));
+        fireEvent.click(button('Clip selection'));
+
+        expect(clipPage).toHaveBeenCalledWith();
+        expect(clipSelection).toHaveBeenCalledWith();
+      });
+
+      it('turns the chevrons off as the buttons are', () => {
+        renderPanel({ templates: TEMPLATES, canClipSelection: false });
+        expect(button('Clip page with a template').disabled).toBe(false);
+        expect(button('Clip selection with a template').disabled).toBe(true);
+
+        cleanup();
+        renderPanel({
+          templates: TEMPLATES,
+          clip: idleClip({ clipping: 'page' }),
+          canClipSelection: true,
+        });
+        expect(button('Clip page with a template').disabled).toBe(true);
+        expect(button('Clip selection with a template').disabled).toBe(true);
+      });
+
+      it('opens the menu inside the panel, so a shadow root styles it', () => {
+        const { container } = renderPanel({ templates: TEMPLATES, canClipSelection: true });
+        openMenu('Clip page');
+        expect(container.contains(screen.getByRole('menu'))).toBe(true);
+      });
+
+      it('keeps the selection of the page when a chevron is pressed', () => {
+        renderPanel({ templates: TEMPLATES, canClipSelection: true });
+        const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 });
+        button('Clip selection with a template').dispatchEvent(press);
+        expect(press.defaultPrevented).toBe(true);
+      });
     });
 
     it('keeps the selection of the page when a clip button is pressed', () => {

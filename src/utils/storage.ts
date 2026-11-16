@@ -39,6 +39,12 @@ export interface TemplateItemV1 {
   clipNoteCustomPage?: string;
   /** Empty: no tag. */
   tag?: TemplateTag;
+  /**
+   * 常用: offered in the picker panel of the clip shortcut and the float
+   * button. The default template always counts as pinned; no template is
+   * pinned until the user pins it (src/utils/template-choice.ts).
+   */
+  pinned?: boolean;
 }
 
 export interface SearchEngineConfig {
@@ -141,6 +147,17 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
     version: 1,
     fallback: BUILT_IN_TEMPLATES.map((template) => ({ ...template })),
   },
+);
+
+/**
+ * The id of the default template: what the clip shortcut, the float button,
+ * the first button of the sidebar and a clip without a template choice use.
+ * `null` (never chosen), or the id of a template that is gone: the first
+ * template (`resolveDefaultTemplate`, src/utils/template-choice.ts).
+ */
+export const defaultTemplateIdItem = storage.defineItem<string | null>(
+  'local:defaultTemplateId',
+  { fallback: null },
 );
 
 /**

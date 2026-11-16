@@ -180,3 +180,28 @@ test.describe('options: template editor', () => {
     await expect(page.locator('#template-content .cm-tpl-bullet')).toHaveCount(0);
   });
 });
+
+test.describe('options: template pin and default', () => {
+  const template = (id: string, name: string) => ({
+    id,
+    name,
+    content: `- ${name} [{{title}}]({{url}})`,
+    clipNoteLocation: 'journal',
+    clipNoteCustomPage: '',
+  });
+
+  test('a pin toggle pins a template, a star makes it the default', async ({ ext }) => {
+    await ext.connect();
+    await ext.setStorage({ templates: [template('alpha', 'Alpha'), template('beta', 'Beta')] });
+    const options = await ext.openPage('options.html#/template/alpha');
+
+    // The default (the first) is always pinned, so its pin is not a toggle.
+    await options.click('[aria-label="Pinned"]:not([disabled])');
+    await expect
+      .poll(async () => ((await ext.getStorage('templates')) ?? []).find((t: any) => t.id === 'beta')?.pinned)
+      .toBe(true);
+
+    await options.click('[aria-label="Default template"][aria-pressed="false"]');
+    await expect.poll(() => ext.getStorage('defaultTemplateId')).toBe('beta');
+  });
+});
