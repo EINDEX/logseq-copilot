@@ -8,6 +8,7 @@ import { TemplateItemV1, type TemplateTag } from '@/utils/storage';
 import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
 import { ClipPreview } from '../components/clip-preview';
 import { TagField } from '../components/tag-field';
+import { RulesField } from '../components/rules-field';
 import {
     TemplateEditor,
     type TemplateEditorHandle,
@@ -157,6 +158,14 @@ const TemplateEditPage: React.FC = () => {
                         onChange={handleTagChange}
                     />
                 </div>
+            </PageSection>
+
+            <PageSection title="Page Rules">
+                <RulesField
+                    id="template-rules"
+                    value={template.rules}
+                    onChange={(rules) => updateTemplate({ rules })}
+                />
             </PageSection>
 
             <PageSection
