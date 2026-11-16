@@ -117,9 +117,11 @@ export default defineBackground({
     // the active tab of the current window can be another page once focus has
     // moved.
     onMessage('logseq:clipWithSelection', async ({ data, sender }) => {
-      const { text, templateId } =
-        typeof data === 'string' ? { text: data, templateId: undefined } : data;
-      await quickCapture(text, sender.tab, templateId);
+      const { text, templateId, note } =
+        typeof data === 'string'
+          ? { text: data, templateId: undefined, note: undefined }
+          : data;
+      return await quickCapture(text, sender.tab, templateId, note);
     });
 
     // The browser sidebar names the tab beside it: its messages have no
@@ -127,10 +129,11 @@ export default defineBackground({
     // window.
     onMessage('logseq:clipPage', async ({ data }) => {
       const tabId = data?.tabId;
-      await quickCapture(
+      return await quickCapture(
         '',
         tabId === undefined ? undefined : await browser.tabs.get(tabId),
         data?.templateId,
+        data?.note,
       );
     });
 
@@ -186,19 +189,27 @@ export default defineBackground({
       data: string,
       senderTab?: { id?: number; url?: string; title?: string },
       templateId?: string,
+      note?: string,
     ) => {
       const tab = senderTab ?? (await getCurrentTab());
       if (!tab) throw new Error('No tab to clip.');
-      await clip(
-        { url: tab.url, title: tab.title, data, ...(templateId && { templateId }) },
+      return await clip(
+        {
+          url: tab.url,
+          title: tab.title,
+          data,
+          ...(templateId && { templateId }),
+          ...(note && { note }),
+        },
         tab.id,
       );
     };
 
     const clip = async (source: ClipSource, tabId: number | undefined) => {
-      await clipToLogseq(source);
+      const clipped = await clipToLogseq(source);
       await clearClipErrorBadges();
       if (tabId !== undefined) debounceBadgeSearch(source.url, tabId);
+      return clipped;
     };
 
     browser.tabs.onActivated.addListener((activeInfo) => {

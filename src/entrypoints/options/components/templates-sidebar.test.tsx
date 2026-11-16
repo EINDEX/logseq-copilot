@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { fakeBrowser } from 'wxt/testing';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { templates } from '@/utils/storage';
+import { defaultTemplateIdItem, templates } from '@/utils/storage';
 import { TemplatesSidebar } from './templates-sidebar';
 
 const renderSidebar = () =>
@@ -62,6 +62,81 @@ describe('TemplatesSidebar', () => {
     await waitFor(() =>
       expect(key.closest('a')?.textContent).toContain('Task'),
     );
+  });
+
+  describe('pinned and default', () => {
+    const THREE = [
+      { id: 'a', name: 'Alpha', content: 'x' },
+      { id: 'b', name: 'Beta', content: 'x' },
+      { id: 'c', name: 'Gamma', content: 'x', pinned: true },
+    ];
+    const row = (name: string) => screen.getByText(name).closest('[data-sidebar="menu-item"]') as HTMLElement;
+    const star = (name: string) => within(row(name)).getByRole('button', { name: 'Default template' });
+    const pin = (name: string) => within(row(name)).getByRole('button', { name: 'Pinned' });
+
+    beforeEach(async () => {
+      await templates.setValue(THREE);
+    });
+
+    it('shows the first template as the default, and as pinned, until the user chooses', async () => {
+      renderSidebar();
+      await screen.findByText('Alpha');
+      expect(star('Alpha').getAttribute('aria-pressed')).toBe('true');
+      expect(star('Beta').getAttribute('aria-pressed')).toBe('false');
+      // The default is always pinned, and that is not up to the user.
+      expect(pin('Alpha').getAttribute('aria-pressed')).toBe('true');
+      expect((pin('Alpha') as HTMLButtonElement).disabled).toBe(true);
+      expect(pin('Beta').getAttribute('aria-pressed')).toBe('false');
+      expect(pin('Gamma').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('pins and unpins a template', async () => {
+      renderSidebar();
+      await screen.findByText('Alpha');
+      fireEvent.click(pin('Beta'));
+      await waitFor(async () =>
+        expect((await templates.getValue()).find((t) => t.id === 'b')?.pinned).toBe(true),
+      );
+      fireEvent.click(pin('Gamma'));
+      await waitFor(async () =>
+        expect((await templates.getValue()).find((t) => t.id === 'c')?.pinned).toBe(false),
+      );
+      await waitFor(() => expect(pin('Beta').getAttribute('aria-pressed')).toBe('true'));
+      expect(pin('Gamma').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('makes a template the default: it is pinned, the clip shortcut follows it', async () => {
+      renderSidebar();
+      await screen.findByText('Alpha');
+      fireEvent.click(star('Beta'));
+      await waitFor(async () => expect(await defaultTemplateIdItem.getValue()).toBe('b'));
+      await waitFor(() => expect(star('Beta').getAttribute('aria-pressed')).toBe('true'));
+      expect(star('Alpha').getAttribute('aria-pressed')).toBe('false');
+      expect((pin('Beta') as HTMLButtonElement).disabled).toBe(true);
+      expect(pin('Beta').getAttribute('aria-pressed')).toBe('true');
+      // Alpha was never pinned: it is no longer offered.
+      expect(pin('Alpha').getAttribute('aria-pressed')).toBe('false');
+      expect(row('Beta').textContent).toContain('Ctrl+Shift+U');
+      expect(row('Alpha').textContent).not.toContain('Ctrl+Shift+U');
+    });
+
+    it('falls back to the first template when the default is deleted, and forgets it', async () => {
+      await defaultTemplateIdItem.setValue('b');
+      renderSidebar();
+      await screen.findByText('Alpha');
+      expect(star('Beta').getAttribute('aria-pressed')).toBe('true');
+      fireEvent.click(within(row('Beta')).getByText('Delete Template'));
+      await waitFor(() => expect(screen.queryByText('Beta')).toBeNull());
+      expect(star('Alpha').getAttribute('aria-pressed')).toBe('true');
+      expect(await defaultTemplateIdItem.getValue()).toBeNull();
+    });
+
+    it('falls back to the first template for a default that is not in the list', async () => {
+      await defaultTemplateIdItem.setValue('gone');
+      renderSidebar();
+      await screen.findByText('Alpha');
+      expect(star('Alpha').getAttribute('aria-pressed')).toBe('true');
+    });
   });
 
   describe('the + menu', () => {

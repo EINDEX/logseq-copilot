@@ -9,6 +9,7 @@ import { detectArc } from './arc-detection';
 import mountQuickCapture, {
   hasClippableSelection,
   runClipCommand,
+  runPickedClip,
 } from './QuickCapture';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { keepOnPage } from './searchingEngines/keep-on-page';
@@ -48,9 +49,14 @@ export default defineContentScript({
     // Setup message listeners for background script communication
     // Clip commands: the clip shortcut and the context menu (from the
     // background), "Clip selection" (from the browser sidebar).
-    onMessage('content:quickCapture', ({ data }) =>
-      runClipCommand('selectionOrPage', data),
-    );
+    onMessage('content:quickCapture', ({ data }) => {
+      // The clip shortcut: the picker panel when there is a choice. clip-task
+      // names its template, and the sidebars name `sender`: explicit choices.
+      if (data?.templateId === undefined && (data?.feedback ?? 'page') === 'page') {
+        return runPickedClip();
+      }
+      return runClipCommand('selectionOrPage', data);
+    });
 
     onMessage('content:quickCaptureWithSelection', ({ data }) =>
       runClipCommand('selectionOrPage', data),

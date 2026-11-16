@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { useActiveTab } from '@/hooks/use-active-tab';
 import { useClipActions } from '@/hooks/use-clip-actions';
+import { useClipTemplates } from '@/hooks/use-clip-templates';
+import { useCommandShortcuts } from '@/hooks/use-command-shortcuts';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
@@ -73,16 +75,22 @@ export default function App() {
   }, [checkSelection]);
 
   // This page has no tab: the clips name the one beside it.
+  const clipTemplates = useClipTemplates();
+  const shortcuts = useCommandShortcuts();
   const clip = useClipActions(
     {
-      clipPage: () => sendMessage('logseq:clipPage', { tabId }),
-      clipSelection: async () => {
+      clipPage: (templateId) =>
+        sendMessage('logseq:clipPage', {
+          tabId,
+          ...(templateId !== undefined && { templateId }),
+        }),
+      clipSelection: async (templateId) => {
         if (tabId === undefined) throw new Error('No tab to clip.');
         // The same command as the "Clip selection" context menu item; a
         // failure is shown here, not in the page.
         await sendMessage(
           'content:quickCaptureWithSelection',
-          { feedback: 'sender' },
+          { feedback: 'sender', ...(templateId !== undefined && { templateId }) },
           tabId,
         );
       },
@@ -140,6 +148,8 @@ export default function App() {
         onRetryRecall={retryRecall}
         search={search}
         clip={clip}
+        templates={clipTemplates}
+        shortcuts={shortcuts}
         canClipSelection={canClipSelection}
         onClipActionsPointerEnter={checkSelection}
         onOpenSettings={openSettings}

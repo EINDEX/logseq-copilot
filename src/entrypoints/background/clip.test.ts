@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { templates } from '@/utils/storage';
+import { defaultTemplateIdItem, templates } from '@/utils/storage';
 import { formatLogseqDate } from '@/utils/logseq-format';
 import { backgroundClipFallback, clipToLogseq, resolveTemplate } from './clip';
 
@@ -106,6 +106,32 @@ describe('clipping with a template', () => {
     expect(resolveTemplate(list, 'gone')).toBe(list[0]);
   });
 
+  it('resolves no template id to the default template the user chose', () => {
+    expect(resolveTemplate(list, undefined, 'mine')).toBe(list[1]);
+  });
+
+  it('falls back to the first template when the chosen default is gone', () => {
+    expect(resolveTemplate(list, undefined, 'gone')).toBe(list[0]);
+    expect(resolveTemplate(list, 'gone', 'mine')).toBe(list[1]);
+  });
+
+  it('clips with the default template the user chose, without a template id', async () => {
+    await templates.setValue(list);
+    await defaultTemplateIdItem.setValue('mine');
+    await clipToLogseq({ data: 'x' });
+    expect(clippedText()).toBe('B x');
+  });
+
+  it('clips like before when the default was never chosen or was deleted', async () => {
+    await templates.setValue(list);
+    await clipToLogseq({ data: 'x' });
+    expect(clippedText()).toBe('A x');
+    client.appendBlock.mockClear();
+    await defaultTemplateIdItem.setValue('deleted');
+    await clipToLogseq({ data: 'x' });
+    expect(clippedText()).toBe('A x');
+  });
+
   it('clips with the first template without a template id', async () => {
     await templates.setValue(list);
     await clipToLogseq({ data: 'x' });
@@ -161,17 +187,19 @@ describe('clipping with a template', () => {
     });
   });
 
-  it('returns the page and the uuid of the root block', async () => {
+  it('returns the page, the template used and the root block', async () => {
     await templates.setValue([
       { id: 'p', name: 'P', content: 'x', clipNoteLocation: 'customPage', clipNoteCustomPage: 'Inbox' },
     ]);
     await expect(clipToLogseq({ data: '' })).resolves.toEqual({
       page: 'Inbox',
+      templateId: 'p',
       rootUuid: 'root-1',
     });
     await templates.setValue([{ id: 'j', name: 'J', content: 'x' }]);
     await expect(clipToLogseq({ data: '' })).resolves.toEqual({
       page: formatLogseqDate(new Date(), 'yyyy-MM-dd'),
+      templateId: 'j',
       rootUuid: 'root-1',
     });
   });
@@ -190,6 +218,17 @@ describe('clipping with a template', () => {
     await templates.setValue(list);
     await clipToLogseq({ data: 'one\n\ntwo' });
     expect(clippedText()).toBe('A one\n\ntwo');
+  });
+
+  it('returns the first template when the one asked for is gone', async () => {
+    await templates.setValue(list);
+    const written = await clipToLogseq({ data: 'x', templateId: 'gone' });
+    expect(written.templateId).toBe(list[0].id);
+  });
+
+  it('returns the template of the Task built-in', async () => {
+    const written = await clipToLogseq({ data: '', templateId: 'task' });
+    expect(written.templateId).toBe('task');
   });
 
   it('says so when a template makes no block', async () => {

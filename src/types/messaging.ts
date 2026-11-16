@@ -9,6 +9,7 @@ import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import type { RecallResult } from './recall';
 import type { ClipCommandOptions } from '@/utils/clip-feedback';
 import type { TemplateTag } from '@/utils/storage';
+import type { ClipResult } from './clip';
 
 // Define all message types for cross-context communication
 export interface MessagingProtocol {
@@ -30,20 +31,26 @@ export interface MessagingProtocol {
 
   /**
    * The text is the selection as Markdown. With `templateId`, it is clipped
-   * with that template, without it (the bare text) with the first one.
+   * with that template, without it (the bare text) with the default one.
+   * `note` is what the user typed in the picker panel (`{{note}}`).
    * Rejects with a readable message (LogseqError) when nothing was clipped.
+   * Resolves with the clip.
    */
   'logseq:clipWithSelection': (
-    data: string | { text: string; templateId: string },
-  ) => void;
+    data: string | { text: string; templateId?: string; note?: string },
+  ) => ClipResult;
 
   /**
    * Clips the link of the page in tab `tabId` or, without one, in the active
    * tab of the current window. Senders without a tab of their own (the
    * browser sidebar) name the tab. `templateId` picks the template. Rejects with a readable message
-   * (LogseqError) when nothing was clipped.
+   * (LogseqError) when nothing was clipped. Resolves with the clip.
    */
-  'logseq:clipPage': (data?: { tabId?: number; templateId?: string }) => void;
+  'logseq:clipPage': (data?: {
+    tabId?: number;
+    templateId?: string;
+    note?: string;
+  }) => ClipResult;
 
   /**
    * The tags of the graph a template can pick (the options page). Errors are

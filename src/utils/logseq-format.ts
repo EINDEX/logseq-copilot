@@ -29,7 +29,6 @@ export function logseqEscape(str: string): string {
   return str.replaceAll(/([\[\{\(]{2})/g, '\\$1');
 }
 
-
 export type EscapeContext =
   /** Markdown that turndown made from a page: keeps links, code and fences. */
   | 'block'
@@ -201,7 +200,9 @@ const scanInline = (
         const link = linkAt(line, i);
         if (link && link.end <= to) {
           // Only a destination that Logseq reads as one piece is left alone.
-          if (!DEST_BREAKERS.test(line.slice(link.labelEnd + 2, link.end - 1))) {
+          if (
+            !DEST_BREAKERS.test(line.slice(link.labelEnd + 2, link.end - 1))
+          ) {
             scanInline(line, i + 1, link.labelEnd, at, drop, true, bare);
             i = link.end;
           } else {
@@ -636,7 +637,9 @@ const plainWrap = (text: string, marks: Marks) =>
   marks.open(PLAIN_PAIR) + text + marks.close(PLAIN_PAIR);
 
 const strictWrap = (text: string, marks: Marks) =>
-  marks.open(STRICT_PAIR) + text.replace(marks.any, '') + marks.close(STRICT_PAIR);
+  marks.open(STRICT_PAIR) +
+  text.replace(marks.any, '') +
+  marks.close(STRICT_PAIR);
 
 /**
  * What a filter made from a value that had marks. Text keeps its marks when
@@ -684,28 +687,31 @@ for (const [name, original] of Object.entries(
   engine.filters as Record<string, any>,
 )) {
   if (typeof original !== 'function') continue;
-  engine.registerFilter(name, function (this: unknown, input: unknown, ...rest: unknown[]) {
-    const value = unwrap(input);
-    const args = rest.map(unwrap);
-    const marks = activeMarks;
-    if (marks && value instanceof Date) {
-      const result = original.call(this, value, ...args);
-      return typeof result === 'string' ? plainWrap(result, marks) : result;
-    }
-    if (!marks || ![value, ...args].some((v) => hasMarks(v, marks))) {
-      return original.call(this, value, ...args);
-    }
-    if (TEXT_FILTERS.has(name) && typeof value === 'string') {
-      const whole = marks.whole.exec(value);
-      if (whole && !hasMarks(whole[2], marks)) {
-        const result = original.call(this, whole[2], ...args);
-        return typeof result === 'string'
-          ? whole[1] + result + whole[3]
-          : result;
+  engine.registerFilter(
+    name,
+    function (this: unknown, input: unknown, ...rest: unknown[]) {
+      const value = unwrap(input);
+      const args = rest.map(unwrap);
+      const marks = activeMarks;
+      if (marks && value instanceof Date) {
+        const result = original.call(this, value, ...args);
+        return typeof result === 'string' ? plainWrap(result, marks) : result;
       }
-    }
-    return secure(original.call(this, value, ...args), marks);
-  });
+      if (!marks || ![value, ...args].some((v) => hasMarks(v, marks))) {
+        return original.call(this, value, ...args);
+      }
+      if (TEXT_FILTERS.has(name) && typeof value === 'string') {
+        const whole = marks.whole.exec(value);
+        if (whole && !hasMarks(whole[2], marks)) {
+          const result = original.call(this, whole[2], ...args);
+          return typeof result === 'string'
+            ? whole[1] + result + whole[3]
+            : result;
+        }
+      }
+      return secure(original.call(this, value, ...args), marks);
+    },
+  );
 }
 
 const randomDigits = (length: number) => {
@@ -742,7 +748,7 @@ const findRegions = (out: string, marks: Marks): Region[] => {
     strict: boolean;
   }[] = [];
   const kindOf = (pair: number): PageValueKind | 'plain' =>
-    pair === PLAIN_PAIR ? 'plain' : (VALUE_KINDS[pair - 1] ?? 'content');
+    pair === PLAIN_PAIR ? 'plain' : VALUE_KINDS[pair - 1] ?? 'content';
   // Where the last region ended: an orphan closing mark takes everything from
   // there, since its value lost its opening mark.
   let boundary = 0;
@@ -848,7 +854,10 @@ export function renderWithPageValues(
   context: Record<string, unknown>,
   values: Partial<Record<PageValueKind, string>>,
   write: (site: ValueSite) => string,
+  /** Text of the user, not of the page (the note): not a leak when it is in the output. */
+  trusted: string[] = [],
 ): string {
+  const known = [template, ...trusted].join('\n');
   const pageValues = Object.values(values).filter((v): v is string => !!v);
   // A template that prints a page value that is empty (a page without a title)
   // can leave white space in front of `{{content}}`.
@@ -921,7 +930,7 @@ export function renderWithPageValues(
       for (const text of outside) {
         for (let i = 0; ok && i + width <= text.length; i++) {
           const piece = text.slice(i, i + width);
-          if (value.includes(piece) && !template.includes(piece)) ok = false;
+          if (value.includes(piece) && !known.includes(piece)) ok = false;
         }
       }
     }
@@ -947,9 +956,7 @@ export function renderWithPageValues(
       strict = true;
       done = pass(true);
     } catch {
-      log.warn(
-        'the template renders without the page values',
-      );
+      log.warn('the template renders without the page values');
       return withoutValues();
     }
   }

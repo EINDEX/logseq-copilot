@@ -1,6 +1,12 @@
 import { renderClip } from '@/utils/clip-template';
 import { formatLogseqDate } from '@/utils/logseq-format';
-import { templates, type TemplateItemV1 } from '@/utils/storage';
+import {
+  defaultTemplateIdItem,
+  templates,
+  type TemplateItemV1,
+} from '@/utils/storage';
+import { resolveDefaultTemplate } from '@/utils/template-choice';
+import type { ClipResult } from '@/types/clip';
 import { TASK_TEMPLATE, TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import { getLogseqService } from './logseq/tool';
 import { throwIfClientError } from './logseq/error';
@@ -10,33 +16,34 @@ export interface ClipSource {
   url?: string;
   title?: string;
   data: string;
-  /** The template to clip with; the first one without it. */
+  /** The template to clip with; the default one without it. */
   templateId?: string;
+  /** What the user typed in the picker panel: `{{note}}` of the template. */
+  note?: string;
 }
 
 /**
- * The template for `templateId`. Without one, the first template. The Task
- * template comes back as the built-in when the user deleted it, any other
- * missing id falls back to the first template.
+ * The template for `templateId`. Without one, the default template (see
+ * `resolveDefaultTemplate`). The Task template comes back as the built-in when
+ * the user deleted it, any other missing id falls back to the default.
  */
 export const resolveTemplate = (
   templateList: TemplateItemV1[],
   templateId?: string,
+  defaultId?: string | null,
 ): TemplateItemV1 | undefined => {
-  if (templateId === undefined) return templateList[0];
+  if (templateId === undefined) {
+    return resolveDefaultTemplate(templateList, defaultId);
+  }
   const found = templateList.find((template) => template.id === templateId);
   if (found) return found;
-  return templateId === TASK_TEMPLATE_ID ? TASK_TEMPLATE : templateList[0];
+  return templateId === TASK_TEMPLATE_ID
+    ? TASK_TEMPLATE
+    : resolveDefaultTemplate(templateList, defaultId);
 };
 
-/** Where a clip went: the page, and the one top-level block it wrote. */
-export interface ClipResult {
-  page: string;
-  rootUuid: string;
-}
-
 /**
- * Render `source` with its template (the first by default) and append it
+ * Render `source` with its template (the default one without a choice) and append it
  * where the template says: one root block with everything else below it, the
  * template's tag on the root. Throws when nothing was clipped, Logseq failures
  * as LogseqError (a readable message for the user).
@@ -45,6 +52,7 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   const template = resolveTemplate(
     await templates.getValue(),
     source.templateId,
+    await defaultTemplateIdItem.getValue(),
   );
 
   if (!template) {
@@ -64,6 +72,7 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
     data: source.data,
     preferredDateFormat: resp['preferredDateFormat'],
     time: now,
+    note: source.note,
   });
 
   if (blocks.length === 0) {
@@ -73,10 +82,17 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   }
   // renderClip returns one root at most.
   const write = async (page: string): Promise<ClipResult> => {
-    const { rootUuid } = await logseqService.clipBlocks(page, blocks[0], {
-      tag: template.tag,
-    });
-    return { page, rootUuid };
+    const { rootUuid, noteUuid } = await logseqService.clipBlocks(
+      page,
+      blocks[0],
+      { tag: template.tag },
+    );
+    return {
+      page,
+      templateId: template.id,
+      rootUuid,
+      ...(noteUuid !== undefined && { noteBlockUuid: noteUuid }),
+    };
   };
 
   const clipNoteLocation = template.clipNoteLocation || 'journal';

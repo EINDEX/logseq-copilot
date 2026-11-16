@@ -59,9 +59,11 @@ describe('background context menus', () => {
     onCommand.addListener.mockReset();
     sidePanelOpen.mockReset().mockResolvedValue(undefined);
     vi.mocked(sendMessage).mockReset();
-    vi.mocked(clipToLogseq)
-      .mockReset()
-      .mockResolvedValue({ page: 'p', rootUuid: 'r' });
+    vi.mocked(clipToLogseq).mockReset().mockResolvedValue({
+      page: 'p',
+      templateId: 'clip',
+      rootUuid: 'r',
+    });
     vi.mocked(showClipErrorBadge).mockReset().mockResolvedValue(undefined);
     vi.mocked(clearClipErrorBadges).mockReset().mockResolvedValue(undefined);
     (fakeBrowser as any).contextMenus = { create, removeAll, onClicked };

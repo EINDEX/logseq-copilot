@@ -418,3 +418,50 @@ describe('hostile templates in an outline template', () => {
     );
   });
 });
+
+// `{{note}}` is the user's own text: it keeps its rules next to hostile page text.
+describe('the note next to hostile page text', () => {
+  const clip = (template: string, note: string, page = PAGE) =>
+    renderClip(template, {
+      ...page,
+      note,
+      preferredDateFormat: 'MMM do, yyyy',
+      time: new Date('2026-11-16T10:30:00'),
+    });
+
+  it('keeps the note live and the page text inert', () => {
+    const [root] = clip(
+      '- {{title}}\n  - {{note}}\n  - {{content}}',
+      '[[mine]] #mine',
+    );
+    const note = root.children.find((b) => b.note);
+    expect(note?.content).toBe('[[mine]] #mine');
+    for (const block of root.children.filter((b) => !b.note)) {
+      expectInert(block.content, ['https://e.com/', 'key:: ']);
+    }
+    expectInert(root.content, ['https://e.com/', 'key:: ']);
+  });
+
+  it('a note that quotes the page is not taken for a leak', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const [root] = clip(
+      '- {{title}}\n  - {{note}}',
+      '[[mine]] hostag 1234567890 abcdefghij',
+      {
+        ...PAGE,
+        data: 'hostag 1234567890 abcdefghij',
+      },
+    );
+    expect(root.children[0].content).toBe(
+      '[[mine]] hostag 1234567890 abcdefghij',
+    );
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('a flat template with the note and hostile content', () => {
+    const [block] = clip('{{note}}\n{{content}}', 'mine [[x]]');
+    expect(block.content.split('\n')[0]).toBe('mine [[x]]');
+    expectInert(block.content.split('\n').slice(1).join('\n'), []);
+  });
+});

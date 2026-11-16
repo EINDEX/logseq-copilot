@@ -34,6 +34,8 @@ import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { contentEvents } from '@/utils/content-events';
 import { detectArc } from './arc-detection';
+import { getActivePicker, openClipPicker } from './clip-picker';
+import { defaultTemplateIdItem, templates } from '@/utils/storage';
 import contentScript from './index';
 
 const saved: HighlightData = {
@@ -198,6 +200,111 @@ describe('content script startup', () => {
         data: { feedback: 'sender' },
       }),
     ).rejects.toThrow('Cannot connect to Logseq');
+  });
+
+  describe('the clip shortcut and the picker panel', () => {
+    const RESULT = { templateId: 'default', page: 'Nov 16th, 2026', rootUuid: 'r' };
+    const TWO = [
+      { id: 'default', name: 'Clip', content: '{{content}}' },
+      { id: 'task', name: 'Task', content: 'TODO {{content}}', pinned: true },
+    ];
+
+    beforeEach(() => {
+      vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
+        new Promise(() => {}),
+      );
+      void (contentScript as any).main({});
+      messaging.sendMessage.mockResolvedValue(RESULT);
+    });
+
+    afterEach(() => {
+      getActivePicker()?.destroy();
+    });
+
+    it('saves at once, as always, when only the default is on offer', async () => {
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+
+      expect(getActivePicker()).toBeNull();
+      expect(messaging.sendMessage).toHaveBeenCalledWith('logseq:clipPage');
+    });
+
+    it('opens the panel when a template is pinned, and saves nothing yet', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+
+      expect(getActivePicker()?.getView().templates.map((x) => x.id)).toEqual(['default', 'task']);
+      expect(messaging.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('offers the default first, whichever place it has in the list', async () => {
+      await templates.setValue([{ ...TWO[0], pinned: true }, TWO[1]]);
+      await defaultTemplateIdItem.setValue('task');
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+
+      expect(getActivePicker()?.getView().templates.map((x) => x.id)).toEqual(['task', 'default']);
+    });
+
+    it('the shortcut again saves the highlighted template, with the note so far', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+      getActivePicker()!.setNote('first thoughts');
+
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+
+      expect(getActivePicker()).toBeNull();
+      expect(messaging.sendMessage).toHaveBeenCalledTimes(1);
+      expect(messaging.sendMessage).toHaveBeenCalledWith('logseq:clipPage', {
+        templateId: 'default',
+        note: 'first thoughts',
+      });
+    });
+
+    it('clips anew, with no panel, for a command that names its template (clip-task)', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapture')!({ data: { templateId: 'task' } });
+      await flush();
+
+      expect(getActivePicker()).toBeNull();
+      expect(messaging.sendMessage).toHaveBeenCalledWith('logseq:clipPage', { templateId: 'task' });
+    });
+
+    it('is a command of the page only: the sidebar’s clip is a clip', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapture')!({ data: { feedback: 'sender' } });
+      await flush();
+
+      expect(getActivePicker()).toBeNull();
+      expect(messaging.sendMessage).toHaveBeenCalledWith('logseq:clipPage');
+    });
+
+    it('is not asked for by the context menu or the sidebar commands', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapturePage')!({ data: undefined });
+      await messaging.handlers.get('content:quickCaptureWithSelection')!({ data: { templateId: 'task' } });
+      await flush();
+
+      expect(getActivePicker()).toBeNull();
+    });
+
+    it('cancelling the panel writes nothing', async () => {
+      await templates.setValue(TWO);
+      await messaging.handlers.get('content:quickCapture')!({ data: undefined });
+      await flush();
+      getActivePicker()!.cancel();
+      expect(messaging.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('keeps no panel of its own: openClipPicker replaces the one that is up', () => {
+      const first = openClipPicker({ templates: [{ id: 'a', name: 'A' }], onDecide: vi.fn() });
+      openClipPicker({ templates: [{ id: 'b', name: 'B' }], onDecide: vi.fn() });
+      expect(first.getView().phase).toBe('closed');
+      expect(getActivePicker()?.getView().templates[0].id).toBe('b');
+    });
   });
 
   describe('for the browser sidebar', () => {

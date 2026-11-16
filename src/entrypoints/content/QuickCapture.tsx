@@ -17,6 +17,12 @@ import '@/assets/globals.css';
 import './index.module.scss';
 import log from '@/utils/logger';
 import { clipErrorMessage, type ClipCommandOptions } from '@/utils/clip-feedback';
+import type { ClipResult } from '@/types/clip';
+import { ClipToast } from './ClipToast';
+import { ClipPicker } from './ClipPicker';
+import { confirmActivePicker, openClipPicker } from './clip-picker';
+import { defaultTemplateIdItem, templates } from '@/utils/storage';
+import { pickerCandidates, skipPicker } from '@/utils/template-choice';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
@@ -28,32 +34,59 @@ export const hasClippableSelection = (
   // getSelection() is never null in practice; with no selection rangeCount is 0.
   !!selection && selection.rangeCount > 0 && !selection.isCollapsed;
 
+/** The selection, taken when a clip starts: its text and its range. */
+interface Captured {
+  text: string;
+  range: Range;
+}
+
 /**
- * Clip the selection (as Markdown, and highlight it) or, without one, the page
- * link. Resolves once the clip is in Logseq and rejects with the readable error
- * when it is not; saving the highlight does not hold it up.
+ * The selection as Markdown, with a clone of its range (the highlight is saved
+ * from it): moving focus later (the picker panel) cannot lose it. Null without
+ * a selection: the clip is the page link.
  */
-const capture = async (templateId?: string) => {
+const captureSelection = (): Captured | null => {
   const selection = getSelection();
-  if (!hasClippableSelection(selection)) {
-    await clipPage(templateId);
-    return;
-  }
-  const range = selection.getRangeAt(0);
-  const clonedSelection = range.cloneContents();
-  const turndownService = buildTurndownService();
-  selection.empty();
-  // Clip first so a highlight failure never blocks the clip itself.
-  const text = turndownService.turndown(clonedSelection);
-  const clipped = sendMessage(
-    'logseq:clipWithSelection',
-    templateId === undefined ? text : { text, templateId },
-  );
-  void saveHighlight(range);
-  await clipped;
+  if (!hasClippableSelection(selection)) return null;
+  const range = selection.getRangeAt(0).cloneRange();
+  return {
+    text: buildTurndownService().turndown(range.cloneContents()),
+    range,
+  };
 };
 
-const saveHighlight = async (range: Range) => {
+/**
+ * Clip `captured` (or, without a selection, the page link). Resolves with the
+ * clip once it is in Logseq and rejects with the readable error when it is not;
+ * saving the highlight does not hold it up. `note` is what the user typed in
+ * the picker panel: it goes to the template and to the highlight.
+ */
+const sendClip = async (
+  captured: Captured | null,
+  templateId?: string,
+  note?: string,
+): Promise<ClipResult> => {
+  if (!captured) return await clipPage(templateId, note);
+  const { text, range } = captured;
+  getSelection()?.empty();
+  // Clip first so a highlight failure never blocks the clip itself.
+  const clipped = sendMessage(
+    'logseq:clipWithSelection',
+    templateId === undefined && !note
+      ? text
+      : {
+          text,
+          ...(templateId !== undefined && { templateId }),
+          ...(note && { note }),
+        },
+  );
+  void saveHighlight(range, note);
+  return await clipped;
+};
+
+const capture = (templateId?: string) => sendClip(captureSelection(), templateId);
+
+const saveHighlight = async (range: Range, note?: string) => {
   try {
     // Add temporary highlight for immediate feedback, then persist it.
     const highlightManager = HighlightManager.getInstance();
@@ -61,21 +94,30 @@ const saveHighlight = async (range: Range) => {
     // Only saving needs the restored highlight state; the clip must not wait
     // for a slow restore.
     await highlightManager.ready;
-    await highlightManager.addHighlight(range);
+    await highlightManager.addHighlight(range, note || undefined);
   } catch (error) {
     log.debug('[QuickCapture] Failed to save highlight', error);
   }
 };
 
-const clipPage = async (templateId?: string) => {
-  if (templateId === undefined) await sendMessage('logseq:clipPage');
-  else await sendMessage('logseq:clipPage', { templateId });
+const clipPage = async (templateId?: string, note?: string): Promise<ClipResult> => {
+  const data = {
+    ...(templateId !== undefined && { templateId }),
+    ...(note && { note }),
+  };
+  return Object.keys(data).length === 0
+    ? await sendMessage('logseq:clipPage')
+    : await sendMessage('logseq:clipPage', data);
 };
 
-/** A clip started in the page: a failure is shown in the page (ClipError). */
-const clipInPage = async (clip: () => Promise<void>) => {
+/**
+ * A clip started in the page: a failure is shown in the page (ClipError), a
+ * success says where it went (ClipToast).
+ */
+const clipInPage = async (clip: () => Promise<ClipResult>) => {
   try {
-    await clip();
+    const result = await clip();
+    contentEvents.emit('clipped', { result, feedback: 'page' });
   } catch (error) {
     log.error('[QuickCapture] Clip failed', error);
     contentEvents.emit('clipFailed', { message: clipErrorMessage(error) });
@@ -85,7 +127,8 @@ const clipInPage = async (clip: () => Promise<void>) => {
 /**
  * Clip commands from the content script's message handlers: the clip shortcut
  * and the context menu (the background), "Clip selection" (the browser
- * sidebar). The sidebar drawn on the page calls it directly.
+ * sidebar). The sidebar drawn on the page calls it directly. A command that
+ * names its template, and the sidebars, are explicit choices: no picker.
  */
 export const runClipCommand = (
   command: 'selectionOrPage' | 'page',
@@ -93,7 +136,30 @@ export const runClipCommand = (
 ): Promise<void> => {
   const clip = () =>
     command === 'page' ? clipPage(templateId) : capture(templateId);
-  return feedback === 'sender' ? clip() : clipInPage(clip);
+  return feedback === 'sender' ? clip().then(() => undefined) : clipInPage(clip);
+};
+
+/**
+ * The clip shortcut and the float button: the picker panel when more than one
+ * template is on offer (the default and the pinned ones), else the clip is
+ * saved at once, as it always was. The shortcut again while the panel is up
+ * saves with the highlighted template.
+ */
+export const runPickedClip = async (): Promise<void> => {
+  if (confirmActivePicker()) return;
+  const [list, defaultId] = await Promise.all([
+    templates.getValue(),
+    defaultTemplateIdItem.getValue(),
+  ]);
+  const candidates = pickerCandidates(list, defaultId);
+  if (skipPicker(candidates)) return runClipCommand('selectionOrPage');
+  // The panel takes the focus, and with it the page's selection may go.
+  const captured = captureSelection();
+  openClipPicker({
+    templates: candidates.map(({ id, name }) => ({ id, name })),
+    onDecide: ({ templateId, note }) =>
+      void clipInPage(() => sendClip(captured, templateId, note)),
+  });
 };
 
 /** Outer size of the floating button in CSS px (img + padding + border). */
@@ -200,7 +266,7 @@ const FloatButton = () => {
       <img
         className="quickCapture"
         src={logo}
-        onClick={() => clipInPage(() => capture())}
+        onClick={() => void runPickedClip()}
         alt={'clip-button'}
         width={FLOAT_BUTTON_ICON}
         height={FLOAT_BUTTON_ICON}
@@ -386,6 +452,8 @@ const QuickCapture = ({ showFloatButton = true }: QuickCaptureProps) => {
       {showFloatButton && <FloatButton />}
       <HighlightComment />
       <ClipError />
+      <ClipToast />
+      <ClipPicker />
     </>
   );
 };

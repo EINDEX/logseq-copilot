@@ -8,6 +8,8 @@ import {
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useClipActions } from '@/hooks/use-clip-actions';
+import { useClipTemplates } from '@/hooks/use-clip-templates';
+import { useCommandShortcuts } from '@/hooks/use-command-shortcuts';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
@@ -63,11 +65,14 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
 
   // The clip shortcut's own clips, with the failure shown in the sidebar
   // instead of the page.
+  const clipTemplates = useClipTemplates();
+  const shortcuts = useCommandShortcuts();
   const clip = useClipActions(
     {
-      clipPage: () => runClipCommand('page', { feedback: 'sender' }),
-      clipSelection: () =>
-        runClipCommand('selectionOrPage', { feedback: 'sender' }),
+      clipPage: (templateId) =>
+        runClipCommand('page', { feedback: 'sender', templateId }),
+      clipSelection: (templateId) =>
+        runClipCommand('selectionOrPage', { feedback: 'sender', templateId }),
       // The clip mentions the page: Logseq has one more block about it.
       onClipped: refreshRecall,
     },
@@ -107,6 +112,8 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
           onRetryRecall={retryRecall}
           search={search}
           clip={clip}
+          templates={clipTemplates}
+          shortcuts={shortcuts}
           canClipSelection={canClipSelection}
           onOpenSettings={openSettings}
           onClose={close}

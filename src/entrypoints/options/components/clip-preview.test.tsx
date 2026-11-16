@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { ClipPreview } from './clip-preview';
+import { ClipPreview, SAMPLE_NOTE } from './clip-preview';
 
 afterEach(cleanup);
 
@@ -16,6 +16,21 @@ const bullets = () =>
       depth,
     };
   });
+
+describe('ClipPreview, {{note}}', () => {
+  it('shows a sample note where the template puts it', () => {
+    render(<ClipPreview template={'- [{{title}}]({{url}})\n  - {{note}}\n  - {{content}}'} />);
+    const [root, note] = bullets();
+    expect(root.depth).toBe(0);
+    expect(note).toEqual({ text: SAMPLE_NOTE, depth: 1 });
+  });
+
+  it('shows no note block for a template without {{note}}: a clip with a note would add one', () => {
+    render(<ClipPreview template={'#[[Clip]] [{{title}}]({{url}})\n{{content}}'} />);
+    expect(bullets()).toHaveLength(1);
+    expect(document.body.textContent).not.toContain(SAMPLE_NOTE);
+  });
+});
 
 describe('ClipPreview', () => {
   it('shows a nested template as a tree of bullets', () => {

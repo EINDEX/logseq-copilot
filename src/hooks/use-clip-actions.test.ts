@@ -47,6 +47,21 @@ describe('useClipActions', () => {
     expect(handlers.clipSelection).toHaveBeenCalledTimes(1);
   });
 
+  it('hands the template of a clip to the handler, and none when there is none', async () => {
+    const handlers = handlersWith();
+    const { result } = render(handlers);
+
+    await act(async () => result.current.clipPage('task'));
+    await act(async () => result.current.clipSelection('reading'));
+    await act(async () => result.current.clipPage());
+    await act(async () => result.current.clipSelection());
+
+    expect(handlers.clipPage).toHaveBeenNthCalledWith(1, 'task');
+    expect(handlers.clipSelection).toHaveBeenNthCalledWith(1, 'reading');
+    expect(handlers.clipPage).toHaveBeenNthCalledWith(2);
+    expect(handlers.clipSelection).toHaveBeenNthCalledWith(2);
+  });
+
   it('says which action is clipping, and runs one at a time', async () => {
     const page = deferred();
     const handlers = handlersWith({ clipPage: vi.fn(() => page.promise) });

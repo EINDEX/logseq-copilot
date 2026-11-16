@@ -17,6 +17,7 @@ const VARIABLES = [
     ['{{title}}', 'Page title'],
     ['{{url}}', 'Page URL'],
     ['{{content}}', 'Selected content'],
+    ['{{note}}', 'Note typed before saving'],
     ['{{date}}', 'Current date'],
     ['{{time}}', 'Current time'],
     ['{{dt}}', 'Date/time object'],

@@ -112,6 +112,40 @@ test.describe('browser sidebar', () => {
     await sidebar.expectText(`Sidebar page ${id}`, { timeout: 30_000 });
   });
 
+  test('"Clip page" saves with the default template, without a picker panel', async ({
+    page,
+    ext,
+    logseq,
+    articles,
+  }) => {
+    const id = nonce('sidedefault');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Sidebar page ${id}`, paragraph: `Words ${id}` });
+    const template = (tid: string, name: string, pinned = false) => ({
+      id: tid,
+      name,
+      content: `- ${name} [{{title}}]({{url}})`,
+      clipNoteLocation: 'journal',
+      clipNoteCustomPage: '',
+      pinned,
+    });
+
+    await ext.connect();
+    // Beta is the default and Alpha is pinned: a shortcut would ask, the buttons never do.
+    await ext.setStorage({ templates: [template('alpha', 'Alpha', true), template('beta', 'Beta')], defaultTemplateId: 'beta' });
+    await page.goto(url);
+    await page.waitForLoadState('load');
+
+    const sidebar = await ext.openSidePanel(page);
+    await sidebar.expectText('Nothing for this page yet');
+    await sidebar.clickButton('Clip page');
+
+    await expect.poll(async () => (await logseq.findBlocks(id)).length, { timeout: 30_000 }).toBeGreaterThan(0);
+    const [block] = await logseq.findBlocks(id);
+    expect(String(block.content ?? block.title ?? '')).toMatch(/^Beta /);
+    await expect(page.locator('logseq-copilot-popup [data-clip-picker]')).toHaveCount(0);
+  });
+
   test('offers "Clip selection" only while the page has a selection', async ({ page, ext, articles }) => {
     const id = nonce('sidenosel');
     const url = `https://example.com/e2e/${id}`;

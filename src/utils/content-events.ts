@@ -1,4 +1,5 @@
 import type { HighlightData } from '@/types/highlight';
+import type { ClipResult } from '@/types/clip';
 import log from './logger';
 
 /**
@@ -19,6 +20,8 @@ export type ContentEventMap = {
   };
   // A clip started in the page failed: QuickCapture shows the message.
   clipFailed: { message: string };
+  // A clip started in the page is in Logseq: QuickCapture says where it went.
+  clipped: { result: ClipResult; feedback: 'page' | 'sender' };
 };
 
 type Listener<T> = (payload: T) => void;

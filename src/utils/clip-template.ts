@@ -18,6 +18,14 @@
  * first root is empty (`- {{content}}` without a selection) its first child
  * becomes the root and the remaining children go under it (`singleRoot`).
  *
+ * `{{note}}` is the text the user typed before saving. It is their own text:
+ * `[[links]]`, `#tags` and refs stay live. Only what would change the clip's
+ * block tree is neutralised (`neutraliseNote`). With no note, a line that has
+ * only `{{note}}` is dropped, and in a tree template so is a bullet that has
+ * only `{{note}}`, with its subtree (`dropEmptyNote`). A bullet that has only
+ * `{{note}}` is the note block of the clip (`ClipBlock.note`). A template
+ * without `{{note}}` gets a non-empty note as the last child of the clip's root.
+ *
  * This module must not import turndown: the options page uses it for the
  * template preview.
  *
@@ -57,6 +65,7 @@ import {
   isFenceMark,
   logseqTimeFormat,
   midLineAt,
+  engine,
   renderWithPageValues,
   type MidLine,
   type ValueSite,
@@ -65,6 +74,8 @@ import {
 export interface ClipBlock {
   content: string;
   children: ClipBlock[];
+  /** This block holds the note of the clip, and nothing else (see `{{note}}`). */
+  note?: true;
 }
 
 export interface ClipVars {
@@ -73,9 +84,169 @@ export interface ClipVars {
   data: string;
   preferredDateFormat: string;
   time: Date;
+  /** What the user typed before saving: their own text, see `{{note}}`. */
+  note?: string;
 }
 
 const stripLiquidTags = (text: string) => text.replace(/\{%[\s\S]*?%\}/g, '');
+
+// ---- {{note}} ---------------------------------------------------------------
+
+/** The template variable that holds the note before it is placed. */
+const NOTE_RAW = '__clip_raw_note';
+/** Marks the note on a bullet of its own through rendering (a private-use char). */
+const NOTE_MARK = '\uE000';
+
+/** The note as typed: line breaks as `\n`, trimmed, `NOTE_MARK` removed. */
+const cleanNote = (note: string | undefined): string =>
+  (note ?? '').replace(/\r\n?/g, '\n').replaceAll(NOTE_MARK, '').trim();
+
+/** A list marker at the start of a line: `- `, `* `, `+ `, or the marker alone. */
+const NOTE_BULLET = /^([ \t]*)([-*+])(?=[ \t]|$)/;
+
+/**
+ * The note as text inside a block. The user's own Logseq syntax stays live
+ * (`[[links]]`, `#tags`, `((refs))`, `key:: value`, a task marker): what is
+ * neutralised is what would change the tree of blocks the clip writes.
+ *
+ * - A line that starts with `- `, `* ` or `+ ` (or is only the marker): Logseq
+ *   reads it as a new block. A backslash in front of the marker makes it text.
+ *   Not inside a code block the note closes itself: there the backslash would
+ *   show, and the line is code.
+ * - A fence mark that has no mate in the note: it would pair with the next mark
+ *   of the template (or hide it) and turn the template's lines into code, or
+ *   its code into text. The odd mark, the last one, gets a backslash. A mark
+ *   with a mate stays: the fence is the note's own.
+ *
+ * Lines after the first are indented by `column`, where the block's lines
+ * continue. Blank lines are kept without indent.
+ */
+export const neutraliseNote = (note: string, column = 0): string => {
+  const lines = cleanNote(note).split('\n');
+  const marks = lines.flatMap((line, index) =>
+    isFenceMark(line) ? [index] : [],
+  );
+  if (marks.length % 2 === 1) {
+    const last = marks[marks.length - 1];
+    lines[last] = lines[last].replace(/^(\s*)([`~])/, '$1\\$2');
+  }
+  // Escaped inside a closed fence too: a file graph splits a block at a raw
+  // `- ` line there (probed), so the code shows a backslash instead.
+  const pad = ' '.repeat(column);
+  return lines
+    .map((line, index) => {
+      const text = line.replace(NOTE_BULLET, '$1\\$2');
+      return index === 0 || text.trim() === '' ? text : pad + text;
+    })
+    .join('\n');
+};
+
+/** `{{note}}` in an output tag, or a tag that reads `note`. */
+const NOTE_USED = /\{\{-?\s*note\b|\{%[^%]*\bnote\b[^%]*%\}/;
+
+/** The template has `{{note}}` (or reads `note` in a tag). */
+export const usesNote = (template: string): boolean => NOTE_USED.test(template);
+
+const NOTE_LINE = /^[ \t]*\{\{-?\s*note\s*-?\}\}[ \t]*$/;
+const NOTE_BULLET_LINE = /^([ \t]*)- +\{\{-?\s*note\s*-?\}\}[ \t]*$/;
+
+/**
+ * The template for an empty note: a line that has only `{{note}}` is gone, no
+ * blank line left, and in a tree template a bullet that has only `{{note}}` is
+ * gone with its subtree (the lines below it that are indented deeper).
+ */
+export const dropEmptyNote = (template: string): string => {
+  const tree = isTreeTemplate(template);
+  const lines = template.split('\n');
+  const kept: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const bullet = tree ? NOTE_BULLET_LINE.exec(lines[i]) : null;
+    if (bullet) {
+      const indent = indentWidth(bullet[1]);
+      let end = i + 1;
+      while (
+        end < lines.length &&
+        (lines[end].trim() === '' ||
+          indentWidth(/^[ \t]*/.exec(lines[end])![0]) > indent)
+      ) {
+        end++;
+      }
+      // Blank lines at the end of the subtree belong to what follows.
+      while (end > i + 1 && lines[end - 1].trim() === '') end--;
+      i = end - 1;
+    } else if (!NOTE_LINE.test(lines[i])) {
+      kept.push(lines[i]);
+    }
+  }
+  return kept.join('\n');
+};
+
+/**
+ * Appends the note placement filter to every `{{note ...}}` output (after the
+ * user's own filters), with the column its line continues at. A bullet that has
+ * only `{{note}}` gets the mark that makes it the note block of the clip.
+ */
+export const placeNoteTags = (template: string): string =>
+  template.replace(
+    /\{\{(-?)([\s\S]*?)(-?)\}\}/g,
+    (
+      match,
+      lead: string,
+      expression: string,
+      trail: string,
+      offset: number,
+    ) => {
+      if (!/^\s*note\s*(\||$)/.test(expression)) return match;
+      const raw = expression.replace(/^(\s*)note/, `$1${NOTE_RAW}`);
+      const lineStart = template.lastIndexOf('\n', offset - 1) + 1;
+      const end = offset + match.length;
+      const lineEnd = template.indexOf('\n', end);
+      const before = stripLiquidTags(template.slice(lineStart, offset));
+      const after = stripLiquidTags(
+        template.slice(end, lineEnd === -1 ? template.length : lineEnd),
+      );
+      const startsBullet = /^([ \t]*)- /.exec(before);
+      const column = startsBullet
+        ? indentWidth(startsBullet[1]) + 2
+        : indentWidth(/^[ \t]*/.exec(before)![0]);
+      const alone =
+        /^[ \t]*- +$/.test(before) &&
+        after.trim() === '' &&
+        expression.trim() === 'note';
+      return `{{${lead}${raw}| ${NOTE_PLACE}: ${column}, ${alone} ${trail}}}`;
+    },
+  );
+
+const NOTE_PLACE = '__clip_note';
+// Registered on first use: the engine lives in a module that imports this one.
+let notePlaceRegistered = false;
+const registerNotePlace = () => {
+  if (notePlaceRegistered) return;
+  notePlaceRegistered = true;
+  engine.registerFilter(
+    NOTE_PLACE,
+    (value: unknown, column: number, alone: boolean) => {
+      const text = neutraliseNote(
+        value === undefined || value === null ? '' : String(value),
+        Number(column),
+      );
+      return alone && text !== '' ? NOTE_MARK + text : text;
+    },
+  );
+};
+
+/** The blocks with the mark of the note block read into `note`, the mark gone. */
+const readNoteMarks = (blocks: ClipBlock[]): ClipBlock[] =>
+  blocks.map((block) => {
+    const marked = block.content.startsWith(NOTE_MARK);
+    const { note: _drop, ...rest } = block;
+    return {
+      ...rest,
+      content: block.content.replaceAll(NOTE_MARK, ''),
+      children: readNoteMarks(block.children),
+      ...(marked && { note: true as const }),
+    };
+  });
 
 /**
  * The page values are rendered by `renderWithPageValues`, one implementation
@@ -88,17 +259,25 @@ const render = (
   template: string,
   vars: ClipVars,
   write: (site: ValueSite) => string,
-) =>
-  renderWithPageValues(
-    template,
+) => {
+  registerNotePlace();
+  const note = cleanNote(vars.note);
+  return renderWithPageValues(
+    placeNoteTags(note === '' ? dropEmptyNote(template) : template),
     {
+      // `{{note}}` is placed by `placeNoteTags`; `note` is for a tag that
+      // reads it (`{% if note %}`). The note is the user's own text.
+      note,
+      [NOTE_RAW]: note,
       date: formatLogseqDate(vars.time, vars.preferredDateFormat),
       time: logseqTimeFormat(vars.time),
       dt: vars.time,
     },
     { content: vars.data, title: vars.title, url: vars.url },
     write,
+    [note],
   );
+};
 
 /** A template rendered into a single block, trimmed. */
 export const renderFlatClip = (template: string, vars: ClipVars): string =>
@@ -117,7 +296,8 @@ export const isTreeTemplate = (template: string): boolean => {
   return false;
 };
 
-const indentWidth = (whitespace: string) => whitespace.replace(/\t/g, '  ').length;
+const indentWidth = (whitespace: string) =>
+  whitespace.replace(/\t/g, '  ').length;
 
 // ---- fences ---------------------------------------------------------------
 
@@ -183,8 +363,14 @@ export const parseOutline = (text: string): ClipBlock[] => {
 
   const start = (depth: number, first: string, row: number) => {
     while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
-    const draft: Draft = { block: { content: '', children: [] }, depth, lines: [first] };
-    (stack.length ? stack[stack.length - 1].block.children : roots).push(draft.block);
+    const draft: Draft = {
+      block: { content: '', children: [] },
+      depth,
+      lines: [first],
+    };
+    (stack.length ? stack[stack.length - 1].block.children : roots).push(
+      draft.block,
+    );
     stack.push(draft);
     drafts.push(draft);
     current = draft;
@@ -220,7 +406,8 @@ export const parseOutline = (text: string): ClipBlock[] => {
     else fence = row < lastMark && isFenceMark(line);
   }
 
-  for (const draft of drafts) draft.block.content = draft.lines.join('\n').trim();
+  for (const draft of drafts)
+    draft.block.content = draft.lines.join('\n').trim();
   return pruneEmpty(roots);
 };
 
@@ -229,7 +416,14 @@ export const parseOutline = (text: string): ClipBlock[] => {
 const LIST_ITEM = /^(\s*)([*+-]|\d{1,9}[.)])\s+(.*)$/;
 const HORIZONTAL_RULE = /^\s*([*_-])(?:\s*\1){2,}\s*$/;
 
-type LineKind = 'blank' | 'fence' | 'rule' | 'item' | 'quote' | 'table' | 'text';
+type LineKind =
+  | 'blank'
+  | 'fence'
+  | 'rule'
+  | 'item'
+  | 'quote'
+  | 'table'
+  | 'text';
 
 const kindOf = (line: string): LineKind => {
   if (line.trim() === '') return 'blank';
@@ -356,7 +550,8 @@ const indentContent = (
     .map((line, index) => {
       let text = line;
       const inFence = regions.some((r) => index >= r.open && index <= r.close);
-      if (!inFence && /^\s*- /.test(text)) text = text.replace(/^(\s*)- /, '$1\\- ');
+      if (!inFence && /^\s*- /.test(text))
+        text = text.replace(/^(\s*)- /, '$1\\- ');
       return index === 0 || text.trim() === '' ? text : pad + text;
     })
     .join('\n');
@@ -440,9 +635,27 @@ export const countRoots = (template: string): number =>
  * renders to no block at all.
  */
 export const renderClip = (template: string, vars: ClipVars): ClipBlock[] => {
+  const note = cleanNote(vars.note);
+  let blocks: ClipBlock[];
   if (!isTreeTemplate(template)) {
-    return [{ content: renderFlatClip(template, vars), children: [] }];
+    blocks = [{ content: renderFlatClip(template, vars), children: [] }];
+  } else {
+    const text = render(template, vars, writeTreeValue);
+    blocks = readNoteMarks(singleRoot(parseOutline(text)));
   }
-  const text = render(template, vars, writeTreeValue);
-  return singleRoot(parseOutline(text));
+  // A template without `{{note}}` keeps the note anyway: the last child of the
+  // clip's root, a block of its own.
+  if (note !== '' && !usesNote(template) && blocks.length > 0) {
+    const [root] = blocks;
+    blocks = [
+      {
+        ...root,
+        children: [
+          ...root.children,
+          { content: neutraliseNote(note), children: [], note: true },
+        ],
+      },
+    ];
+  }
+  return blocks;
 };
