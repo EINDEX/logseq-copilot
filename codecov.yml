@@ -13,6 +13,13 @@ coverage:
       default:
         target: 80%
 
+# The comment's header marks patch coverage with a red cross whenever any
+# changed line is not fully covered, even when the patch check above passes.
+# Leave it out: the checks carry pass/fail, the comment lists the files.
+comment:
+  layout: "condensed_files, condensed_footer"
+  hide_project_coverage: true
+
 # A run that uploads only one flag keeps the other flag's last coverage.
 flag_management:
   default_rules:
