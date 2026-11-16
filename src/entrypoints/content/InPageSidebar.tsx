@@ -8,7 +8,7 @@ import {
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useClipActions } from '@/hooks/use-clip-actions';
-import { useClipTemplates } from '@/hooks/use-clip-templates';
+import { ruledTemplateId, useClipTemplates } from '@/hooks/use-clip-templates';
 import { useCommandShortcuts } from '@/hooks/use-command-shortcuts';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
@@ -65,14 +65,19 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
 
   // The clip shortcut's own clips, with the failure shown in the sidebar
   // instead of the page.
-  const clipTemplates = useClipTemplates();
+  const clipTemplates = useClipTemplates(url);
+  // The main buttons name the rule winner of the page, if there is one.
+  const mainTemplateId = ruledTemplateId(clipTemplates);
   const shortcuts = useCommandShortcuts();
   const clip = useClipActions(
     {
       clipPage: (templateId) =>
-        runClipCommand('page', { feedback: 'sender', templateId }),
+        runClipCommand('page', { feedback: 'sender', templateId: templateId ?? mainTemplateId }),
       clipSelection: (templateId) =>
-        runClipCommand('selectionOrPage', { feedback: 'sender', templateId }),
+        runClipCommand('selectionOrPage', {
+          feedback: 'sender',
+          templateId: templateId ?? mainTemplateId,
+        }),
       // The clip mentions the page: Logseq has one more block about it.
       onClipped: refreshRecall,
     },

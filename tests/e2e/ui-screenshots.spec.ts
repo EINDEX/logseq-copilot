@@ -378,6 +378,53 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('clip picker panel with a template chosen by a page rule', async ({ page, ext, articles }) => {
+    fileGraphOnly();
+    const id = nonce('shotrule');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, {
+      title: 'Notes on building a second brain',
+      paragraph: 'Capture what resonates, organize by project, distill to the essence.',
+    });
+    await ext.connect();
+    await ext.setStorage({
+      templates: SHOT_TEMPLATES.map((t) => (t.id === 'task' ? { ...t, rules: ['example.com'] } : t)),
+    });
+    await page.goto(url);
+    const host = page.locator('logseq-copilot-popup');
+    await expect(host).toBeAttached();
+    const panel = host.locator('[data-clip-picker]');
+    const area = { x: VIEWPORT.width - 520, y: VIEWPORT.height - 320, width: 520, height: 320 };
+
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await ext.sendToTab(page, 'content:quickCapture');
+      await expect(panel).toBeVisible({ timeout: 30_000 });
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: file('panel-rule-match', scheme), caret: 'hide', clip: area });
+      await page.keyboard.press('Escape');
+      await expect(panel).toHaveCount(0);
+    }
+  });
+
+  test('template settings with page rules', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await ext.setStorage({
+      templates: SHOT_TEMPLATES.map((t) =>
+        t.id === 'task' ? { ...t, rules: ['github.com/*/issues/*', '*.example.com'] } : t,
+      ),
+    });
+    for (const scheme of SCHEMES) {
+      await setScheme(page, scheme);
+      await page.goto(ext.url('options.html#/template/task'));
+      await expect(page.locator('#template-rules')).toBeVisible({ timeout: 30_000 });
+      await page.locator('#template-rules').scrollIntoViewIfNeeded();
+      await shoot(page, 'settings-template-rules', scheme);
+    }
+  });
+
   test('template settings with a pinned template and a default', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();

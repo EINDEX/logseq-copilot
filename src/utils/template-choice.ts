@@ -1,4 +1,5 @@
 import type { TemplateItemV1 } from './storage';
+import { matchTemplateRules } from './template-rules';
 
 /**
  * The default template: the one `defaultId` names, else the first. `defaultId`
@@ -23,28 +24,45 @@ export const isPinned = (
   template.pinned === true;
 
 /**
- * The templates the picker panel offers: the default first, then the other
- * pinned ones in the order of the list. Nothing is pinned until the user pins
- * a template, so without settings it is the default alone.
+ * The templates the picker panel offers: the ones whose rules match the page
+ * (the most specific first, see `matchTemplateRules`), then the default, then
+ * the other pinned ones in the order of the list; none twice. A template that
+ * matches is offered whether it is pinned or not. Nothing is pinned or ruled
+ * until the user sets it, so without settings it is the default alone.
  */
 export const pickerCandidates = (
   templateList: TemplateItemV1[],
   defaultId?: string | null,
+  url?: string | URL | null,
 ): TemplateItemV1[] => {
+  const matched = matchTemplateRules(url, templateList);
   const fallback = resolveDefaultTemplate(templateList, defaultId);
-  if (!fallback) return [];
-  return [
-    fallback,
-    ...templateList.filter(
-      (template) => template.id !== fallback.id && template.pinned === true,
-    ),
-  ];
+  const rest = fallback
+    ? [fallback, ...templateList.filter((t) => t.id !== fallback.id && t.pinned === true)]
+    : [];
+  return [...matched, ...rest.filter((t) => !matched.some((m) => m.id === t.id))];
 };
 
 /**
- * Whether the clip is saved at once, with no panel: when the candidates are
- * one template or none. Takes the candidate list, so that rules (a page that
- * has its own template) can narrow it before the check.
+ * The template the clip buttons that name none use for the page: the rule
+ * winner, else the default. `ruled` tells which of the two it is.
+ */
+export const resolveClipTemplate = (
+  templateList: TemplateItemV1[],
+  defaultId?: string | null,
+  url?: string | URL | null,
+): { template: TemplateItemV1 | undefined; ruled: boolean } => {
+  const [winner] = matchTemplateRules(url, templateList);
+  return winner
+    ? { template: winner, ruled: true }
+    : { template: resolveDefaultTemplate(templateList, defaultId), ruled: false };
+};
+
+/**
+ * Whether the clip is saved at once, with no panel: when the candidates (rule
+ * matches, default and pinned, each once) are one template or none. A panel
+ * with one row offers no choice. That one is the default, so the clip needs
+ * to name no template.
  */
 export const skipPicker = (candidates: readonly unknown[]): boolean =>
   candidates.length < 2;

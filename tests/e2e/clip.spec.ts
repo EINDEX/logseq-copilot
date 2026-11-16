@@ -283,6 +283,69 @@ test.describe('clip (quick capture)', () => {
     await expect(panel(page)).toHaveCount(0);
   });
 
+  // Task has a rule for the host of the test page; nothing is pinned.
+  const task = { ...beta, id: 'task', name: 'Task', content: '- Task [{{title}}]({{url}})' };
+
+  test('a rule for the page opens the panel with Task highlighted, and the countdown saves a Task', async ({
+    page,
+    ext,
+    logseq,
+    articles,
+  }) => {
+    const { id } = await openPage(page, ext, articles, 'cliprule', [
+      alpha,
+      { ...task, rules: ['example.com'] },
+    ]);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    await expect(panel(page)).toBeVisible({ timeout: 30_000 });
+    await expect(panel(page).getByRole('option')).toHaveText([/Task/, /Alpha/]);
+    await expect(panel(page).getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
+    expect(await logseq.findBlocks(id)).toEqual([]);
+
+    await expect.poll(() => words(logseq, id), { timeout: 30_000 }).toEqual(['Task']);
+    await expect(panel(page)).toHaveCount(0);
+  });
+
+  test('without a match the default is used and no panel opens', async ({ page, ext, logseq, articles }) => {
+    const { id } = await openPage(page, ext, articles, 'clipnorule', [
+      alpha,
+      { ...task, rules: ['other.example'] },
+    ]);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    await expect.poll(() => words(logseq, id), { timeout: 30_000 }).toEqual(['Alpha']);
+    await expect(panel(page)).toHaveCount(0);
+  });
+
+  test('a rule that names only the default saves it at once: one row offers no choice', async ({
+    page,
+    ext,
+    logseq,
+    articles,
+  }) => {
+    const { id } = await openPage(page, ext, articles, 'cliprulealone', [
+      { ...alpha, rules: ['example.com'] },
+      task,
+    ]);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    await expect.poll(() => words(logseq, id), { timeout: 30_000 }).toEqual(['Alpha']);
+    await expect(panel(page)).toHaveCount(0);
+  });
+
+  test('the more specific rule wins', async ({ page, ext, logseq, articles }) => {
+    const { id } = await openPage(page, ext, articles, 'clipspecific', [
+      alpha,
+      { ...beta, rules: ['example.com'] },
+      { ...task, rules: ['example.com/e2e/*'] },
+    ]);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    await expect(panel(page).getByRole('option')).toHaveText([/Task/, /Beta/, /Alpha/]);
+    await expect.poll(() => words(logseq, id), { timeout: 30_000 }).toEqual(['Task']);
+  });
+
   test('the arrow keys stop the countdown, and Enter saves the second template', async ({
     page,
     ext,
