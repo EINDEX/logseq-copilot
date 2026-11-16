@@ -14,10 +14,10 @@ const clipBlocks = vi.fn(
   async (
     page: string,
     root: { content: string; children: unknown[] },
-    _opts?: { tag?: { name: string; uuid?: string } },
+    _opts?: { tag?: { name: string; uuid?: string }; group?: { url: string } },
   ) => {
     await client.appendBlock(page, root.content);
-    return { rootUuid: 'root-1' };
+    return { rootUuid: 'root-1', children: 0, added: true };
   },
 );
 
@@ -195,12 +195,14 @@ describe('clipping with a template', () => {
       page: 'Inbox',
       templateId: 'p',
       rootUuid: 'root-1',
+      added: true,
     });
     await templates.setValue([{ id: 'j', name: 'J', content: 'x' }]);
     await expect(clipToLogseq({ data: '' })).resolves.toEqual({
       page: formatLogseqDate(new Date(), 'yyyy-MM-dd'),
       templateId: 'j',
       rootUuid: 'root-1',
+      added: true,
     });
   });
 
@@ -283,5 +285,37 @@ describe('backgroundClipFallback', () => {
     ['a blank selection', { selectionText: ' \n ' }],
   ])('has nothing to clip with %s', (_, info) => {
     expect(backgroundClipFallback({ pageUrl: tab.url, ...info }, tab)).toBeUndefined();
+  });
+});
+
+describe('grouping the clips of a page', () => {
+  const useTemplate = (content: string) =>
+    templates.setValue([
+      { id: 't', name: 'T', content, clipNoteLocation: 'customPage', clipNoteCustomPage: 'Inbox' },
+    ] as never);
+  const groupOf = () => clipBlocks.mock.calls.at(-1)![2]?.group;
+  const source = { url: 'https://a.com/x', title: 'A', data: 'q' };
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+    vi.clearAllMocks();
+  });
+
+  it('is asked for by an outline template, with the URL of the page', async () => {
+    await useTemplate('- [{{title}}]({{url}})\n  - {{content}}');
+    await clipToLogseq(source);
+    expect(groupOf()).toEqual({ url: 'https://a.com/x' });
+  });
+
+  it('is never asked for by a flat template, so each clip is a new block', async () => {
+    await useTemplate('#[[Clip]] [{{title}}]({{url}})\n{{content}}');
+    await clipToLogseq(source);
+    expect(groupOf()).toBeUndefined();
+  });
+
+  it('is not asked for without a URL', async () => {
+    await useTemplate('- {{title}}\n  - {{content}}');
+    await clipToLogseq({ data: 'q' });
+    expect(groupOf()).toBeUndefined();
   });
 });

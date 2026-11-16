@@ -61,6 +61,14 @@ export default class LogseqClient
     ]);
   };
 
+  /**
+   * The blocks of a page as a tree, the top-level blocks first level. A page
+   * that does not exist comes back empty (`null` or an error object).
+   */
+  public getPageBlocksTree = async (page: string) => {
+    return await this.baseJson('logseq.Editor.getPageBlocksTree', [page]);
+  };
+
   public getCurrentPage = async () => {
     return await this.catchIssues(async () => {
       return await this.baseJson('logseq.Editor.getCurrentPage', []);
