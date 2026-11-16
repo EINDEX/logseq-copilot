@@ -199,6 +199,53 @@ describe('the picker panel (runPickedClip)', () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
+  it('opens the panel for a page with a rule, with the winner first and highlighted, though nothing is pinned', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue([
+      { id: 'clip', name: 'Clip', content: '{{content}}' },
+      { id: 'task', name: 'Task', content: 'TODO {{content}}', rules: [location.hostname] },
+    ]);
+
+    await runPickedClip();
+
+    const view = getActivePicker()!.getView();
+    expect(view.templates).toEqual([
+      { id: 'task', name: 'Task' },
+      { id: 'clip', name: 'Clip' },
+    ]);
+    expect(view.highlighted).toBe(0);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('saves at once, with no panel, when the only match is the default: one row offers no choice', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue([
+      { id: 'clip', name: 'Clip', content: '{{content}}', rules: [location.hostname] },
+      { id: 'task', name: 'Task', content: 'TODO {{content}}' },
+    ]);
+
+    await runPickedClip();
+
+    expect(getActivePicker()).toBeNull();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipPage');
+  });
+
+  it('saves at once when a rule matches another page: the rule does not open the panel', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue([
+      { id: 'clip', name: 'Clip', content: '{{content}}' },
+      { id: 'task', name: 'Task', content: 'TODO {{content}}', rules: ['elsewhere.example'] },
+    ]);
+
+    await runPickedClip();
+
+    expect(getActivePicker()).toBeNull();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipPage');
+  });
+
   it('takes the selection when it opens: the clip has it after the selection is gone', async () => {
     const { runPickedClip } = await import('./QuickCapture');
     const { getActivePicker } = await import('./clip-picker');
