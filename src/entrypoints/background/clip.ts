@@ -90,16 +90,23 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   // renderClip returns one root at most. Writes to a page go one at a time.
   const write = (page: string): Promise<ClipResult> =>
     runOnPage(page, async () => {
-      const { rootUuid, added, noteUuid } = await logseqService.clipBlocks(page, blocks[0], {
-        tag: template.tag,
-        group,
-      });
+      // Read before writing: a clip that is in Logseq must not fail afterwards.
+      const graph = await logseqService.getGraph();
+      const { rootUuid, added, noteUuid, noteText } = await logseqService.clipBlocks(
+        page,
+        blocks[0],
+        { tag: template.tag, group },
+      );
       return {
         page,
+        graph,
         templateId: template.id,
         rootUuid,
         added,
-        ...(noteUuid !== undefined && { noteBlockUuid: noteUuid }),
+        ...(noteUuid !== undefined && {
+          noteBlockUuid: noteUuid,
+          noteBlockText: noteText,
+        }),
       };
     });
 

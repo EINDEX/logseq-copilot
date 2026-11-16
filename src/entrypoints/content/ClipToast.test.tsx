@@ -9,7 +9,13 @@ import { CLIP_TOAST_MS, ClipToast } from './ClipToast';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 vi.mock('../../assets/img/logo.png', () => ({ default: '' }));
 
-const RESULT = { templateId: 'clip', page: 'Nov 16th, 2026', rootUuid: 'r', added: true };
+const RESULT = {
+  templateId: 'clip',
+  page: 'Nov 16th, 2026',
+  graph: 'g',
+  rootUuid: 'r',
+  added: true,
+};
 const TWO = [
   { id: 'clip', name: 'Clip', content: '{{content}}' },
   { id: 'task', name: 'Task', content: 'TODO {{content}}' },

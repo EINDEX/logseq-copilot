@@ -20,6 +20,7 @@ import log from '@/utils/logger';
 import { clipErrorMessage, type ClipCommandOptions } from '@/utils/clip-feedback';
 import { useStorageItem } from '@/hooks/use-storage-item';
 import type { ClipResult } from '@/types/clip';
+import { linkFromClip, type LogseqLink } from '@/types/annotation';
 import { ClipToast } from './ClipToast';
 import { ClipPicker } from './ClipPicker';
 import { confirmActivePicker, openClipPicker } from './clip-picker';
@@ -83,23 +84,27 @@ const sendClip = async (
         },
   );
   // A failed clip threw above: it leaves no highlight.
-  void saveHighlightIfEnabled(range, note);
+  void saveHighlightIfEnabled(range, note, linkFromClip(clipped));
   return clipped;
 };
 
-const saveHighlightIfEnabled = async (range: Range, note?: string) => {
+const saveHighlightIfEnabled = async (
+  range: Range,
+  note?: string,
+  logseq?: LogseqLink,
+) => {
   try {
     if (!(await highlightClippedTextItem.getValue())) return;
   } catch (error) {
     log.debug('[QuickCapture] Could not read the highlight option', error);
     return;
   }
-  await saveHighlight(range, note);
+  await saveHighlight(range, note, logseq);
 };
 
 const capture = (templateId?: string) => sendClip(captureSelection(), templateId);
 
-const saveHighlight = async (range: Range, note?: string) => {
+const saveHighlight = async (range: Range, note?: string, logseq?: LogseqLink) => {
   try {
     // Add temporary highlight for immediate feedback, then persist it.
     const highlightManager = HighlightManager.getInstance();
@@ -107,7 +112,7 @@ const saveHighlight = async (range: Range, note?: string) => {
     // Only saving needs the restored highlight state; the clip must not wait
     // for a slow restore.
     await highlightManager.ready;
-    await highlightManager.addHighlight(range, note || undefined);
+    await highlightManager.addHighlight(range, note || undefined, undefined, logseq);
   } catch (error) {
     log.debug('[QuickCapture] Failed to save highlight', error);
   }

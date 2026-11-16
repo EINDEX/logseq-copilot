@@ -7,6 +7,7 @@ import LogseqClient from './client';
 import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { blockUuid, writeClipBlocks } from '../clip-blocks';
+import { createNoteBlockApi } from '../note-blocks';
 import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
@@ -119,6 +120,22 @@ type PageCache = Map<string, Promise<LogseqPageIdenity>>;
 
 export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
+
+  private noteBlocks = createNoteBlockApi(
+    this.client,
+    () => this.getGraph(),
+    (text) =>
+      resolveUuidRefs(text, async (uuid) => {
+        const page: any = await this.client.getPage({ uuid });
+        return page?.originalName ?? page?.title ?? page?.name;
+      }),
+  );
+  public readBlock = (uuid: string) => this.noteBlocks.readBlock(uuid);
+  public insertChildBlock = (parentUuid: string, content: string) =>
+    this.noteBlocks.insertChildBlock(parentUuid, content);
+  public updateBlockText = (uuid: string, content: string) =>
+    this.noteBlocks.updateBlockText(uuid, content);
+  public removeBlock = (uuid: string) => this.noteBlocks.removeBlock(uuid);
 
   public async getGraph() {
     const graph = throwIfClientError(await this.client.getGraph());
@@ -358,7 +375,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
           throw new Error(String(result.error));
         }
       }
-      return { uuid };
+      return { uuid, ...(text !== content && { text }) };
     };
     const name = opts.tag?.name.trim();
     // A block of a DB graph is a task when it has a status.

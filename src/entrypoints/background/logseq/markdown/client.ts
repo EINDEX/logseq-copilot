@@ -61,6 +61,11 @@ export default class LogseqClient
     ]);
   };
 
+  /** Removes a block and what is below it. */
+  public removeBlock = async (uuid: string) => {
+    return await this.baseJson('logseq.Editor.removeBlock', [uuid]);
+  };
+
   /**
    * The blocks of a page as a tree, the top-level blocks first level. A page
    * that does not exist comes back empty (`null` or an error object).
