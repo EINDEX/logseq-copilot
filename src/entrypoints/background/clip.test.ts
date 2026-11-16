@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { templates } from '@/utils/storage';
-import { formatLogseqDate } from '@/utils/utils';
+import { formatLogseqDate } from '@/utils/logseq-format';
 import { backgroundClipFallback, clipToLogseq, resolveTemplate } from './clip';
 
 const client = {
@@ -9,12 +9,22 @@ const client = {
   getCurrentPage: vi.fn(async (): Promise<{ name: string } | null> => null),
   appendBlock: vi.fn(async (_page: string, _content: string) => ({})),
 };
+// Like a service: the root is written through the client, its uuid comes back.
+const clipBlocks = vi.fn(
+  async (
+    page: string,
+    root: { content: string; children: unknown[] },
+    _opts?: { tag?: { name: string; uuid?: string } },
+  ) => {
+    await client.appendBlock(page, root.content);
+    return { rootUuid: 'root-1' };
+  },
+);
 
 vi.mock('./logseq/tool', () => ({
   getLogseqService: async () => ({
     client,
-    clipBlock: (page: string, content: string) =>
-      client.appendBlock(page, content),
+    clipBlocks,
   }),
 }));
 
@@ -88,7 +98,7 @@ describe('clipping with a template', () => {
   it('falls back to the built-in Task when the user deleted it', () => {
     expect(resolveTemplate(list, 'task')).toMatchObject({
       id: 'task',
-      content: 'TODO [{{title}}]({{url}})\n{{content}}',
+      content: '- TODO [{{title}}]({{url}})\n  - {{content}}',
     });
   });
 
@@ -116,6 +126,79 @@ describe('clipping with a template', () => {
       templateId: 'task',
     });
     expect(clippedText()).toBe('TODO [Example](https://example.com/a)');
+    expect(clipBlocks.mock.calls[0][1].children).toEqual([]);
+  });
+
+  it('clips the selection under the task with the built-in Task template', async () => {
+    await clipToLogseq({
+      url: 'https://example.com/a',
+      title: 'Example',
+      data: 'one\n\ntwo',
+      templateId: 'task',
+    });
+    expect(clipBlocks).toHaveBeenCalledTimes(1);
+    const [, root] = clipBlocks.mock.calls[0];
+    expect(root).toEqual({
+      content: 'TODO [Example](https://example.com/a)',
+      children: [
+        { content: 'one', children: [] },
+        { content: 'two', children: [] },
+      ],
+    });
+  });
+
+  it('writes one root block, the others of a template under it', async () => {
+    await templates.setValue([
+      { id: 'two', name: 'Two', content: '- a\n- b\n  - c' },
+    ]);
+    await clipToLogseq({ data: '' });
+    expect(clipBlocks).toHaveBeenCalledTimes(1);
+    expect(clipBlocks.mock.calls[0][1]).toEqual({
+      content: 'a',
+      children: [
+        { content: 'b', children: [{ content: 'c', children: [] }] },
+      ],
+    });
+  });
+
+  it('returns the page and the uuid of the root block', async () => {
+    await templates.setValue([
+      { id: 'p', name: 'P', content: 'x', clipNoteLocation: 'customPage', clipNoteCustomPage: 'Inbox' },
+    ]);
+    await expect(clipToLogseq({ data: '' })).resolves.toEqual({
+      page: 'Inbox',
+      rootUuid: 'root-1',
+    });
+    await templates.setValue([{ id: 'j', name: 'J', content: 'x' }]);
+    await expect(clipToLogseq({ data: '' })).resolves.toEqual({
+      page: formatLogseqDate(new Date(), 'yyyy-MM-dd'),
+      rootUuid: 'root-1',
+    });
+  });
+
+  it('hands the template tag to the service', async () => {
+    const tag = { name: 'Reading', uuid: 'u-1' };
+    await templates.setValue([{ id: 't', name: 'T', content: 'x', tag }]);
+    await clipToLogseq({ data: '' });
+    expect(clipBlocks.mock.calls[0][2]).toEqual({ tag });
+    await templates.setValue([{ id: 'n', name: 'N', content: 'x' }]);
+    await clipToLogseq({ data: '' });
+    expect(clipBlocks.mock.calls[1][2]).toEqual({ tag: undefined });
+  });
+
+  it('writes a flat template with a selection as one block', async () => {
+    await templates.setValue(list);
+    await clipToLogseq({ data: 'one\n\ntwo' });
+    expect(clippedText()).toBe('A one\n\ntwo');
+  });
+
+  it('says so when a template makes no block', async () => {
+    await templates.setValue([{ id: 'e', name: 'E', content: '- {{content}}' }]);
+    await expect(clipToLogseq({ data: '' })).rejects.toThrow(
+      'The template made no block to clip.',
+    );
+    expect(client.appendBlock).not.toHaveBeenCalled();
+    expect(clipBlocks).not.toHaveBeenCalled();
   });
 });
 

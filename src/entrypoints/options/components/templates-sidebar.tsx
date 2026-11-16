@@ -32,7 +32,13 @@ import { CSS } from "@dnd-kit/utilities"
 import { NavLink, useLocation } from "react-router-dom"
 import { useTemplates } from "@/hooks/use-templates"
 import { useCommandShortcuts } from "@/hooks/use-command-shortcuts"
-import { DEFAULT_TEMPLATE_CONTENT, TASK_TEMPLATE_ID } from "@/utils/default-templates"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { TASK_TEMPLATE_ID, TEMPLATE_PRESETS, type TemplatePreset } from "@/utils/default-templates"
 import { TemplateItemV1 } from "@/utils/storage"
 
 // SortableTemplateItem component
@@ -145,10 +151,10 @@ export const TemplatesSidebar = () => {
     setActiveId(null)
   }
 
-  const handleAddTemplate = () => {
+  const handleAddTemplate = (preset: TemplatePreset) => {
     const newTemplate: Omit<TemplateItemV1, 'id'> = {
-      name: `New Template ${templates.length + 1}`,
-      content: DEFAULT_TEMPLATE_CONTENT,
+      name: preset.id === 'blank' ? `New Template ${templates.length + 1}` : preset.name,
+      content: preset.content,
       clipNoteLocation: 'journal',
       clipNoteCustomPage: ''
     }
@@ -175,10 +181,28 @@ export const TemplatesSidebar = () => {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Templates</SidebarGroupLabel>
-      <SidebarGroupAction onClick={handleAddTemplate}>
-        <Plus className="w-4 h-4" />
-        <span className="sr-only">Add Template</span>
-      </SidebarGroupAction>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarGroupAction>
+            <Plus className="w-4 h-4" />
+            <span className="sr-only">Add Template</span>
+          </SidebarGroupAction>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          {TEMPLATE_PRESETS.map((preset) => (
+            <DropdownMenuItem
+              key={preset.id}
+              className="flex-col items-start gap-1"
+              onSelect={() => handleAddTemplate(preset)}
+            >
+              <span>{preset.name}</span>
+              <pre className="max-w-full overflow-hidden text-ellipsis whitespace-pre font-mono text-[11px] leading-4 text-muted-foreground">
+                {preset.content}
+              </pre>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <SidebarGroupContent>
         <DndContext
           sensors={sensors}

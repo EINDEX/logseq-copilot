@@ -16,7 +16,8 @@ import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import LogseqDBService from '@/entrypoints/background/logseq/db/service';
 import LogseqService from '@/entrypoints/background/logseq/markdown/service';
 import { clipToLogseq } from '@/entrypoints/background/clip';
-import { TASK_TEMPLATE } from '@/utils/default-templates';
+import { renderClip } from '@/utils/clip-template';
+import { TASK_TEMPLATE, TEMPLATE_PRESETS } from '@/utils/default-templates';
 import { blockRending, buildTurndownService } from '@/utils/utils';
 import { LogseqServiceInterface } from '@/entrypoints/background/logseq/interfaces';
 
@@ -292,15 +293,25 @@ describe(`escaping page text (${variant})`, () => {
       (await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE])).body ?? [],
     );
   };
-  /** The block lines of the test page on disk (a file graph only). */
+  /**
+   * The number of block lines of the test page on disk (a file graph only),
+   * once the file has `stamp` and has stopped changing: Logseq writes late.
+   */
   const bulletLines = async (stamp: string) => {
     const graph = (await api('logseq.App.getCurrentGraph')).body;
     const file = `${graph.path}/pages/${TEST_PAGE}.md`;
-    const text = await eventually(
-      async () => (await import('node:fs')).readFileSync(file, 'utf8'),
-      (t) => t.includes(stamp),
-    );
-    return text.split('\n').filter((l) => /^\t*- /.test(l)).length;
+    const read = async () => (await import('node:fs')).readFileSync(file, 'utf8');
+    const count = (text: string) =>
+      text.split('\n').filter((l) => /^\t*- /.test(l)).length;
+    await eventually(read, (t) => t.includes(stamp));
+    let lines = count(await read());
+    for (let i = 0; i < 10; i++) {
+      await sleep(1000);
+      const next = count(await read());
+      if (next === lines) break;
+      lines = next;
+    }
+    return lines;
   };
 
   const template = (content: string) => ({
@@ -310,6 +321,18 @@ describe(`escaping page text (${variant})`, () => {
     clipNoteLocation: 'customPage' as const,
     clipNoteCustomPage: TEST_PAGE,
   });
+
+  /**
+   * A flat template and the same template as an outline: one top-level bullet,
+   * the other lines continue its block. Both write the same block text.
+   */
+  const shapes = (flat: string): [string, string][] => {
+    const [head, ...rest] = flat.split('\n');
+    return [
+      ['flat', flat],
+      ['outline', [`- ${head}`, ...rest.map((l) => `  ${l}`)].join('\n')],
+    ];
+  };
 
   // What turndown makes of a page that is full of Logseq syntax.
   const pageText = (refUuid: string) =>
@@ -347,7 +370,7 @@ describe(`escaping page text (${variant})`, () => {
   const expectNothingSpecial = async (
     uuid: string,
     before: { pages: string[]; tags: string[]; blocks: number },
-    allowed: { pages?: string[]; tags?: string[] } = {},
+    allowed: { pages?: string[]; tags?: string[]; blockTags?: string[] } = {},
   ) => {
     // The block entity and the page index are updated asynchronously.
     await sleep(2500);
@@ -361,7 +384,9 @@ describe(`escaping page text (${variant})`, () => {
       Object.keys(read.properties ?? {}).filter((k) => !(isDB && k === 'tags')),
     ).toEqual([]);
     expect(read[':logseq.property/status']).toBeUndefined();
-    expect(lower(read.tags ?? read[':block/tags'] ?? [])).toEqual(allowed.tags ?? []);
+    expect(lower(read.tags ?? read[':block/tags'] ?? [])).toEqual(
+      allowed.blockTags ?? allowed.tags ?? [],
+    );
     return read;
   };
 
@@ -371,7 +396,9 @@ describe(`escaping page text (${variant})`, () => {
     blocks: await countBlocks(),
   });
 
-  test('clips page text with every kind of syntax as plain text', async () => {
+  test.each(shapes('[{{title}}]({{url}})\n{{content}}'))(
+    'clips page text with every kind of syntax as plain text (%s template)',
+    async (_kind, templateContent) => {
     const service = await getLogseqService();
     const stamp = Date.now();
     const target = (await api('logseq.Editor.appendBlockInPage', [
@@ -381,9 +408,9 @@ describe(`escaping page text (${variant})`, () => {
     const content = pageText(target.uuid);
     const url = `https://example.com/escape-${stamp}/Foo_(bar)`;
     const title = `Foo [beta] #release ${stamp}`;
-    await templates.setValue([template('[{{title}}]({{url}})\n{{content}}')]);
+    await templates.setValue([template(templateContent)]);
     const before = await snapshot();
-    const bullets = isDB ? 0 : await bulletLines('Escape ref target');
+    const bullets = isDB ? 0 : await bulletLines(`Escape ref target ${stamp}`);
 
     await clipToLogseq({ url, title, data: content, templateId: 'escape' });
 
@@ -414,11 +441,14 @@ describe(`escaping page text (${variant})`, () => {
       // A line `- x` of the text would start a block when the file is read.
       expect(await bulletLines(`escape-${stamp}`)).toBe(bullets + 1);
     }
-  });
+  },
+  );
 
-  test('keeps the tag of the template and escapes the tags of the page', async () => {
+  test.each(shapes('#[[Clip]] [{{title}}]({{url}})\n{{content}}'))(
+    'keeps the tag of the template and escapes the tags of the page (%s template)',
+    async (_kind, templateContent) => {
     const stamp = Date.now();
-    await templates.setValue([template('#[[Clip]] [{{title}}]({{url}})\n{{content}}')]);
+    await templates.setValue([template(templateContent)]);
     const before = await snapshot();
     await clipToLogseq({
       url: `https://example.com/escape-tag-${stamp}`,
@@ -438,18 +468,22 @@ describe(`escaping page text (${variant})`, () => {
     const clip = before.pages.includes('clip') ? [] : ['clip'];
     const read = await expectNothingSpecial(uuid, before, {
       pages: clip,
-      // A DB graph makes the tag of the template a tag.
-      tags: isDB ? ['clip'] : [],
+      // A DB graph makes the tag of the template a tag, the first time only.
+      tags: isDB && !before.tags.includes('clip') ? ['clip'] : [],
+      blockTags: isDB ? ['clip'] : [],
     });
     expect(read.content ?? read.title).toContain(
       `[News \\#news ${stamp}](https://example.com/escape-tag-${stamp})`,
     );
-  });
+  },
+  );
 
-  test('keeps the first line of the block from being a task, property or block', async () => {
+  test.each(shapes('{{title}}\n{{content}}'))(
+    'keeps the first line of the block from being a task, property or block (%s template)',
+    async (_kind, templateContent) => {
     const stamp = Date.now();
     // The title is not in a link here: it can start the block.
-    await templates.setValue([template('{{title}}\n{{content}}')]);
+    await templates.setValue([template(templateContent)]);
     const before = await snapshot();
     const bullets = isDB ? 0 : await bulletLines('Escape ref target');
     await clipToLogseq({
@@ -470,6 +504,119 @@ describe(`escaping page text (${variant})`, () => {
       `\\TODO [\\#A] first line ${stamp}\nkey:\\: value\n\\- bullet`,
     );
     if (!isDB) expect(await bulletLines(`first line ${stamp}`)).toBe(bullets + 1);
+  },
+  );
+
+  // What turndown makes of a page when the template splits it into blocks: the
+  // paragraphs and items of a list, each one a block of its own.
+  const BLOCKS = [
+    'TODO first #tag [[page x]]\nkey:: value',
+    'DONE second SCHEDULED: <2030-01-01 Tue>',
+    '*   TODO item one {{macro x}}\n    *   key:: nested\n*   #item [[x]]',
+    '\\- not a bullet',
+    ':LOGBOOK:',
+    '```\n#fence [[x]] TODO\n```',
+  ].join('\n\n');
+
+  test('makes a block of each paragraph and item, none of them special', async () => {
+    const stamp = Date.now();
+    await templates.setValue([template('- [{{title}}]({{url}})\n  - {{content}}')]);
+    const before = await snapshot();
+    await clipToLogseq({
+      url: `https://example.com/escape-split-${stamp}`,
+      title: `Split #news ${stamp}`,
+      data: BLOCKS,
+      templateId: 'escape',
+    });
+
+    type Node = { text: string; children: Node[]; raw: any };
+    const toNode = (b: any): Node => ({
+      text: String(b.content ?? b.title ?? ''),
+      children: (b.children ?? []).map(toNode),
+      raw: b,
+    });
+    const read = async (): Promise<Node | undefined> => {
+      const tree = (await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE])).body ?? [];
+      const root = tree.find((b: any) =>
+        String(b.content ?? b.title ?? '').includes(`escape-split-${stamp}`),
+      );
+      return root && toNode(root);
+    };
+    const root = await eventually(read, (r) => (r?.children.length ?? 0) >= 6);
+    await sleep(2500);
+    const settled = (await read())!;
+
+    const all = (n: Node): Node[] => [n, ...n.children.flatMap(all)];
+    const nodes = all(settled);
+    expect(settled.text).toBe(
+      `[Split \\#news ${stamp}](https://example.com/escape-split-${stamp})`,
+    );
+    expect(root).toBeDefined();
+    // The text of each block, and the nesting of the list under its item.
+    expect(
+      settled.children.map((c) => [c.text, c.children.map((g) => g.text)]),
+    ).toEqual([
+      ['\\TODO first \\#tag \\[[page x]]\nkey:\\: value', []],
+      ['\\DONE second \\SCHEDULED: <2030-01-01 Tue>', []],
+      ['\\TODO item one \\{{macro x}}', ['key:\\: nested']],
+      ['\\#item \\[[x]]', []],
+      ['\\- not a bullet', []],
+      ['\\:LOGBOOK:', []],
+      // A DB graph turns a fenced block into a code block: its text is the code.
+      [isDB ? '#fence [[x]] TODO' : '```\n#fence [[x]] TODO\n```', []],
+    ]);
+    expect(nodes.length).toBe(1 + 7 + 1);
+    expect(await countBlocks()).toBe(before.blocks + nodes.length);
+    expect(await pageNames()).toEqual(before.pages);
+    expect(await tagNames()).toEqual(before.tags);
+    for (const node of nodes) {
+      expect(node.raw.marker ?? undefined).toBeUndefined();
+      expect(
+        Object.keys(node.raw.properties ?? {}).filter((k) => !(isDB && k === 'tags')),
+      ).toEqual([]);
+    }
+  });
+
+  // `- {{title}} {{content}}` with no title: the content starts the block, so
+  // its first line must not be live (marker, property, block, page or tag).
+  test('keeps the first line of the content text when the title is empty', async () => {
+    const stamp = Date.now();
+    await templates.setValue([template('- {{title}} {{content}}')]);
+    const lines = [
+      `TODO t${stamp}`,
+      `key:: t${stamp}`,
+      `- t${stamp}`,
+      `# t${stamp}`,
+      `SCHEDULED: <2030-01-01 Tue> t${stamp}`,
+    ];
+    const before = await snapshot();
+    for (const line of lines) {
+      await clipToLogseq({
+        url: `https://example.com/empty-title-${stamp}`,
+        title: '',
+        data: line,
+        templateId: 'escape',
+      });
+    }
+    const read = async () =>
+      ((await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE])).body ?? []).filter(
+        (b: any) => String(b.content ?? b.title ?? '').includes(`t${stamp}`),
+      );
+    await eventually(read, (r) => r.length >= lines.length);
+    await sleep(2500);
+    const blocks = await read();
+    expect(blocks.length).toBe(lines.length);
+    for (const block of blocks) {
+      expect(block.children ?? []).toEqual([]);
+      expect(block.marker ?? undefined).toBeUndefined();
+      expect(block.scheduled ?? undefined).toBeUndefined();
+      expect(
+        Object.keys(block.properties ?? {}).filter((k) => !(isDB && k === 'tags')),
+      ).toEqual([]);
+    }
+    expect(await countBlocks()).toBe(before.blocks + lines.length);
+    expect(await pageNames()).toEqual(before.pages);
+    expect(await tagNames()).toEqual(before.tags);
   });
 
   // What a hostile page can put in a link destination. The destination of a
@@ -637,6 +784,151 @@ describe(`escaping page text (${variant})`, () => {
     test('joins the lines of an alt text', async () => {
       const stored = await clip(mark('I4'), img('a](y)\n\n[[Page I4]]'));
       expect(stored).not.toMatch(/!\[[^\]]*\n/);
+    });
+
+    // The same pages through an outline template: the content is split into
+    // blocks, and each block is escaped. Splitter, escaper and outline parser
+    // must read the fences alike, or a line the escaper leaves as code starts a
+    // block of its own, and text of the page is active.
+    const NESTED = '- [{{title}}]({{url}})\n  - {{content}}';
+    const PREFIXED = '- [{{title}}]({{url}})\n  - Note: {{content}}';
+    type Node = { text: string; raw: any; children: Node[] };
+    const clipOutline = (tpl: string, name: string, ...nodes: any[]) => {
+      const container = document.createElement('div');
+      for (const n of nodes) container.appendChild(n);
+      const data = buildTurndownService().turndown(container as unknown as HTMLElement);
+      return clipOutlineData(tpl, name, data);
+    };
+    const clipOutlineData = async (tpl: string, name: string, data: string) => {
+      const marker = mark(name);
+      const url = `https://example.com/outline-${name}-${Date.now()}`;
+      const expected = renderClip(tpl, {
+        url,
+        title: marker,
+        data,
+        preferredDateFormat: 'MMM do, yyyy',
+        time: new Date(),
+      });
+      const count = (blocks: { children: unknown[] }[]): number =>
+        blocks.reduce((n, b) => n + 1 + count(b.children as any), 0);
+      await templates.setValue([template(tpl)]);
+      const before = await snapshot();
+      await clipToLogseq({ url, title: marker, data, templateId: 'escape' });
+
+      const toNode = (b: any): Node => ({
+        text: String(b.content ?? b.title ?? ''),
+        raw: b,
+        children: (b.children ?? []).map(toNode),
+      });
+      const all = (n: Node): Node[] => [n, ...n.children.flatMap(all)];
+      const read = async () => {
+        const tree = (await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE])).body ?? [];
+        const root = tree.find((b: any) => String(b.content ?? b.title ?? '').includes(url));
+        return root && toNode(root);
+      };
+      await eventually(
+        async () => (await read()) && all((await read())!).length,
+        (n) => n === count(expected),
+      );
+      await sleep(2500);
+      const root = (await read())!;
+      const written = all(root);
+
+      // Nothing of the page is a page, a tag, a property, a marker or a block
+      // that the template does not make.
+      expect(written.length).toBe(count(expected));
+      expect(await countBlocks()).toBe(before.blocks + written.length);
+      expect(await pageNames()).toEqual(before.pages);
+      expect(await tagNames()).toEqual(before.tags);
+      for (const node of written) {
+        expect(node.raw.marker ?? undefined).toBeUndefined();
+        expect(node.raw.scheduled ?? node.raw.deadline).toBeUndefined();
+        expect(
+          Object.keys(node.raw.properties ?? {}).filter((k) => !(isDB && k === 'tags')),
+        ).toEqual([]);
+      }
+      // The text of every block is what the template renders, in the same tree.
+      // A DB graph turns a fenced block into a code block: its text is the code.
+      const same = (got: Node, want: { content: string; children: any[] }) => {
+        if (!isDB || !/^\s*(?:`{3}|~{3})/.test(want.content)) {
+          expect(got.text).toBe(want.content);
+          // (A DB code block refers to its built-in language property.)
+          expect(got.raw.refs ?? []).toEqual([]);
+        }
+        expect(got.children.length).toBe(want.children.length);
+        got.children.forEach((c, i) => same(c, want.children[i]));
+      };
+      same(root, expected[0]);
+      return expected[0];
+    };
+
+    test.each([
+      ['O1', '~~~', ''],
+      ['O2', '    ```', ''],
+      ['O3', '\t```', ''],
+      ['O4', '  ~~~', ''],
+      ['O5', '``` js', 'js'],
+    ])('splits a page after a mark Logseq closes at (%s)', async (name, closer, lang) => {
+      const root = await clipOutline(
+        NESTED,
+        name,
+        pre(`${evil(`${name}a`)}\n${closer}\n${evil(`${name}b`)}`, lang),
+      );
+      const text = JSON.stringify(root);
+      // What follows the closing mark is text of blocks of its own.
+      expect(text).toContain(`\\\\#tag${name}b \\\\[[Page ${name}b]]`);
+    });
+
+    test.each([
+      ['O6', 'key6::'],
+      ['O7', '[[Lang Page]]'],
+      ['O8', '#langtag'],
+    ])('escapes a code block whose info string is not plain (%s)', async (name, lang) => {
+      const root = await clipOutline(NESTED, name, pre(evil(name), lang));
+      expect(JSON.stringify(root)).toContain(`\\\\#tag${name} \\\\[[Page ${name}]]`);
+    });
+
+    test('keeps plain code in one block, as it is', async () => {
+      const root = await clipOutline(NESTED, 'O9', pre(`${evil('O9')}\n\nmore`, 'js'));
+      expect(root.children).toHaveLength(1);
+      expect(root.children[0].content).toBe(`\`\`\`js\n${evil('O9')}\n\nmore\n\`\`\``);
+    });
+
+    // Text of the template in front of the content: its first mark is no mark.
+    test.each([
+      ['P1', '', 'js'],
+      ['P2', '~~~', ''],
+      ['P3', '    ```', ''],
+    ])('pairs the marks behind text of the template (%s)', async (name, closer, lang) => {
+      const code = closer
+        ? `${evil(`${name}a`)}\n${closer}\n${evil(`${name}b`)}`
+        : evil(name);
+      const root = await clipOutline(PREFIXED, name, pre(code, lang));
+      expect(root.children).toHaveLength(1);
+      expect(root.children[0].content.startsWith('Note: ```')).toBe(true);
+    });
+
+    test.each([
+      ['Q1', 'a](https://example.com/b.png) [[Page Q1]] #tagQ1'],
+      ['Q2', 'one\nkeyQ2:: v\n[[Page Q2]]\n- dashQ2\nTODO xQ2\nSCHEDULED: <2030-01-01 Tue>'],
+    ])('keeps an alt text in its label under an outline (%s)', async (name, alt) => {
+      for (const tpl of [NESTED, PREFIXED]) {
+        await clipOutline(tpl, `${name}${tpl === NESTED ? 'n' : 'p'}`, img(alt));
+      }
+    });
+
+    // A backslash before a bracket: bare lines, written as ever.
+    test('keeps a literal backslash before a bracket from making a link or a page, under an outline', async () => {
+      const text = [
+        'Bare \\\\\\[[Bare Page 1]]',
+        '\\\\\\] \\[[Bare Page 2]] and \\\\\\] \\[[Bare Page 3\\]]',
+        '\\\\\\] \\[a]([[Bare Page 4]]) and a\\\\\\[b]([[Bare Page 5]])',
+        '\\\\\\[ \\[[Bare Page 6]] and \\\\\\] \\[[#baretag]]',
+      ].join('\n\n');
+      // The text is the data, as the content script gives it after turndown.
+      for (const tpl of [NESTED, PREFIXED]) {
+        await clipOutlineData(tpl, `B${tpl === NESTED ? 'n' : 'p'}`, text);
+      }
     });
   });
 
@@ -869,3 +1161,227 @@ const blockRendingForTest = (title: string, url: string, content: string) =>
     preferredDateFormat: 'MMM do, yyyy',
     time: new Date(),
   });
+
+describe(`nesting the clipped content under the link (${variant})`, () => {
+  type Node = { text: string; children: Node[] };
+
+  const eventually = async <T>(fn: () => Promise<T>, ok: (v: T) => boolean) => {
+    let value = await fn();
+    for (let i = 0; i < 40 && !ok(value); i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      value = await fn();
+    }
+    return value;
+  };
+
+  // A block as the page tree API returns it: text in `content` (file graph) or
+  // `title` (DB graph), children nested.
+  const toNode = (block: any): Node => ({
+    text: String(block.content ?? block.title ?? ''),
+    children: (block.children ?? []).map(toNode),
+  });
+
+  /** The root block of the page that mentions `marker`, with its children. */
+  const readClip = async (marker: string): Promise<Node | undefined> => {
+    const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+    const root = (body as any[]).find((b) =>
+      String(b.content ?? b.title ?? '').includes(marker),
+    );
+    return root && toNode(root);
+  };
+
+  const SELECTION = [
+    'First paragraph of the clip.',
+    'Second paragraph\nwith a wrapped line.',
+    '*   item one\n    *   nested item\n*   item two',
+    '```sh\n- not a bullet\n\necho "blank line above"\n```',
+    '> a quote',
+    '1.  step one\n2.  step two',
+  ].join('\n\n');
+
+  const clipWith = async (content: string, templateId: string, extra: object) => {
+    const stamp = Date.now();
+    const url = `https://example.com/nested-${stamp}`;
+    const title = `Nested page ${stamp}`;
+    await templates.setValue([
+      {
+        id: templateId,
+        name: 'Nested',
+        content,
+        clipNoteLocation: 'customPage',
+        clipNoteCustomPage: TEST_PAGE,
+      },
+    ]);
+    await clipToLogseq({ url, title, templateId, ...extra } as any);
+    return { stamp, url, title };
+  };
+
+  test('puts paragraphs, list items and code in blocks under the link', async () => {
+    const nested = TEMPLATE_PRESETS.find((p) => p.id === 'nested-clip')!;
+    const { stamp, url, title } = await clipWith(nested.content, 'nested', {
+      data: SELECTION,
+    });
+    const link = `[${title}](${url})`;
+
+    const clip = await eventually(
+      () => readClip(`nested-${stamp}`),
+      (node) => (node?.children.length ?? 0) >= 6,
+    );
+    expect(clip).toBeDefined();
+    expect(clip!.text).toContain(link);
+    const texts = (nodes: Node[]): unknown[] =>
+      nodes.map((n) => (n.children.length ? [n.text, ...texts(n.children)] : n.text));
+    expect(texts(clip!.children)).toEqual([
+      'First paragraph of the clip.',
+      'Second paragraph\nwith a wrapped line.',
+      ['item one', 'nested item'],
+      'item two',
+      // A DB graph turns a fenced block into a code block: its text is the code.
+      isDB
+        ? '- not a bullet\n\necho "blank line above"'
+        : '```sh\n- not a bullet\n\necho "blank line above"\n```',
+      '> a quote',
+      '1. step one',
+      '2. step two',
+    ]);
+  });
+
+  test('keeps a tag of the page as text in a child block', async () => {
+    const nested = TEMPLATE_PRESETS.find((p) => p.id === 'nested-clip')!;
+    const { stamp } = await clipWith(nested.content, 'nested-tag', {
+      data: 'Tagged with #idea in the text.\n\nPlain second.',
+    });
+    const clip = await eventually(
+      () => readClip(`nested-${stamp}`),
+      (node) => (node?.children.length ?? 0) >= 2,
+    );
+    expect(clip!.children).toHaveLength(2);
+    // Text from the page is literal: it makes no tag (see escapeForLogseq).
+    expect(clip!.children[0].text).toBe('Tagged with \\#idea in the text.');
+    expect(clip!.children[1].text).toBe('Plain second.');
+  });
+
+  test('clips a page without a selection as the link alone', async () => {
+    const nested = TEMPLATE_PRESETS.find((p) => p.id === 'nested-clip')!;
+    const { stamp } = await clipWith(nested.content, 'nested-page', { data: '' });
+    const clip = await eventually(
+      () => readClip(`nested-${stamp}`),
+      (node) => node !== undefined,
+    );
+    expect(clip!.children).toEqual([]);
+  });
+
+  test('nests the selection under a task, and the task carries the status', async () => {
+    const { stamp, url, title } = await clipWith(TASK_TEMPLATE.content, 'task', {
+      data: 'Read this.\n\nThen this.',
+    });
+    const clip = await eventually(
+      () => readClip(`nested-${stamp}`),
+      (node) => (node?.children.length ?? 0) >= 2,
+    );
+    expect(clip!.children.map((c) => c.text)).toEqual(['Read this.', 'Then this.']);
+
+    const service = await getLogseqService();
+    const recall = async () => {
+      const result = await service.urlSearch(new URL(url));
+      return result.response?.blocks?.find((b: any) =>
+        b.content?.includes(`nested-${stamp}`),
+      );
+    };
+    const recalled = await eventually(recall, (b) => b?.marker === 'TODO');
+    expect(recalled?.marker).toBe('TODO');
+    expect(recalled.content).toContain(`[${title}](${url})`);
+    if (isDB) {
+      // A DB graph keeps the task in a property, never as `TODO ` in the text.
+      expect(clip!.text).not.toMatch(/^TODO /);
+    } else {
+      expect(clip!.text.startsWith(`TODO [${title}](${url})`)).toBe(true);
+    }
+  });
+
+  test('keeps property lines as text on a DB graph, as properties on a file graph', async () => {
+    const reading = TEMPLATE_PRESETS.find((p) => p.id === 'reading-note')!;
+    const { stamp, url } = await clipWith(reading.content, 'reading', {
+      data: 'Quote.',
+    });
+    const clip = await eventually(
+      () => readClip(`nested-${stamp}`),
+      (node) => (node?.children.length ?? 0) >= 1,
+    );
+    expect(clip!.children.map((c) => c.text)).toEqual(['Quote.']);
+    expect(clip!.text).toContain(`source:: ${url}`);
+    expect(clip!.text).toMatch(/date:: \[\[.+\]\]/);
+    if (!isDB) {
+      const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+      const root = (body as any[]).find((b) => b.content.includes(`nested-${stamp}`));
+      expect(root.properties?.source).toContain(url);
+    }
+  });
+
+  test.each([
+    ['a #fragment', 'https://example.com/prop/a?x=1#frag'],
+    ['a query', 'https://example.com/prop/a?a=1&b=2'],
+    ['paired parentheses', 'https://example.com/prop/Foo_(bar)'],
+    ['an unpaired (', 'https://example.com/prop/un(paired'],
+    ['[x] in the path', 'https://example.com/prop/[x]/z'],
+    ['a template tag in the query', 'https://example.com/prop/a?q={{x}}'],
+  ])('writes a URL with %s as a property value that is that URL', async (_name, raw) => {
+    const reading = TEMPLATE_PRESETS.find((p) => p.id === 'reading-note')!;
+    const stamp = `${Date.now()}`;
+    const href = new URL(`${raw}${raw.includes('?') ? '&' : '?'}s=${stamp}`).href;
+    const title = `Nested prop ${stamp}`;
+    // `{{x}}` in the query is written as it is in the URL, `%7B%7Bx%7D%7D`.
+    const value = href.replace(/[{}]/g, (c) => (c === '{' ? '%7B' : '%7D'));
+    const lower = (list: any[]) =>
+      (list ?? []).map((p) => String(p.name ?? p.originalName ?? p.title).toLowerCase());
+    const names = async () => [
+      ...lower((await api('logseq.Editor.getAllPages')).body),
+      ...(isDB ? lower((await api('logseq.Editor.getAllTags')).body) : []),
+    ];
+    const before = await names();
+
+    await templates.setValue([
+      {
+        id: 'reading-url',
+        name: 'Reading',
+        content: reading.content,
+        clipNoteLocation: 'customPage',
+        clipNoteCustomPage: TEST_PAGE,
+      },
+    ]);
+    await clipToLogseq({ url: href, title, templateId: 'reading-url', data: 'Quote.' });
+    const clip = await eventually(
+      () => readClip(`Nested prop ${stamp}`),
+      (node) => (node?.children.length ?? 0) >= 1,
+    );
+    expect(clip).toBeDefined();
+    // The property is the URL, with no backslash and no other change.
+    expect(clip!.text.split('\n')).toContain(`source:: ${value}`);
+    if (!isDB) {
+      const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+      const root = (body as any[]).find((b) => b.content.includes(title));
+      expect(root.properties?.source).toBe(value);
+    }
+
+    // No page and no tag came out of the URL (the date property makes the
+    // journal page, so look at the pieces of the URL only).
+    await new Promise((r) => setTimeout(r, 1500));
+    const created = (await names()).filter((n) => !before.includes(n));
+    expect(created.filter((n) => /frag|bar|paired|\bx\b|a=1|prop/.test(n))).toEqual([]);
+
+    // Recall finds the clip by its URL.
+    const service = await getLogseqService();
+    const found = await eventually(
+      () => service.urlSearch(new URL(href)),
+      (r: any) =>
+        (r.response?.blocks ?? []).some((b: any) =>
+          JSON.stringify(b).includes(stamp),
+        ),
+    );
+    expect(
+      ((found as any).response?.blocks ?? []).some((b: any) =>
+        JSON.stringify(b).includes(stamp),
+      ),
+    ).toBe(true);
+  });
+});

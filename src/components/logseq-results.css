@@ -510,3 +510,18 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* Clips (the page sidebar): the hit blocks stand out, "+N" is a quiet row. */
+.lc-block-row[data-matched='true'] {
+  background: color-mix(in oklab, var(--lc-accent) 9%, transparent);
+}
+.lc-clip-more {
+  padding: 0 0 0 26px;
+}
+.lc-clip-more-button {
+  width: auto;
+  height: 24px;
+  padding: 0 6px;
+  color: var(--lc-muted);
+  font-size: 12px;
+}

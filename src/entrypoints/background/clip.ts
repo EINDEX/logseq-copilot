@@ -1,4 +1,5 @@
-import { blockRending, formatLogseqDate } from '@/utils/utils';
+import { renderClip } from '@/utils/clip-template';
+import { formatLogseqDate } from '@/utils/logseq-format';
 import { templates, type TemplateItemV1 } from '@/utils/storage';
 import { TASK_TEMPLATE, TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import { getLogseqService } from './logseq/tool';
@@ -28,12 +29,19 @@ export const resolveTemplate = (
   return templateId === TASK_TEMPLATE_ID ? TASK_TEMPLATE : templateList[0];
 };
 
+/** Where a clip went: the page, and the one top-level block it wrote. */
+export interface ClipResult {
+  page: string;
+  rootUuid: string;
+}
+
 /**
  * Render `source` with its template (the first by default) and append it
- * where the template says. Throws when nothing was clipped, Logseq failures as LogseqError (a
- * readable message for the user).
+ * where the template says: one root block with everything else below it, the
+ * template's tag on the root. Throws when nothing was clipped, Logseq failures
+ * as LogseqError (a readable message for the user).
  */
-export const clipToLogseq = async (source: ClipSource) => {
+export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   const template = resolveTemplate(
     await templates.getValue(),
     source.templateId,
@@ -50,14 +58,26 @@ export const clipToLogseq = async (source: ClipSource) => {
   // rendering with them.
   const resp = throwIfClientError(await logseqService.client.getUserConfig());
 
-  const block = blockRending({
+  const blocks = renderClip(template.content, {
     url: source.url,
     title: source.title,
     data: source.data,
-    clipNoteTemplate: template.content,
     preferredDateFormat: resp['preferredDateFormat'],
     time: now,
   });
+
+  if (blocks.length === 0) {
+    throw new Error(
+      'The template made no block to clip. Check it in the extension settings.',
+    );
+  }
+  // renderClip returns one root at most.
+  const write = async (page: string): Promise<ClipResult> => {
+    const { rootUuid } = await logseqService.clipBlocks(page, blocks[0], {
+      tag: template.tag,
+    });
+    return { page, rootUuid };
+  };
 
   const clipNoteLocation = template.clipNoteLocation || 'journal';
   const clipNoteCustomPage = template.clipNoteCustomPage || '';
@@ -65,17 +85,16 @@ export const clipToLogseq = async (source: ClipSource) => {
   const journalPage = () => formatLogseqDate(now, resp['preferredDateFormat']);
 
   if (clipNoteLocation === 'customPage') {
-    await logseqService.clipBlock(clipNoteCustomPage, block);
+    return await write(clipNoteCustomPage);
   } else if (clipNoteLocation === 'currentPage') {
     // Logseq has no current page on its home and All Journals views: clip to
     // today's journal there.
     const currentPage = throwIfClientError(
       await logseqService.client.getCurrentPage(),
     )?.name;
-    await logseqService.clipBlock(currentPage || journalPage(), block);
-  } else {
-    await logseqService.clipBlock(journalPage(), block);
+    return await write(currentPage || journalPage());
   }
+  return await write(journalPage());
 };
 
 /**

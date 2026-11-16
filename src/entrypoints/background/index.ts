@@ -102,6 +102,11 @@ export default defineBackground({
       return searchRes;
     });
 
+    onMessage('logseq:listTags', async () => {
+      const logseqService = await getLogseqService();
+      return await logseqService.listTags();
+    });
+
     onMessage('app:openOptions', async () => {
       browser.runtime.openOptionsPage();
     });

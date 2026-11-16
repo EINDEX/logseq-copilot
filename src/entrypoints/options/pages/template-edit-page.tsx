@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTemplate } from '@/hooks/use-templates';
-import { TemplateItemV1 } from '@/utils/storage';
+import { TemplateItemV1, type TemplateTag } from '@/utils/storage';
 import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
+import { ClipPreview } from '../components/clip-preview';
+import { TagField } from '../components/tag-field';
+import {
+    TemplateEditor,
+    type TemplateEditorHandle,
+} from '../components/template-editor';
 
 const VARIABLES = [
     ['{{title}}', 'Page title'],
@@ -33,6 +38,7 @@ const TemplateEditPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { template, updateTemplate, loading } = useTemplate(id!);
     const [draft, setDraft] = useState<Draft>({ fields: {} });
+    const editorRef = useRef<TemplateEditorHandle>(null);
 
     if (loading) {
         return <PageLoading title="Edit Template">Loading template...</PageLoading>;
@@ -61,12 +67,18 @@ const TemplateEditPage: React.FC = () => {
         handleTextChange('name', event.target.value);
     };
 
-    const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        handleTextChange('content', event.target.value);
+    // Puts the variable where the caret is (over the selection, if any), and
+    // the caret behind it.
+    const insertVariable = (variable: string) => {
+        editorRef.current?.insertVariable(variable.slice(2, -2));
     };
 
     const handleLocationChange = (value: string) => {
         handleFieldUpdate('clipNoteLocation', value);
+    };
+
+    const handleTagChange = (tag: TemplateTag | undefined) => {
+        updateTemplate({ tag });
     };
 
     const handleCustomPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,26 +145,46 @@ const TemplateEditPage: React.FC = () => {
             </PageSection>
 
             <PageSection
+                title="Tag"
+                description="Put a tag on the first block of every clip."
+            >
+                <div className="flex flex-col items-start gap-2">
+                    <Label htmlFor="template-tag">Tag</Label>
+                    <TagField
+                        id="template-tag"
+                        value={template.tag}
+                        onChange={handleTagChange}
+                    />
+                </div>
+            </PageSection>
+
+            <PageSection
                 title="Template Content"
                 description="Define the content structure for clips using this template."
             >
-                <div className="space-y-2">
-                    <Label htmlFor="template-content">Content</Label>
-                    <Textarea
-                        id="template-content"
-                        className="min-h-48 font-mono text-sm"
-                        value={textValue('content')}
-                        onChange={handleContentChange}
-                        placeholder="Enter your template content here..."
-                    />
-                </div>
+                <TemplateEditor
+                    key={id}
+                    ref={editorRef}
+                    value={textValue('content')}
+                    onChange={(content) => handleTextChange('content', content)}
+                />
+
+                <ClipPreview template={textValue('content')} />
 
                 <div className="space-y-2">
                     <h3 className="text-sm font-medium">Available Variables</h3>
                     <dl className="grid gap-x-6 gap-y-1.5 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
                         {VARIABLES.map(([name, label]) => (
                             <div key={name} className="flex gap-2">
-                                <dt><code className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">{name}</code></dt>
+                                <dt>
+                                    <button
+                                        type="button"
+                                        onClick={() => insertVariable(name)}
+                                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
+                                    >
+                                        {name}
+                                    </button>
+                                </dt>
                                 <dd>{label}</dd>
                             </div>
                         ))}
