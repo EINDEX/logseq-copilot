@@ -4,9 +4,18 @@ import log from '@/utils/logger';
 /** How a service writes one block of a clip. */
 export interface BlockWriter {
   /** A block at the end of `page`. */
-  append(page: string, content: string): Promise<{ uuid: string }>;
+  append(page: string, content: string): Promise<BlockWritten>;
   /** A block as the last child of the block `parentUuid`. */
-  insertChild(parentUuid: string, content: string): Promise<{ uuid: string }>;
+  insertChild(parentUuid: string, content: string): Promise<BlockWritten>;
+}
+
+/**
+ * A block a writer wrote: its uuid, and the text it stores when that is not
+ * `content` as given (a DB graph keeps a task marker as a status, not text).
+ */
+export interface BlockWritten {
+  uuid: string;
+  text?: string;
 }
 
 /**
@@ -67,6 +76,8 @@ export interface WrittenClip {
   groupedUnder?: string;
   /** The block that holds the clip's note, when it is a block of its own. */
   noteUuid?: string;
+  /** The text the note block stores, with `noteUuid`. */
+  noteText?: string;
 }
 
 /**
@@ -98,12 +109,16 @@ export const writeClipBlocks = async (
 ): Promise<WrittenClip> => {
   let written = 0;
   let noteUuid: string | undefined;
+  let noteText: string | undefined;
 
   const writeChildren = async (parentUuid: string, children: ClipBlock[]) => {
     for (const child of children) {
-      const { uuid } = await writer.insertChild(parentUuid, child.content);
+      const { uuid, text } = await writer.insertChild(parentUuid, child.content);
       written++;
-      if (child.note && noteUuid === undefined) noteUuid = uuid;
+      if (child.note && noteUuid === undefined) {
+        noteUuid = uuid;
+        noteText = text ?? child.content;
+      }
       await writeChildren(uuid, child.children);
     }
   };
@@ -123,13 +138,21 @@ export const writeClipBlocks = async (
     if (target) {
       const [first, ...others] = root.children;
       node = { ...first, children: [...first.children, ...others] };
-      ({ uuid: rootUuid } = await writer.insertChild(target.uuid, node.content));
+      const made = await writer.insertChild(target.uuid, node.content);
+      rootUuid = made.uuid;
       written++;
-      if (node.note) noteUuid = rootUuid;
+      if (node.note) {
+        noteUuid = rootUuid;
+        noteText = made.text ?? node.content;
+      }
     } else {
-      ({ uuid: rootUuid } = await writer.append(page, root.content));
+      const made = await writer.append(page, root.content);
+      rootUuid = made.uuid;
       written++;
-      if (root.note) noteUuid = rootUuid;
+      if (root.note) {
+        noteUuid = rootUuid;
+        noteText = made.text ?? root.content;
+      }
       if (onRoot) {
         try {
           await onRoot(rootUuid);
@@ -152,7 +175,7 @@ export const writeClipBlocks = async (
     rootUuid,
     children: node.children.length,
     added: true,
-    ...(noteUuid !== undefined && { noteUuid }),
+    ...(noteUuid !== undefined && { noteUuid, noteText }),
     ...(target && { groupedUnder: target.uuid }),
   };
 };

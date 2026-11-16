@@ -32,6 +32,7 @@ import {
 import { clipErrorMessage } from '@/utils/clip-feedback';
 import { isLogseqUrl } from '@/utils/logseq-url';
 import { startSidebarAction } from './sidebar-action';
+import { syncHighlightNote } from './highlight-sync';
 
 const CANNOT_CLIP_PAGE = 'Cannot clip this page: extensions cannot run on it.';
 
@@ -100,6 +101,10 @@ export default defineBackground({
         );
       }
       return searchRes;
+    });
+
+    onMessage('logseq:syncHighlightNote', async ({ data }) => {
+      return await syncHighlightNote(data.id);
     });
 
     onMessage('logseq:listTags', async () => {

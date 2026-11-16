@@ -2,6 +2,8 @@
 export interface ClipResult {
   /** The page the clip went to. */
   page: string;
+  /** The graph the clip went to. */
+  graph: string;
   /** The template the clip was written with. */
   templateId: string;
   /**
@@ -23,4 +25,6 @@ export interface ClipResult {
    * block's text.
    */
   noteBlockUuid?: string;
+  /** The text written to `noteBlockUuid`, as the block stores it. */
+  noteBlockText?: string;
 }

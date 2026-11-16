@@ -5,11 +5,13 @@ import type { TemplateTag } from '@/utils/storage';
 import type { RecallOptions } from './recall/recall';
 import type { WrittenClip } from './clip-blocks';
 import type { GroupRequest } from './clip-group';
+import type { NoteBlockApi } from './note-blocks';
 
 export interface LogseqClientInterface {
   getGraph(): any;
   appendBlock(page: string, content: string): any;
   insertChildBlock(parentUuid: string, content: string): any;
+  removeBlock(uuid: string): any;
   /** The blocks of a page as a tree; a page that does not exist has none. */
   getPageBlocksTree(page: string): any;
   getVersion(): any;
@@ -22,7 +24,7 @@ export interface LogseqClientInterface {
   search(query: string): any;
 }
 
-export interface LogseqServiceInterface {
+export interface LogseqServiceInterface extends NoteBlockApi {
   client: any;
   getGraph(): any;
   search(query: string): any;

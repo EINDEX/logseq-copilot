@@ -4,6 +4,7 @@ import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
 import { blockUuid, withTagText, writeClipBlocks } from '../clip-blocks';
+import { createNoteBlockApi } from '../note-blocks';
 import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
@@ -31,6 +32,14 @@ const TAGGED_PAGES_QUERY =
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
+
+  private noteBlocks = createNoteBlockApi(this.client, () => this.getGraph());
+  public readBlock = (uuid: string) => this.noteBlocks.readBlock(uuid);
+  public insertChildBlock = (parentUuid: string, content: string) =>
+    this.noteBlocks.insertChildBlock(parentUuid, content);
+  public updateBlockText = (uuid: string, content: string) =>
+    this.noteBlocks.updateBlockText(uuid, content);
+  public removeBlock = (uuid: string) => this.noteBlocks.removeBlock(uuid);
 
   public async getGraph() {
     const graph = throwIfClientError(await this.client.getGraph());

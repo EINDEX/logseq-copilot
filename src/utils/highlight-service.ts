@@ -1,5 +1,6 @@
 import { highlights } from './storage';
 import log from './logger';
+import type { LogseqLink } from '@/types/annotation';
 import type {
   HighlightData,
   SerializableRange,
@@ -130,6 +131,22 @@ export function updateHighlightNote(
   note: string,
 ): Promise<HighlightOperationResult> {
   return updateHighlight(id, { note: note.trim() || undefined });
+}
+
+/**
+ * Replaces what a highlight records of its clip in Logseq, and nothing else of
+ * it. Resolves false when the highlight is gone.
+ */
+export async function setHighlightLink(
+  id: string,
+  logseq: LogseqLink,
+): Promise<boolean> {
+  const written = await writeHighlights((current) =>
+    current.some((h) => h.id === id)
+      ? current.map((h) => (h.id === id ? { ...h, logseq } : h))
+      : null,
+  );
+  return written !== null;
 }
 
 /**
@@ -280,6 +297,7 @@ export class HighlightService {
     range: Range,
     note?: string,
     tags?: string[],
+    logseq?: LogseqLink,
   ): Promise<HighlightOperationResult> {
     try {
       const serializedRange = HighlightService.serializeRange(range);
@@ -301,6 +319,7 @@ export class HighlightService {
         note,
         tags,
         color: 'yellow', // Default color
+        ...(logseq && { logseq }),
       };
 
       await writeHighlights((current) => [...current, highlight]);

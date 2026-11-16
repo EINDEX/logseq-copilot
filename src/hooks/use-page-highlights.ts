@@ -6,6 +6,8 @@ import {
   updateHighlightNote,
   watchHighlights,
 } from '@/utils/highlight-service';
+import { sendMessage } from '@/types/messaging';
+import { clipErrorMessage } from '@/utils/clip-feedback';
 
 export interface PageHighlights {
   /** The highlights of the page, newest first; null while they are being read. */
@@ -61,10 +63,19 @@ export function usePageHighlights(url: string | null): PageHighlights {
 
   const updateNote = async (id: string, note: string) => {
     setNotice(null);
+    const before = highlights?.find((h) => h.id === id);
     const result = await updateHighlightNote(id, note);
     if (!result.success) {
       setNotice("Couldn't save the note");
       throw new Error(result.message);
+    }
+    // The note is saved here either way; a failure to sync it says why.
+    if (before?.logseq && (before.note ?? '').trim() !== note.trim()) {
+      try {
+        await sendMessage('logseq:syncHighlightNote', { id });
+      } catch (error) {
+        setNotice(clipErrorMessage(error));
+      }
     }
   };
 
