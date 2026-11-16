@@ -204,4 +204,22 @@ test.describe('options: template pin and default', () => {
     await options.click('[aria-label="Default template"][aria-pressed="false"]');
     await expect.poll(() => ext.getStorage('defaultTemplateId')).toBe('beta');
   });
+
+  test('the rules editor stores a valid pattern and refuses an invalid one', async ({ ext }) => {
+    await ext.connect();
+    await ext.setStorage({ templates: [template('alpha', 'Alpha'), template('beta', 'Beta')] });
+    const options = await ext.openPage('options.html#/template/beta');
+    const rules = async () =>
+      ((await ext.getStorage('templates')) ?? []).find((t: any) => t.id === 'beta')?.rules;
+
+    await options.fill('#template-rules', 'a.com/**/b');
+    await options.expectText('** only at the end');
+    await options.press('#template-rules', 'Enter');
+    expect(await rules()).toBeUndefined();
+
+    await options.fill('#template-rules', 'github.com/*/issues/*');
+    await options.press('#template-rules', 'Enter');
+    await expect.poll(rules).toEqual(['github.com/*/issues/*']);
+    await options.expectText('github.com/*/issues/*');
+  });
 });

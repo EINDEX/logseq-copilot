@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SidebarPanel } from '@/components/SidebarPanel';
 import { useActiveTab } from '@/hooks/use-active-tab';
 import { useClipActions } from '@/hooks/use-clip-actions';
-import { useClipTemplates } from '@/hooks/use-clip-templates';
+import { ruledTemplateId, useClipTemplates } from '@/hooks/use-clip-templates';
 import { useCommandShortcuts } from '@/hooks/use-command-shortcuts';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
@@ -75,16 +75,21 @@ export default function App() {
   }, [checkSelection]);
 
   // This page has no tab: the clips name the one beside it.
-  const clipTemplates = useClipTemplates();
+  const clipTemplates = useClipTemplates(url);
+  // The main buttons name the rule winner of the page, if there is one.
+  const mainTemplateId = ruledTemplateId(clipTemplates);
   const shortcuts = useCommandShortcuts();
   const clip = useClipActions(
     {
-      clipPage: (templateId) =>
-        sendMessage('logseq:clipPage', {
+      clipPage: (picked) => {
+        const templateId = picked ?? mainTemplateId;
+        return sendMessage('logseq:clipPage', {
           tabId,
           ...(templateId !== undefined && { templateId }),
-        }),
-      clipSelection: async (templateId) => {
+        });
+      },
+      clipSelection: async (picked) => {
+        const templateId = picked ?? mainTemplateId;
         if (tabId === undefined) throw new Error('No tab to clip.');
         // The same command as the "Clip selection" context menu item; a
         // failure is shown here, not in the page.

@@ -154,8 +154,8 @@ export const runClipCommand = (
 
 /**
  * The clip shortcut and the float button: the picker panel when more than one
- * template is on offer (the default and the pinned ones), else the clip is
- * saved at once, as it always was. The shortcut again while the panel is up
+ * template is on offer (the ones whose rules match the page, the default and
+ * the pinned ones), else the clip is saved at once, as it always was. The shortcut again while the panel is up
  * saves with the highlighted template.
  */
 export const runPickedClip = async (): Promise<void> => {
@@ -164,7 +164,7 @@ export const runPickedClip = async (): Promise<void> => {
     templates.getValue(),
     defaultTemplateIdItem.getValue(),
   ]);
-  const candidates = pickerCandidates(list, defaultId);
+  const candidates = pickerCandidates(list, defaultId, location.href);
   if (skipPicker(candidates)) return runClipCommand('selectionOrPage');
   // The panel takes the focus, and with it the page's selection may go.
   const captured = captureSelection();

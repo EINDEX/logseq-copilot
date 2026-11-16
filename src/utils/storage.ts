@@ -46,6 +46,11 @@ export interface TemplateItemV1 {
    * pinned until the user pins it (src/utils/template-choice.ts).
    */
   pinned?: boolean;
+  /**
+   * URL patterns of the pages this template is chosen for (see
+   * src/utils/template-rules.ts). None until the user adds one.
+   */
+  rules?: string[];
 }
 
 export interface SearchEngineConfig {

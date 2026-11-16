@@ -324,4 +324,59 @@ describe('TemplateEditPage', () => {
       expect(field().textContent).toBe('No tag');
     });
   });
+  describe('page rules', () => {
+    const field = () => screen.getByPlaceholderText(/github\.com/) as HTMLInputElement;
+    const add = () => screen.getByRole('button', { name: 'Add pattern' });
+
+    it('stores a pattern with Enter or Add, and removes it again', async () => {
+      renderAt('/template/b');
+      await screen.findByDisplayValue('Beta');
+      expect((await stored('b'))?.rules).toBeUndefined();
+
+      fireEvent.change(field(), { target: { value: 'github.com/*/issues/*' } });
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      await waitFor(async () =>
+        expect((await stored('b'))?.rules).toEqual(['github.com/*/issues/*']),
+      );
+      expect(field().value).toBe('');
+
+      fireEvent.change(field(), { target: { value: '*.example.com' } });
+      fireEvent.click(add());
+      await waitFor(async () =>
+        expect((await stored('b'))?.rules).toEqual(['github.com/*/issues/*', '*.example.com']),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove github.com/*/issues/*' }));
+      await waitFor(async () => expect((await stored('b'))?.rules).toEqual(['*.example.com']));
+      fireEvent.click(screen.getByRole('button', { name: 'Remove *.example.com' }));
+      await waitFor(async () => expect((await stored('b'))?.rules).toBeUndefined());
+    });
+
+    it('does not store an invalid pattern and says why', async () => {
+      renderAt('/template/b');
+      await screen.findByDisplayValue('Beta');
+
+      fireEvent.change(field(), { target: { value: 'a.com/**/b' } });
+      expect(screen.getByRole('alert').textContent).toBeTruthy();
+      expect((add() as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      await settle();
+      expect((await stored('b'))?.rules).toBeUndefined();
+      expect(field().value).toBe('a.com/**/b');
+    });
+
+    it('keeps the patterns of each template apart and a template without rules shows none', async () => {
+      await templates.setValue([
+        { id: 'a', name: 'Alpha', content: 'x', rules: ['a.com'] },
+        { id: 'b', name: 'Beta', content: 'y' },
+      ]);
+      renderAt('/template/a');
+      await screen.findByDisplayValue('Alpha');
+      expect(screen.getByLabelText('Patterns').textContent).toBe('a.com');
+      cleanup();
+      renderAt('/template/b');
+      await screen.findByDisplayValue('Beta');
+      expect(screen.queryByLabelText('Patterns')).toBeNull();
+    });
+  });
 });
