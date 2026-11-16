@@ -10,7 +10,7 @@ import {
 import log from '@/utils/logger';
 import { fakeBrowser } from 'wxt/testing';
 import { HighlightManager } from '@/utils/highlight-manager';
-import { templates } from '@/utils/storage';
+import { highlightClippedTextItem, templates } from '@/utils/storage';
 
 const sendMessage = vi.fn();
 vi.mock('@/types/messaging', () => ({
@@ -397,5 +397,87 @@ describe('ClipError, the message of a failed clip in the page', () => {
     await act(async () => vi.advanceTimersByTime(6_000));
 
     expect(alert()?.textContent).toBe('second');
+  });
+});
+
+describe('highlighting the clipped text', () => {
+  const manager = {
+    addTemporaryHighlight: vi.fn(),
+    addHighlight: vi.fn(async (_range: Range) => {}),
+    ready: Promise.resolve(),
+  };
+  const saved = () => manager.addHighlight.mock.calls.length;
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  beforeEach(async () => {
+    sendMessage.mockReset().mockResolvedValue({ clipId: 'c1', templateId: 'clip', page: 'p' });
+    manager.addTemporaryHighlight.mockClear();
+    manager.addHighlight.mockClear();
+    vi.spyOn(HighlightManager, 'getInstance').mockReturnValue(manager as never);
+    vi.spyOn(log, 'error').mockImplementation(() => {});
+    await highlightClippedTextItem.removeValue();
+    document.body.innerHTML = '<p id="p">hello world</p>';
+    window.getSelection()?.removeAllRanges();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('saves a highlight once the clip is in Logseq', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    selectParagraph();
+    await runClipCommand('selectionOrPage');
+    await settle();
+    expect(saved()).toBe(1);
+    const range = manager.addHighlight.mock.calls[0][0] as Range;
+    expect(range.toString()).toBe('hello world');
+  });
+
+  it('saves none while the clip is still waiting, and none when it fails', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    let fail!: (error: Error) => void;
+    sendMessage.mockReturnValue(new Promise((_, reject) => (fail = reject)));
+    selectParagraph();
+    const done = runClipCommand('selectionOrPage');
+    await settle();
+    expect(saved()).toBe(0);
+    expect(manager.addTemporaryHighlight).not.toHaveBeenCalled();
+    fail(new Error('nope'));
+    await done;
+    await settle();
+    expect(saved()).toBe(0);
+    expect(manager.addTemporaryHighlight).not.toHaveBeenCalled();
+  });
+
+  it('keeps the range of the selection made before the clip', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    let succeed!: (value: unknown) => void;
+    sendMessage.mockReturnValue(new Promise((resolve) => (succeed = resolve)));
+    selectParagraph();
+    const done = runClipCommand('selectionOrPage');
+    window.getSelection()!.removeAllRanges();
+    succeed({ clipId: 'c1', templateId: 'clip', page: 'p' });
+    await done;
+    await settle();
+    expect((manager.addHighlight.mock.calls[0][0] as Range).toString()).toBe('hello world');
+  });
+
+  it('saves none with the option off', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    await highlightClippedTextItem.setValue(false);
+    selectParagraph();
+    await runClipCommand('selectionOrPage');
+    await settle();
+    expect(saved()).toBe(0);
+    expect(manager.addTemporaryHighlight).not.toHaveBeenCalled();
+  });
+
+  it('saves none for a clip of the page link', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    selectParagraph();
+    await runClipCommand('page');
+    await runClipCommand('selectionOrPage', { templateId: 'task' }).catch(() => {});
+    await settle();
+    // Only the selection clip above highlights; the page command never does.
+    expect(saved()).toBe(1);
   });
 });

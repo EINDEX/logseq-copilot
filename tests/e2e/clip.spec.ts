@@ -136,6 +136,95 @@ test.describe('clip (quick capture)', () => {
     ]);
   });
 
+  test('groups two clips of the same page under one root', async ({ page, ext, logseq, articles }) => {
+    const id = nonce('clipgroup');
+    const title = `Grouped clip ${id}`;
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title, paragraph: `Group these words ${id}` });
+
+    await ext.connect();
+    // Not the journal: a file graph re-reads a journal file it has just created.
+    await ext.setStorage({
+      templates: [
+        {
+          id: 'grouped',
+          name: 'Grouped clip',
+          content: '- #[[Clip]] [{{title}}]({{url}})\n  - {{content}}',
+          clipNoteLocation: 'customPage',
+          clipNoteCustomPage: 'Copilot Test Page',
+        },
+      ],
+    });
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+
+    const text = (block: any): string => String(block.content ?? block.title ?? '');
+    const readRoots = async () => {
+      const roots = (await logseq.findBlocks(`[${title}](${url})`)).filter((b) => text(b).includes(url));
+      return Promise.all(
+        roots.map((root) =>
+          logseq.callApi('logseq.Editor.getBlock', [root.uuid, { includeChildren: true }]),
+        ),
+      );
+    };
+
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+    await expect
+      .poll(async () => (await readRoots())[0]?.children?.length ?? 0, { timeout: 30_000 })
+      .toBe(1);
+
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+    await expect
+      .poll(async () => (await readRoots())[0]?.children?.length ?? 0, { timeout: 30_000 })
+      .toBe(2);
+
+    const roots = await readRoots();
+    expect(roots).toHaveLength(1);
+    expect(roots[0].children.map(text)).toEqual([`Group these words ${id}`, `Group these words ${id}`]);
+  });
+
+  test('highlights the clipped text on the page after the clip', async ({ page, ext, articles }) => {
+    const id = nonce('cliphl');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Highlight clip ${id}`, paragraph: `Highlight clipped words ${id}` });
+
+    await ext.connect();
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    const stored = async () =>
+      ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url);
+    await expect.poll(async () => (await stored()).length, { timeout: 30_000 }).toBe(1);
+    const highlightId: string = (await stored())[0].id;
+    await expect
+      .poll(() => page.evaluate((name) => CSS.highlights.has(name), `logseq-highlight-${highlightId}`))
+      .toBe(true);
+  });
+
+  test('saves no highlight with the option off', async ({ page, ext, logseq, articles }) => {
+    const id = nonce('cliphloff');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `No highlight ${id}`, paragraph: `Not highlighted ${id}` });
+
+    await ext.connect();
+    await ext.setStorage({ highlightClippedText: false });
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    await expect.poll(async () => (await logseq.findBlocks(id)).length, { timeout: 30_000 }).toBeGreaterThan(0);
+    await page.waitForTimeout(1_000);
+    expect(((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url)).toEqual([]);
+  });
+
   // Two templates writing to the journal, told apart by the word in front.
   // Alpha is the default (the first); Beta is pinned in `pinnedTemplates`.
   const alpha = {

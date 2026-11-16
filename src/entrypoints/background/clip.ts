@@ -1,4 +1,5 @@
-import { renderClip } from '@/utils/clip-template';
+import { isTreeTemplate, renderClip } from '@/utils/clip-template';
+import { runOnPage } from './page-queue';
 import { formatLogseqDate } from '@/utils/logseq-format';
 import {
   defaultTemplateIdItem,
@@ -80,20 +81,27 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
       'The template made no block to clip. Check it in the extension settings.',
     );
   }
-  // renderClip returns one root at most.
-  const write = async (page: string): Promise<ClipResult> => {
-    const { rootUuid, noteUuid } = await logseqService.clipBlocks(
-      page,
-      blocks[0],
-      { tag: template.tag },
-    );
-    return {
-      page,
-      templateId: template.id,
-      rootUuid,
-      ...(noteUuid !== undefined && { noteBlockUuid: noteUuid }),
-    };
-  };
+  // Only an outline template has a header (the root) apart from the content
+  // (its children), so only it joins an earlier clip of the same page. A flat
+  // template writes a new block every time.
+  const group =
+    source.url && isTreeTemplate(template.content) ? { url: source.url } : undefined;
+
+  // renderClip returns one root at most. Writes to a page go one at a time.
+  const write = (page: string): Promise<ClipResult> =>
+    runOnPage(page, async () => {
+      const { rootUuid, added, noteUuid } = await logseqService.clipBlocks(page, blocks[0], {
+        tag: template.tag,
+        group,
+      });
+      return {
+        page,
+        templateId: template.id,
+        rootUuid,
+        added,
+        ...(noteUuid !== undefined && { noteBlockUuid: noteUuid }),
+      };
+    });
 
   const clipNoteLocation = template.clipNoteLocation || 'journal';
   const clipNoteCustomPage = template.clipNoteCustomPage || '';

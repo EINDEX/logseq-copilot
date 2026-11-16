@@ -42,6 +42,14 @@ export const ClipNoteOptions = () => {
           onCheckedChange={(checked) => updateConfig('enableClipNoteFloatButton', checked)}
         />
 
+        <Label htmlFor="highlight-clipped-text">Highlight clipped text</Label>
+        <Switch
+          id="highlight-clipped-text"
+          // On unless the user turned it off, also while the settings load.
+          checked={logseqConfig?.highlightClippedText ?? true}
+          onCheckedChange={(checked) => updateConfig('highlightClippedText', checked)}
+        />
+
         <Label htmlFor="clip-shortcut">Clip Shortcuts</Label>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Input

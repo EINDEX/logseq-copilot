@@ -7,6 +7,7 @@ import LogseqClient from './client';
 import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { blockUuid, writeClipBlocks } from '../clip-blocks';
+import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import type { TemplateTag } from '@/utils/storage';
@@ -15,7 +16,12 @@ import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { DBRecallSource } from '../recall/db-source';
-import { getBlockMarker, splitTaskMarker, STATUS_TITLE_BY_MARKER } from './status';
+import {
+  getBlockMarker,
+  splitTaskMarker,
+  STATUS_PROPERTY,
+  STATUS_TITLE_BY_MARKER,
+} from './status';
 import {
   mentionsScope,
   scopePrefixes,
@@ -338,7 +344,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
   public async clipBlocks(
     page: string,
     root: ClipBlock,
-    opts: { tag?: TemplateTag } = {},
+    opts: { tag?: TemplateTag; group?: GroupRequest } = {},
   ) {
     const write = async (
       create: (text: string) => Promise<unknown>,
@@ -355,6 +361,15 @@ export default class LogseqDBService implements LogseqServiceInterface {
       return { uuid };
     };
     const name = opts.tag?.name.trim();
+    // A block of a DB graph is a task when it has a status.
+    const target = opts.group
+      ? findGroupTarget(
+          await this.client.getPageBlocksTree(page),
+          opts.group,
+          root.content,
+          (block) => getBlockMarker(block) !== '' || Boolean(block?.[STATUS_PROPERTY]),
+        )
+      : undefined;
     return await writeClipBlocks(
       page,
       root,
@@ -368,6 +383,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
           ),
       },
       name ? (rootUuid) => this.tagBlock(rootUuid, name) : undefined,
+      target,
     );
   }
 

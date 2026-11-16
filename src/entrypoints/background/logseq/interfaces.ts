@@ -3,11 +3,15 @@ import type { RecallResult } from '@/types/recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import type { TemplateTag } from '@/utils/storage';
 import type { RecallOptions } from './recall/recall';
+import type { WrittenClip } from './clip-blocks';
+import type { GroupRequest } from './clip-group';
 
 export interface LogseqClientInterface {
   getGraph(): any;
   appendBlock(page: string, content: string): any;
   insertChildBlock(parentUuid: string, content: string): any;
+  /** The blocks of a page as a tree; a page that does not exist has none. */
+  getPageBlocksTree(page: string): any;
   getVersion(): any;
   getAllPages(): any;
   showMsg(message: string): any;
@@ -46,12 +50,18 @@ export interface LogseqServiceInterface {
    * its text. A tag that cannot be applied does not fail the clip. Returns the
    * root block's uuid, and the uuid of the block that holds the clip's note
    * (`note` on a block) when there is one.
+   *
+   * With `group`, the clip joins the last top-level block of `page` that links
+   * to the same web page and is of the same kind (a task or not), see
+   * clip-group.ts: the root is not written again, its children become one
+   * child of that block, and the tag is not applied. The result names the one
+   * node the clip added. Only outline templates ask for it.
    */
   clipBlocks(
     page: string,
     root: ClipBlock,
-    opts?: { tag?: TemplateTag },
-  ): Promise<{ rootUuid: string; noteUuid?: string }>;
+    opts?: { tag?: TemplateTag; group?: GroupRequest },
+  ): Promise<WrittenClip>;
   /**
    * The tags to pick for a template, by name, the ones of a DB graph with
    * their uuid. Throws when Logseq cannot answer.
