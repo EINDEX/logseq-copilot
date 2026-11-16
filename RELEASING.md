@@ -16,6 +16,39 @@ from [Conventional Commits](https://www.conventionalcommits.org/) on `main`.
 
 The extension version and zip file names come from `package.json`.
 
+## Changes that do not release
+
+Every store release waits for review again, so changes that are not in the
+extension package must not start one. `exclude-paths` in
+`release-please-config.json` makes release-please skip a commit when all its
+files are under these folders, whatever its type (even `feat:`):
+
+| Folder | What it is |
+| --- | --- |
+| `docs/` | The website (`docs.yml` deploys it on its own) |
+| `store/` | Store listing text and screenshots |
+| `.github/`, `pipeline/`, `scripts/` | CI, store upload and dev tooling |
+| `tests/` | Tests |
+
+A commit that also changes anything else (`src/`, `public/`, `wxt.config.ts`,
+`package.json`, ...) still counts. Keep site and store changes in their own
+commits, and use these types so the history says the same thing:
+
+- Website: `docs(site): ...`
+- Store listing: `docs(store): ...`
+- CI: `ci: ...`
+
+A fix to `publish.yml` or `pipeline/` does not release either. To ship an
+existing version again, run Publish by hand (below).
+
+To see what release-please would do with the commits on `main` since the last
+release, without changing anything:
+
+```sh
+npx release-please@17 release-pr --dry-run \
+  --repo-url EINDEX/logseq-copilot --token "$(gh auth token)"
+```
+
 ## Why `publish.yml` is called, not triggered by the tag
 
 Tags and releases created with the default `GITHUB_TOKEN` do not start other
