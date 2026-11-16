@@ -1,4 +1,10 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { IconArrowUpRight, IconCheck } from '@tabler/icons-react';
 import { LogseqBlockType } from '@/types/logseqBlock';
@@ -14,7 +20,15 @@ type LogseqBlockProps = {
 };
 
 /** Markers Logseq draws an unchecked / checked box for (block-checkbox). */
-const OPEN_MARKERS = ['TODO', 'DOING', 'LATER', 'NOW', 'IN-PROGRESS', 'WAIT', 'WAITING'];
+const OPEN_MARKERS = [
+  'TODO',
+  'DOING',
+  'LATER',
+  'NOW',
+  'IN-PROGRESS',
+  'WAIT',
+  'WAITING',
+];
 const CHECKED_MARKERS = ['DONE'];
 const CANCELED_MARKERS = ['CANCELED', 'CANCELLED'];
 
@@ -56,7 +70,9 @@ const useTaskMarker = (uuid: string, marker: string) => {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to change the task status.',
+        err instanceof Error
+          ? err.message
+          : 'Failed to change the task status.',
       );
     } finally {
       setPending(false);
@@ -107,13 +123,19 @@ const Foldable = ({ children }: { children: React.ReactNode }) => {
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    el.querySelectorAll('img').forEach((img) => img.addEventListener('load', measure));
+    el.querySelectorAll('img').forEach((img) =>
+      img.addEventListener('load', measure),
+    );
     return () => observer.disconnect();
   }, []);
 
   return (
     <>
-      <div ref={ref} className="lc-clamp" data-folded={overflows && !open ? 'true' : 'false'}>
+      <div
+        ref={ref}
+        className="lc-clamp"
+        data-folded={overflows && !open ? 'true' : 'false'}
+      >
         {children}
       </div>
       {overflows && (
@@ -144,20 +166,28 @@ export const LogseqBlockRow = ({
   block: LogseqBlockType;
   children?: React.ReactNode;
 }) => {
-  const { status, pending, error, update } = useTaskMarker(block.uuid, block.marker ?? '');
+  const { status, pending, error, update } = useTaskMarker(
+    block.uuid,
+    block.marker ?? '',
+  );
   const isOpen = OPEN_MARKERS.includes(status);
   const isChecked = CHECKED_MARKERS.includes(status);
   const hasCheckbox = isOpen || isChecked;
   const canSwitch = !!NEXT_MARKER[status];
   const showMarker = SHOWN_MARKERS.includes(status);
-  const hasStatusLabel = !!status && !hasCheckbox && !CANCELED_MARKERS.includes(status);
+  const hasStatusLabel =
+    !!status && !hasCheckbox && !CANCELED_MARKERS.includes(status);
   // The block's Markdown may hold raw HTML (a clipped page, ...), and the
   // sidebar on pages draws this in the page's own document.
   const html = useMemo(() => sanitizeHtml(block.html), [block.html]);
 
   return (
     <li>
-      <div className="lc-block-row" data-marker={status || undefined}>
+      <div
+        className="lc-block-row"
+        data-marker={status || undefined}
+        data-matched={block.matched ? 'true' : undefined}
+      >
         <Foldable>
           {(hasCheckbox || hasStatusLabel || showMarker) && (
             <span className="lc-task">
@@ -167,7 +197,9 @@ export const LogseqBlockRow = ({
                   checked={isChecked}
                   disabled={pending}
                   aria-label={isChecked ? `Mark as TODO` : `Mark as DONE`}
-                  onCheckedChange={(checked) => update(checked === true ? 'DONE' : 'TODO')}
+                  onCheckedChange={(checked) =>
+                    update(checked === true ? 'DONE' : 'TODO')
+                  }
                 >
                   <CheckboxPrimitive.Indicator>
                     <IconCheck stroke={3} />
@@ -175,16 +207,27 @@ export const LogseqBlockRow = ({
                 </CheckboxPrimitive.Root>
               )}
               {showMarker && (
-                <MarkerSwitch status={status} pending={pending} onSwitch={() => update(NEXT_MARKER[status])} />
+                <MarkerSwitch
+                  status={status}
+                  pending={pending}
+                  onSwitch={() => update(NEXT_MARKER[status])}
+                />
               )}
               {hasStatusLabel && <span className="lc-status">{status}</span>}
             </span>
           )}
-          <div className="lc-content" dangerouslySetInnerHTML={{ __html: html }} />
+          <div
+            className="lc-content"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
           {block.tagNames && block.tagNames.length > 0 && (
             <div className="lc-block-tags">
               {block.tagNames.map((name) => (
-                <a key={name} className="lc-block-tag" href={pageUrl(graph, name)}>
+                <a
+                  key={name}
+                  className="lc-block-tag"
+                  href={pageUrl(graph, name)}
+                >
                   #{name}
                 </a>
               ))}
@@ -198,7 +241,11 @@ export const LogseqBlockRow = ({
         )}
         <div className="lc-actions">
           {canSwitch && !showMarker && (
-            <MarkerSwitch status={status} pending={pending} onSwitch={() => update(NEXT_MARKER[status])} />
+            <MarkerSwitch
+              status={status}
+              pending={pending}
+              onSwitch={() => update(NEXT_MARKER[status])}
+            />
           )}
           {block.uuid && (
             <a

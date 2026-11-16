@@ -117,6 +117,7 @@ export interface LogseqApp {
   graph: string;
   version: string;
   callApi: (method: string, args?: unknown[]) => Promise<any>;
+  /** A picture of the app window. */
   screenshot: (path: string) => Promise<void>;
   close: () => Promise<void>;
 }

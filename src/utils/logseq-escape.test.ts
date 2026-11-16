@@ -5,7 +5,11 @@ import {
   escapeForLogseq,
   logseqEscape,
 } from './utils';
-import { DEFAULT_TEMPLATE_CONTENT, TASK_TEMPLATE_CONTENT } from './default-templates';
+import { DEFAULT_TEMPLATE_CONTENT } from './default-templates';
+
+// The flat Task template of #135. The built-in one is an outline template now.
+const TASK_TEMPLATE_CONTENT = `TODO [{{title}}]({{url}})
+{{content}}`;
 
 const block = (text: string) => escapeForLogseq(text, { context: 'block' });
 const label = (text: string) => escapeForLogseq(text, { context: 'linkText' });
@@ -974,5 +978,64 @@ const ORDINARY_TEXT: [string, string][] = [
 
   it.each(ORDINARY_TEXT)('writes the text %j as it did', (source, expected) => {
     expect(block(source)).toBe(expected);
+  });
+});
+
+describe('escapeForLogseq: property values', () => {
+  it('propertyUrl keeps a URL that has a #fragment, query, parentheses and brackets', () => {
+    for (const url of [
+      'https://example.com/a?x=1&y=2#frag',
+      'https://example.com/wiki/Foo_(bar)',
+      'https://example.com/wiki/un(paired',
+      'https://example.com/wiki/un)paired',
+      'https://example.com/p/[x]/[[y]]',
+    ]) {
+      expect(escapeForLogseq(url, { context: 'propertyUrl' })).toBe(url);
+    }
+  });
+
+  it('propertyUrl encodes what ends the value or starts syntax', () => {
+    expect(
+      escapeForLogseq(' https://e.com/?a={{b}}&c=`d`<e>\\f\u2028g\n', {
+        context: 'propertyUrl',
+      }),
+    ).toBe('https://e.com/?a=%7B%7Bb%7D%7D&c=%60d%60%3Ce%3E%5Cf%E2%80%A8g');
+  });
+
+  it('propertyText is a one-line literal', () => {
+    expect(
+      escapeForLogseq('C# #idea\n [[x]] and a `b`', { context: 'propertyText' }),
+    ).toBe('C# \\#idea \\[\\[x\\]\\] and a \\`b\\`');
+  });
+});
+
+describe('escapeForLogseq, text behind template text on its line', () => {
+  const mid = (text: string, midLine: 'text' | 'quote' = 'text') =>
+    escapeForLogseq(text, { context: 'block', midLine });
+
+  it('reads no mark on the first line, the marks after it pair up as they do', () => {
+    // The first mark is in the middle of a line (`Note: ```js`), so the second
+    // is the first mark of the block and closes with nothing: text.
+    expect(mid(`\`\`\`js\n${RAW}\n\`\`\``)).toBe(`\`\`\`js\n${ESC}\n\`\`\``);
+    // The marks after it pair as ever.
+    expect(mid(`\`\`\`\n${RAW}\n~~~\n${RAW}\n\`\`\``)).toBe(
+      `\`\`\`\n${ESC}\n~~~\n${RAW}\n\`\`\``,
+    );
+    expect(block(`\`\`\`\n${RAW}\n~~~\n${RAW}\n\`\`\``)).toBe(
+      `\`\`\`\n${RAW}\n~~~\n${ESC}\n\`\`\``,
+    );
+  });
+
+  it('is the same as `block` for text without a mark on its first line', () => {
+    const text = `first #a\n\`\`\`js\n${RAW}\n\`\`\`\nlast #b`;
+    expect(mid(text)).toBe(block(text).replace('first #a', 'first \\#a'));
+  });
+
+  it('is swallowed after a template that makes a quote of the line', () => {
+    const text = `x\n\`\`\`\n${RAW}\n\`\`\``;
+    expect(mid(text)).toContain(RAW);
+    expect(mid(text, 'quote')).toBe(`x\n\`\`\`\n${ESC}\n\`\`\``);
+    // A blank line ends the quote.
+    expect(mid(`x\n\n\`\`\`\n${RAW}\n\`\`\``, 'quote')).toContain(RAW);
   });
 });

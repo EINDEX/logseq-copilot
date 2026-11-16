@@ -4,8 +4,9 @@ import type { TemplateItemV1 } from './storage';
 export const DEFAULT_TEMPLATE_CONTENT = `#[[Clip]] [{{title}}]({{url}})
 {{content}}`;
 
-export const TASK_TEMPLATE_CONTENT = `TODO [{{title}}]({{url}})
-{{content}}`;
+/** The page as a task, its selection in blocks below it. */
+export const TASK_TEMPLATE_CONTENT = `- TODO [{{title}}]({{url}})
+  - {{content}}`;
 
 export const CLIP_TEMPLATE_ID = 'default';
 export const TASK_TEMPLATE_ID = 'task';
@@ -31,4 +32,31 @@ export const TASK_TEMPLATE: TemplateItemV1 = {
 export const BUILT_IN_TEMPLATES: TemplateItemV1[] = [
   CLIP_TEMPLATE,
   TASK_TEMPLATE,
+];
+
+/** A starting point for a new template (the template sidebar's `+` menu). */
+export interface TemplatePreset {
+  id: string;
+  name: string;
+  content: string;
+}
+
+export const TEMPLATE_PRESETS: TemplatePreset[] = [
+  { id: 'blank', name: 'Blank', content: DEFAULT_TEMPLATE_CONTENT },
+  {
+    id: 'nested-clip',
+    name: 'Nested clip',
+    content: `- [{{title}}]({{url}})
+  - {{content}}`,
+  },
+  { id: 'task', name: 'Task', content: TASK_TEMPLATE_CONTENT },
+  {
+    // The property lines are properties on file graphs, plain text on DB graphs.
+    id: 'reading-note',
+    name: 'Reading note',
+    content: `- [{{title}}]({{url}})
+  source:: {{url}}
+  date:: [[{{date}}]]
+  - {{content}}`,
+  },
 ];

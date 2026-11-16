@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { blockRending, escapeForLogseq, renderWithPageValues } from './utils';
-import {
-  DEFAULT_TEMPLATE_CONTENT,
-  TASK_TEMPLATE_CONTENT,
-} from './default-templates';
+import { blockRending, escapeForLogseq } from './utils';
+import { renderWithPageValues } from './logseq-format';
+import { renderClip, type ClipBlock } from './clip-template';
+import { DEFAULT_TEMPLATE_CONTENT } from './default-templates';
 
 const render = (
   clipNoteTemplate: string,
@@ -299,7 +298,7 @@ describe('the ordinary templates write what they always did', () => {
       '#[[Clip]] [Big \\#news \\[1\\]](https://e.com/a(b)#c)\n\\TODO one\n\\- y\nkey:\\: v\n\\[[p]] \\#t \\{{embed \\[[p]]}}',
     ],
     [
-      TASK_TEMPLATE_CONTENT,
+      'TODO [{{title}}]({{url}})\n{{content}}',
       odd,
       'TODO [Big \\#news \\[1\\]](https://e.com/a(b)#c)\n\\TODO one\n\\- y\nkey:\\: v\n\\[[p]] \\#t \\{{embed \\[[p]]}}',
     ],
@@ -346,5 +345,76 @@ describe('the ordinary templates write what they always did', () => {
     ['{{ title | default: "none" }}', { title: '', data: '' }, 'none'],
   ])('%j', (template, p, expected) => {
     expect(render(template, p)).toBe(expected);
+  });
+});
+
+// The same hostile templates in an outline template: every block that comes out
+// is checked on its own, since each one is the start of a Logseq block.
+describe('hostile templates in an outline template', () => {
+  const flatten = (blocks: ClipBlock[]): string[] =>
+    blocks.flatMap((b) => [b.content, ...flatten(b.children)]);
+  const renderTree = (template: string, page = PAGE) =>
+    flatten(
+      renderClip(template, {
+        ...page,
+        preferredDateFormat: 'MMM do, yyyy',
+        time: new Date('2026-11-16T10:30:00'),
+      }),
+    );
+
+  const templates: [string, string, boolean?][] = [
+    [
+      'trim before content',
+      '- Note: {%- if true -%}{%- endif -%}\n  - {{content}}',
+    ],
+    ['trim, content on the bullet line', '- A\n  - Note:\n{{- content}}'],
+    ['trimmed output', '- A\n  - Note: {{- content -}}'],
+    ['assign', '- {% assign u = url %}x {{u}}\n  - {{content}}'],
+    ['capture', '- A\n  - {% capture c %}{{content}}{% endcapture %}> {{c}}'],
+    [
+      'capture on a bullet',
+      '- A\n  - {% capture c %}{{content}}{% endcapture %}{{c}}',
+    ],
+    ['upcase', '- A\n  - {{ content | upcase }}\n  - {{ title | upcase }}'],
+    [
+      'append',
+      "- A\n  - {{ url | append: ' tail' }}\n  - {{ content | append: ' tail' }}",
+    ],
+    ['title and url as text', '- {{title}} {{url}}\n  - {{content}}'],
+    ['empty title in front', '- {{title}} {{content}}'],
+    [
+      'property value',
+      '- A\n  - key:: {{url | append: " x"}}\n  - {{content}}',
+    ],
+    ['split and join', "- A\n  - {{ content | split: ' ' | join: ' ' }}", true],
+    ['slice', '- A\n  - {{ content | slice: 0, 50 }}'],
+    ['truncate', '- A\n  - {{ content | truncate: 20 }}'],
+    ['replace', "- A\n  - {{ content | replace: 'a', 'b' }}"],
+    ['remove backslash', "- A\n  - {{ content | remove: '\\\\' }}"],
+    ['url_decode', '- A\n  - {{ content | url_decode }}'],
+    ['strip_html', '- A\n  - {{ content | strip_html }}'],
+    [
+      'for loop',
+      "- A\n  - {% for w in content | split: ' ' %}{{w}} {% endfor %}",
+    ],
+    ['first of split', "- A\n  - {{ content | split: ' ' | first }}", true],
+  ];
+
+  it.each(templates)(
+    '%s: no live syntax in any block',
+    (_name, template, strict) => {
+      const page = template.includes('{{title}} {{content}}')
+        ? { ...PAGE, title: '' }
+        : PAGE;
+      for (const block of renderTree(template, page)) {
+        expectInert(block, ['https://e.com/', 'key:: '], !!strict);
+      }
+    },
+  );
+
+  it('a block of the content is escaped as the start of a block', () => {
+    expect(renderTree('- A\n  - {{content}}', { ...PAGE, title: 'T' })).toEqual(
+      ['A', '```js\n' + CODE + '\n```', '\\TODO x', 'y', 'end \\[[q]]'],
+    );
   });
 });

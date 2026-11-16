@@ -227,7 +227,7 @@ describe('addTaskTemplate', () => {
   const task = {
     id: 'task',
     name: 'Task',
-    content: 'TODO [{{title}}]({{url}})\n{{content}}',
+    content: '- TODO [{{title}}]({{url}})\n  - {{content}}',
     clipNoteLocation: 'journal',
     clipNoteCustomPage: '',
   };

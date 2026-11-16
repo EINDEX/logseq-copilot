@@ -1,10 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
+import { blockRending } from './utils';
 import {
-  blockRending,
   formatLogseqDate,
   logseqEscape,
   toDateFnsPattern,
-} from './utils';
+} from './logseq-format';
 
 describe('renderBlock', () => {
   test('should format date as logseq time format', () => {

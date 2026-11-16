@@ -217,6 +217,69 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('template editor: outline, autocomplete and text mode, and the new template presets', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    const templates = [
+      {
+        id: 'nested',
+        name: 'Task',
+        content: '- TODO [{{title}}]({{url}})\n  - {{content}}',
+        clipNoteLocation: 'journal',
+        clipNoteCustomPage: '',
+      },
+      {
+        id: 'default',
+        name: 'Clip',
+        content: '#[[Clip]] [{{title}}]({{url}})\n{{content}}',
+        clipNoteLocation: 'journal',
+        clipNoteCustomPage: '',
+      },
+    ];
+
+    for (const scheme of SCHEMES) {
+      await ext.setStorage({ templates });
+      await setScheme(page, scheme);
+      // A hash-only navigation would keep the page, and the editor's state.
+      await page.goto('about:blank');
+      await page.goto(ext.url('options.html#/template/nested'));
+      const editor = page.locator('#template-content');
+      await expect(editor.locator('.cm-tpl-chip[data-variable="content"][data-split="true"]')).toBeVisible();
+      const preview = page.getByTestId('clip-preview');
+      await expect(preview.getByText('Nested item')).toBeVisible();
+      await shoot(page, 'options-template-editor-outline', scheme);
+
+      // A new block, and the variable list open.
+      await editor.click();
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('{{');
+      await expect(page.locator('.cm-tooltip-autocomplete')).toBeVisible();
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: file('options-template-editor-autocomplete', scheme), caret: 'hide' });
+      await page.keyboard.press('Escape');
+
+      await ext.setStorage({ templates });
+      await page.goto('about:blank');
+      await page.goto(ext.url('options.html#/template/nested'));
+      await expect(editor.locator('.cm-tpl-chip')).not.toHaveCount(0);
+      await page.getByRole('button', { name: 'Text', exact: true }).click();
+      await expect(editor).toContainText('- TODO [{{title}}]({{url}})');
+      await shoot(page, 'options-template-editor-text', scheme);
+
+      await page.getByRole('button', { name: 'Add Template' }).click();
+      await expect(page.getByRole('menuitem', { name: /Reading note/ })).toBeVisible();
+      // Not through shoot(): it moves the pointer away and disables animations,
+      // and the open menu is gone from a picture taken that way.
+      await page.waitForTimeout(300);
+      await page.screenshot({
+        path: file('options-template-presets-menu', scheme),
+        clip: { x: 0, y: 0, width: 760, height: 760 },
+        caret: 'hide',
+      });
+      await page.keyboard.press('Escape');
+    }
+  });
+
   test('browser sidebar clip actions: with a selection, and a failed clip', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();

@@ -6,6 +6,10 @@ import {
 import LogseqClient from './client';
 import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
+import { blockUuid, writeClipBlocks } from '../clip-blocks';
+import { expandClips } from '../clip-recall';
+import type { ClipBlock } from '@/utils/clip-template';
+import type { TemplateTag } from '@/utils/storage';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
@@ -19,6 +23,9 @@ import {
 } from '@/utils/recall-scope';
 
 export { getBlockMarker };
+
+/** Set on the classes Logseq ships (Task, Page, ...). */
+const BUILT_IN_PROPERTY = ':logseq.property/built-in?';
 
 // Logseq 2.0.x returns `uuid`; older builds nested it as `block/uuid: {uuid}`.
 const getItemUuid = (item: any): string =>
@@ -277,16 +284,33 @@ export default class LogseqDBService implements LogseqServiceInterface {
       await find(prefix, (block) => mentionsScope(block.content, prefix));
     }
 
+    const cache: PageCache = new Map();
+    const clips = await expandClips(
+      blocks.map((block) => this.render(block, graph, url.href)),
+      count,
+      {
+        getBlock: (ref) => this.client.getBlockViaUuid(ref),
+        getTree: (uuid) =>
+          this.client.getBlockViaUuid(uuid, { includeChildren: true }),
+        prepare: async (block, page) => {
+          block.page = page;
+          await this.readable(block, cache);
+          await resolveBlockRefs(block, async (uuid) =>
+            this.readable(await this.client.getBlockViaUuid(uuid), cache),
+          );
+          return this.render(block, graph, url.href);
+        },
+      },
+    );
+
     return {
       status: 200,
       msg: 'success',
       response: {
-        blocks: blocks.map((block) => {
-          return this.render(block, graph, url.href);
-        }),
+        blocks: clips.blocks,
         graph: graph,
       },
-      count: count,
+      count: clips.count,
     };
   }
 
@@ -302,24 +326,114 @@ export default class LogseqDBService implements LogseqServiceInterface {
   }
 
   /**
-   * Appends a clip to `page`. A task marker at the start of `content` (TODO,
-   * LATER, ...) becomes the block's status: Logseq keeps tasks in a property,
-   * not in the text.
+   * Appends a clip: its root block and the tree below it. A task marker at the
+   * start of any block (root or child), `TODO ` or `LATER `, becomes the
+   * block's status: Logseq keeps tasks in a property, not in the text.
+   * Properties (`key:: value`) stay text: a DB graph does not read them from
+   * the text, and setting them through the API would create a property of the
+   * plugin instead of the user's own.
+   *
+   * The tag goes on the root as a class (`addBlockTag`), the text stays clean.
    */
-  public async clipBlock(page: string, content: string) {
-    const { content: text, status } = splitTaskMarker(content);
-    const block = await this.client.appendBlock(page, text);
-    if (!status) return block;
-    const uuid = block?.uuid;
-    if (typeof uuid !== 'string') {
-      throw new Error('Logseq did not return the clipped block.');
+  public async clipBlocks(
+    page: string,
+    root: ClipBlock,
+    opts: { tag?: TemplateTag } = {},
+  ) {
+    const write = async (
+      create: (text: string) => Promise<unknown>,
+      content: string,
+    ) => {
+      const { content: text, status } = splitTaskMarker(content);
+      const uuid = blockUuid(await create(text));
+      if (status) {
+        const result = await this.client.setBlockStatus(uuid, status);
+        if (result && typeof result === 'object' && 'error' in result) {
+          throw new Error(String(result.error));
+        }
+      }
+      return { uuid };
+    };
+    const name = opts.tag?.name.trim();
+    return await writeClipBlocks(
+      page,
+      root,
+      {
+        append: (to, content) =>
+          write((text) => this.client.appendBlock(to, text), content),
+        insertChild: (parentUuid, content) =>
+          write(
+            (text) => this.client.insertChildBlock(parentUuid, text),
+            content,
+          ),
+      },
+      name ? (rootUuid) => this.tagBlock(rootUuid, name) : undefined,
+    );
+  }
+
+  /** The tags of the graph, as getAllTags answers them. */
+  private async allTags(): Promise<any[]> {
+    const tags = await this.client.getAllTags();
+    if (!Array.isArray(tags)) {
+      throw new Error(
+        tags && typeof tags === 'object' && 'error' in tags
+          ? String((tags as any).error)
+          : 'Logseq did not return its tags.',
+      );
     }
-    const result = await this.client.setBlockStatus(uuid, status);
-    // The HTTP API reports failures as a 200 response carrying `{ error }`.
+    return tags;
+  }
+
+  /**
+   * The uuid of the tag `name`: the graph's own tag of that title (any case),
+   * otherwise the class `createPage` makes (it returns the class itself when
+   * there is one, so no duplicate). Never `createTag`, which makes a second
+   * class in the plugin namespace.
+   */
+  private async resolveTagUuid(name: string): Promise<string> {
+    const wanted = name.toLowerCase();
+    const found = (await this.allTags()).find((tag) =>
+      [tag?.title, tag?.name].some(
+        (text) => typeof text === 'string' && text.toLowerCase() === wanted,
+      ),
+    );
+    if (typeof found?.uuid === 'string' && found.uuid) return found.uuid;
+    const page = await this.client.createPage(
+      name,
+      {},
+      { class: true, redirect: false },
+    );
+    return blockUuid(page);
+  }
+
+  /**
+   * Tags `rootUuid` with the tag `name` by uuid, never by name: a name can
+   * resolve to the wrong class. A failure (the HTTP API reports one as a 200
+   * response carrying `{ error }`) is logged by the caller, not a clip failure.
+   */
+  private async tagBlock(rootUuid: string, name: string) {
+    const tagUuid = await this.resolveTagUuid(name);
+    const result = await this.client.addBlockTag(rootUuid, tagUuid);
     if (result && typeof result === 'object' && 'error' in result) {
-      throw new Error(String(result.error));
+      throw new Error(String((result as any).error));
     }
-    return block;
+  }
+
+  /** The graph's own tags, built-in classes left out. */
+  public async listTags(): Promise<TemplateTag[]> {
+    const names = new Map<string, TemplateTag>();
+    for (const tag of await this.allTags()) {
+      if (tag?.[BUILT_IN_PROPERTY]) continue;
+      const name = tag?.title ?? tag?.name;
+      if (typeof name !== 'string' || !name.trim()) continue;
+      if (!names.has(name.toLowerCase())) {
+        names.set(name.toLowerCase(), {
+          name,
+          ...(typeof tag.uuid === 'string' && { uuid: tag.uuid }),
+        });
+      }
+    }
+    return [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   public async changeBlockMarker(

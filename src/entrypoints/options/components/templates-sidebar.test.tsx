@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { fakeBrowser } from 'wxt/testing';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -62,5 +62,50 @@ describe('TemplatesSidebar', () => {
     await waitFor(() =>
       expect(key.closest('a')?.textContent).toContain('Task'),
     );
+  });
+
+  describe('the + menu', () => {
+    const openMenu = async () => {
+      renderSidebar();
+      await screen.findByText('Clip');
+      // Radix opens the menu from the keyboard without pointer events.
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Add Template' }), {
+        key: 'Enter',
+      });
+    };
+
+    it('offers the presets', async () => {
+      await openMenu();
+      const items = await screen.findAllByRole('menuitem');
+      expect(items.map((item) => item.querySelector('span')?.textContent)).toEqual([
+        'Blank',
+        'Nested clip',
+        'Task',
+        'Reading note',
+      ]);
+    });
+
+    it('adds a template with the content of the chosen preset, first in the list', async () => {
+      await openMenu();
+      fireEvent.click(await screen.findByRole('menuitem', { name: /Reading note/ }));
+      await waitFor(async () => expect((await templates.getValue())).toHaveLength(3));
+      const [added] = await templates.getValue();
+      expect(added).toMatchObject({
+        name: 'Reading note',
+        content:
+          '- [{{title}}]({{url}})\n  source:: {{url}}\n  date:: [[{{date}}]]\n  - {{content}}',
+        clipNoteLocation: 'journal',
+      });
+      expect(added.id).toBeTruthy();
+    });
+
+    it('adds a blank template with the Clip content and a numbered name', async () => {
+      await openMenu();
+      fireEvent.click(await screen.findByRole('menuitem', { name: /Blank/ }));
+      await waitFor(async () => expect((await templates.getValue())).toHaveLength(3));
+      const [added] = await templates.getValue();
+      expect(added.name).toBe('New Template 3');
+      expect(added.content).toBe('#[[Clip]] [{{title}}]({{url}})\n{{content}}');
+    });
   });
 });

@@ -23,9 +23,9 @@ import {
 
 const service = vi.hoisted(() => ({
   // Like the file graph service: the clip goes to the client's appendBlock.
-  clipBlock: vi.fn((page: string, content: string): unknown =>
-    service.client.appendBlock(page, content),
-  ),
+  clipBlocks: vi.fn(async (page: string, root: { content: string }) => ({
+    rootUuid: (await service.client.appendBlock(page, root.content))?.uuid ?? 'root',
+  })),
   changeBlockMarker: vi.fn(),
   recall: vi.fn(),
   search: vi.fn(),
@@ -302,7 +302,12 @@ describe('logseq:clipWithSelection', () => {
       templateId: 'task',
     });
 
-    expect(clippedBlock()).toMatch(/^TODO \[Other Page\]\(https:\/\/other\.example\/\)\nthe selection/);
+    // The Task template nests the selection under the task.
+    expect(service.clipBlocks).toHaveBeenCalledTimes(1);
+    expect(service.clipBlocks.mock.calls[0][1]).toEqual({
+      content: 'TODO [Other Page](https://other.example/)',
+      children: [{ content: 'the selection', children: [] }],
+    });
   });
 
   test('without a sender tab, clips the active tab of the current window', async () => {

@@ -412,15 +412,16 @@ function SidebarGroupLabel({
   )
 }
 
-function SidebarGroupAction({
-  className,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> & { asChild?: boolean }) {
+// Forwards its ref: a Radix trigger (asChild) anchors its menu to it.
+const SidebarGroupAction = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> & { asChild?: boolean }
+>(function SidebarGroupAction({ className, asChild = false, ...props }, ref) {
   const Comp = asChild ? Slot : "button"
 
   return (
     <Comp
+      ref={ref}
       data-slot="sidebar-group-action"
       data-sidebar="group-action"
       className={cn(
@@ -433,7 +434,7 @@ function SidebarGroupAction({
       {...props}
     />
   )
-}
+})
 
 function SidebarGroupContent({
   className,

@@ -20,6 +20,13 @@ export type LogseqBlockType = {
   refTitles?: Record<string, string>;
   /** DB graphs: class tags shown after the block (not the inline ones). */
   tagNames?: string[];
+  /**
+   * The page sidebar (`logseq:urlSearch`): a clip's root block comes with its
+   * subtree here. Search results have none.
+   */
+  children?: LogseqBlockType[];
+  /** In such a subtree: the block is one that mentions the page's URL. */
+  matched?: boolean;
 };
 
 export type LogseqPageContentType = {

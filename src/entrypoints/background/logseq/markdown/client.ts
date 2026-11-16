@@ -52,6 +52,15 @@ export default class LogseqClient
     return resp;
   };
 
+  /** A block as the last child of the block `parentUuid`. */
+  public insertChildBlock = async (parentUuid: string, content: string) => {
+    return await this.baseJson('logseq.Editor.insertBlock', [
+      parentUuid,
+      content,
+      { sibling: false },
+    ]);
+  };
+
   public getCurrentPage = async () => {
     return await this.catchIssues(async () => {
       return await this.baseJson('logseq.Editor.getCurrentPage', []);
@@ -89,8 +98,9 @@ export default class LogseqClient
     return resp;
   };
 
+  /** `uuid` is a block uuid, or its entity id (a block's `parent.id`). */
   public getBlockViaUuid = async (
-    uuid: string,
+    uuid: string | number,
     opt?: { includeChildren: boolean },
   ) => {
     return await this.baseJson('logseq.Editor.getBlock', [uuid, opt]);
@@ -138,6 +148,11 @@ export default class LogseqClient
       `"${escapeQueryString(query)}"`,
     ]);
     return data;
+  };
+
+  /** A datascript query over the graph; the rows come back as arrays. */
+  public datascriptQuery = async (query: string) => {
+    return await this.baseJson('logseq.DB.datascriptQuery', [query]);
   };
 
   public getUserConfig = async () => {

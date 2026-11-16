@@ -21,12 +21,24 @@ export interface LogseqCopliotSettingsV1 {
   logseqAuthToken: string;
 }
 
+/**
+ * The tag a template puts on the root block of its clips. `uuid` is the tag
+ * class of a DB graph when the editor picked it from the graph; it may be
+ * stale, so a clip finds the tag again by `name`.
+ */
+export interface TemplateTag {
+  name: string;
+  uuid?: string;
+}
+
 export interface TemplateItemV1 {
   id: string;
   name: string;
   content: string;
   clipNoteLocation?: string;
   clipNoteCustomPage?: string;
+  /** Empty: no tag. */
+  tag?: TemplateTag;
 }
 
 export interface SearchEngineConfig {
