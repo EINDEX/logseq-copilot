@@ -49,6 +49,15 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     return resp;
   };
 
+  /** A block as the last child of the block `parentUuid`. */
+  public insertChildBlock = async (parentUuid: string, content: string) => {
+    return await this.baseJson('logseq.Editor.insertBlock', [
+      parentUuid,
+      content,
+      { sibling: false },
+    ]);
+  };
+
   public getCurrentPage = async () => {
     return await this.catchIssues(async () => {
       return await this.baseJson('logseq.Editor.getCurrentPage', []);
@@ -89,8 +98,9 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     return resp;
   };
 
+  /** `uuid` is a block uuid, or its entity id (a block's `parent.id`). */
   public getBlockViaUuid = async (
-    uuid: string,
+    uuid: string | number,
     opt?: { includeChildren: boolean },
   ) => {
     return await this.baseJson('logseq.Editor.getBlock', [uuid, opt]);
@@ -169,6 +179,36 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
       uuid,
       'logseq.property/status',
       status,
+    ]);
+  };
+
+  /** Every tag (class) of the graph, built-in ones included. */
+  public getAllTags = async () => {
+    return await this.baseJson('logseq.Editor.getAllTags', []);
+  };
+
+  /**
+   * A page by name; with `{ class: true }` the tag of that name, which is
+   * returned as it is when it exists. Never `createTag`: that one makes a
+   * second class in the plugin namespace.
+   */
+  public createPage = async (
+    name: string,
+    properties: Record<string, unknown> = {},
+    opts: { class?: boolean; redirect?: boolean } = {},
+  ) => {
+    return await this.baseJson('logseq.Editor.createPage', [
+      name,
+      properties,
+      opts,
+    ]);
+  };
+
+  /** Tags the block with the class `tagUuid`. Always by uuid, never by name. */
+  public addBlockTag = async (blockUuid: string, tagUuid: string) => {
+    return await this.baseJson('logseq.Editor.addBlockTag', [
+      blockUuid,
+      tagUuid,
     ]);
   };
 

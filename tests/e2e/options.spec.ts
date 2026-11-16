@@ -71,3 +71,112 @@ test.describe('options: recall rules', () => {
     await expect(sidebar.getByText('another page mentioning copilot')).toHaveCount(0);
   });
 });
+
+test.describe('options: template editor', () => {
+  // Real key presses and IME input go through Playwright's keyboard and CDP.
+  test.skip(({ browserName }) => browserName !== 'chromium', 'typed with real key presses, Chromium only');
+
+  const template = (content: string) => ({
+    id: 'typed',
+    name: 'Typed',
+    content,
+    clipNoteLocation: 'journal',
+    clipNoteCustomPage: '',
+  });
+  const storedContent = async (ext: { getStorage: (key: string) => Promise<any> }) =>
+    ((await ext.getStorage('templates')) ?? []).find((t: any) => t.id === 'typed')?.content;
+
+  test('typing a block, Enter, Tab and a {{content}} variable stores plain outline text', async ({ ext }) => {
+    await ext.setStorage({ templates: [template('')] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    const editor = page.locator('#template-content');
+    await editor.click();
+
+    await page.keyboard.type('Reading note');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await page.keyboard.type('{{');
+    await expect(page.locator('.cm-tooltip-autocomplete')).toBeVisible();
+    await page.getByRole('option', { name: /^content/ }).click();
+
+    await expect(editor.locator('.cm-tpl-chip[data-variable="content"]')).toBeVisible();
+    await expect.poll(() => storedContent(ext)).toBe('- Reading note\n  - {{content}}');
+  });
+
+  test('a variable picked with the keyboard, and the list closed with Escape', async ({ ext }) => {
+    await ext.setStorage({ templates: [template('')] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    await page.locator('#template-content').click();
+
+    await page.keyboard.type('{{');
+    await expect(page.locator('.cm-tooltip-autocomplete')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.cm-tooltip-autocomplete')).toHaveCount(0);
+
+    await page.keyboard.type('ur');
+    await expect(
+      page.locator('.cm-tooltip-autocomplete [aria-selected="true"]'),
+    ).toBeVisible();
+    // CodeMirror ignores Tab as "accept" for the first 75 ms of a tooltip
+    // (`interactionDelay`), and Tab then indents instead.
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Tab');
+    await expect.poll(() => storedContent(ext)).toBe('{{url}}');
+  });
+
+  test('Chinese text typed in is stored', async ({ ext }) => {
+    await ext.setStorage({ templates: [template('')] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    await page.locator('#template-content').click();
+
+    await page.keyboard.insertText('剪藏笔记');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await page.keyboard.insertText('来源：');
+    await expect.poll(() => storedContent(ext)).toBe('- 剪藏笔记\n  - 来源：');
+  });
+
+  test('an input method composition ends up as the committed text only', async ({ ext }) => {
+    await ext.setStorage({ templates: [template('')] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    await page.locator('#template-content').click();
+    const client = await page.context().newCDPSession(page);
+
+    await client.send('Input.imeSetComposition', { text: 'ni', selectionStart: 2, selectionEnd: 2 });
+    await client.send('Input.imeSetComposition', { text: 'nihao', selectionStart: 5, selectionEnd: 5 });
+    await client.send('Input.insertText', { text: '你好' });
+    await page.keyboard.press('Enter');
+    await client.send('Input.imeSetComposition', { text: 'shi', selectionStart: 3, selectionEnd: 3 });
+    await client.send('Input.insertText', { text: '世' });
+
+    await expect.poll(() => storedContent(ext)).toBe('- 你好\n  - 世');
+  });
+
+  test('opening a template and switching the mode writes nothing', async ({ ext }) => {
+    const content = '- [{{title}}]({{url}})\n  - {{content}}';
+    await ext.setStorage({ templates: [template(content)] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    await expect(page.locator('#template-content .cm-tpl-chip[data-variable="title"]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Text', exact: true }).click();
+    await expect(page.locator('#template-content')).toContainText('- [{{title}}]({{url}})');
+    await page.getByRole('button', { name: 'Outline', exact: true }).click();
+    await expect(page.locator('#template-content .cm-tpl-chip[data-variable="title"]')).toBeVisible();
+    await page.waitForTimeout(500);
+    expect(await storedContent(ext)).toBe(content);
+  });
+
+  test('a template the outline would change opens in Text', async ({ ext }) => {
+    await ext.setStorage({ templates: [template('intro\n- one\n- two')] });
+    const options = await ext.openPage('options.html#/template/typed');
+    const page = options.page!;
+    await expect(page.locator('#template-content')).toContainText('intro');
+    await expect(page.getByRole('button', { name: 'Outline', exact: true })).toBeDisabled();
+    await expect(page.locator('#template-content .cm-tpl-bullet')).toHaveCount(0);
+  });
+});

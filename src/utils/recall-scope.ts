@@ -4,7 +4,7 @@
  * bare host would recall every note that mentions the site.
  */
 
-import { escapeForLogseq } from './utils';
+import { escapeForLogseq } from './logseq-format';
 
 const segmentsOf = (url: URL) => url.pathname.split('/').filter(Boolean);
 

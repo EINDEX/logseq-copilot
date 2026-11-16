@@ -3,6 +3,10 @@ import LogseqClient from './client';
 import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
+import { blockUuid, withTagText, writeClipBlocks } from '../clip-blocks';
+import { expandClips } from '../clip-recall';
+import type { ClipBlock } from '@/utils/clip-template';
+import type { TemplateTag } from '@/utils/storage';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
@@ -19,6 +23,10 @@ import {
  * is completed by a full-text query up to this many (see more-blocks.ts).
  */
 export const MAX_SEARCH_BLOCKS = 50;
+
+/** Pages that some block or page has as a tag (`tags::`). */
+const TAGGED_PAGES_QUERY =
+  '[:find ?n :where [?x :block/tags ?p] [?p :block/original-name ?n]]';
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -147,16 +155,31 @@ export default class LogseqService implements LogseqServiceInterface {
       await find(prefix, (block) => mentionsScope(block.content, prefix));
     }
 
+    const clips = await expandClips(
+      blocks.map((block) => renderBlock(block, graph, url.href)),
+      count,
+      {
+        getBlock: (ref) => this.client.getBlockViaUuid(ref),
+        getTree: (uuid) =>
+          this.client.getBlockViaUuid(uuid, { includeChildren: true }),
+        prepare: async (block, page) => {
+          block.page = page;
+          await resolveBlockRefs(block, (uuid) =>
+            this.client.getBlockViaUuid(uuid),
+          );
+          return renderBlock(block, graph, url.href);
+        },
+      },
+    );
+
     return {
       status: 200,
       msg: 'success',
       response: {
-        blocks: blocks.map((block) => {
-          return renderBlock(block, graph, url.href);
-        }),
+        blocks: clips.blocks,
         graph: graph,
       },
-      count: count,
+      count: clips.count,
     };
   }
 
@@ -171,9 +194,64 @@ export default class LogseqService implements LogseqServiceInterface {
     );
   }
 
-  /** Appends a clip to `page`; a file graph reads a task marker in the text. */
-  public async clipBlock(page: string, content: string) {
-    return await this.client.appendBlock(page, content);
+  /**
+   * Appends a clip: its root block and the tree below it. A file graph reads
+   * task markers in the text, and the tag too: it is `#[[name]]` in the first
+   * line of the root (see withTagText), so it needs no second call.
+   */
+  public async clipBlocks(
+    page: string,
+    root: ClipBlock,
+    opts: { tag?: TemplateTag } = {},
+  ) {
+    const name = opts.tag?.name.trim();
+    return await writeClipBlocks(
+      page,
+      name ? { ...root, content: withTagText(root.content, name) } : root,
+      {
+        append: async (to, content) => {
+          const block = await this.client.appendBlock(to, content);
+          return { uuid: blockUuid(block) };
+        },
+        insertChild: async (parentUuid, content) => {
+          const block = await this.client.insertChildBlock(parentUuid, content);
+          return { uuid: blockUuid(block) };
+        },
+      },
+    );
+  }
+
+  /**
+   * File graphs have no tag API. Pages already used as tags (`tags::`) come
+   * first from a query; a graph without any lists its pages (no journals).
+   */
+  public async listTags(): Promise<TemplateTag[]> {
+    const names = new Set<string>();
+    try {
+      const rows = await this.client.datascriptQuery(TAGGED_PAGES_QUERY);
+      if (Array.isArray(rows)) {
+        for (const row of rows) {
+          const name = Array.isArray(row) ? row[0] : row;
+          if (typeof name === 'string' && name.trim()) names.add(name);
+        }
+      }
+    } catch (error) {
+      log.warn('Could not query the tags of the graph.', error);
+    }
+    if (names.size === 0) {
+      const pages = throwIfClientError(await this.client.getAllPages());
+      if (!Array.isArray(pages)) {
+        throw new Error('Logseq did not return its pages.');
+      }
+      for (const page of pages) {
+        if (page?.['journal?'] === true) continue;
+        const name = page?.originalName ?? page?.name;
+        if (typeof name === 'string' && name.trim()) names.add(name);
+      }
+    }
+    return [...names]
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ name }));
   }
 
   public async changeBlockMarker(

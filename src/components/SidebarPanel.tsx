@@ -14,7 +14,7 @@ import { graphUrl } from '@/utils/logseq-url';
 /** Whether the list of a recall or search result would show anything. */
 const hasResults = (result: LogseqSearchResult | null): result is LogseqSearchResult =>
   !!result &&
-  ((result.blocks ?? []).some((block) => block.html) ||
+  ((result.blocks ?? []).some((block) => block.html || block.children?.length) ||
     (result.pages ?? []).some((page) => !!page?.name));
 
 /**
