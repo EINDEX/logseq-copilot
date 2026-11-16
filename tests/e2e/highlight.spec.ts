@@ -59,6 +59,72 @@ test.describe('highlights', () => {
     await expect.poll(async () => (await stored())[0]?.note).toBe(comment);
   });
 
+  test('a comment saved in the popup is synced to the clip in Logseq: added, edited, removed', async ({
+    page,
+    ext,
+    logseq,
+    articles,
+  }) => {
+    const id = nonce('hlcomment');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Comment page ${id}`, paragraph: `Comment on these words ${id} please` });
+
+    await ext.connect({ enableClipNoteFloatButton: true });
+    await ext.setStorage({
+      templates: [
+        {
+          id: 'comment-outline',
+          name: 'Comment outline',
+          content: '- [{{title}}]({{url}})\n  - {{content}}',
+          clipNoteLocation: 'customPage',
+          clipNoteCustomPage: 'Copilot Test Page',
+        },
+      ],
+    });
+    await page.goto(url);
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    // The highlight is saved with the node its clip added.
+    const stored = async () =>
+      ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url);
+    await expect.poll(async () => (await stored())[0]?.logseq?.nodeUuid, { timeout: 30_000 }).toBeTruthy();
+    const nodeUuid: string = (await stored())[0].logseq.nodeUuid;
+    const text = (block: any): string => String(block.content ?? block.title ?? '');
+    const children = async (): Promise<string[]> =>
+      ((await logseq.callApi('logseq.Editor.getBlock', [nodeUuid, { includeChildren: true }]))?.children ?? []).map(text);
+    await expect.poll(children, { timeout: 30_000 }).toHaveLength(1);
+
+    const box = await page.locator('#target').boundingBox();
+    await page.mouse.click(box!.x + 20, box!.y + box!.height / 2);
+    const popup = page.locator('logseq-copilot-popup [data-highlight-popup]');
+    await expect(popup).toBeVisible();
+
+    const saveComment = async (comment: string) => {
+      await popup.getByRole('button', { name: 'Edit' }).click();
+      await popup.getByPlaceholder('Add a comment to this highlight...').fill(comment);
+      await popup.getByRole('button', { name: 'Save' }).click();
+    };
+
+    // Added: one new last child of the clip's node.
+    await saveComment(`first comment ${id}`);
+    await expect.poll(children, { timeout: 30_000 }).toHaveLength(2);
+    expect((await children())[1]).toBe(`first comment ${id}`);
+
+    // Edited: the same block.
+    await saveComment(`second comment ${id}`);
+    await expect.poll(async () => (await children())[1], { timeout: 30_000 }).toBe(`second comment ${id}`);
+    expect(await children()).toHaveLength(2);
+
+    // Removed: a blank comment takes the block away, the clip stays.
+    await saveComment('');
+    await expect.poll(children, { timeout: 30_000 }).toHaveLength(1);
+    expect((await children())[0]).toContain(id);
+    await expect(popup.locator('[data-comment-sync-error]')).toHaveCount(0);
+  });
+
   test('a highlight deleted in the options page disappears from the open page', async ({
     page,
     ext,

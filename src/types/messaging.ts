@@ -53,6 +53,14 @@ export interface MessagingProtocol {
   }) => ClipResult;
 
   /**
+   * Makes Logseq match the comment of the stored highlight `id`, once the
+   * comment is saved (background/highlight-sync.ts). Resolves with whether
+   * there was a clip to sync to. Rejects with a readable message when Logseq
+   * was not written: the comment stays in the extension.
+   */
+  'logseq:syncHighlightNote': (data: { id: string }) => boolean;
+
+  /**
    * The tags of the graph a template can pick (the options page). Errors are
    * thrown (LogseqError) and reach the sender as a readable message.
    */

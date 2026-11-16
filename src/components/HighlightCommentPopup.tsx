@@ -11,6 +11,8 @@ import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { zIndex } from '@/utils/z-index';
 import log from '@/utils/logger';
+import { sendMessage } from '@/types/messaging';
+import { clipErrorMessage } from '@/utils/clip-feedback';
 
 interface HighlightCommentPopupProps {
     highlightData: HighlightData;
@@ -30,6 +32,8 @@ export function HighlightCommentPopup({
     const [isEditing, setIsEditing] = useState(false);
     const [comment, setComment] = useState(highlightData.note || '');
     const [isSaving, setIsSaving] = useState(false);
+    // Why the comment is not in Logseq; the local comment is saved either way.
+    const [syncError, setSyncError] = useState<string | null>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,13 +90,27 @@ export function HighlightCommentPopup({
 
         setIsSaving(true);
         try {
+            const next = comment.trim();
+            // A failed sync is tried again by the next save, even unchanged.
+            const needsSync =
+                !!highlightData.logseq &&
+                (syncError !== null || next !== (highlightData.note ?? '').trim());
             const result = await HighlightService.updateHighlight(highlightData.id, {
-                note: comment.trim() || undefined
+                note: next || undefined
             });
 
             if (result.success && result.data) {
                 onUpdate(result.data as HighlightData);
                 setIsEditing(false);
+                if (needsSync) {
+                    try {
+                        await sendMessage('logseq:syncHighlightNote', { id: highlightData.id });
+                        setSyncError(null);
+                    } catch (error) {
+                        log.warn('Failed to sync the comment to Logseq:', error);
+                        setSyncError(clipErrorMessage(error));
+                    }
+                }
             }
         } catch (error) {
             log.error('Failed to save comment:', error);
@@ -281,6 +299,16 @@ export function HighlightCommentPopup({
                             </div>
                         )}
                     </div>
+
+                    {syncError && (
+                        <p
+                            role="alert"
+                            data-comment-sync-error
+                            className="whitespace-pre-line break-words border-l-2 border-destructive pl-3 text-xs text-destructive"
+                        >
+                            {syncError}
+                        </p>
+                    )}
 
                     {/* Actions */}
                     <div className="flex justify-end gap-2">

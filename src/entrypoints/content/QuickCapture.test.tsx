@@ -148,6 +148,63 @@ describe('a clip that is in Logseq', () => {
   });
 });
 
+describe('the highlight of a clip is linked to it in Logseq', () => {
+  const RESULT = {
+    templateId: 'clip',
+    page: 'Nov 16th, 2026',
+    graph: 'notes',
+    rootUuid: 'node-1',
+    added: true,
+  };
+
+  beforeEach(async () => {
+    vi.restoreAllMocks();
+    fakeBrowser.reset();
+    sendMessage.mockReset();
+    (globalThis as any).CSS = { highlights: new Map() };
+    (globalThis as any).Highlight = class {
+      add() {}
+    };
+    document.body.innerHTML = '<p id="p">hello world</p>';
+    window.getSelection()?.removeAllRanges();
+    vi.spyOn(HighlightManager.prototype, 'addTemporaryHighlight').mockImplementation(() => {});
+  });
+
+  const clipSelection = async (result: object) => {
+    sendMessage.mockResolvedValue(result);
+    const add = vi.spyOn(HighlightManager.prototype, 'addHighlight').mockResolvedValue(null);
+    const { runClipCommand } = await import('./QuickCapture');
+    selectParagraph();
+    await runClipCommand('selectionOrPage');
+    await vi.waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+    return add.mock.calls[0];
+  };
+
+  it('records the graph and the node the clip added', async () => {
+    const [, , , logseq] = await clipSelection(RESULT);
+    expect(logseq).toEqual({ graph: 'notes', nodeUuid: 'node-1' });
+  });
+
+  it('records the note block and the text written to it', async () => {
+    const [, , , logseq] = await clipSelection({
+      ...RESULT,
+      noteBlockUuid: 'note-1',
+      noteBlockText: 'my note',
+    });
+    expect(logseq).toEqual({
+      graph: 'notes',
+      nodeUuid: 'node-1',
+      noteUuid: 'note-1',
+      syncedText: 'my note',
+    });
+  });
+
+  it('records no link when the clip added no node', async () => {
+    const [, , , logseq] = await clipSelection({ ...RESULT, added: false });
+    expect(logseq).toBeUndefined();
+  });
+});
+
 describe('the picker panel (runPickedClip)', () => {
   const RESULT = { templateId: 'clip', page: 'Nov 16th, 2026', rootUuid: 'r' };
   const ONE = [{ id: 'clip', name: 'Clip', content: '{{content}}' }];

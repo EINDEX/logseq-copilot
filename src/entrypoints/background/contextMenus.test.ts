@@ -61,6 +61,7 @@ describe('background context menus', () => {
     vi.mocked(sendMessage).mockReset();
     vi.mocked(clipToLogseq).mockReset().mockResolvedValue({
       page: 'p',
+      graph: 'g',
       templateId: 'clip',
       rootUuid: 'r',
       added: true,

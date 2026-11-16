@@ -1,6 +1,7 @@
 /**
  * Types for highlight functionality
  */
+import type { LogseqLink } from './annotation';
 
 /** Serializable range information for reconstructing highlights */
 export interface SerializableRange {
@@ -38,6 +39,8 @@ export interface HighlightData {
   tags?: string[];
   /** Color of the highlight (for future customization) */
   color?: string;
+  /** The clip this highlight was made with, in Logseq; absent on older ones. */
+  logseq?: LogseqLink;
 }
 
 /** Options for querying highlights */

@@ -25,6 +25,7 @@ vi.mock('./logseq/tool', () => ({
   getLogseqService: async () => ({
     client,
     clipBlocks,
+    getGraph: async () => 'test graph',
   }),
 }));
 
@@ -193,6 +194,7 @@ describe('clipping with a template', () => {
     ]);
     await expect(clipToLogseq({ data: '' })).resolves.toEqual({
       page: 'Inbox',
+      graph: 'test graph',
       templateId: 'p',
       rootUuid: 'root-1',
       added: true,
@@ -200,6 +202,7 @@ describe('clipping with a template', () => {
     await templates.setValue([{ id: 'j', name: 'J', content: 'x' }]);
     await expect(clipToLogseq({ data: '' })).resolves.toEqual({
       page: formatLogseqDate(new Date(), 'yyyy-MM-dd'),
+      graph: 'test graph',
       templateId: 'j',
       rootUuid: 'root-1',
       added: true,
