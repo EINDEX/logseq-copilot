@@ -31,17 +31,23 @@ import { useState } from "react"
 import { CSS } from "@dnd-kit/utilities"
 import { NavLink, useLocation } from "react-router-dom"
 import { useTemplates } from "@/hooks/use-templates"
+import { useCommandShortcuts } from "@/hooks/use-command-shortcuts"
+import { DEFAULT_TEMPLATE_CONTENT, TASK_TEMPLATE_ID } from "@/utils/default-templates"
 import { TemplateItemV1 } from "@/utils/storage"
 
 // SortableTemplateItem component
 const SortableTemplateItem = ({
   id,
   name,
+  shortcut,
   onDelete
 }: {
   id: string
   name: string
-  onDelete: (id: string) => void
+  /** The keys of the command that clips with this template, if set. */
+  shortcut?: string
+  /** Without it the template is the last one and cannot be deleted. */
+  onDelete?: (id: string) => void
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -69,16 +75,25 @@ const SortableTemplateItem = ({
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder" />
             <span className="flex-grow text-left">{name}</span>
+            {shortcut && (
+              <kbd
+                className={`text-xs font-sans text-muted-foreground ${onDelete ? 'group-hover/item:hidden' : ''}`}
+              >
+                {shortcut}
+              </kbd>
+            )}
           </NavLink>
         </SidebarMenuButton>
 
-        <SidebarMenuAction
-          onClick={() => onDelete(id)}
-          className="hidden group-hover/item:block"
-        >
-          <Trash className="w-4 h-4" />
-          <span className="sr-only">Delete Template</span>
-        </SidebarMenuAction>
+        {onDelete && (
+          <SidebarMenuAction
+            onClick={() => onDelete(id)}
+            className="hidden group-hover/item:block"
+          >
+            <Trash className="w-4 h-4" />
+            <span className="sr-only">Delete Template</span>
+          </SidebarMenuAction>
+        )}
       </SidebarMenuItem>
     </div>
 
@@ -96,6 +111,7 @@ const TemplateItem = ({ name }: { name: string }) => (
 export const TemplatesSidebar = () => {
   const { templates, loading, addTemplate, deleteTemplate, reorderTemplates } = useTemplates();
   const [activeId, setActiveId] = useState<string | null>(null)
+  const shortcuts = useCommandShortcuts()
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -132,8 +148,7 @@ export const TemplatesSidebar = () => {
   const handleAddTemplate = () => {
     const newTemplate: Omit<TemplateItemV1, 'id'> = {
       name: `New Template ${templates.length + 1}`,
-      content: `#[[Clip]] [{{title}}]({{url}})
-{{content}}`,
+      content: DEFAULT_TEMPLATE_CONTENT,
       clipNoteLocation: 'journal',
       clipNoteCustomPage: ''
     }
@@ -177,12 +192,20 @@ export const TemplatesSidebar = () => {
             strategy={verticalListSortingStrategy}
           >
             <SidebarMenu>
-              {templates.map((template) => (
+              {templates.map((template, index) => (
                 <SortableTemplateItem
                   key={template.id}
                   id={template.id}
                   name={template.name}
-                  onDelete={handleDeleteTemplate}
+                  // The first template is what `clip` uses, Task what `clip-task` does.
+                  shortcut={
+                    template.id === TASK_TEMPLATE_ID
+                      ? shortcuts['clip-task']
+                      : index === 0
+                        ? shortcuts['clip']
+                        : undefined
+                  }
+                  onDelete={templates.length > 1 ? handleDeleteTemplate : undefined}
                 />
               ))}
             </SidebarMenu>

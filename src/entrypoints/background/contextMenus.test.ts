@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
+import { storage } from '#imports';
 import { sendMessage } from '@/types/messaging';
+import { templates } from '@/utils/storage';
 import log from '@/utils/logger';
 
 vi.mock('@/types/messaging', () => ({
@@ -24,6 +26,22 @@ import { CannotConnectWithLogseq, LogseqError } from './logseq/error';
 import background from './index';
 
 describe('background context menus', () => {
+  // Like the browser: a duplicate id fails through lastError.
+  const menuIds = new Set<string>();
+  const duplicates: string[] = [];
+  const fakeCreate = (item: { id: string }, callback?: () => void) => {
+    if (menuIds.has(item.id)) {
+      duplicates.push(item.id);
+      (fakeBrowser as any).runtime.lastError = {
+        message: `Cannot create item with duplicate id ${item.id}`,
+      };
+    } else menuIds.add(item.id);
+    callback?.();
+    delete (fakeBrowser as any).runtime.lastError;
+  };
+  const fakeRemoveAll = async () => {
+    menuIds.clear();
+  };
   const create = vi.fn();
   const removeAll = vi.fn();
   const onClicked = { addListener: vi.fn() };
@@ -33,8 +51,10 @@ describe('background context menus', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     fakeBrowser.reset();
-    create.mockReset();
-    removeAll.mockReset().mockResolvedValue(undefined);
+    menuIds.clear();
+    duplicates.length = 0;
+    create.mockReset().mockImplementation(fakeCreate);
+    removeAll.mockReset().mockImplementation(fakeRemoveAll);
     onClicked.addListener.mockReset();
     onCommand.addListener.mockReset();
     sidePanelOpen.mockReset().mockResolvedValue(undefined);
@@ -66,48 +86,179 @@ describe('background context menus', () => {
     } as any);
     expect(create.mock.calls.map(([o]) => o.id)).toEqual([
       'clip-with-selection',
+      'clip-with-selection:default',
+      'clip-with-selection:task',
       'clip-page',
+      'clip-page:default',
+      'clip-page:task',
       'open-highlights-sidebar',
     ]);
   });
 
-  it('never creates an existing menu id, however often onInstalled fires', async () => {
-    // Menus outlive the service worker, as in the browser; creating an
-    // existing id fails there with "duplicate id" in runtime.lastError.
-    const menus = new Set<string>();
-    const duplicates: string[] = [];
-    create.mockImplementation(({ id }: { id: string }) => {
-      if (menus.has(id)) duplicates.push(id);
-      menus.add(id);
-    });
-    removeAll.mockImplementation(async () => menus.clear());
-    const installed = (reason: string) =>
+  describe('rebuilding the menus', () => {
+    const install = () =>
       fakeBrowser.runtime.onInstalled.trigger({
-        reason,
+        reason: 'update',
         previousVersion: '99.0.0',
         temporary: false,
       } as any);
+    const ids = () => create.mock.calls.map(([o]) => o.id);
 
-    // Install, then the service worker restarts and the browser updates
-    // itself (Chrome, Edge, Brave: chrome_update; Firefox: browser_update).
-    vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockResolvedValue();
-    background.main();
-    await installed('install');
-    // A new service worker registers its listeners afresh.
-    fakeBrowser.runtime.onInstalled.removeAllListeners();
-    fakeBrowser.runtime.onStartup.removeAllListeners();
-    background.main();
-    await fakeBrowser.runtime.onStartup.trigger();
-    await installed('chrome_update');
-    await installed('browser_update');
-    await installed('update');
+    it('removes the old menus before it creates the new ones', async () => {
+      background.main();
+      await install();
+      expect(removeAll).toHaveBeenCalledTimes(1);
+      expect(removeAll.mock.invocationCallOrder[0]).toBeLessThan(
+        create.mock.invocationCallOrder[0],
+      );
+    });
 
-    expect(duplicates).toEqual([]);
-    expect([...menus]).toEqual([
-      'clip-with-selection',
-      'clip-page',
-      'open-highlights-sidebar',
-    ]);
+    it('creates the same two clip items as ever with one template', async () => {
+      await templates.setValue([
+        { id: 'default', name: 'Clip', content: '{{content}}' },
+      ]);
+      // Task already added: no migration changes the templates.
+      await storage.setItem('local:taskTemplateAdded', true);
+      background.main();
+      await install();
+      expect(create.mock.calls.map(([o]) => o)).toEqual([
+        {
+          id: 'clip-with-selection',
+          title: 'Clip "%s"',
+          visible: true,
+          contexts: ['selection'],
+        },
+        {
+          id: 'clip-page',
+          title: 'Clip page link',
+          visible: true,
+          contexts: ['page'],
+        },
+        {
+          id: 'open-highlights-sidebar',
+          title: 'Open sidebar',
+          visible: true,
+          contexts: ['page', 'selection'],
+        },
+      ]);
+    });
+
+    it('rebuilds when the browser starts', async () => {
+      background.main();
+      await fakeBrowser.runtime.onStartup.trigger();
+      await vi.waitFor(() => expect(ids()).toContain('clip-page:task'));
+      expect(removeAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('rebuilds when the templates change', async () => {
+      background.main();
+      await templates.setValue([
+        { id: 'a', name: 'A', content: '' },
+        { id: 'b', name: '', content: '' },
+        { id: 'c', name: 'C', content: '' },
+      ]);
+      await vi.waitFor(() => expect(ids()).toContain('clip-page:c'));
+      const child = create.mock.calls
+        .map(([o]) => o)
+        .find((o) => o.id === 'clip-page:b');
+      expect(child).toMatchObject({
+        parentId: 'clip-page',
+        title: 'Untitled',
+        contexts: ['page'],
+      });
+    });
+
+    it('never creates an existing menu id, however often onInstalled fires', async () => {
+      const installed = (reason: string) =>
+        fakeBrowser.runtime.onInstalled.trigger({
+          reason,
+          previousVersion: '99.0.0',
+          temporary: false,
+        } as any);
+
+      // Install, then the service worker restarts and the browser updates
+      // itself (Chrome, Edge, Brave: chrome_update; Firefox: browser_update).
+      vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockResolvedValue();
+      background.main();
+      await installed('install');
+      // A new service worker registers its listeners afresh.
+      fakeBrowser.runtime.onInstalled.removeAllListeners();
+      fakeBrowser.runtime.onStartup.removeAllListeners();
+      background.main();
+      await fakeBrowser.runtime.onStartup.trigger();
+      await installed('chrome_update');
+      await installed('browser_update');
+      await installed('update');
+      await vi.waitFor(() => expect(removeAll.mock.calls.length).toBeGreaterThan(4));
+      await new Promise((r) => setTimeout(r, 30));
+
+      expect(duplicates).toEqual([]);
+      expect(menuIds.has('clip-page:task')).toBe(true);
+      expect(menuIds.has('open-highlights-sidebar')).toBe(true);
+    });
+
+    it('creates no duplicate items when the background starts again', async () => {
+      background.main();
+      await install();
+      // The service worker restarts, then the browser restarts.
+      background.main();
+      await fakeBrowser.runtime.onStartup.trigger();
+      await templates.setValue([
+        { id: 'a', name: 'A', content: '' },
+        { id: 'b', name: 'B', content: '' },
+      ]);
+      await install();
+      await vi.waitFor(() => expect(removeAll.mock.calls.length).toBeGreaterThan(2));
+      await new Promise((r) => setTimeout(r, 30));
+      expect(duplicates).toEqual([]);
+      expect([...menuIds].sort()).toEqual([
+        'clip-page',
+        'clip-page:a',
+        'clip-page:b',
+        'clip-with-selection',
+        'clip-with-selection:a',
+        'clip-with-selection:b',
+        'open-highlights-sidebar',
+      ]);
+    });
+
+    it('never runs two rebuilds at once', async () => {
+      let open = 0;
+      let overlapped = false;
+      removeAll.mockImplementation(async () => {
+        open++;
+        overlapped ||= open > 1;
+        await new Promise((r) => setTimeout(r, 5));
+        open--;
+      });
+      background.main();
+      await Promise.all([
+        install(),
+        fakeBrowser.runtime.onStartup.trigger(),
+        templates.setValue([
+          { id: 'a', name: 'A', content: '' },
+          { id: 'b', name: 'B', content: '' },
+        ]),
+      ]);
+      await vi.waitFor(() => expect(removeAll.mock.calls.length).toBeGreaterThan(2));
+      await new Promise((r) => setTimeout(r, 30));
+      expect(overlapped).toBe(false);
+    });
+
+    it('survives a failing rebuild and a failing item', async () => {
+      const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+      const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+      removeAll.mockRejectedValueOnce(new Error('boom'));
+      background.main();
+      await install();
+      expect(error).toHaveBeenCalledTimes(1);
+
+      (fakeBrowser as any).runtime.lastError = { message: 'duplicate id' };
+      create.mockImplementation((_, callback) => callback?.());
+      await fakeBrowser.runtime.onStartup.trigger();
+      await vi.waitFor(() => expect(warn).toHaveBeenCalled());
+      delete (fakeBrowser as any).runtime.lastError;
+    });
   });
 
   describe('opening the sidebar', () => {
@@ -239,6 +390,75 @@ describe('background context menus', () => {
       );
 
       expect(sidePanelOpen).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('choosing the template', () => {
+    const tab = { id: 7, windowId: 3 };
+    const click = (menuItemId: string, info: object = {}) => {
+      background.main();
+      onClicked.addListener.mock.calls[0][0]({ menuItemId, ...info }, tab);
+    };
+
+    it('clips with the template of a child item', () => {
+      click('clip-page:task');
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCapturePage',
+        { templateId: 'task' },
+        { tabId: 7 },
+      );
+      click('clip-with-selection:task');
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCaptureWithSelection',
+        { templateId: 'task' },
+        { tabId: 7 },
+      );
+    });
+
+    it('keeps a colon in the template id', () => {
+      click('clip-page:a:b');
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCapturePage',
+        { templateId: 'a:b' },
+        { tabId: 7 },
+      );
+    });
+
+    it('clips with no template choice from a bare parent item', () => {
+      click('clip-page');
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCapturePage',
+        undefined,
+        { tabId: 7 },
+      );
+    });
+
+    it('ignores items that are not its own', () => {
+      click('something-else');
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(sidePanelOpen).not.toHaveBeenCalled();
+    });
+
+    it('saves the page as a task from the clip-task command', () => {
+      background.main();
+      onCommand.addListener.mock.calls[0][0]('clip-task', tab);
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCapture',
+        { templateId: 'task' },
+        { tabId: 7 },
+      );
+    });
+
+    it('clips the selection with the template where the content script cannot run', async () => {
+      vi.mocked(sendMessage).mockRejectedValue(new Error('no receiver'));
+      click('clip-with-selection:task', {
+        selectionText: 'a quote',
+        pageUrl: 'https://example.com/a.pdf',
+      });
+      await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
+      expect(clipToLogseq).toHaveBeenCalledWith(
+        expect.objectContaining({ data: 'a quote', templateId: 'task' }),
+      );
     });
   });
 

@@ -136,9 +136,11 @@ export interface Extension {
   /**
    * Send a content-script message exactly like the background does, e.g.
    * `content:quickCapture` from the `clip` command handler (webext-core
-   * messaging format: { id, type, data, timestamp }).
+   * messaging format: { id, type, data, timestamp }). `data` is the
+   * message's payload, e.g. `{ templateId: 'task' }` from the `clip-task`
+   * command.
    */
-  sendToTab: (page: Page, type: string) => Promise<void>;
+  sendToTab: (page: Page, type: string, data?: unknown) => Promise<void>;
   /** Make `page` the active tab of its window and focus the window. */
   activate: (page: Page) => Promise<void>;
   /** Open an extension page (e.g. `options.html#/settings`) in a new tab. */
@@ -573,7 +575,7 @@ export const test = base.extend<Fixtures>({
       getStorage: (key: string) =>
         ext.evaluate(async (key) => (await chrome.storage.local.get(key))[key], key),
       connect,
-      sendToTab: async (page: Page, type: string) => {
+      sendToTab: async (page: Page, type: string, data?: unknown) => {
         // The `clip` shortcut is pressed in the focused window, and the
         // background clips `tabs.query({ active, currentWindow })`. Firefox
         // does not move focus to a page Playwright opens or navigates.
@@ -583,10 +585,10 @@ export const test = base.extend<Fixtures>({
         // ("Receiving end does not exist" before that).
         await expect(async () => {
           await ext.evaluate(
-            async ({ tabId, type }) => {
-              await chrome.tabs.sendMessage(tabId, { id: Date.now(), type, data: undefined, timestamp: Date.now() });
+            async ({ tabId, type, data }) => {
+              await chrome.tabs.sendMessage(tabId, { id: Date.now(), type, data, timestamp: Date.now() });
             },
-            { tabId, type },
+            { tabId, type, data },
           );
         }).toPass({ timeout: 10_000 });
       },

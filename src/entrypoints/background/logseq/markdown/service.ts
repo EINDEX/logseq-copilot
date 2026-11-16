@@ -8,7 +8,11 @@ import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { FileRecallSource } from '../recall/file-source';
 import { moreBlocks } from './more-blocks';
-import { mentionsScope, scopePrefixes } from '@/utils/recall-scope';
+import {
+  mentionsScope,
+  scopePrefixes,
+  storedHostPath,
+} from '@/utils/recall-scope';
 
 /**
  * Blocks a search answers at most: a full `App.search` answer (10 blocks)
@@ -129,6 +133,12 @@ export default class LogseqService implements LogseqServiceInterface {
       await find(url.host + url.pathname);
     }
 
+    // A clip writes an unpaired parenthesis of the path as `%28` or `\)`.
+    const stored = storedHostPath(url);
+    if (stored !== url.host + url.pathname) {
+      await find(stored);
+    }
+
     const count = blocks.length;
 
     // Parent paths, narrowest first. Search matches substrings, so keep only
@@ -159,6 +169,11 @@ export default class LogseqService implements LogseqServiceInterface {
       query,
       options,
     );
+  }
+
+  /** Appends a clip to `page`; a file graph reads a task marker in the text. */
+  public async clipBlock(page: string, content: string) {
+    return await this.client.appendBlock(page, content);
   }
 
   public async changeBlockMarker(

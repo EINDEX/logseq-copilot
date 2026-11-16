@@ -1,5 +1,6 @@
 import { debounce } from '@/utils';
 import {
+  addTaskTemplate,
   changeOptionsHostToHostNameAndPort,
   migrateGithubRecallRuleToRepoScope,
   migrateLegacyClipSettingsToTemplates,
@@ -7,7 +8,13 @@ import {
 } from './upgrade';
 import { getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
-import { inPageSidebarOpenItem } from '@/utils/storage';
+import { inPageSidebarOpenItem, templates } from '@/utils/storage';
+import { TASK_TEMPLATE_ID } from '@/utils/default-templates';
+import {
+  OPEN_SIDEBAR_MENU_ID,
+  parseClipMenuId,
+  rebuildContextMenus,
+} from './context-menus';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import type { RecallResult } from '@/types/recall';
@@ -105,7 +112,9 @@ export default defineBackground({
     // the active tab of the current window can be another page once focus has
     // moved.
     onMessage('logseq:clipWithSelection', async ({ data, sender }) => {
-      await quickCapture(data, sender.tab);
+      const { text, templateId } =
+        typeof data === 'string' ? { text: data, templateId: undefined } : data;
+      await quickCapture(text, sender.tab, templateId);
     });
 
     // The browser sidebar names the tab beside it: its messages have no
@@ -116,6 +125,7 @@ export default defineBackground({
       await quickCapture(
         '',
         tabId === undefined ? undefined : await browser.tabs.get(tabId),
+        data?.templateId,
       );
     });
 
@@ -170,10 +180,14 @@ export default defineBackground({
     const quickCapture = async (
       data: string,
       senderTab?: { id?: number; url?: string; title?: string },
+      templateId?: string,
     ) => {
       const tab = senderTab ?? (await getCurrentTab());
       if (!tab) throw new Error('No tab to clip.');
-      await clip({ url: tab.url, title: tab.title, data }, tab.id);
+      await clip(
+        { url: tab.url, title: tab.title, data, ...(templateId && { templateId }) },
+        tab.id,
+      );
     };
 
     const clip = async (source: ClipSource, tabId: number | undefined) => {
@@ -226,33 +240,14 @@ export default defineBackground({
 
     const debounceBadgeSearch = debounce(badgeSearch, 1000);
 
-    // Menus persist across service worker restarts, so create them only in
-    // onInstalled. It also fires when the browser itself updates
-    // (chrome_update, browser_update) while the menus still exist, so clear
-    // them first: creating an existing id fails with "duplicate id" (reported
-    // via runtime.lastError, which try/catch cannot catch).
-    const createContextMenus = async () => {
-      await browser.contextMenus.removeAll();
-      browser.contextMenus.create({
-        id: 'clip-with-selection',
-        title: 'Clip "%s"',
-        visible: true,
-        contexts: ['selection'],
-      });
-      browser.contextMenus.create({
-        id: 'clip-page',
-        title: 'Clip page link',
-        visible: true,
-        contexts: ['page'],
-      });
-      // The id predates the sidebar showing more than highlights.
-      browser.contextMenus.create({
-        id: 'open-highlights-sidebar',
-        title: 'Open sidebar',
-        visible: true,
-        contexts: ['page', 'selection'],
-      });
-    };
+    // Menus persist across service worker restarts, but they follow the
+    // templates, so they are rebuilt (from scratch, one rebuild at a time)
+    // when the extension is installed or updated, the browser starts, and the
+    // templates change. onInstalled also fires when the browser itself updates
+    // (chrome_update, browser_update) while the menus still exist; a rebuild
+    // removes them all first, so no id is created twice (#78). Never at every
+    // service worker start: it is no event of the menus.
+    templates.watch(() => void rebuildContextMenus());
 
     // Call sidebar.open / sidebar.toggle first in the handler of a click, menu
     // item or command: the browser opens its sidebar only while the user
@@ -272,6 +267,7 @@ export default defineBackground({
       send: (tabId: number) => Promise<void>,
       tab: Browser.tabs.Tab | undefined,
       info: { selectionText?: string; pageUrl?: string } = {},
+      templateId?: string,
     ) => {
       if (tab?.id !== undefined) {
         try {
@@ -282,7 +278,7 @@ export default defineBackground({
         }
       }
       try {
-        const fallback = backgroundClipFallback(info, tab);
+        const fallback = backgroundClipFallback(info, tab, templateId);
         if (!fallback) throw new Error(CANNOT_CLIP_PAGE);
         await clip(fallback, tab?.id);
       } catch (err) {
@@ -290,34 +286,54 @@ export default defineBackground({
       }
     };
 
+    // The data of a clip command sent to the content script.
+    const clipOptions = (templateId?: string) =>
+      templateId === undefined ? undefined : { templateId };
+
     browser.contextMenus.onClicked.addListener((info, tab) => {
-      if (info.menuItemId === 'open-highlights-sidebar') {
+      if (info.menuItemId === OPEN_SIDEBAR_MENU_ID) {
         sidebar.open(tab);
-      } else if (info.menuItemId === 'clip-with-selection') {
+        return;
+      }
+      const clipMenu = parseClipMenuId(info.menuItemId);
+      if (!clipMenu) return;
+      const { templateId } = clipMenu;
+      if (clipMenu.command === 'selection') {
         void relayClipCommand(
           (tabId) =>
-            sendMessage('content:quickCaptureWithSelection', undefined, { tabId }),
+            sendMessage(
+              'content:quickCaptureWithSelection',
+              clipOptions(templateId),
+              { tabId },
+            ),
           tab,
           info,
+          templateId,
         );
-      } else if (info.menuItemId === 'clip-page') {
+      } else {
         void relayClipCommand(
-          (tabId) => sendMessage('content:quickCapturePage', undefined, { tabId }),
+          (tabId) =>
+            sendMessage('content:quickCapturePage', clipOptions(templateId), {
+              tabId,
+            }),
           tab,
+          {},
+          templateId,
         );
       }
     });
 
     browser.runtime.onInstalled.addListener(async (event) => {
-      // Not awaited: the rest (and opening the options page on install) does
-      // not wait for the menus.
-      void createContextMenus().catch((err) =>
-        log.error('Failed to create the context menus:', err),
-      );
+      // Not awaited: on Firefox it would delay the options page install opens.
+      void rebuildContextMenus();
 
       // Run migration for both install and update events
       await migrateLegacyClipSettingsToTemplates().catch((err) =>
         log.error('Failed to migrate legacy clip settings:', err),
+      );
+      // After the legacy migration: it appends to the templates it wrote.
+      await addTaskTemplate().catch((err) =>
+        log.error('Failed to add the Task template:', err),
       );
       await SearchEngineConfigMigration.runMigrations();
       // Idempotent, so it is safe on every install/update (version gating via
@@ -339,6 +355,7 @@ export default defineBackground({
     // The sidebar drawn on pages starts closed with the browser, like the
     // browser's own.
     browser.runtime.onStartup.addListener(() => {
+      void rebuildContextMenus();
       inPageSidebarOpenItem
         .setValue(false)
         .catch((err) => log.error('Failed to close the in-page sidebar:', err));
@@ -351,6 +368,16 @@ export default defineBackground({
         void relayClipCommand(
           (tabId) => sendMessage('content:quickCapture', undefined, { tabId }),
           tab,
+        );
+      } else if (command === 'clip-task' && tab !== undefined) {
+        void relayClipCommand(
+          (tabId) =>
+            sendMessage('content:quickCapture', clipOptions(TASK_TEMPLATE_ID), {
+              tabId,
+            }),
+          tab,
+          {},
+          TASK_TEMPLATE_ID,
         );
       }
     });

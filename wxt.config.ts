@@ -63,6 +63,11 @@ export default defineConfig({
       'open-sidebar': {
         description: 'Open sidebar',
       },
+      // No default shortcut, for the same reason. Saves the page, or the
+      // selection, as a task (the Task template).
+      'clip-task': {
+        description: 'Save page as task',
+      },
     },
     // The toolbar button opens the sidebar (src/entrypoints/background). WXT
     // only writes the action for a popup entrypoint, and there is none.

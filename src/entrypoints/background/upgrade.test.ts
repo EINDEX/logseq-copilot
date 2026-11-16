@@ -4,6 +4,7 @@ import { storage } from '#imports';
 import { recallRulesConfig, templates, type RecallRuleConfig } from '@/utils/storage';
 import {
   LEGACY_GITHUB_PR_RULE,
+  addTaskTemplate,
   migrateGithubRecallRuleToRepoScope,
   migrateLegacyClipSettingsToTemplates,
   migrateRecallRuleDefaultsToEnglish,
@@ -212,5 +213,106 @@ describe('migrateGithubRecallRuleToRepoScope', () => {
 
     expect(await recallRulesConfig.getValue()).toEqual(once);
     expect(once).toEqual([githubDefault]);
+  });
+});
+
+describe('addTaskTemplate', () => {
+  const clip = {
+    id: 'default',
+    name: 'Clip',
+    content: DEFAULT_CONTENT,
+    clipNoteLocation: 'journal',
+    clipNoteCustomPage: '',
+  };
+  const task = {
+    id: 'task',
+    name: 'Task',
+    content: 'TODO [{{title}}]({{url}})\n{{content}}',
+    clipNoteLocation: 'journal',
+    clipNoteCustomPage: '',
+  };
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it('leaves an untouched user to the fallback: Clip first, same content', async () => {
+    await addTaskTemplate();
+
+    expect(await storage.getItem('local:templates')).toBeNull();
+    expect(await templates.getValue()).toEqual([clip, task]);
+  });
+
+  it('keeps a customised default as it is and adds Task at the end', async () => {
+    const custom = {
+      id: 'default',
+      name: 'Mine',
+      content: '- {{title}}',
+      clipNoteLocation: 'customPage',
+      clipNoteCustomPage: 'Inbox',
+    };
+    await templates.setValue([custom]);
+
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([custom, task]);
+  });
+
+  it('composes with the legacy migration, which runs first', async () => {
+    await storage.setItem('local:clipNoteTemplate', '- {{title}} {{content}}');
+    await storage.setItem('local:clipNoteLocation', 'customPage');
+    await storage.setItem('local:clipNoteCustomPage', 'Clips');
+
+    await migrateLegacyClipSettingsToTemplates();
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([
+      {
+        id: 'default',
+        name: 'Clip',
+        content: '- {{title}} {{content}}',
+        clipNoteLocation: 'customPage',
+        clipNoteCustomPage: 'Clips',
+      },
+      task,
+    ]);
+  });
+
+  it('does not bring Task back after the user deleted it', async () => {
+    await templates.setValue([{ ...clip, name: 'Default' }]);
+    await addTaskTemplate();
+    await templates.setValue([clip]);
+
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([clip]);
+  });
+
+  it('keeps a Default template the user renamed', async () => {
+    await templates.setValue([{ ...clip, name: 'Web clips' }]);
+
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([
+      { ...clip, name: 'Web clips' },
+      task,
+    ]);
+  });
+
+  it('renames the untouched Default template to Clip without changing it otherwise', async () => {
+    await templates.setValue([{ ...clip, name: 'Default' }]);
+
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([clip, task]);
+  });
+
+  it('does not add a second Task when the user has one', async () => {
+    const mine = { ...task, content: 'TODO mine' };
+    await templates.setValue([clip, mine]);
+
+    await addTaskTemplate();
+
+    expect(await templates.getValue()).toEqual([clip, mine]);
   });
 });

@@ -1,6 +1,12 @@
 import { storage } from '#imports';
 import { saveLogseqCopliotConfig } from '@/config';
 import {
+  CLIP_TEMPLATE_ID,
+  DEFAULT_TEMPLATE_CONTENT,
+  TASK_TEMPLATE,
+  TASK_TEMPLATE_ID,
+} from '@/utils/default-templates';
+import {
   recallRulesConfig,
   templates,
   type RecallRuleConfig,
@@ -52,9 +58,6 @@ export const changeOptionsHostToHostNameAndPort = async () => {
   await storage.removeItem('local:logseqHost');
 };
 
-const DEFAULT_TEMPLATE_CONTENT = `#[[Clip]] [{{title}}]({{url}})
-{{content}}`;
-
 const CLIP_SETTINGS_MIGRATED_KEY = 'local:clipSettingsMigratedToTemplates';
 
 /**
@@ -103,6 +106,37 @@ export const migrateLegacyClipSettingsToTemplates = async () => {
   }
 
   await storage.setItem(CLIP_SETTINGS_MIGRATED_KEY, true);
+};
+
+const TASK_TEMPLATE_ADDED_KEY = 'local:taskTemplateAdded';
+
+/**
+ * Adds the built-in Task template to saved templates, once, and renames the
+ * built-in "Default" template to "Clip". Content and location are never
+ * changed, so a clip from the first template stays byte for byte the same.
+ *
+ * Templates that were never saved need nothing: the fallback already holds
+ * both. The flag keeps Task from coming back after the user deleted it. Run it
+ * after migrateLegacyClipSettingsToTemplates.
+ */
+export const addTaskTemplate = async () => {
+  if (await storage.getItem<boolean>(TASK_TEMPLATE_ADDED_KEY)) return;
+
+  // The raw value: the typed item returns its fallback for a missing key.
+  const saved = await storage.getItem<TemplateItemV1[]>('local:templates');
+  if (saved) {
+    const next = saved.map((template) =>
+      template.id === CLIP_TEMPLATE_ID && template.name === 'Default'
+        ? { ...template, name: 'Clip' }
+        : template,
+    );
+    if (!next.some((template) => template.id === TASK_TEMPLATE_ID)) {
+      next.push({ ...TASK_TEMPLATE });
+    }
+    await templates.setValue(next);
+  }
+
+  await storage.setItem(TASK_TEMPLATE_ADDED_KEY, true);
 };
 
 /**

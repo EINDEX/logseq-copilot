@@ -35,10 +35,10 @@ export const hasClippableSelection = (
  * link. Resolves once the clip is in Logseq and rejects with the readable error
  * when it is not; saving the highlight does not hold it up.
  */
-const capture = async () => {
+const capture = async (templateId?: string) => {
   const selection = getSelection();
   if (!hasClippableSelection(selection)) {
-    await clipPage();
+    await clipPage(templateId);
     return;
   }
   const range = selection.getRangeAt(0);
@@ -46,7 +46,11 @@ const capture = async () => {
   const turndownService = buildTurndownService();
   selection.empty();
   // Clip first so a highlight failure never blocks the clip itself.
-  const clipped = sendMessage('logseq:clipWithSelection', turndownService.turndown(clonedSelection));
+  const text = turndownService.turndown(clonedSelection);
+  const clipped = sendMessage(
+    'logseq:clipWithSelection',
+    templateId === undefined ? text : { text, templateId },
+  );
   void saveHighlight(range);
   await clipped;
 };
@@ -65,8 +69,9 @@ const saveHighlight = async (range: Range) => {
   }
 };
 
-const clipPage = async () => {
-  await sendMessage('logseq:clipPage');
+const clipPage = async (templateId?: string) => {
+  if (templateId === undefined) await sendMessage('logseq:clipPage');
+  else await sendMessage('logseq:clipPage', { templateId });
 };
 
 /** A clip started in the page: a failure is shown in the page (ClipError). */
@@ -86,9 +91,10 @@ const clipInPage = async (clip: () => Promise<void>) => {
  */
 export const runClipCommand = (
   command: 'selectionOrPage' | 'page',
-  { feedback = 'page' }: ClipCommandOptions = {},
+  { feedback = 'page', templateId }: ClipCommandOptions = {},
 ): Promise<void> => {
-  const clip = command === 'page' ? clipPage : capture;
+  const clip = () =>
+    command === 'page' ? clipPage(templateId) : capture(templateId);
   return feedback === 'sender' ? clip() : clipInPage(clip);
 };
 
@@ -196,7 +202,7 @@ const FloatButton = () => {
       <img
         className="quickCapture"
         src={logo}
-        onClick={() => clipInPage(capture)}
+        onClick={() => clipInPage(() => capture())}
         alt={'clip-button'}
         width={FLOAT_BUTTON_ICON}
         height={FLOAT_BUTTON_ICON}

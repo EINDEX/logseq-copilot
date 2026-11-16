@@ -1,3 +1,4 @@
+import { BUILT_IN_TEMPLATES } from './default-templates';
 import { storage } from '#imports';
 import { HighlightData } from '@/types/highlight';
 import log from './logger';
@@ -126,16 +127,7 @@ export const templates = storage.defineItem<TemplateItemV1[]>(
   'local:templates',
   {
     version: 1,
-    fallback: [
-      {
-        id: 'default',
-        name: 'Default',
-        content: `#[[Clip]] [{{title}}]({{url}})
-{{content}}`,
-        clipNoteLocation: 'journal',
-        clipNoteCustomPage: '',
-      },
-    ],
+    fallback: BUILT_IN_TEMPLATES.map((template) => ({ ...template })),
   },
 );
 

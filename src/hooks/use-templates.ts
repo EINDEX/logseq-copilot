@@ -126,6 +126,8 @@ export function useTemplates(): UseTemplatesReturn {
     try {
       setError(null);
       const currentTemplates = await templates.getValue();
+      // Clipping needs a template: the last one stays.
+      if (currentTemplates.length <= 1) return;
       const updatedTemplates = currentTemplates.filter(
         (template) => template.id !== id,
       );

@@ -33,6 +33,11 @@ export interface LogseqServiceInterface {
   urlSearch(url: URL, opt?: { scopeDepth?: number }): any;
   showMsg(message: string): any;
   getVersion(): any;
+  /**
+   * Appends a rendered clip to `page`. A task marker the clip starts with
+   * (TODO, ...) makes it a task on either kind of graph.
+   */
+  clipBlock(page: string, content: string): Promise<unknown>;
   changeBlockMarker(
     uuid: string,
     marker: string,

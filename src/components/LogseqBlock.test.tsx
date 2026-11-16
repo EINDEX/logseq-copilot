@@ -61,6 +61,22 @@ const reply = (uuid: string, marker: string) => ({
   marker,
 });
 
+describe('LogseqBlock task state of a recalled block', () => {
+  const checked = (el: HTMLElement) =>
+    el.querySelector('button[role="checkbox"]')!.getAttribute('aria-checked');
+
+  test.each(['TODO', 'LATER'])('%s is an unchecked box', async (marker) => {
+    const el = await render([makeBlock('t1', marker)]);
+    expect(el.querySelector('[data-marker]')!.getAttribute('data-marker')).toBe(marker);
+    expect(checked(el)).toBe('false');
+  });
+
+  test('DONE is a checked box', async () => {
+    const el = await render([makeBlock('t2', 'DONE')]);
+    expect(checked(el)).toBe('true');
+  });
+});
+
 describe('LogseqBlock marker controls', () => {
   test('checking the box sends TODO->DONE through the background and shows DONE', async () => {
     handler.mockImplementation(({ uuid, marker }) => reply(uuid, marker));

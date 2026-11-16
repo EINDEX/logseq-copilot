@@ -71,6 +71,29 @@ describe('QuickCapture capture()', () => {
     );
   });
 
+  it('names the template of a clip of the page', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    await runClipCommand('selectionOrPage', { templateId: 'task' });
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipPage', {
+      templateId: 'task',
+    });
+    sendMessage.mockReset();
+    await runClipCommand('page', { templateId: 'task' });
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipPage', {
+      templateId: 'task',
+    });
+  });
+
+  it('names the template of a clip of the selection', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    selectParagraph();
+    await runClipCommand('selectionOrPage', { templateId: 'task' });
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', {
+      text: 'hello world',
+      templateId: 'task',
+    });
+  });
+
   it('ignores quickCapture events dispatched on document by page scripts', async () => {
     await import('./QuickCapture');
     document.dispatchEvent(new Event('quickCapture'));

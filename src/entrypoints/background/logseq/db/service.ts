@@ -11,21 +11,14 @@ import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { DBRecallSource } from '../recall/db-source';
-import { getBlockMarker } from './status';
-import { mentionsScope, scopePrefixes } from '@/utils/recall-scope';
+import { getBlockMarker, splitTaskMarker, STATUS_TITLE_BY_MARKER } from './status';
+import {
+  mentionsScope,
+  scopePrefixes,
+  storedHostPath,
+} from '@/utils/recall-scope';
 
 export { getBlockMarker };
-
-// Marker -> title of the built-in status choice (Backlog, Todo, Doing,
-// In Review, Done, Canceled). Logseq clears the property for unknown titles,
-// so only markers with an exact counterpart are accepted.
-const STATUS_TITLE_BY_MARKER: Record<string, string> = {
-  TODO: 'Todo',
-  DOING: 'Doing',
-  DONE: 'Done',
-  CANCELED: 'Canceled',
-  CANCELLED: 'Canceled',
-};
 
 // Logseq 2.0.x returns `uuid`; older builds nested it as `block/uuid: {uuid}`.
 const getItemUuid = (item: any): string =>
@@ -270,6 +263,12 @@ export default class LogseqDBService implements LogseqServiceInterface {
       await find(url.host + url.pathname);
     }
 
+    // A clip writes an unpaired parenthesis of the path as `%28` or `\)`.
+    const stored = storedHostPath(url);
+    if (stored !== url.host + url.pathname) {
+      await find(stored);
+    }
+
     const count = blocks.length;
 
     // Parent paths, narrowest first. Search matches substrings, so keep only
@@ -300,6 +299,27 @@ export default class LogseqDBService implements LogseqServiceInterface {
       query,
       options,
     );
+  }
+
+  /**
+   * Appends a clip to `page`. A task marker at the start of `content` (TODO,
+   * LATER, ...) becomes the block's status: Logseq keeps tasks in a property,
+   * not in the text.
+   */
+  public async clipBlock(page: string, content: string) {
+    const { content: text, status } = splitTaskMarker(content);
+    const block = await this.client.appendBlock(page, text);
+    if (!status) return block;
+    const uuid = block?.uuid;
+    if (typeof uuid !== 'string') {
+      throw new Error('Logseq did not return the clipped block.');
+    }
+    const result = await this.client.setBlockStatus(uuid, status);
+    // The HTTP API reports failures as a 200 response carrying `{ error }`.
+    if (result && typeof result === 'object' && 'error' in result) {
+      throw new Error(String(result.error));
+    }
+    return block;
   }
 
   public async changeBlockMarker(

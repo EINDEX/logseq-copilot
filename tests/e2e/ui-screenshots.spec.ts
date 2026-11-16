@@ -205,6 +205,12 @@ test.describe('UI screenshots', () => {
       await expect(page.locator('#template-content')).toBeVisible();
       await shoot(page, 'options-templates', scheme);
 
+      // The template list: Clip (the default) and Task.
+      const list = page.locator('[data-sidebar="sidebar"]');
+      await expect(list.getByText('Clip', { exact: true })).toBeVisible();
+      await expect(list.getByText('Task', { exact: true })).toBeVisible();
+      await shoot(list, 'options-templates-list', scheme);
+
       await page.goto(ext.url('options.html#/highlights'));
       await expect(page.getByText('HTTP API - Logseq')).toBeVisible();
       await shoot(page, 'options-highlights', scheme);
@@ -562,6 +568,34 @@ test.describe('UI screenshots', () => {
       await expectTheme(host, scheme);
       await shoot(page, 'in-page-sidebar', scheme);
     }
+  });
+
+  test('browser sidebar with a page saved as a task', async ({ page, ext, articles }) => {
+    fileGraphOnly();
+    const id = nonce('sidetask');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, {
+      title: 'Read the migration guide',
+      paragraph: 'Plan the upgrade before touching the config.',
+    });
+
+    await ext.connect();
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    // What the `clip-task` command sends: the page becomes a TODO in Logseq.
+    await ext.sendToTab(page, 'content:quickCapture', { templateId: 'task' });
+
+    const sidebar = await page.context().newPage();
+    await sidebar.setViewportSize({ width: 400, height: 720 });
+    for (const scheme of SCHEMES) {
+      await setScheme(sidebar, scheme);
+      await sidebar.goto(ext.url('sidepanel.html'));
+      await ext.activate(page);
+      await expect(sidebar.getByText('Read the migration guide')).toBeVisible({ timeout: 30_000 });
+      await expect(sidebar.getByRole('checkbox').first()).toHaveAttribute('aria-checked', 'false');
+      await shoot(sidebar.locator('#app > *').first(), 'sidepanel-task', scheme);
+    }
+    await sidebar.close();
   });
 
   test('browser sidebar page', async ({ page, ext, articles, logseq }) => {

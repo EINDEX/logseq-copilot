@@ -2,16 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { templates } from '@/utils/storage';
 import { formatLogseqDate } from '@/utils/utils';
-import { backgroundClipFallback, clipToLogseq } from './clip';
+import { backgroundClipFallback, clipToLogseq, resolveTemplate } from './clip';
 
 const client = {
   getUserConfig: vi.fn(async () => ({ preferredDateFormat: 'yyyy-MM-dd' })),
   getCurrentPage: vi.fn(async (): Promise<{ name: string } | null> => null),
-  appendBlock: vi.fn(async () => ({})),
+  appendBlock: vi.fn(async (_page: string, _content: string) => ({})),
 };
 
 vi.mock('./logseq/tool', () => ({
-  getLogseqService: async () => ({ client }),
+  getLogseqService: async () => ({
+    client,
+    clipBlock: (page: string, content: string) =>
+      client.appendBlock(page, content),
+  }),
 }));
 
 describe('clipToLogseq', () => {
@@ -61,6 +65,60 @@ describe('clipToLogseq', () => {
   });
 });
 
+describe('clipping with a template', () => {
+  const list = [
+    { id: 'default', name: 'Clip', content: 'A {{content}}' },
+    { id: 'mine', name: 'Mine', content: 'B {{content}}' },
+  ];
+  const clippedText = () => (client.appendBlock.mock.calls[0] as unknown[])[1];
+
+  beforeEach(() => {
+    fakeBrowser.reset();
+    vi.clearAllMocks();
+  });
+
+  it('resolves no template id to the first template', () => {
+    expect(resolveTemplate(list)).toBe(list[0]);
+  });
+
+  it('resolves a template id to that template', () => {
+    expect(resolveTemplate(list, 'mine')).toBe(list[1]);
+  });
+
+  it('falls back to the built-in Task when the user deleted it', () => {
+    expect(resolveTemplate(list, 'task')).toMatchObject({
+      id: 'task',
+      content: 'TODO [{{title}}]({{url}})\n{{content}}',
+    });
+  });
+
+  it('falls back to the first template for any other missing id', () => {
+    expect(resolveTemplate(list, 'gone')).toBe(list[0]);
+  });
+
+  it('clips with the first template without a template id', async () => {
+    await templates.setValue(list);
+    await clipToLogseq({ data: 'x' });
+    expect(clippedText()).toBe('A x');
+  });
+
+  it('clips with the template named by id', async () => {
+    await templates.setValue(list);
+    await clipToLogseq({ data: 'x', templateId: 'mine' });
+    expect(clippedText()).toBe('B x');
+  });
+
+  it('saves the page as a task with the built-in Task template', async () => {
+    await clipToLogseq({
+      url: 'https://example.com/a',
+      title: 'Example',
+      data: '',
+      templateId: 'task',
+    });
+    expect(clippedText()).toBe('TODO [Example](https://example.com/a)');
+  });
+});
+
 describe('backgroundClipFallback', () => {
   const tab = { url: 'https://example.com/paper.pdf', title: 'paper.pdf' };
 
@@ -75,6 +133,12 @@ describe('backgroundClipFallback', () => {
       title: 'paper.pdf',
       data: 'a quote',
     });
+  });
+
+  it('carries the template id', () => {
+    expect(
+      backgroundClipFallback({ selectionText: 'q', pageUrl: 'https://a.b/' }, tab, 'task'),
+    ).toMatchObject({ data: 'q', templateId: 'task' });
   });
 
   it('takes the tab URL when the click has no page URL', () => {
