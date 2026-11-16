@@ -44,13 +44,14 @@ export interface LogseqServiceInterface {
    * it a task on either kind of graph. `tag` goes on the root block only: a
    * DB graph tags the block with the class, a file graph puts `#[[name]]` in
    * its text. A tag that cannot be applied does not fail the clip. Returns the
-   * root block's uuid.
+   * root block's uuid, and the uuid of the block that holds the clip's note
+   * (`note` on a block) when there is one.
    */
   clipBlocks(
     page: string,
     root: ClipBlock,
     opts?: { tag?: TemplateTag },
-  ): Promise<{ rootUuid: string }>;
+  ): Promise<{ rootUuid: string; noteUuid?: string }>;
   /**
    * The tags to pick for a template, by name, the ones of a DB graph with
    * their uuid. Throws when Logseq cannot answer.

@@ -290,7 +290,7 @@ test.describe('UI screenshots', () => {
     for (const scheme of SCHEMES) {
       await setScheme(sidebar, scheme);
       await expect(sidebar.getByText('Reading notes from https://example.com/copilot/article')).toBeVisible();
-      await expect(sidebar.getByRole('button', { name: 'Clip selection' })).toBeEnabled();
+      await expect(sidebar.getByRole('button', { name: 'Clip selection', exact: true })).toBeEnabled();
       await shoot(sidebar.locator('#app > *').first(), 'sidepanel-selection', scheme);
     }
 
@@ -336,6 +336,91 @@ test.describe('UI screenshots', () => {
       await alert.click();
       await expect(alert).toHaveCount(0);
     }
+  });
+
+  const SHOT_TEMPLATES = [
+    { id: 'clip', name: 'Clip', content: '- [{{title}}]({{url}})', clipNoteLocation: 'journal', clipNoteCustomPage: '' },
+    { id: 'task', name: 'Task', content: '- TODO [{{title}}]({{url}})', clipNoteLocation: 'journal', clipNoteCustomPage: '' },
+    { id: 'reading', name: 'Reading note', content: '- [{{title}}]({{url}})', clipNoteLocation: 'journal', clipNoteCustomPage: '' },
+  ];
+
+  test('clip picker panel over a page', async ({ page, ext, articles }) => {
+    fileGraphOnly();
+    const id = nonce('shotpicker');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, {
+      title: 'Notes on building a second brain',
+      paragraph: 'Capture what resonates, organize by project, distill to the essence.',
+    });
+    await ext.connect();
+    await ext.setStorage({
+      templates: SHOT_TEMPLATES.map((t) => (t.id === 'task' ? { ...t, pinned: true } : t)),
+    });
+    await page.goto(url);
+    const host = page.locator('logseq-copilot-popup');
+    await expect(host).toBeAttached();
+    const panel = host.locator('[data-clip-picker]');
+    const area = { x: VIEWPORT.width - 520, y: VIEWPORT.height - 320, width: 520, height: 320 };
+
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await ext.sendToTab(page, 'content:quickCapture');
+      await expect(panel).toBeVisible({ timeout: 30_000 });
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: file('panel-counting', scheme), caret: 'hide', clip: area });
+      // Typing a note stops the countdown for good.
+      await panel.getByRole('textbox', { name: 'Note' }).fill('Read again on Friday');
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: file('panel-stopped-note', scheme), caret: 'hide', clip: area });
+      await page.keyboard.press('Escape');
+      await expect(panel).toHaveCount(0);
+    }
+  });
+
+  test('template settings with a pinned template and a default', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await ext.setStorage({
+      templates: SHOT_TEMPLATES.map((t) => (t.id === 'task' ? { ...t, pinned: true } : t)),
+    });
+    for (const scheme of SCHEMES) {
+      await setScheme(page, scheme);
+      await page.goto(ext.url('options.html#/template/clip'));
+      await expect(page.getByRole('button', { name: 'Pinned' }).first()).toBeVisible({ timeout: 30_000 });
+      await shoot(page, 'settings-pinned-default', scheme);
+    }
+  });
+
+  test('browser sidebar clip dropdown', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await ext.setStorage({ templates: SHOT_TEMPLATES });
+    await page.goto('https://example.com/copilot/article');
+
+    const sidebar = await page.context().newPage();
+    await sidebar.setViewportSize({ width: 400, height: 720 });
+    for (const scheme of SCHEMES) {
+      await setScheme(sidebar, scheme);
+      await sidebar.goto(ext.url('sidepanel.html'));
+      // The sidebar is the tab in front, which it asks the page of. It has
+      // settled when it shows that this tab is not a page it works on: a
+      // menu opened before that would lose the button it hangs on.
+      await sidebar.bringToFront();
+      await expect(sidebar.getByText('Not available on this page')).toBeVisible({ timeout: 30_000 });
+      await sidebar.getByRole('button', { name: 'Clip page with a template' }).click();
+      await expect(sidebar.getByRole('menuitem')).toHaveCount(3);
+      // Not through shoot(): animations disabled take the open menu out of
+      // the picture (as in the options page's presets menu).
+      await sidebar.waitForTimeout(300);
+      // On screen, under the button: not at the place a menu has before it is positioned.
+      const menu = await sidebar.getByRole('menu').boundingBox();
+      const trigger = await sidebar.getByRole('button', { name: 'Clip page with a template' }).boundingBox();
+      expect(menu!.y).toBeGreaterThanOrEqual(trigger!.y + trigger!.height);
+      await sidebar.screenshot({ path: file('sidebar-clip-dropdown', scheme), caret: 'hide' });
+      await sidebar.keyboard.press('Escape');
+    }
+    await sidebar.close();
   });
 
   test('browser sidebar with rich content', async ({ page, ext }) => {

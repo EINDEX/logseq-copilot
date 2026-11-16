@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { templates, TemplateItemV1 } from '@/utils/storage';
+import { defaultTemplateIdItem, templates, TemplateItemV1 } from '@/utils/storage';
 import { log } from '@/utils';
 
 export interface UseTemplatesReturn {
@@ -134,6 +134,11 @@ export function useTemplates(): UseTemplatesReturn {
 
       await templates.setValue(updatedTemplates);
       setTemplateList(updatedTemplates);
+      // The default falls back to the first template (resolveDefaultTemplate);
+      // the stale id goes too.
+      if ((await defaultTemplateIdItem.getValue()) === id) {
+        await defaultTemplateIdItem.setValue(null);
+      }
 
       log.debug('[useTemplates] Template deleted:', id);
     } catch (err) {

@@ -1,9 +1,17 @@
-import type { ComponentType, MouseEvent } from 'react';
+import { useState, type ComponentType, type MouseEvent } from 'react';
 import { IconNotes, IconRefresh, IconSettings } from '@tabler/icons-react';
-import { Check, FilePlus, LoaderCircle, Search, TextSelect, X } from 'lucide-react';
+import { Check, ChevronDown, FilePlus, LoaderCircle, Search, TextSelect, X } from 'lucide-react';
 import { HighlightList } from '@/components/HighlightList';
 import { LogseqResultList } from '@/components/LogseqResultList';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import type { ClipTemplateOption } from '@/hooks/use-clip-templates';
+import { TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import type { ClipAction, ClipActions } from '@/hooks/use-clip-actions';
 import type { LogseqSearch } from '@/hooks/use-logseq-search';
 import type { PageRecallState } from '@/hooks/use-page-recall';
@@ -97,13 +105,15 @@ interface ClipButtonProps {
   label: string;
   disabled: boolean;
   onClick: () => void;
+  /** The button is the left half of a split button. */
+  split?: boolean;
 }
 
 /**
  * A clip action: a spinner while it clips, a check for a moment once it has,
  * marked invalid (and described by #clip-error) when it failed.
  */
-const ClipButton = ({ action, clip, icon: Icon, label, disabled, onClick }: ClipButtonProps) => {
+const ClipButton = ({ action, clip, icon: Icon, label, disabled, onClick, split }: ClipButtonProps) => {
   const failed = clip.error?.action === action;
   const ActionIcon =
     clip.clipping === action ? LoaderCircle : clip.done === action ? Check : Icon;
@@ -119,7 +129,9 @@ const ClipButton = ({ action, clip, icon: Icon, label, disabled, onClick }: Clip
       // drawn on (and focus has nothing to do on these buttons).
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      className="h-8 min-w-0 gap-1.5 px-2 font-normal dark:aria-invalid:border-destructive data-[done]:text-foreground"
+      className={`h-8 min-w-0 gap-1.5 px-2 font-normal dark:aria-invalid:border-destructive data-[done]:text-foreground ${
+        split ? 'flex-1 justify-center rounded-r-none' : ''
+      }`}
     >
       <ActionIcon
         aria-hidden
@@ -135,6 +147,64 @@ const ClipButton = ({ action, clip, icon: Icon, label, disabled, onClick }: Clip
     </Button>
   );
 };
+
+interface TemplateMenuProps {
+  /** What the menu is for, e.g. "Clip page". */
+  label: string;
+  templates: ClipTemplateOption[];
+  shortcuts: Record<string, string>;
+  disabled: boolean;
+  /** Inside the panel: a shadow root does not style a menu on the page's body. */
+  container: HTMLElement | null;
+  onPick: (templateId: string) => void;
+}
+
+/** The shortcut of a template: `clip` is the first template's, `clip-task` the Task one's. */
+const shortcutOf = (
+  template: ClipTemplateOption,
+  index: number,
+  shortcuts: Record<string, string>,
+): string | undefined =>
+  index === 0 ? shortcuts.clip : template.id === TASK_TEMPLATE_ID ? shortcuts['clip-task'] : undefined;
+
+/** The chevron half of a split clip button: pick the template to clip with. */
+const TemplateMenu = ({ label, templates, shortcuts, disabled, container, onPick }: TemplateMenuProps) => (
+  // Not modal: it must not lock the page of an in-page sidebar.
+  <DropdownMenu modal={false}>
+    <DropdownMenuTrigger asChild>
+      {/*
+        A plain button: Button does not forward its ref (React 18), and the
+        menu is placed from the element the trigger gives it.
+      */}
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={`${label} with a template`}
+        onMouseDown={(event) => event.preventDefault()}
+        className={buttonVariants({
+          variant: 'outline',
+          size: 'sm',
+          className: '-ml-px h-8 w-7 shrink-0 rounded-l-none px-0 font-normal text-muted-foreground',
+        })}
+      >
+        <ChevronDown aria-hidden className="h-3.5 w-3.5" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" container={container} className="min-w-44">
+      {templates.map((template, index) => {
+        const shortcut = shortcutOf(template, index, shortcuts);
+        return (
+          <DropdownMenuItem key={template.id} onSelect={() => onPick(template.id)}>
+            <span className="truncate">{template.name}</span>
+            {shortcut && (
+              <span className="ml-auto pl-3 text-xs text-muted-foreground">{shortcut}</span>
+            )}
+          </DropdownMenuItem>
+        );
+      })}
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
 
 export interface SidebarPanelProps {
   /**
@@ -159,6 +229,13 @@ export interface SidebarPanelProps {
   search: LogseqSearch;
   /** Clip page and Clip selection, run by the host (useClipActions). */
   clip: ClipActions;
+  /**
+   * The clip templates, default first. With two or more, the clip buttons get
+   * a menu to clip with another one.
+   */
+  templates?: ClipTemplateOption[];
+  /** The shortcuts set for the commands of the extension, by command name. */
+  shortcuts?: Record<string, string>;
   /** The page has a selection that Clip selection would clip. */
   canClipSelection: boolean;
   /**
@@ -190,11 +267,16 @@ export function SidebarPanel({
   onRetryRecall,
   search,
   clip,
+  templates = [],
+  shortcuts = {},
   canClipSelection,
   onClipActionsPointerEnter,
   onOpenSettings,
   onClose,
 }: SidebarPanelProps) {
+  // State, not a ref: the menus need the element once it is there.
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const splitClips = templates.length >= 2;
   const graph = recall.result?.graph ?? search.result?.graph;
   const searching = search.submitted !== null;
   const showHighlights = status === 'ready' && highlights.length > 0;
@@ -206,7 +288,7 @@ export function SidebarPanel({
   const unavailable = status === 'unavailable';
 
   return (
-    <div className="flex h-full flex-col bg-background text-foreground">
+    <div ref={setRoot} className="flex h-full flex-col bg-background text-foreground">
       <header className="shrink-0 border-b px-3 pb-3">
         <div className="flex h-12 items-center gap-1">
           {graph && (
@@ -302,26 +384,54 @@ export function SidebarPanel({
           className="mt-2 grid grid-cols-2 gap-2"
           onPointerEnter={onClipActionsPointerEnter}
         >
-          <ClipButton
-            action="page"
-            clip={clip}
-            icon={FilePlus}
-            label="Clip page"
-            disabled={clip.clipping !== null}
-            onClick={clip.clipPage}
-          />
-          <ClipButton
-            action="selection"
-            clip={clip}
-            icon={TextSelect}
-            label="Clip selection"
-            // It stays as it is while it shows that it has clipped, though
-            // the selection it clipped is gone.
-            disabled={clip.clipping !== null || (!canClipSelection && clip.done !== 'selection')}
-            onClick={() => {
-              if (canClipSelection) clip.clipSelection();
-            }}
-          />
+          <div className="flex min-w-0">
+            <ClipButton
+              action="page"
+              clip={clip}
+              icon={FilePlus}
+              label="Clip page"
+              disabled={clip.clipping !== null}
+              onClick={() => clip.clipPage()}
+              split={splitClips}
+            />
+            {splitClips && (
+              <TemplateMenu
+                label="Clip page"
+                templates={templates}
+                shortcuts={shortcuts}
+                disabled={clip.clipping !== null}
+                container={root}
+                onPick={clip.clipPage}
+              />
+            )}
+          </div>
+          <div className="flex min-w-0">
+            <ClipButton
+              action="selection"
+              clip={clip}
+              icon={TextSelect}
+              label="Clip selection"
+              // It stays as it is while it shows that it has clipped, though
+              // the selection it clipped is gone.
+              disabled={clip.clipping !== null || (!canClipSelection && clip.done !== 'selection')}
+              onClick={() => {
+                if (canClipSelection) clip.clipSelection();
+              }}
+              split={splitClips}
+            />
+            {splitClips && (
+              <TemplateMenu
+                label="Clip selection"
+                templates={templates}
+                shortcuts={shortcuts}
+                disabled={clip.clipping !== null || !canClipSelection}
+                container={root}
+                onPick={(templateId) => {
+                  if (canClipSelection) clip.clipSelection(templateId);
+                }}
+              />
+            )}
+          </div>
         </div>
         {clip.error && (
           <p

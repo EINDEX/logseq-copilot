@@ -8,6 +8,9 @@ import {
   UnknownIssues,
 } from '@/entrypoints/background/logseq/error';
 import log from '@/utils/logger';
+import { fakeBrowser } from 'wxt/testing';
+import { HighlightManager } from '@/utils/highlight-manager';
+import { templates } from '@/utils/storage';
 
 const sendMessage = vi.fn();
 vi.mock('@/types/messaging', () => ({
@@ -100,6 +103,190 @@ describe('QuickCapture capture()', () => {
     document.dispatchEvent(new Event('quickCaptureWithSelection'));
     document.dispatchEvent(new Event('quickCapturePage'));
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe('a clip that is in Logseq', () => {
+  const clips: unknown[] = [];
+  const RESULT = { templateId: 'clip', page: 'Nov 16th, 2026', rootUuid: 'r' };
+  let off: () => void;
+
+  beforeEach(() => {
+    sendMessage.mockReset().mockResolvedValue(RESULT);
+    document.body.innerHTML = '<p id="p">hello world</p>';
+    window.getSelection()?.removeAllRanges();
+    clips.length = 0;
+    off = contentEvents.on('clipped', (clip) => clips.push(clip));
+  });
+
+  afterEach(() => off());
+
+  it('started in the page (shortcut, context menu, float button) tells ClipToast, for the page and for a selection', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    await runClipCommand('page');
+    selectParagraph();
+    await runClipCommand('selectionOrPage', { templateId: 'task' });
+
+    expect(clips).toEqual([
+      { result: RESULT, feedback: 'page' },
+      { result: RESULT, feedback: 'page' },
+    ]);
+  });
+
+  it('asked for by a sidebar tells nobody: the sidebar shows it', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    await runClipCommand('page', { feedback: 'sender' });
+    expect(clips).toEqual([]);
+  });
+
+  it('that failed tells nobody', async () => {
+    const { runClipCommand } = await import('./QuickCapture');
+    sendMessage.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
+    vi.spyOn(log, 'error').mockImplementation(() => {});
+    await runClipCommand('page');
+    expect(clips).toEqual([]);
+  });
+});
+
+describe('the picker panel (runPickedClip)', () => {
+  const RESULT = { templateId: 'clip', page: 'Nov 16th, 2026', rootUuid: 'r' };
+  const ONE = [{ id: 'clip', name: 'Clip', content: '{{content}}' }];
+  const TWO = [
+    { id: 'clip', name: 'Clip', content: '{{content}}' },
+    { id: 'task', name: 'Task', content: 'TODO {{content}}', pinned: true },
+  ];
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    sendMessage.mockReset().mockResolvedValue(RESULT);
+    document.body.innerHTML = '<p id="p">hello world</p>';
+    window.getSelection()?.removeAllRanges();
+  });
+
+  afterEach(async () => {
+    const { getActivePicker } = await import('./clip-picker');
+    getActivePicker()?.destroy();
+    vi.restoreAllMocks();
+  });
+
+  it('saves at once with the default settings: no panel, the same messages as ever', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue(ONE);
+
+    await runPickedClip();
+    expect(getActivePicker()).toBeNull();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipPage');
+
+    sendMessage.mockClear();
+    selectParagraph();
+    await runPickedClip();
+    expect(getActivePicker()).toBeNull();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipWithSelection', 'hello world');
+  });
+
+  it('opens the panel when a second template is pinned, and sends nothing yet', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue(TWO);
+
+    await runPickedClip();
+
+    expect(getActivePicker()?.getView().templates).toEqual([
+      { id: 'clip', name: 'Clip' },
+      { id: 'task', name: 'Task' },
+    ]);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('takes the selection when it opens: the clip has it after the selection is gone', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    const save = vi
+      .spyOn(HighlightManager.prototype, 'addHighlight')
+      .mockResolvedValue(null);
+    vi.spyOn(HighlightManager.prototype, 'addTemporaryHighlight').mockImplementation(() => {});
+    await templates.setValue(TWO);
+    selectParagraph();
+
+    await runPickedClip();
+    // Focus moves into the panel, the page selection is lost.
+    window.getSelection()!.removeAllRanges();
+    getActivePicker()!.setNote('my note');
+    getActivePicker()!.decide('task');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipWithSelection', {
+      text: 'hello world',
+      templateId: 'task',
+      note: 'my note',
+    });
+    // The highlight is the cloned range, with the note.
+    expect(save).toHaveBeenCalledTimes(1);
+    const [range, note] = save.mock.calls[0];
+    expect(range.toString()).toBe('hello world');
+    expect(note).toBe('my note');
+  });
+
+  it('clips the page link with the chosen template and the note', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    await templates.setValue(TWO);
+
+    await runPickedClip();
+    getActivePicker()!.setNote('page note');
+    getActivePicker()!.decide('clip');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipPage', {
+      templateId: 'clip',
+      note: 'page note',
+    });
+  });
+
+  it('saves nothing, and no highlight, when it is cancelled', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    const save = vi.spyOn(HighlightManager.prototype, 'addHighlight').mockResolvedValue(null);
+    await templates.setValue(TWO);
+    selectParagraph();
+
+    await runPickedClip();
+    getActivePicker()!.cancel();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+    // The page selection was not touched.
+    expect(window.getSelection()!.toString()).toBe('hello world');
+  });
+
+  it('the shortcut again while the panel is up saves the highlighted template', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    await templates.setValue(TWO);
+
+    await runPickedClip();
+    await runPickedClip();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:clipPage', { templateId: 'clip' });
+  });
+
+  it('a failure after the panel is shown in the page, like any clip', async () => {
+    const { runPickedClip } = await import('./QuickCapture');
+    const { getActivePicker } = await import('./clip-picker');
+    const failures: string[] = [];
+    const off = contentEvents.on('clipFailed', ({ message }) => failures.push(message));
+    vi.spyOn(log, 'error').mockImplementation(() => {});
+    sendMessage.mockRejectedValue(new LogseqError(CannotConnectWithLogseq));
+    await templates.setValue(TWO);
+
+    await runPickedClip();
+    getActivePicker()!.decide();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    off();
+
+    expect(failures).toEqual([CannotConnectWithLogseq.msg]);
   });
 });
 

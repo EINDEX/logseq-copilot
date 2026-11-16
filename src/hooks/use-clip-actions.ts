@@ -14,14 +14,15 @@ export interface ClipActionsState {
 }
 
 export interface ClipActions extends ClipActionsState {
-  clipPage: () => void;
-  clipSelection: () => void;
+  /** `templateId` picks the template; the first one without it. */
+  clipPage: (templateId?: string) => void;
+  clipSelection: (templateId?: string) => void;
 }
 
 export interface ClipHandlers {
   /** Resolve once clipped; reject with the readable error (feedback: 'sender'). */
-  clipPage: () => Promise<unknown>;
-  clipSelection: () => Promise<unknown>;
+  clipPage: (templateId?: string) => Promise<unknown>;
+  clipSelection: (templateId?: string) => Promise<unknown>;
   /** After a successful clip. */
   onClipped?: (action: ClipAction) => void;
   /** After every clip, successful or not. */
@@ -62,7 +63,7 @@ export function useClipActions(handlers: ClipHandlers, page: string | null): Cli
     return () => clearTimeout(timer);
   }, [state.done]);
 
-  const run = useCallback(async (action: ClipAction) => {
+  const run = useCallback(async (action: ClipAction, templateId?: string) => {
     if (busy.current) return;
     busy.current = true;
     const thisGeneration = generation.current;
@@ -70,7 +71,11 @@ export function useClipActions(handlers: ClipHandlers, page: string | null): Cli
     const handlers = latest.current;
     const current = () => thisGeneration === generation.current;
     try {
-      await (action === 'page' ? handlers.clipPage() : handlers.clipSelection());
+      // Without a template the handlers are called as before: no argument.
+      const args = templateId === undefined ? [] : [templateId];
+      await (action === 'page'
+        ? handlers.clipPage(...args)
+        : handlers.clipSelection(...args));
       if (current()) {
         setState({ clipping: null, done: action, error: null });
         handlers.onClipped?.(action);
@@ -92,8 +97,11 @@ export function useClipActions(handlers: ClipHandlers, page: string | null): Cli
     }
   }, []);
 
-  const clipPage = useCallback(() => void run('page'), [run]);
-  const clipSelection = useCallback(() => void run('selection'), [run]);
+  const clipPage = useCallback((templateId?: string) => void run('page', templateId), [run]);
+  const clipSelection = useCallback(
+    (templateId?: string) => void run('selection', templateId),
+    [run],
+  );
 
   return { ...state, clipPage, clipSelection };
 }

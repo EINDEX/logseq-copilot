@@ -17,7 +17,7 @@ import LogseqDBService from '@/entrypoints/background/logseq/db/service';
 import LogseqService from '@/entrypoints/background/logseq/markdown/service';
 import { clipToLogseq } from '@/entrypoints/background/clip';
 import { renderClip } from '@/utils/clip-template';
-import { TASK_TEMPLATE, TEMPLATE_PRESETS } from '@/utils/default-templates';
+import { BUILT_IN_TEMPLATES, TASK_TEMPLATE, TEMPLATE_PRESETS } from '@/utils/default-templates';
 import { blockRending, buildTurndownService } from '@/utils/utils';
 import { LogseqServiceInterface } from '@/entrypoints/background/logseq/interfaces';
 
@@ -1383,5 +1383,235 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
         JSON.stringify(b).includes(stamp),
       ),
     ).toBe(true);
+  });
+});
+
+describe(`a note with the clip (${variant})`, () => {
+  type Node = { text: string; uuid?: string; children: Node[] };
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const eventually = async <T>(fn: () => Promise<T>, ok: (v: T) => boolean) => {
+    let value = await fn();
+    for (let i = 0; i < 40 && !ok(value); i++) {
+      await sleep(500);
+      value = await fn();
+    }
+    return value;
+  };
+
+  const toNode = (block: any): Node => ({
+    text: String(block.content ?? block.title ?? ''),
+    uuid: block.uuid,
+    children: (block.children ?? []).map(toNode),
+  });
+
+  /** Every root block of the test page that mentions `marker`. */
+  const readRoots = async (marker: string): Promise<Node[]> => {
+    const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+    return (body as any[])
+      .filter((b) => String(b.content ?? b.title ?? '').includes(marker))
+      .map(toNode);
+  };
+
+  /** The one clip of `marker`, once it has `children` children. */
+  const readClip = async (marker: string, children: number) => {
+    const roots = await eventually(
+      () => readRoots(marker),
+      (r) => r.length === 1 && r[0].children.length >= children,
+    );
+    expect(roots).toHaveLength(1);
+    return roots[0];
+  };
+
+  /** The text of the block `uuid`, in any form a graph keeps it. */
+  const blockTexts = async (uuid: string): Promise<string[]> => {
+    const { body } = await api('logseq.Editor.getBlock', [uuid]);
+    return [body?.content, body?.title, body?.fullTitle].filter(
+      (t): t is string => typeof t === 'string',
+    );
+  };
+
+  /** The lines of the clip of `marker` in the page file, a file graph only. */
+  const fileLines = async (marker: string): Promise<string[]> => {
+    const graph = (await api('logseq.App.getCurrentGraph')).body;
+    const file = `${graph.path}/pages/${TEST_PAGE}.md`;
+    const read = async () => (await import('node:fs')).readFileSync(file, 'utf8');
+    await eventually(read, (t) => t.includes(marker));
+    // Logseq writes late, and again.
+    await sleep(3000);
+    const lines = (await read()).split('\n');
+    const start = lines.findIndex((l) => l.includes(marker));
+    const next = lines.findIndex((l, i) => i > start && /^- /.test(l));
+    return lines.slice(start, next === -1 ? undefined : next);
+  };
+  const bulletsIn = (lines: string[]) =>
+    lines.filter((l) => /^\s*[-*+](\s|$)/.test(l)).length;
+
+  const location = { clipNoteLocation: 'customPage', clipNoteCustomPage: TEST_PAGE };
+  const OUTLINE = '- [{{title}}]({{url}})\n  - {{note}}\n  - {{content}}';
+  const setTemplate = (content: string, id = 'noted') =>
+    templates.setValue([{ id, name: 'Noted', content, ...location }]);
+  const source = (stamp: number, extra: object = {}) => ({
+    url: `https://example.com/note-${stamp}`,
+    title: `Note page ${stamp}`,
+    data: `The quote ${stamp}.`,
+    ...extra,
+  });
+
+  test('a bullet that has only {{note}} is the note block, and the result names it', async () => {
+    const stamp = Date.now();
+    await setTemplate(OUTLINE);
+    const note = `Idea about [[Note Link ${stamp}]] and #notetag${stamp}\nsecond line`;
+
+    const result = await clipToLogseq({ ...source(stamp), templateId: 'noted', note });
+
+    const clip = await readClip(`note-${stamp}`, 2);
+    expect(clip.children.map((c) => c.text)).toEqual([
+      isDB ? expect.stringContaining('second line') : note,
+      `The quote ${stamp}.`,
+    ]);
+    expect(result.noteBlockUuid).toBe(clip.children[0].uuid);
+    expect(result.rootUuid).toBe(clip.uuid);
+    // The text the user typed, syntax live: not escaped.
+    const texts = await blockTexts(result.noteBlockUuid!);
+    expect(texts.some((t) => t.includes('\\['))).toBe(false);
+    expect(texts.some((t) => t.includes(`Note Link ${stamp}`) || /\[\[[0-9a-f-]{36}\]\]/.test(t))).toBe(true);
+  });
+
+  test('a template without {{note}} gets the note as the last child, and the result names it', async () => {
+    const stamp = Date.now();
+    await templates.setValue([
+      { id: 'plain', name: 'Plain', content: '#[[Clip]] [{{title}}]({{url}})\n{{content}}', ...location },
+    ]);
+
+    const result = await clipToLogseq({
+      ...source(stamp),
+      templateId: 'plain',
+      note: 'my note',
+    });
+
+    const clip = await readClip(`note-${stamp}`, 1);
+    expect(clip.text).toContain(`The quote ${stamp}.`);
+    expect(clip.children.map((c) => c.text)).toEqual(['my note']);
+    expect(result.noteBlockUuid).toBe(clip.children[0].uuid);
+  });
+
+  test('a note in an outline template without {{note}} goes after the other children', async () => {
+    const stamp = Date.now();
+    await setTemplate('- [{{title}}]({{url}})\n  - {{content}}', 'nested');
+
+    const result = await clipToLogseq({ ...source(stamp), templateId: 'nested', note: 'last one' });
+
+    const clip = await readClip(`note-${stamp}`, 2);
+    expect(clip.children.map((c) => c.text)).toEqual([`The quote ${stamp}.`, 'last one']);
+    expect(result.noteBlockUuid).toBe(clip.children[1].uuid);
+  });
+
+  test('an inline {{note}} is part of the text, no block of its own', async () => {
+    const stamp = Date.now();
+    await templates.setValue([
+      { id: 'inline', name: 'Inline', content: '[{{title}}]({{url}})\nNote: {{note}}', ...location },
+    ]);
+
+    const result = await clipToLogseq({ ...source(stamp), templateId: 'inline', note: 'one\ntwo' });
+
+    const clip = await readClip(`note-${stamp}`, 0);
+    expect(clip.children).toEqual([]);
+    expect(clip.text).toContain('Note: one\ntwo');
+    expect(result.noteBlockUuid).toBeUndefined();
+  });
+
+  test('an empty note leaves the built-in Clip byte for byte what it was', async () => {
+    const stamp = Date.now();
+    await templates.setValue([
+      { ...BUILT_IN_TEMPLATES[0], ...location },
+    ]);
+    const base = { url: `https://example.com/note-${stamp}`, title: `Note page ${stamp}`, data: `Same text ${stamp}.` };
+
+    const without = await clipToLogseq(base);
+    const empty = await clipToLogseq({ ...base, note: '' });
+    const blank = await clipToLogseq({ ...base, note: ' \n ' });
+
+    const roots = await eventually(
+      () => readRoots(`note-${stamp}`),
+      (r) => r.length === 3,
+    );
+    expect(roots).toHaveLength(3);
+    expect(new Set(roots.map((r) => r.text)).size).toBe(1);
+    expect(roots.every((r) => r.children.length === 0)).toBe(true);
+    expect(roots[0].text).toBe(
+      isDB
+        ? roots[0].text
+        : `#[[Clip]] [${base.title}](${base.url})\nSame text ${stamp}.`,
+    );
+    for (const result of [without, empty, blank]) {
+      expect(result.noteBlockUuid).toBeUndefined();
+    }
+  });
+
+  test('an empty note takes the note bullet out of an outline template, with its subtree', async () => {
+    const stamp = Date.now();
+    await setTemplate('- [{{title}}]({{url}})\n  - {{note}}\n    - about it\n  - {{content}}');
+
+    const result = await clipToLogseq({ ...source(stamp), templateId: 'noted', note: '' });
+
+    const clip = await readClip(`note-${stamp}`, 1);
+    expect(clip.children.map((c) => c.text)).toEqual([`The quote ${stamp}.`]);
+    expect(result.noteBlockUuid).toBeUndefined();
+  });
+
+  describe('what would change the tree is neutralised', () => {
+    test('a note with bullet-like lines stays in its one block', async () => {
+      const stamp = Date.now();
+      await setTemplate(OUTLINE);
+      const note = 'first\n- dash\n* star\n+ plus\n  - nested dash\n-\n1. numbered';
+
+      const result = await clipToLogseq({ ...source(stamp), templateId: 'noted', note });
+
+      const clip = await readClip(`note-${stamp}`, 2);
+      expect(clip.children).toHaveLength(2);
+      expect(clip.children[0].children).toEqual([]);
+      expect(result.noteBlockUuid).toBe(clip.children[0].uuid);
+      expect(clip.children[0].text).toContain('first\n\\- dash\n\\* star\n\\+ plus\n  \\- nested dash\n\\-\n1. numbered');
+      if (!isDB) {
+        // What a file graph would read again: a bullet line starts a block.
+        // The root, the note and the quote, and nothing from the note.
+        expect(bulletsIn(await fileLines(`note-${stamp}`))).toBe(3);
+      }
+    });
+
+    test('a fence mark with no mate does not swallow the lines of the template', async () => {
+      const stamp = Date.now();
+      await setTemplate('- [{{title}}]({{url}})\n  - {{note}}\n  - after [[Fence Page]] {{content}}');
+
+      await clipToLogseq({
+        ...source(stamp),
+        templateId: 'noted',
+        note: 'before\n```js\nconst x = 1',
+      });
+
+      const clip = await readClip(`note-${stamp}`, 2);
+      expect(clip.children).toHaveLength(2);
+      expect(clip.children[1].text).toContain('after');
+      expect(clip.children[0].text).toContain('\\```js');
+      if (!isDB) expect(bulletsIn(await fileLines(`note-${stamp}`))).toBe(3);
+    });
+
+    test('a bullet line inside a fence the note closes is escaped, not a block', async () => {
+      const stamp = Date.now();
+      await setTemplate(OUTLINE);
+
+      await clipToLogseq({
+        ...source(stamp),
+        templateId: 'noted',
+        note: '```sh\n- not a bullet\necho hi\n```',
+      });
+
+      const clip = await readClip(`note-${stamp}`, 2);
+      expect(clip.children).toHaveLength(2);
+      expect(clip.children[0].children).toEqual([]);
+      expect(clip.children[0].text).toContain('not a bullet');
+      if (!isDB) expect(bulletsIn(await fileLines(`note-${stamp}`))).toBe(3);
+    });
   });
 });
