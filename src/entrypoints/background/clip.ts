@@ -1,6 +1,7 @@
 import { isTreeTemplate, renderClip } from '@/utils/clip-template';
 import { runOnPage } from './page-queue';
 import { formatLogseqDate } from '@/utils/logseq-format';
+import { imageMarkdown } from '@/utils/utils';
 import {
   defaultTemplateIdItem,
   templates,
@@ -132,19 +133,22 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
  * The clip the background can make on its own when the content script of the
  * tab cannot take a clip command (the browser's PDF viewer, other pages
  * extensions cannot run in): only a context menu click on a selection brings
- * the selected text along. Undefined when there is nothing to clip without
- * the page.
+ * the selected text along, and a click on an image its URL. Undefined when
+ * there is nothing to clip without the page.
  */
 export const backgroundClipFallback = (
-  info: { selectionText?: string; pageUrl?: string },
+  info: { selectionText?: string; pageUrl?: string; srcUrl?: string },
   tab?: { url?: string; title?: string },
   templateId?: string,
 ): ClipSource | undefined => {
-  if (!info.selectionText?.trim()) return undefined;
+  const data = info.srcUrl
+    ? imageMarkdown('', info.srcUrl)
+    : info.selectionText?.trim() && info.selectionText;
+  if (!data) return undefined;
   return {
     url: info.pageUrl || tab?.url,
     title: tab?.title,
-    data: info.selectionText,
+    data,
     ...(templateId && { templateId }),
   };
 };

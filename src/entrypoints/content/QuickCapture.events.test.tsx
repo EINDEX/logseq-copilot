@@ -98,6 +98,29 @@ describe('QuickCapture comment popup events', () => {
     expect(document.querySelector('[data-highlight-popup]')).not.toBeNull();
     expect(document.body.textContent).toContain('original note');
   });
+
+  it('shows the image of an image highlight in the popup', async () => {
+    const { contentEvents } = await import('@/utils/content-events');
+    const { range: _range, ...rest } = storedHighlight;
+    await act(async () => {
+      contentEvents.emit('showHighlightComment', {
+        highlightData: {
+          ...rest,
+          image: {
+            xpath: '/html/body[1]/img[1]',
+            src: 'https://e.com/cat.png',
+            alt: 'a cat',
+          },
+        },
+        clickPosition: { x: 10, y: 10 },
+      });
+    });
+
+    const popup = document.querySelector('[data-highlight-popup]')!;
+    expect(popup.querySelector('img')?.getAttribute('src')).toBe('https://e.com/cat.png');
+    expect(popup.querySelector('img')?.getAttribute('alt')).toBe('a cat');
+    expect(popup.textContent).toContain('original note');
+  });
   describe('while it is open', () => {
     const edited: HighlightData = {
       ...storedHighlight,

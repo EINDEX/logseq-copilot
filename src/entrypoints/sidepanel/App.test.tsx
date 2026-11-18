@@ -36,7 +36,7 @@ vi.mock('@/types/messaging', () => ({
 import App from './App';
 import { DONE_MS } from '@/hooks/use-clip-actions';
 import log from '@/utils/logger';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 import type { LogseqBlockType, LogseqSearchResult } from '@/types/logseqBlock';
 
 const WINDOW_ID = 10;
@@ -99,8 +99,8 @@ const makeTab = (overrides: Partial<Browser.tabs.Tab> = {}): Browser.tabs.Tab =>
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: 'https://one.example/page',
   title: 'Page one',

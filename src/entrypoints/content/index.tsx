@@ -9,7 +9,9 @@ import { detectArc } from './arc-detection';
 import mountQuickCapture, {
   hasClippableSelection,
   runClipCommand,
+  onQuickCaptureImage,
   runPickedClip,
+  trackContextMenu,
 } from './QuickCapture';
 import { onceForClipShortcut, startClipShortcut } from './clip-shortcut';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
@@ -73,6 +75,9 @@ export default defineContentScript({
     onMessage('content:quickCapturePage', ({ data }) =>
       runClipCommand('page', data),
     );
+
+    trackContextMenu();
+    onMessage('content:quickCaptureImage', onQuickCaptureImage);
 
     // From the browser sidebar: it offers "Clip selection" only when there is
     // one.

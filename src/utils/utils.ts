@@ -70,6 +70,13 @@ export const debounce = <F extends (...args: any[]) => any>(
 /** The page controls a URL: write it so Logseq reads one destination. */
 const linkDest = (url: string) => escapeForLogseq(url, { context: 'linkDest' });
 
+/**
+ * One image as Markdown, `![alt](src)`, escaped like the images of a clipped
+ * selection: the alt text is a link label, `src` (absolute) a destination.
+ */
+export const imageMarkdown = (alt: string, src: string) =>
+  `![${escapeForLogseq(alt, { context: 'linkText' })}](${linkDest(src)})`;
+
 function linkProcess(src: string) {
   if (src.startsWith('/')) {
     return window.location.origin + src;

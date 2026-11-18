@@ -3,6 +3,7 @@ import log from './logger';
 import type { LogseqLink } from '@/types/annotation';
 import type {
   HighlightData,
+  SerializableImage,
   SerializableRange,
   HighlightQueryOptions,
   HighlightOperationResult,
@@ -314,6 +315,37 @@ export class HighlightService {
     }
   }
 
+  /** The URL an image shows: the source the browser picked from srcset, else src. */
+  static imageSource(image: HTMLImageElement): string {
+    return image.currentSrc || image.src;
+  }
+
+  /** What is stored of an image to find it again. */
+  static serializeImage(image: HTMLImageElement): SerializableImage | null {
+    const src = HighlightService.imageSource(image);
+    if (!src) return null;
+    return {
+      xpath: HighlightService.getXPathForNode(image),
+      src,
+      alt: image.getAttribute('alt') ?? '',
+    };
+  }
+
+  /**
+   * The image of the page a stored image highlight points to: the <img> at its
+   * XPath when it still shows the same source, else the first image of the
+   * page that does. Null when the page has no such image.
+   */
+  static deserializeImage(serialized: SerializableImage): HTMLImageElement | null {
+    const shows = (node: unknown): node is HTMLImageElement =>
+      node instanceof HTMLImageElement &&
+      (HighlightService.imageSource(node) === serialized.src ||
+        node.src === serialized.src);
+    const atPath = HighlightService.getElementByXPath(serialized.xpath);
+    if (shows(atPath)) return atPath;
+    return Array.from(document.querySelectorAll('img')).find(shows) ?? null;
+  }
+
   /**
    * Save a new highlight
    */
@@ -323,28 +355,51 @@ export class HighlightService {
     tags?: string[],
     logseq?: LogseqLink,
   ): Promise<HighlightOperationResult> {
-    try {
-      const serializedRange = HighlightService.serializeRange(range);
-      if (!serializedRange) {
-        return {
-          success: false,
-          message: 'Failed to serialize range',
-        };
-      }
+    const serializedRange = HighlightService.serializeRange(range);
+    if (!serializedRange) {
+      return {
+        success: false,
+        message: 'Failed to serialize range',
+      };
+    }
+    return HighlightService.storeNew({ range: serializedRange }, note, tags, logseq);
+  }
 
-      const highlight: HighlightData = {
+  /** Save a new highlight of an image. */
+  static async saveImageHighlight(
+    image: HTMLImageElement,
+    note?: string,
+    tags?: string[],
+    logseq?: LogseqLink,
+  ): Promise<HighlightOperationResult> {
+    const serialized = HighlightService.serializeImage(image);
+    if (!serialized) {
+      return { success: false, message: 'The image has no source' };
+    }
+    return HighlightService.storeNew({ image: serialized }, note, tags, logseq);
+  }
+
+  /** Store a new highlight of this page, of `anchor`. */
+  private static async storeNew(
+    anchor: { range: SerializableRange } | { image: SerializableImage },
+    note?: string,
+    tags?: string[],
+    logseq?: LogseqLink,
+  ): Promise<HighlightOperationResult> {
+    try {
+      const highlight = {
         id: HighlightService.generateId(),
         url: window.location.href,
         title: document.title,
         hostname: window.location.hostname,
-        range: serializedRange,
+        ...anchor,
         createdAt: Date.now(),
         lastAccessedAt: Date.now(),
         note,
         tags,
         color: 'yellow', // Default color
         ...(logseq && { logseq }),
-      };
+      } as HighlightData;
 
       await writeHighlights((current) => [...current, highlight]);
 

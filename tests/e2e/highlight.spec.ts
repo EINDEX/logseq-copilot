@@ -251,6 +251,146 @@ test.describe('highlights', () => {
     expect(await logseq.callApi('logseq.Editor.getBlock', [nodeUuid])).toBeFalsy();
   });
 
+  test('a clipped image is outlined, clipped as ![alt](src), restored after reload, takes a comment and is listed in the sidebar', async ({
+    page,
+    ext,
+    logseq,
+    articles,
+  }) => {
+    const id = nonce('hlimg');
+    const url = `https://example.com/e2e/${id}`;
+    const src = `https://example.com/images/${id}.png`;
+    const alt = `Figure ${id}`;
+    articles.set(url, {
+      title: `Image page ${id}`,
+      paragraph: `Image page words ${id}`,
+      image: { src, alt },
+    });
+
+    await ext.connect();
+    await ext.setStorage({
+      templates: [
+        {
+          id: 'image-outline',
+          name: 'Image outline',
+          content: '- [{{title}}]({{url}})\n  - {{content}}',
+          clipNoteLocation: 'customPage',
+          clipNoteCustomPage: 'Copilot Test Page',
+        },
+      ],
+    });
+    await page.goto(url);
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    const image = page.locator('#target-image');
+    await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(320);
+
+    // "Clip image" in the context menu: the menu opens on the image, then the
+    // background sends the click to the tab.
+    await image.click({ button: 'right' });
+    await page.keyboard.press('Escape');
+    await ext.sendToTab(page, 'content:quickCaptureImage', { srcUrl: src });
+
+    const stored = async () =>
+      ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url);
+    await expect.poll(async () => (await stored())[0]?.logseq?.nodeUuid, { timeout: 30_000 }).toBeTruthy();
+    const [saved] = await stored();
+    // Where the image is and its URL, no copy of it.
+    expect(saved.image).toEqual({ xpath: expect.any(String), src, alt });
+    expect(saved.range).toBeUndefined();
+
+    // In Logseq: the image as Markdown below the link of the page.
+    const text = (block: any): string => String(block.content ?? block.title ?? '');
+    const children = async (): Promise<string[]> =>
+      ((await logseq.callApi('logseq.Editor.getBlock', [saved.logseq.nodeUuid, { includeChildren: true }]))?.children ?? []).map(text);
+    await expect.poll(children, { timeout: 30_000 }).toEqual([`![${alt}](${src})`]);
+
+    // An outline on the image, not a text highlight.
+    const outlined = () => image.getAttribute('data-logseq-copilot-highlight');
+    await expect.poll(outlined).toBe(saved.id);
+    expect(await image.evaluate((img) => getComputedStyle(img).outlineStyle)).toBe('solid');
+
+    await page.reload();
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await expect.poll(outlined).toBe(saved.id);
+
+    // A real click on the image opens its comment popup, with the image.
+    await image.click();
+    const popup = page.locator('logseq-copilot-popup [data-highlight-popup]');
+    await expect(popup).toBeVisible();
+    await expect(popup.locator(`img[alt="${alt}"][src="${src}"]`)).toBeVisible();
+    const comment = `image comment ${id}`;
+    await popup.getByRole('button', { name: 'Edit' }).click();
+    await popup.getByPlaceholder('Add a comment to this highlight...').fill(comment);
+    await popup.getByRole('button', { name: 'Save' }).click();
+    await expect.poll(async () => (await stored())[0]?.note).toBe(comment);
+    await expect.poll(children, { timeout: 30_000 }).toEqual([`![${alt}](${src})`, comment]);
+
+    // The browser sidebar lists it with its alt text and the image.
+    const sidebar = await ext.openSidePanel(page);
+    await sidebar.expectText(alt);
+    await sidebar.hover(`section[aria-label="Highlights"] img[alt="${alt}"][src="${src}"]`);
+  });
+
+  test('the sidebar shows an image highlight from its own http(s) URL, even without CORS, and never loads a data:, javascript: or local one', async ({
+    page,
+    ext,
+    articles,
+  }) => {
+    const id = nonce('hlsrc');
+    const url = `https://example.com/e2e/${id}`;
+    // Another origin, without CORS headers (tests/e2e/pages.ts).
+    const cdnSrc = `https://cdn.example.org/images/${id}.png`;
+    articles.set(url, { title: `Image src page ${id}`, paragraph: `Src words ${id}`, image: { src: cdnSrc, alt: `CDN ${id}` } });
+    const refused = {
+      data: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=',
+      script: 'javascript:alert(1)',
+      loopback: `http://127.0.0.1:12315/${id}.png`,
+      lan: `http://192.168.1.1/${id}.png`,
+      localhost: `https://localhost/${id}.png`,
+    };
+    const imageHighlight = (key: string, src: string, at: number) => ({
+      id: `${id}-${key}`,
+      url,
+      title: `Image src page ${id}`,
+      hostname: 'example.com',
+      createdAt: at,
+      lastAccessedAt: at,
+      image: { xpath: '/html[1]/body[1]/figure[1]/img[1]', src, alt: `${key} ${id}` },
+    });
+    await ext.setStorage({
+      highlights: [
+        imageHighlight('cdn', cdnSrc, 1),
+        ...Object.entries(refused).map(([key, src], i) => imageHighlight(key, src, 2 + i)),
+      ],
+    });
+
+    // Every request any page of the browser makes, the sidebar's included.
+    const requested: string[] = [];
+    page.context().on('request', (request) => requested.push(request.url()));
+
+    await page.goto(url);
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    const sidebar = await ext.openSidePanel(page);
+    await sidebar.expectText(`cdn ${id}`);
+    const shown = `section[aria-label="Highlights"] img[alt="cdn ${id}"][src="${cdnSrc}"]`;
+    await sidebar.hover(shown);
+    if (sidebar.page) {
+      // Loaded, not the icon of an image that failed: no CORS needed.
+      await expect
+        .poll(() => sidebar.page!.locator(shown).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+        .toBe(320);
+    }
+
+    for (const key of Object.keys(refused)) {
+      await sidebar.hover(`section[aria-label="Highlights"] span[role="img"][aria-label="${key} ${id}"]`);
+    }
+    // Give a request that should not be made the time to show.
+    await page.waitForTimeout(500);
+    // Only the page and the image it shows: none of the refused ones.
+    expect(requested.filter((r) => r.includes(id) && r !== url && r !== cdnSrc)).toEqual([]);
+    expect(requested).toContain(cdnSrc);
+  });
+
   test('a highlight deleted in the options page disappears from the open page', async ({
     page,
     ext,
