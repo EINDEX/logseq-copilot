@@ -11,6 +11,7 @@ import mountQuickCapture, {
   runClipCommand,
   runPickedClip,
 } from './QuickCapture';
+import { onceForClipShortcut, startClipShortcut } from './clip-shortcut';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { keepOnPage } from './searchingEngines/keep-on-page';
 import { onMessage } from '@/types/messaging';
@@ -53,10 +54,17 @@ export default defineContentScript({
       // The clip shortcut: the picker panel when there is a choice. clip-task
       // names its template, and the sidebars name `sender`: explicit choices.
       if (data?.templateId === undefined && (data?.feedback ?? 'page') === 'page') {
-        return runPickedClip();
+        // Also pressed in the page (clip-shortcut.ts): once for one press.
+        return onceForClipShortcut('command', runPickedClip);
       }
       return runClipCommand('selectionOrPage', data);
     });
+
+    // The shortcut recorded in the options, for browsers that cannot change
+    // a command's shortcut. Firefox changes the real command instead.
+    if (!import.meta.env.FIREFOX) {
+      ctx.onInvalidated(startClipShortcut(runPickedClip));
+    }
 
     onMessage('content:quickCaptureWithSelection', ({ data }) =>
       runClipCommand('selectionOrPage', data),
