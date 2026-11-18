@@ -194,6 +194,63 @@ test.describe('highlights', () => {
     await expect(popup.locator('[data-comment-sync-error]')).toHaveCount(0);
   });
 
+  test('a clip deleted in Logseq unlinks the highlight: the popup says so and saves the comment locally', async ({
+    page,
+    ext,
+    articles,
+    logseq,
+  }) => {
+    const id = nonce('hlgone');
+    const url = `https://example.com/e2e/${id}`;
+    articles.set(url, { title: `Highlight gone page ${id}`, paragraph: `Gone words ${id} please` });
+
+    await ext.connect({ enableClipNoteFloatButton: true });
+    await ext.setStorage({
+      templates: [
+        {
+          id: 'comment-outline',
+          name: 'Comment outline',
+          content: '- [{{title}}]({{url}})\n  - {{content}}',
+          clipNoteLocation: 'customPage',
+          clipNoteCustomPage: 'Copilot Test Page',
+        },
+      ],
+    });
+    await page.goto(url);
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+
+    const stored = async () =>
+      ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url);
+    await expect.poll(async () => (await stored())[0]?.logseq?.nodeUuid, { timeout: 30_000 }).toBeTruthy();
+    const nodeUuid: string = (await stored())[0].logseq.nodeUuid;
+
+    // The user deletes the clip in Logseq.
+    await logseq.callApi('logseq.Editor.removeBlock', [nodeUuid]);
+    await expect
+      .poll(async () => await logseq.callApi('logseq.Editor.getBlock', [nodeUuid]), { timeout: 30_000 })
+      .toBeFalsy();
+
+    await page.reload();
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await expect.poll(() => registeredHighlights(page)).toBeGreaterThan(0);
+    const box = await page.locator('#target').boundingBox();
+    await page.mouse.click(box!.x + 20, box!.y + box!.height / 2);
+    const popup = page.locator('logseq-copilot-popup [data-highlight-popup]');
+    await expect(popup.locator('[data-removed-from-logseq]')).toHaveText('Removed from Logseq');
+    await expect.poll(async () => (await stored())[0]?.logseq).toBeUndefined();
+
+    // The comment stays local: no sync error, and Logseq gets nothing back.
+    const comment = `local comment ${id}`;
+    await popup.getByRole('button', { name: 'Edit' }).click();
+    await popup.getByPlaceholder('Add a comment to this highlight...').fill(comment);
+    await popup.getByRole('button', { name: 'Save' }).click();
+    await expect.poll(async () => (await stored())[0]?.note).toBe(comment);
+    await expect(popup.locator('[data-comment-sync-error]')).toHaveCount(0);
+    expect(await logseq.callApi('logseq.Editor.getBlock', [nodeUuid])).toBeFalsy();
+  });
+
   test('a highlight deleted in the options page disappears from the open page', async ({
     page,
     ext,

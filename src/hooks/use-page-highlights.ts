@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HighlightData } from '@/types/highlight';
 import {
   deleteHighlight as deleteStoredHighlight,
@@ -12,6 +12,11 @@ import { clipErrorMessage } from '@/utils/clip-feedback';
 export interface PageHighlights {
   /** The highlights of the page, newest first; null while they are being read. */
   highlights: HighlightData[] | null;
+  /**
+   * Highlights whose clip was found deleted in Logseq while this page's
+   * highlights were shown: they are no longer linked, and the list says so.
+   */
+  removedFromLogseq: ReadonlySet<string>;
   /** A message for the user about the last action, or null. */
   notice: string | null;
   setNotice: (notice: string | null) => void;
@@ -31,10 +36,15 @@ export interface PageHighlights {
 export function usePageHighlights(url: string | null): PageHighlights {
   const [highlights, setHighlights] = useState<HighlightData[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [removedFromLogseq, setRemoved] = useState<ReadonlySet<string>>(new Set());
+  // The links already checked: a check is one round for the page, not one per render.
+  const checked = useRef('');
 
   useEffect(() => {
     setHighlights(null);
     setNotice(null);
+    setRemoved(new Set());
+    checked.current = '';
     if (!url) return;
 
     let disposed = false;
@@ -55,6 +65,20 @@ export function usePageHighlights(url: string | null): PageHighlights {
     };
   }, [url]);
 
+  useEffect(() => {
+    if (!highlights) return;
+    const linked = highlights.filter((h) => h.logseq);
+    const key = linked.map((h) => `${h.id}:${h.logseq!.nodeUuid}`).sort().join('|');
+    if (key === '' || key === checked.current) return;
+    checked.current = key;
+    // Nothing is known when Logseq cannot be asked: the links stay.
+    sendMessage('logseq:checkHighlightLinks', { ids: linked.map((h) => h.id) })
+      .then((ids) => {
+        if (ids.length > 0) setRemoved((prev) => new Set([...prev, ...ids]));
+      })
+      .catch(() => {});
+  }, [highlights]);
+
   const deleteHighlight = async (id: string) => {
     setNotice(null);
     const result = await deleteStoredHighlight(id);
@@ -72,12 +96,15 @@ export function usePageHighlights(url: string | null): PageHighlights {
     // The note is saved here either way; a failure to sync it says why.
     if (before?.logseq && (before.note ?? '').trim() !== note.trim()) {
       try {
-        await sendMessage('logseq:syncHighlightNote', { id });
+        // False: the clip is gone and the link was dropped, nothing to tell.
+        if (!(await sendMessage('logseq:syncHighlightNote', { id }))) {
+          setRemoved((prev) => new Set(prev).add(id));
+        }
       } catch (error) {
         setNotice(clipErrorMessage(error));
       }
     }
   };
 
-  return { highlights, notice, setNotice, deleteHighlight, updateNote };
+  return { highlights, removedFromLogseq, notice, setNotice, deleteHighlight, updateNote };
 }

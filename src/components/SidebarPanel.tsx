@@ -214,6 +214,8 @@ export interface SidebarPanelProps {
    */
   status: 'loading' | 'unavailable' | 'ready';
   highlights: HighlightData[];
+  /** Highlights whose clip was found deleted in Logseq (usePageHighlights). */
+  removedFromLogseq?: ReadonlySet<string>;
   /** A message about the last action on a highlight, above the panel body. */
   notice: string | null;
   onSelect: (id: string) => void;
@@ -259,6 +261,7 @@ export interface SidebarPanelProps {
 export function SidebarPanel({
   status,
   highlights,
+  removedFromLogseq,
   notice,
   onSelect,
   onDelete,
@@ -466,6 +469,7 @@ export function SidebarPanel({
           <section aria-label="Highlights">
             <HighlightList
               highlights={highlights}
+              removedFromLogseq={removedFromLogseq}
               onSelect={onSelect}
               onDelete={onDelete}
               onUpdateNote={onUpdateNote}
