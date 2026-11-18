@@ -61,6 +61,25 @@ export default class LogseqClientBase {
     return data;
   };
 
+  /**
+   * For methods that answer a string: the API sends it as plain text, not
+   * JSON. A failure comes back as JSON `{ error }` (status 200): it throws,
+   * with Logseq's reply in the message.
+   */
+  baseText = async (method: string, args: any[]): Promise<string> => {
+    const resp = await this.baseFetch(method, args);
+    const text = await resp.text();
+    if (resp.headers.get('content-type')?.includes('json')) {
+      const data = JSON.parse(text);
+      if (data && typeof data === 'object' && 'error' in data) {
+        log.debug(`Logseq Method ${method}, Response -> \n`, data);
+        throw new Error(`Logseq refused ${method}: ${text.slice(0, 500)}`);
+      }
+      return typeof data === 'string' ? data : text;
+    }
+    return text;
+  };
+
   public isDBGraph = async () => {
     return await this.baseJson('logseq.App.checkCurrentIsDBGraph', []);
   };

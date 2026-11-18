@@ -194,6 +194,29 @@ export default class LogseqClient
     return await this.catchIssues(async () => await this.getVersionInternal());
   };
 
+  /**
+   * Writes a text file to the storage of plugin `pluginId` in Logseq's own
+   * folder (`~/.logseq/storages/<pluginId>/<file>`), outside the graph.
+   * Resolves with its path. Internal API, probed on 0.10.15.
+   */
+  public writePluginStorageFile = async (
+    pluginId: string,
+    file: string,
+    content: string,
+  ): Promise<string> => {
+    return (
+      await this.baseText('write_plugin_storage_file', [pluginId, file, content, false])
+    ).trim();
+  };
+
+  /**
+   * Runs git with the graph folder as its work tree; resolves with what it
+   * printed. Throws when git fails. Internal API, probed on 0.10.15.
+   */
+  public execGitCommand = async (args: string[]): Promise<string> => {
+    return await this.baseText('exec_git_command', [args]);
+  };
+
   public updateBlock = async (block: LogseqBlockType) => {
     log.debug(block.content);
     return await this.baseJson('logseq.Editor.updateBlock', [
