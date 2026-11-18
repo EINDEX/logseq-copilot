@@ -1,4 +1,4 @@
-import { Settings, Search, FileText, Highlighter, Target } from "lucide-react"
+import { Settings, Search, Highlighter, Target } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -29,11 +29,6 @@ const items = [
     title: "Recall Rules",
     url: "/recall-rules",
     icon: Target,
-  },
-  {
-    title: "Templates",
-    url: "/templates",
-    icon: FileText,
   },
   {
     title: "Highlights",

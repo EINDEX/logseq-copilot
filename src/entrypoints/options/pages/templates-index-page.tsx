@@ -5,8 +5,9 @@ import { DEFAULT_TEMPLATE_CONTENT } from '@/utils/default-templates';
 import { useTemplates } from '@/hooks/use-templates';
 import { PageLayout, PageLoading } from '../components/page-layout';
 
-// `/templates` has no page of its own: it sends the user to the first
-// template's editor, or offers to create one when there are none.
+// `/templates` has no page or sidebar entry of its own: a template link that
+// no longer resolves lands here. It sends the user to the first template's
+// editor, or offers to create one when there are none.
 const TemplatesIndexPage: React.FC = () => {
     const { templates, loading, addTemplate } = useTemplates();
 
