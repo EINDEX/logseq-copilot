@@ -43,8 +43,13 @@ import { TASK_TEMPLATE_ID, TEMPLATE_PRESETS, type TemplatePreset } from "@/utils
 import { defaultTemplateIdItem, TemplateItemV1 } from "@/utils/storage"
 import { isPinned, resolveDefaultTemplate } from "@/utils/template-choice"
 
+// The row actions sit over the right edge of the row, so the link keeps that
+// strip free (`pr-*`): the star and the pin, plus the trash when it exists.
+// They are always laid out, only their opacity changes, so the shortcut label
+// and the title never move or sit under a button.
 const rowButton =
-  'flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground focus-visible:opacity-100 disabled:pointer-events-none'
+  'flex size-5 items-center justify-center rounded text-muted-foreground outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none'
+const revealOnHover = 'opacity-0 group-hover/item:opacity-100 group-has-[:focus-visible]/item:opacity-100'
 
 // SortableTemplateItem component
 const SortableTemplateItem = ({
@@ -90,14 +95,14 @@ const SortableTemplateItem = ({
           className="group-hover/item:bg-accent" 
           isActive={isActive}
         >
-          <NavLink to={`/template/${id}`} className="flex items-center w-full gap-2 pr-14">
+          <NavLink to={`/template/${id}`} className={`flex items-center w-full gap-2 ${onDelete ? 'pr-[4.5rem]' : 'pr-14'}`}>
             <GripVertical {...listeners}
               className="cursor-grab active:cursor-grabbing touch-none p-1 flex items-center justify-center rounded"
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder" />
-            <span className="flex-grow text-left">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-left">{name}</span>
             {shortcut && (
-              <kbd className="text-xs font-sans text-muted-foreground">
+              <kbd className="shrink-0 text-xs font-sans text-muted-foreground">
                 {shortcut}
               </kbd>
             )}
@@ -110,7 +115,7 @@ const SortableTemplateItem = ({
             aria-label="Default template"
             aria-pressed={isDefault}
             onClick={() => onDefault(id)}
-            className={`${rowButton} ${isDefault ? '' : 'opacity-0 group-hover/item:opacity-100'}`}
+            className={`${rowButton} ${isDefault ? '' : revealOnHover}`}
           >
             <Star className={`size-3.5 ${isDefault ? 'fill-current' : ''}`} />
           </button>
@@ -121,7 +126,7 @@ const SortableTemplateItem = ({
             // The default is always pinned.
             disabled={isDefault}
             onClick={() => onPin(id, !pinned)}
-            className={`${rowButton} ${pinned ? '' : 'opacity-0 group-hover/item:opacity-100'}`}
+            className={`${rowButton} ${pinned ? '' : revealOnHover}`}
           >
             <Pin className={`size-3.5 ${pinned ? 'fill-current' : ''}`} />
           </button>
@@ -129,7 +134,7 @@ const SortableTemplateItem = ({
             <button
               type="button"
               onClick={() => onDelete(id)}
-              className={`${rowButton} hidden group-hover/item:flex`}
+              className={`${rowButton} ${revealOnHover}`}
             >
               <Trash className="size-3.5" />
               <span className="sr-only">Delete Template</span>

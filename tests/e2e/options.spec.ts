@@ -222,4 +222,41 @@ test.describe('options: template pin and default', () => {
     await expect.poll(rules).toEqual(['github.com/*/issues/*']);
     await options.expectText('github.com/*/issues/*');
   });
+
+  test('a template row keeps its title, shortcut label and actions apart', async ({ ext, browserName }) => {
+    test.skip(browserName !== 'chromium', 'measures layout through Playwright, which cannot attach to Firefox extension pages');
+    await ext.connect();
+    await ext.setStorage({
+      templates: [
+        template('alpha', 'A rather long template name that has to be cut short'),
+        template('beta', 'Beta'),
+      ],
+    });
+    const options = await ext.openPage('options.html#/template/alpha');
+    const page = options.page!;
+    // The clip command has a default shortcut, so the first row shows its label.
+    const row = page.locator('[data-sidebar="menu-item"]', { hasText: 'A rather long' });
+    await expect(row.locator('kbd')).toBeVisible();
+
+    await row.hover();
+    const box = async (selector: string) => (await row.locator(selector).first().boundingBox())!;
+    const title = await box('span');
+    const label = await box('kbd');
+    const star = await box('[aria-label="Default template"]');
+    const pin = await box('[aria-label="Pinned"]');
+    const trash = await box('button:has(.sr-only)');
+    const gap = (left: { x: number; width: number }, right: { x: number }) => right.x - (left.x + left.width);
+
+    // Left to right: title, label, star, pin, trash; none covers another.
+    expect(gap(title, label)).toBeGreaterThanOrEqual(0);
+    expect(gap(label, star)).toBeGreaterThanOrEqual(0);
+    expect(gap(star, pin)).toBeGreaterThanOrEqual(0);
+    expect(gap(pin, trash)).toBeGreaterThanOrEqual(0);
+    // The long title is cut with an ellipsis instead of pushing the label.
+    await expect(row.locator('span').first()).toHaveCSS('text-overflow', 'ellipsis');
+
+    // A mouse click leaves no focus ring on the star.
+    await row.locator('[aria-label="Default template"]').click();
+    await expect(row.locator('[aria-label="Default template"]')).toHaveCSS('box-shadow', 'none');
+  });
 });
