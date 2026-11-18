@@ -34,7 +34,7 @@ const openSettings = () => {
 export default function App() {
   const { tab, loading: tabLoading } = useActiveTab();
   const url = tab?.url ?? null;
-  const { highlights, notice, setNotice, deleteHighlight, updateNote } =
+  const { highlights, removedFromLogseq, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
   const {
     retry: retryRecall,
@@ -145,6 +145,7 @@ export default function App() {
       <SidebarPanel
         status={status}
         highlights={highlights ?? []}
+        removedFromLogseq={removedFromLogseq}
         notice={notice}
         onSelect={handleSelect}
         onDelete={deleteHighlight}

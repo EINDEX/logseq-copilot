@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { IconX, IconCheck, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconX, IconCheck, IconEdit, IconLinkOff, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
@@ -34,8 +34,25 @@ export function HighlightCommentPopup({
     const [isSaving, setIsSaving] = useState(false);
     // Why the comment is not in Logseq; the local comment is saved either way.
     const [syncError, setSyncError] = useState<string | null>(null);
+    // The clip was found deleted in Logseq: the highlight is no longer linked.
+    const [removedFromLogseq, setRemovedFromLogseq] = useState(false);
     const popupRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        // Ask once when the popup opens for a linked highlight. Nothing is
+        // known when Logseq cannot be asked: the link stays.
+        if (!highlightData.logseq) return;
+        let disposed = false;
+        sendMessage('logseq:checkHighlightLinks', { ids: [highlightData.id] })
+            .then((ids) => {
+                if (!disposed && ids.includes(highlightData.id)) setRemovedFromLogseq(true);
+            })
+            .catch(() => {});
+        return () => {
+            disposed = true;
+        };
+    }, [highlightData.id]);
 
     useEffect(() => {
         // Auto-focus textarea when entering edit mode
@@ -104,7 +121,10 @@ export function HighlightCommentPopup({
                 setIsEditing(false);
                 if (needsSync) {
                     try {
-                        await sendMessage('logseq:syncHighlightNote', { id: highlightData.id });
+                        // False: the clip is gone and the link was dropped.
+                        if (!(await sendMessage('logseq:syncHighlightNote', { id: highlightData.id }))) {
+                            setRemovedFromLogseq(true);
+                        }
                         setSyncError(null);
                     } catch (error) {
                         log.warn('Failed to sync the comment to Logseq:', error);
@@ -247,6 +267,12 @@ export function HighlightCommentPopup({
                                     </Badge>
                                 ))}
                             </div>
+                        )}
+                        {removedFromLogseq && (
+                            <span className="inline-flex items-center gap-1" data-removed-from-logseq>
+                                <IconLinkOff className="h-3 w-3" aria-hidden />
+                                Removed from Logseq
+                            </span>
                         )}
                     </div>
 

@@ -41,7 +41,7 @@ const openSettings = () => {
  * shadow root, in startInPageSidebar).
  */
 export function InPageSidebar({ url }: InPageSidebarProps) {
-  const { highlights, notice, setNotice, deleteHighlight, updateNote } =
+  const { highlights, removedFromLogseq, notice, setNotice, deleteHighlight, updateNote } =
     usePageHighlights(url);
   const {
     retry: retryRecall,
@@ -109,6 +109,7 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
         <SidebarPanel
           status={highlights === null ? 'loading' : 'ready'}
           highlights={highlights ?? []}
+          removedFromLogseq={removedFromLogseq}
           notice={notice}
           onSelect={handleSelect}
           onDelete={deleteHighlight}

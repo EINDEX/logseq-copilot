@@ -135,18 +135,42 @@ export function updateHighlightNote(
 
 /**
  * Replaces what a highlight records of its clip in Logseq, and nothing else of
- * it. Resolves false when the highlight is gone.
+ * it. Resolves false when the highlight is gone, or no longer linked to that
+ * clip (a link that was dropped is not brought back by a sync that was running).
  */
 export async function setHighlightLink(
   id: string,
   logseq: LogseqLink,
 ): Promise<boolean> {
   const written = await writeHighlights((current) =>
-    current.some((h) => h.id === id)
+    current.some((h) => h.id === id && h.logseq?.nodeUuid === logseq.nodeUuid)
       ? current.map((h) => (h.id === id ? { ...h, logseq } : h))
       : null,
   );
   return written !== null;
+}
+
+/**
+ * Drops the link of each `[id, nodeUuid]` pair to its clip, and nothing else
+ * of the highlight (its note stays). A highlight that is linked to another
+ * node by now is left alone. Resolves with the ids that lost their link.
+ */
+export async function clearHighlightLinks(
+  gone: ReadonlyArray<readonly [id: string, nodeUuid: string]>,
+): Promise<string[]> {
+  const dropped: string[] = [];
+  await writeHighlights((current) => {
+    const next = current.map((h) => {
+      if (!h.logseq || !gone.some(([id, node]) => id === h.id && node === h.logseq!.nodeUuid)) {
+        return h;
+      }
+      dropped.push(h.id);
+      const { logseq: _logseq, ...rest } = h;
+      return rest;
+    });
+    return dropped.length > 0 ? next : null;
+  });
+  return dropped;
 }
 
 /**

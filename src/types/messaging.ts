@@ -61,6 +61,15 @@ export interface MessagingProtocol {
   'logseq:syncHighlightNote': (data: { id: string }) => boolean;
 
   /**
+   * Drops the link of each stored highlight in `ids` whose clip node was
+   * deleted in Logseq (background/highlight-sync.ts). Resolves with the ids
+   * that lost their link; an empty list when nothing is known (Logseq not
+   * reachable, another graph open). Never rejects for those, never writes to
+   * Logseq.
+   */
+  'logseq:checkHighlightLinks': (data: { ids: string[] }) => string[];
+
+  /**
    * The tags of the graph a template can pick (the options page). Errors are
    * thrown (LogseqError) and reach the sender as a readable message.
    */
