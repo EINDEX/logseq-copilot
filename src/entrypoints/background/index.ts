@@ -291,7 +291,7 @@ export default defineBackground({
     const relayClipCommand = async (
       send: (tabId: number) => Promise<void>,
       tab: Browser.tabs.Tab | undefined,
-      info: { selectionText?: string; pageUrl?: string } = {},
+      info: { selectionText?: string; pageUrl?: string; srcUrl?: string } = {},
       templateId?: string,
     ) => {
       if (tab?.id !== undefined) {
@@ -333,6 +333,20 @@ export default defineBackground({
             ),
           tab,
           info,
+          templateId,
+        );
+      } else if (clipMenu.command === 'image') {
+        const srcUrl = info.srcUrl;
+        if (!srcUrl) return;
+        void relayClipCommand(
+          (tabId) =>
+            sendMessage(
+              'content:quickCaptureImage',
+              { ...clipOptions(templateId), srcUrl },
+              { tabId },
+            ),
+          tab,
+          { srcUrl, pageUrl: info.pageUrl },
           templateId,
         );
       } else {

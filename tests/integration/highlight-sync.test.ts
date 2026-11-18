@@ -7,7 +7,7 @@
 import { beforeAll, describe, expect, inject, test } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { highlightToAnnotation, linkFromClip, type LogseqLink } from '@/types/annotation';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 import {
   highlights,
   logseqAuthTokenItem,
@@ -342,8 +342,8 @@ describe(`syncing highlight comments (${variant})`, () => {
   });
 
   describe('a clip deleted in Logseq', () => {
-    const linkedHighlight = (id: string, link: LogseqLink, note: string): HighlightData => ({
-      ...(annotate(link, note) as unknown as HighlightData),
+    const linkedHighlight = (id: string, link: LogseqLink, note: string): TextHighlightData => ({
+      ...(annotate(link, note) as unknown as TextHighlightData),
       id,
       hostname: 'example.com',
       range: {

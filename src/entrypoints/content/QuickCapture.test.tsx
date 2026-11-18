@@ -205,6 +205,157 @@ describe('the highlight of a clip is linked to it in Logseq', () => {
   });
 });
 
+describe('clipping an image', () => {
+  const RESULT = {
+    templateId: 'clip',
+    page: 'Nov 16th, 2026',
+    graph: 'notes',
+    rootUuid: 'node-1',
+    added: true,
+  };
+  const SRC = 'https://e.com/cat (1).png';
+  const MARKDOWN = '![a \\[cat\\]](https://e.com/cat%20(1).png)';
+  const img = (id = 'img') => document.getElementById(id) as HTMLImageElement;
+  const select = (node: Node, contents = false) => {
+    const range = document.createRange();
+    if (contents) range.selectNodeContents(node);
+    else range.selectNode(node);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    return range;
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    fakeBrowser.reset();
+    sendMessage.mockReset().mockResolvedValue(RESULT);
+    (globalThis as any).CSS = { highlights: new Map() };
+    (globalThis as any).Highlight = class {
+      add() {}
+    };
+    document.body.innerHTML = `<p id="p">hello world</p>
+      <div id="one"><img id="img" src="${SRC}" alt="a [cat]"></div>
+      <div id="two"><img id="a" src="https://e.com/a.png"><img id="b" src="https://e.com/b.png"></div>`;
+    window.getSelection()?.removeAllRanges();
+    vi.spyOn(HighlightManager.prototype, 'addTemporaryHighlight').mockImplementation(() => {});
+  });
+
+  it('takes a selection without text over one image for that image', async () => {
+    const { selectedImage } = await import('./QuickCapture');
+    expect(selectedImage(select(img()))).toBe(img());
+    expect(selectedImage(select(document.getElementById('one')!, true))).toBe(img());
+    expect(selectedImage(select(document.getElementById('two')!, true))).toBeNull();
+    expect(selectedImage(select(document.getElementById('p')!, true))).toBeNull();
+  });
+
+  it('clips a selected image as Markdown and highlights the image', async () => {
+    const addImage = vi
+      .spyOn(HighlightManager.prototype, 'addImageHighlight')
+      .mockResolvedValue(null);
+    const addText = vi.spyOn(HighlightManager.prototype, 'addHighlight');
+    const { runClipCommand } = await import('./QuickCapture');
+    select(img());
+    await runClipCommand('selectionOrPage');
+
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', MARKDOWN);
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(1));
+    expect(addImage.mock.calls[0][0]).toBe(img());
+    expect(addImage.mock.calls[0][3]).toEqual({ graph: 'notes', nodeUuid: 'node-1' });
+    expect(addText).not.toHaveBeenCalled();
+  });
+
+  it('"Clip image" clips the image the context menu was opened on', async () => {
+    const addImage = vi
+      .spyOn(HighlightManager.prototype, 'addImageHighlight')
+      .mockResolvedValue(null);
+    const { runImageClipCommand, trackContextMenu } = await import('./QuickCapture');
+    trackContextMenu();
+    img().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+    await runImageClipCommand(img().src, { templateId: 'task' });
+
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', {
+      text: MARKDOWN,
+      templateId: 'task',
+    });
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(1));
+    expect(addImage.mock.calls[0][0]).toBe(img());
+  });
+
+  it('"Clip image" goes by the user\'s context menu, not a page script\'s event', async () => {
+    const addImage = vi
+      .spyOn(HighlightManager.prototype, 'addImageHighlight')
+      .mockResolvedValue(null);
+    const { runImageClipCommand, trackContextMenu } = await import('./QuickCapture');
+    trackContextMenu();
+    // The same image again, later in the page.
+    const copy = img().cloneNode() as HTMLImageElement;
+    copy.id = 'copy';
+    document.body.append(copy);
+
+    copy.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+    await runImageClipCommand(img().src);
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(1));
+    expect(addImage.mock.calls[0][0]).toBe(img());
+
+    const trusted = new MouseEvent('contextmenu', { bubbles: true });
+    Object.defineProperty(trusted, 'isTrusted', { value: true });
+    copy.dispatchEvent(trusted);
+    await runImageClipCommand(img().src);
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(2));
+    expect(addImage.mock.calls[1][0]).toBe(copy);
+  });
+
+  it('takes "Clip image" only from the extension\'s background, with a URL', async () => {
+    const addImage = vi
+      .spyOn(HighlightManager.prototype, 'addImageHighlight')
+      .mockResolvedValue(null);
+    const { onQuickCaptureImage } = await import('./QuickCapture');
+    const srcUrl = img().src;
+    for (const [sender, data] of [
+      [{ id: 'other-extension' }, { srcUrl }],
+      [{}, { srcUrl }],
+      // Another content script of this extension.
+      [{ id: fakeBrowser.runtime.id, tab: { id: 1, url: 'https://e.com/' } }, { srcUrl }],
+      [{ id: fakeBrowser.runtime.id }, { srcUrl: 42 }],
+    ] as const) {
+      await onQuickCaptureImage({ sender, data } as never);
+    }
+    expect(sendMessage).not.toHaveBeenCalled();
+
+    await onQuickCaptureImage({ sender: { id: fakeBrowser.runtime.id }, data: { srcUrl } } as never);
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(1));
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', MARKDOWN);
+  });
+
+  it('"Clip image" finds the image by its URL, and clips the URL alone without one', async () => {
+    const addImage = vi
+      .spyOn(HighlightManager.prototype, 'addImageHighlight')
+      .mockResolvedValue(null);
+    const { runImageClipCommand } = await import('./QuickCapture');
+    await runImageClipCommand('https://e.com/b.png');
+    await vi.waitFor(() => expect(addImage).toHaveBeenCalledTimes(1));
+    expect(addImage.mock.calls[0][0]).toBe(img('b'));
+
+    sendMessage.mockClear();
+    await runImageClipCommand('https://e.com/gone.png');
+    expect(sendMessage).toHaveBeenCalledWith(
+      'logseq:clipWithSelection',
+      '![](https://e.com/gone.png)',
+    );
+    expect(addImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves no image highlight with "Highlight clipped text" off', async () => {
+    await highlightClippedTextItem.setValue(false);
+    const addImage = vi.spyOn(HighlightManager.prototype, 'addImageHighlight');
+    const { runImageClipCommand } = await import('./QuickCapture');
+    await runImageClipCommand(img().src);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendMessage).toHaveBeenCalled();
+    expect(addImage).not.toHaveBeenCalled();
+  });
+});
+
 describe('the picker panel (runPickedClip)', () => {
   const RESULT = { templateId: 'clip', page: 'Nov 16th, 2026', rootUuid: 'r' };
   const ONE = [{ id: 'clip', name: 'Clip', content: '{{content}}' }];

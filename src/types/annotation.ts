@@ -1,5 +1,9 @@
 import type { ClipResult } from './clip';
-import type { HighlightData, SerializableRange } from './highlight';
+import type {
+  HighlightData,
+  SerializableImage,
+  SerializableRange,
+} from './highlight';
 
 /**
  * Where an annotation points in the page. Sync code never looks inside an
@@ -7,7 +11,9 @@ import type { HighlightData, SerializableRange } from './highlight';
  * note anchored to a timestamp will be one more `kind` here
  * (`{ kind: 'media-time', ... }`); nothing in the sync has to change for it.
  */
-export type AnnotationAnchor = { kind: 'text-range'; range: SerializableRange };
+export type AnnotationAnchor =
+  | { kind: 'text-range'; range: SerializableRange }
+  | { kind: 'image'; image: SerializableImage };
 
 /** Where an annotation's clip is in Logseq, and what we wrote there for its note. */
 export interface LogseqLink {
@@ -38,7 +44,9 @@ export const highlightToAnnotation = (highlight: HighlightData): Annotation => (
   id: highlight.id,
   url: highlight.url,
   title: highlight.title,
-  anchor: { kind: 'text-range', range: highlight.range },
+  anchor: highlight.image
+    ? { kind: 'image', image: highlight.image }
+    : { kind: 'text-range', range: highlight.range },
   ...(highlight.note !== undefined && { note: highlight.note }),
   ...(highlight.logseq && { logseq: highlight.logseq }),
 });

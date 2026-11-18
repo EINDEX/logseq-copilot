@@ -22,7 +22,7 @@ import path from 'node:path';
 import { createApiCaller, type LogseqVariant } from '../support/logseq-app';
 import { COVERAGE_ENABLED, readContentCoverage, readCoverage, saveCoverage } from './coverage';
 import { FirefoxAddon, RdpClient, type FrameTarget } from './firefox-rdp';
-import { routeFixtureSites } from './pages';
+import { routeFixtureSites, type Article } from './pages';
 
 export { expect };
 
@@ -176,7 +176,7 @@ type Fixtures = {
   ext: Extension;
   logseq: Logseq;
   /** Article pages served on https://example.com, keyed by URL. */
-  articles: Map<string, { title: string; paragraph: string }>;
+  articles: Map<string, Article>;
 };
 
 async function withTimeout<T>(promise: Promise<T>, ms: number) {

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { IconX, IconCheck, IconEdit, IconLinkOff, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
+import { HighlightImage } from './HighlightImage';
 import { HighlightService } from '@/utils/highlight-service';
 import { HighlightManager } from '@/utils/highlight-manager';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -252,9 +253,15 @@ export function HighlightCommentPopup({
 
                 <CardContent className="space-y-3 px-4 pb-4">
                     {/* Highlighted text */}
-                    <p className="border-l-2 border-highlight pl-3 text-sm leading-relaxed">
-                        {truncateText(highlightData.range.textContent)}
-                    </p>
+                    {highlightData.image ? (
+                        <div className="border-l-2 border-highlight pl-3">
+                            <HighlightImage image={highlightData.image} />
+                        </div>
+                    ) : (
+                        <p className="border-l-2 border-highlight pl-3 text-sm leading-relaxed">
+                            {truncateText(highlightData.range.textContent)}
+                        </p>
+                    )}
 
                     {/* Metadata */}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

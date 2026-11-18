@@ -3,7 +3,7 @@
  * (local:highlights). Range restoration (XPath lookup) is not covered here:
  * happy-dom has no XPathResult.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import {
   HighlightService,
@@ -12,12 +12,12 @@ import {
   updateHighlightNote,
   watchHighlights,
 } from './highlight-service';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: 'https://a.example/page',
   title: 'A',
@@ -69,8 +69,50 @@ describe('HighlightService storage', () => {
       note: 'a note',
       color: 'yellow',
     });
-    expect(saved.range.textContent).toBe('hello world');
+    expect(saved.range?.textContent).toBe('hello world');
     expect(result.data).toEqual(saved);
+  });
+
+  it('saves a highlight of an image: its place, source and alt text, no range', async () => {
+    document.title = 'Doc';
+    document.body.innerHTML = '<p>x</p><img src="https://e.com/cat.png" alt="a cat">';
+    const image = document.querySelector('img')!;
+
+    const result = await HighlightService.saveImageHighlight(image, 'a note');
+
+    expect(result.success).toBe(true);
+    const [saved] = await stored();
+    expect(saved).toMatchObject({
+      title: 'Doc',
+      note: 'a note',
+      image: { xpath: '/html/body[1]/img[1]', src: 'https://e.com/cat.png', alt: 'a cat' },
+    });
+    expect(saved).not.toHaveProperty('range');
+  });
+
+  it('finds the image again at its place, else by its source', () => {
+    document.body.innerHTML =
+      '<img id="a" src="https://e.com/a.png"><img id="b" src="https://e.com/cat.png">';
+    // happy-dom has no XPath.
+    const atPath = vi.fn();
+    vi.stubGlobal('XPathResult', { FIRST_ORDERED_NODE_TYPE: 9 });
+    Object.assign(document, { evaluate: atPath });
+    onTestFinished(() => {
+      delete (document as { evaluate?: unknown }).evaluate;
+      vi.unstubAllGlobals();
+    });
+    const serialized = { xpath: '/html/body[1]/img[1]', src: 'https://e.com/cat.png', alt: '' };
+
+    // The image at the path shows another source now: found by its source.
+    atPath.mockReturnValue({ singleNodeValue: document.getElementById('a') } as never);
+    expect(HighlightService.deserializeImage(serialized)?.id).toBe('b');
+
+    atPath.mockReturnValue({ singleNodeValue: document.getElementById('b') } as never);
+    expect(HighlightService.deserializeImage(serialized)?.id).toBe('b');
+
+    document.getElementById('b')!.remove();
+    atPath.mockReturnValue({ singleNodeValue: null } as never);
+    expect(HighlightService.deserializeImage(serialized)).toBeNull();
   });
 
   it('appends to existing highlights', async () => {

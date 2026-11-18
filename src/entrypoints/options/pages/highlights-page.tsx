@@ -10,7 +10,8 @@ import {
 } from '@tabler/icons-react';
 import { PageLayout, PageList, PageListRow, PageSection } from '../components/page-layout';
 import { HighlightService } from '@/utils/highlight-service';
-import type { HighlightData, HighlightQueryOptions } from '@/types/highlight';
+import { highlightText, type HighlightData, type HighlightQueryOptions } from '@/types/highlight';
+import { HighlightImage } from '@/components/HighlightImage';
 import log from '@/utils/logger';
 
 export function HighlightsPage() {
@@ -92,7 +93,8 @@ export function HighlightsPage() {
             url: highlight.url,
             title: highlight.title,
             hostname: highlight.hostname,
-            text: highlight.range.textContent,
+            text: highlightText(highlight),
+            ...(highlight.image && { image: highlight.image.src }),
             note: highlight.note,
             tags: highlight.tags,
             color: highlight.color,
@@ -157,7 +159,7 @@ export function HighlightsPage() {
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             return (
-                highlight.range.textContent.toLowerCase().includes(query) ||
+                highlightText(highlight).toLowerCase().includes(query) ||
                 highlight.title.toLowerCase().includes(query) ||
                 highlight.hostname.toLowerCase().includes(query) ||
                 highlight.note?.toLowerCase().includes(query)
@@ -269,7 +271,11 @@ export function HighlightsPage() {
                                     </div>
 
                                     <blockquote className="border-l-2 border-highlight pl-3 text-sm text-foreground">
-                                        {truncateText(highlight.range.textContent)}
+                                        {highlight.image ? (
+                                            <HighlightImage image={highlight.image} />
+                                        ) : (
+                                            truncateText(highlight.range.textContent)
+                                        )}
                                     </blockquote>
 
                                     {highlight.note && (

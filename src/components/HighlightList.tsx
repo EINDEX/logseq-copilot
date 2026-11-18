@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { IconCheck, IconEdit, IconLinkOff, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
 import { highlightColor } from '@/utils/highlight-manager';
+import { HighlightImage } from './HighlightImage';
 import log from '@/utils/logger';
 
 /**
@@ -156,7 +157,18 @@ export function HighlightList({
               className="m-0 border-l-[3px] border-solid pl-3 text-sm leading-relaxed text-foreground"
               style={{ borderLeftColor: quoteBarColor(highlight.color) }}
             >
-              {truncateText(highlight.range.textContent, 120)}
+              {highlight.image ? (
+                <>
+                  <HighlightImage image={highlight.image} />
+                  {highlight.image.alt && (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {truncateText(highlight.image.alt, 80)}
+                    </span>
+                  )}
+                </>
+              ) : (
+                truncateText(highlight.range.textContent, 120)
+              )}
             </blockquote>
 
             {/* Note if exists */}

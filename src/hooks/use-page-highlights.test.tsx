@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 import log from '@/utils/logger';
 const sendMessage = vi.hoisted(() => vi.fn());
 vi.mock('@/types/messaging', () => ({
@@ -15,8 +15,8 @@ const OTHER = 'https://two.example/article';
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: PAGE,
   title: 'Page one',
