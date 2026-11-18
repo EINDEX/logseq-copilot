@@ -3,6 +3,11 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing';
 import type { HighlightData } from '@/types/highlight';
 import log from '@/utils/logger';
+const sendMessage = vi.hoisted(() => vi.fn());
+vi.mock('@/types/messaging', () => ({
+  sendMessage: (...args: unknown[]) => sendMessage(...args),
+}));
+
 import { usePageHighlights } from './use-page-highlights';
 
 const PAGE = 'https://one.example/page';
@@ -48,6 +53,7 @@ const ids = (items: HighlightData[] | null) => items?.map((h) => h.id) ?? null;
 describe('usePageHighlights', () => {
   beforeEach(() => {
     fakeBrowser.reset();
+    sendMessage.mockReset().mockResolvedValue([]);
     vi.spyOn(log, 'error').mockImplementation(() => {});
   });
 
@@ -184,5 +190,67 @@ describe('usePageHighlights', () => {
     });
 
     expect(result.current.notice).toBe("Couldn't save the note");
+  });
+
+  describe('clips deleted in Logseq', () => {
+    const link = (node: string) => ({ logseq: { graph: 'notes', nodeUuid: node } });
+    const checks = () =>
+      sendMessage.mock.calls.filter(([type]) => type === 'logseq:checkHighlightLinks');
+
+    it('asks once for all the linked highlights of the page, not for the others', async () => {
+      await seed([
+        highlight('a', link('n1')),
+        highlight('b', link('n2')),
+        highlight('c'),
+        highlight('d', { url: OTHER, ...link('n3') }),
+      ]);
+      const { result } = renderHook(() => usePageHighlights(PAGE));
+      await waitFor(() => expect(checks()).toHaveLength(1));
+      expect([...checks()[0][1].ids].sort()).toEqual(['a', 'b']);
+
+      // A render, or a change that leaves the links as they are, does not ask again.
+      await act(() => seed([highlight('a', link('n1')), highlight('b', link('n2')), highlight('c', { note: 'x' })]));
+      await waitFor(() => expect(result.current.highlights?.find((h) => h.id === 'c')?.note).toBe('x'));
+      expect(checks()).toHaveLength(1);
+    });
+
+    it('does not ask without a linked highlight', async () => {
+      await seed([highlight('a')]);
+      const { result } = renderHook(() => usePageHighlights(PAGE));
+      await waitFor(() => expect(ids(result.current.highlights)).toEqual(['a']));
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('lists the highlights that lost their link', async () => {
+      sendMessage.mockResolvedValue(['a']);
+      await seed([highlight('a', link('n1')), highlight('b', link('n1'))]);
+      const { result } = renderHook(() => usePageHighlights(PAGE));
+      await waitFor(() => expect([...result.current.removedFromLogseq]).toEqual(['a']));
+      expect(result.current.notice).toBeNull();
+    });
+
+    it('lists nothing when Logseq could not be asked', async () => {
+      sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq.'));
+      await seed([highlight('a', link('n1'))]);
+      const { result } = renderHook(() => usePageHighlights(PAGE));
+      await waitFor(() => expect(checks()).toHaveLength(1));
+      expect(result.current.removedFromLogseq.size).toBe(0);
+      expect(result.current.notice).toBeNull();
+    });
+
+    it('saves a note locally, with no notice, when the sync finds the clip gone', async () => {
+      sendMessage.mockImplementation(async (type: string) =>
+        type === 'logseq:syncHighlightNote' ? false : [],
+      );
+      await seed([highlight('a', link('n1'))]);
+      const { result } = renderHook(() => usePageHighlights(PAGE));
+      await waitFor(() => expect(ids(result.current.highlights)).toEqual(['a']));
+
+      await act(() => result.current.updateNote('a', 'my thoughts'));
+
+      expect((await stored())[0].note).toBe('my thoughts');
+      expect(result.current.notice).toBeNull();
+      expect([...result.current.removedFromLogseq]).toEqual(['a']);
+    });
   });
 });

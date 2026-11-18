@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { IconCheck, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconCheck, IconEdit, IconLinkOff, IconTrash } from '@tabler/icons-react';
 import type { HighlightData } from '@/types/highlight';
 import { highlightColor } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
@@ -14,6 +14,8 @@ import log from '@/utils/logger';
  */
 interface HighlightListProps {
   highlights: HighlightData[];
+  /** Highlights whose clip was found deleted in Logseq: shown as removed from it. */
+  removedFromLogseq?: ReadonlySet<string>;
   /** A highlight was clicked. */
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
@@ -128,6 +130,7 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
 
 export function HighlightList({
   highlights,
+  removedFromLogseq,
   onSelect,
   onDelete,
   onUpdateNote,
@@ -178,6 +181,12 @@ export function HighlightList({
             <div className="mt-1.5 flex items-center justify-between gap-2 pl-[15px] text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <span>{formatDate(highlight.createdAt)}</span>
+                {removedFromLogseq?.has(highlight.id) && !highlight.logseq && (
+                  <span className="inline-flex items-center gap-1" data-removed-from-logseq>
+                    <IconLinkOff className="h-3 w-3" aria-hidden />
+                    Removed from Logseq
+                  </span>
+                )}
                 {highlight.tags?.slice(0, 3).map((tag) => (
                   <Badge
                     key={tag}

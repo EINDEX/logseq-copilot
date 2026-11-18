@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Annotation, LogseqLink } from '@/types/annotation';
 import type { NoteBlockApi } from './note-blocks';
-import { NoteSyncError, syncAnnotationNote } from './note-sync';
+import { NodeGoneError, NoteSyncError, syncAnnotationNote } from './note-sync';
 
 /** A graph in memory: blocks by uuid, and the calls that wrote to it. */
 const makeGraph = (open = 'notes') => {
@@ -151,15 +151,32 @@ describe('syncAnnotationNote', () => {
     expect(graph.writes).toEqual([]);
   });
 
-  it('writes nothing when the comment block is gone', async () => {
+  it('tells a gone node (the link is dropped) from a gone comment block (it is written again)', async () => {
+    graph.blocks.delete('node-1');
     graph.blocks.delete('note-1');
     await expect(syncAnnotationNote(annotation('second', TRACKED), graph.api)).rejects.toThrow(
-      /comment block is gone/,
+      NodeGoneError,
     );
-    await expect(syncAnnotationNote(annotation('', TRACKED), graph.api)).rejects.toThrow(
-      NoteSyncError,
+    await expect(syncAnnotationNote(annotation('a comment', NODE), graph.api)).rejects.toThrow(
+      NodeGoneError,
     );
+
     expect(graph.writes).toEqual([]);
+  });
+
+  it('writes the comment as a new block when only the comment block is gone', async () => {
+    graph.blocks.delete('note-1');
+    const link = await syncAnnotationNote(annotation('second', TRACKED), graph.api);
+    expect(graph.writes).toEqual(['insert node-1 second']);
+    expect(link).toMatchObject({ nodeUuid: 'node-1', syncedText: 'second' });
+    expect(link?.noteUuid).not.toBe('note-1');
+  });
+
+  it('writes nothing, and forgets the block, when the comment block is gone and the comment blank', async () => {
+    graph.blocks.delete('note-1');
+    const link = await syncAnnotationNote(annotation('', TRACKED), graph.api);
+    expect(graph.writes).toEqual([]);
+    expect(link).toEqual({ graph: 'notes', nodeUuid: 'node-1' });
   });
 
   it('writes nothing when another graph is open, and says which one to open', async () => {

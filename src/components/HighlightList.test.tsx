@@ -432,4 +432,28 @@ describe('HighlightList', () => {
       expect(onUpdateNote).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('a clip deleted in Logseq', () => {
+    it('says so for a highlight that lost its link, and only for it', () => {
+      const { container } = render(
+        <HighlightList
+          highlights={[highlight('a'), highlight('b')]}
+          removedFromLogseq={new Set(['a'])}
+          onSelect={noop}
+          onDelete={noop}
+        />,
+      );
+      const marks = container.querySelectorAll('[data-removed-from-logseq]');
+      expect(marks).toHaveLength(1);
+      expect(marks[0].textContent).toBe('Removed from Logseq');
+      expect(marks[0].closest('li')?.textContent).toContain('text of a');
+    });
+
+    it('says nothing without any', () => {
+      const { container } = render(
+        <HighlightList highlights={[highlight('a')]} onSelect={noop} onDelete={noop} />,
+      );
+      expect(container.querySelector('[data-removed-from-logseq]')).toBeNull();
+    });
+  });
 });
