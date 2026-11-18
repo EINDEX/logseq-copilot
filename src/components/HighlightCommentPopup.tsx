@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -151,44 +151,60 @@ export function HighlightCommentPopup({
         return text.substring(0, maxLength) + '...';
     };
 
-    // Calculate popup position to stay within viewport
-    const calculatePosition = () => {
+    // Place the popup by its measured height so it can grow with its content
+    // and still stay inside the viewport. Hidden until the first measurement.
+    const [adjustedPosition, setAdjustedPosition] = useState<{ x: number; y: number } | null>(null);
+
+    useLayoutEffect(() => {
+        const el = popupRef.current;
+        if (!el) return;
         const popupWidth = 320;
-        const popupHeight = 300;
         const padding = 10;
 
-        let x = position.x;
-        let y = position.y;
+        const place = () => {
+            const popupHeight = el.offsetHeight;
+            let x = position.x;
+            let y = position.y;
 
-        // Adjust horizontal position
-        if (x + popupWidth > window.innerWidth - padding) {
-            x = window.innerWidth - popupWidth - padding;
-        }
-        if (x < padding) {
-            x = padding;
-        }
+            if (x + popupWidth > window.innerWidth - padding) {
+                x = window.innerWidth - popupWidth - padding;
+            }
+            if (x < padding) x = padding;
 
-        // Adjust vertical position
-        if (y + popupHeight > window.innerHeight - padding) {
-            y = position.y - popupHeight - padding;
-        }
-        if (y < padding) {
-            y = padding;
-        }
+            // Prefer below the click point; flip above when it does not fit.
+            if (y + popupHeight > window.innerHeight - padding) {
+                y = position.y - popupHeight - padding;
+            }
+            // Clamp into the viewport (the bottom clamp wins over the top one
+            // only when the content fits).
+            y = Math.min(y, window.innerHeight - popupHeight - padding);
+            if (y < padding) y = padding;
 
-        return { x, y };
-    };
+            setAdjustedPosition(prev =>
+                prev && prev.x === x && prev.y === y ? prev : { x, y }
+            );
+        };
 
-    const adjustedPosition = calculatePosition();
+        place();
+        const observer = new ResizeObserver(place);
+        observer.observe(el);
+        window.addEventListener('resize', place);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', place);
+        };
+    }, [position.x, position.y]);
 
     const popupStyle: React.CSSProperties = {
         position: 'fixed',
-        left: `${adjustedPosition.x}px`,
-        top: `${adjustedPosition.y}px`,
+        left: `${adjustedPosition?.x ?? position.x}px`,
+        top: `${adjustedPosition?.y ?? position.y}px`,
+        visibility: adjustedPosition ? 'visible' : 'hidden',
         zIndex: parseInt(zIndex) + 1,
         width: '320px',
-        maxHeight: '300px',
-        overflow: 'auto',
+        // Last resort: scroll only when the viewport is shorter than the content.
+        maxHeight: 'calc(100vh - 20px)',
+        overflowY: 'auto',
         background: 'var(--background)',
         border: '1px solid var(--border)',
         borderRadius: '8px',

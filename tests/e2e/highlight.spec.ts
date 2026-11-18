@@ -59,6 +59,75 @@ test.describe('highlights', () => {
     await expect.poll(async () => (await stored())[0]?.note).toBe(comment);
   });
 
+  for (const nearBottom of [false, true]) {
+    test(`the comment popup grows to fit its content and stays in the viewport${nearBottom ? ' (highlight near the bottom, flips above)' : ''}`, async ({
+      page,
+      ext,
+      articles,
+    }) => {
+      const id = nonce('hlfit');
+      const url = `https://example.com/e2e/${id}`;
+      articles.set(url, { title: `Fit page ${id}`, paragraph: `Fit these words ${id} please` });
+
+      await page.setViewportSize({ width: 1000, height: 640 });
+      await ext.connect({ enableClipNoteFloatButton: true });
+      await page.goto(url);
+      await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+
+      await selectParagraph(page);
+      await ext.sendToTab(page, 'content:quickCapture');
+      await expect
+        .poll(async () => ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url).length)
+        .toBe(1);
+      await page.reload();
+      await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+      await expect.poll(() => registeredHighlights(page)).toBeGreaterThan(0);
+
+      if (nearBottom) {
+        // Push the highlighted paragraph close to the bottom edge of the viewport.
+        await page.evaluate(() => {
+          const target = document.getElementById('target')!;
+          const top = target.getBoundingClientRect().top;
+          target.style.marginTop = `${window.innerHeight - 90 - top}px`;
+          window.scrollTo(0, 0);
+        });
+      }
+      const box = await page.locator('#target').boundingBox();
+      await page.mouse.click(box!.x + 20, box!.y + box!.height / 2);
+      const popup = page.locator('logseq-copilot-popup [data-highlight-popup]');
+      await expect(popup).toBeVisible();
+
+      const expectFits = async () => {
+        const m = await popup.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+            top: r.top,
+            bottom: r.bottom,
+            left: r.left,
+            right: r.right,
+            vw: window.innerWidth,
+            vh: window.innerHeight,
+          };
+        });
+        expect(m.scrollHeight).toBeLessThanOrEqual(m.clientHeight);
+        expect(m.top).toBeGreaterThanOrEqual(0);
+        expect(m.left).toBeGreaterThanOrEqual(0);
+        expect(m.bottom).toBeLessThanOrEqual(m.vh);
+        expect(m.right).toBeLessThanOrEqual(m.vw);
+      };
+      await expectFits();
+
+      await popup.getByRole('button', { name: 'Edit' }).click();
+      const textarea = popup.getByPlaceholder('Add a comment to this highlight...');
+      await textarea.fill(Array.from({ length: 6 }, (_, i) => `line ${i} ${id}`).join('\n'));
+      const save = popup.getByRole('button', { name: 'Save' });
+      await expect(save).toBeInViewport({ ratio: 1 });
+      await expectFits();
+    });
+  }
+
   test('a comment saved in the popup is synced to the clip in Logseq: added, edited, removed', async ({
     page,
     ext,
