@@ -43,3 +43,29 @@ describe('LogseqClientBase.baseFetch', () => {
     expect(init.headers.Authorization).toBe('Bearer secret');
   });
 });
+
+describe('LogseqClientBase.baseText', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const answer = (body: string, contentType: string) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(body, { status: 200, headers: { 'content-type': contentType } })),
+    );
+
+  it('resolves with the text Logseq answers', async () => {
+    answer('/home/.logseq/storages/x/image.patch\n', 'text/plain; charset=utf-8');
+    await expect(new LogseqClientBase().baseText('write_plugin_storage_file', [])).resolves.toBe(
+      '/home/.logseq/storages/x/image.patch\n',
+    );
+  });
+
+  it("throws on Logseq's error reply, with that reply in the message", async () => {
+    answer(JSON.stringify({ error: 'fatal: not a git repository: (null)' }), 'application/json');
+    await expect(new LogseqClientBase().baseText('exec_git_command', [['apply']])).rejects.toThrow(
+      'Logseq refused exec_git_command: {"error":"fatal: not a git repository: (null)"}',
+    );
+  });
+});

@@ -14,6 +14,8 @@ import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { FileRecallSource } from '../recall/file-source';
 import { moreBlocks } from './more-blocks';
+import { createFileImageStore } from './image-store';
+import type { ImageFile } from '../image-assets';
 import {
   mentionsScope,
   scopePrefixes,
@@ -32,6 +34,11 @@ const TAGGED_PAGES_QUERY =
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
+
+  private images = createFileImageStore(this.client);
+  public readonly imageAssetLimit = this.images.imageAssetLimit;
+  public saveImageAsset = (image: ImageFile, title: string) =>
+    this.images.saveImageAsset(image, title);
 
   private noteBlocks = createNoteBlockApi(this.client, () => this.getGraph());
   public readBlock = (uuid: string) => this.noteBlocks.readBlock(uuid);

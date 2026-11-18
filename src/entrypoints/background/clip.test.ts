@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { defaultTemplateIdItem, templates } from '@/utils/storage';
+import { defaultTemplateIdItem, saveImagesToLogseqItem, templates } from '@/utils/storage';
+import { imageMarkdown } from '@/utils/utils';
 import { formatLogseqDate } from '@/utils/logseq-format';
 import { backgroundClipFallback, clipToLogseq, resolveTemplate } from './clip';
 
@@ -21,11 +22,19 @@ const clipBlocks = vi.fn(
   },
 );
 
+// Stores an image of a clip in the graph's assets ("Save images to Logseq").
+const saveImageAsset = vi.fn(async (_image: { ext: string }, _title: string) => ({
+  kind: 'path' as const,
+  path: '../assets/stored.png',
+}));
+
 vi.mock('./logseq/tool', () => ({
   getLogseqService: async () => ({
     client,
     clipBlocks,
     getGraph: async () => 'test graph',
+    imageAssetLimit: 1_000_000,
+    saveImageAsset,
   }),
 }));
 
@@ -337,5 +346,63 @@ describe('backgroundClipFallback of a click on an image', () => {
       data: '![](https://example.com/a%20(1).png)',
       templateId: 'task',
     });
+  });
+});
+
+describe('saving the images of a clip (experimental setting)', () => {
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+  const fetchImage = vi.fn(
+    async (_url: string, _init?: RequestInit) =>
+      new Response(PNG, { status: 200, headers: { 'Content-Type': 'image/png' } }),
+  );
+  const rootContent = () => clipBlocks.mock.calls.at(-1)![1].content;
+  const data = `See ${imageMarkdown('a cat', 'https://cdn.example.com/cat.png')} here`;
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', fetchImage);
+    await templates.setValue([
+      {
+        id: 't',
+        name: 'T',
+        content: '{{content}}',
+        clipNoteLocation: 'customPage',
+        clipNoteCustomPage: 'Inbox',
+      },
+    ] as never);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('is off by default: the clip is what the template made, nothing is downloaded', async () => {
+    expect(await saveImagesToLogseqItem.getValue()).toBe(false);
+    await clipToLogseq({ data });
+    expect(rootContent()).toBe(data);
+    expect(fetchImage).not.toHaveBeenCalled();
+    expect(saveImageAsset).not.toHaveBeenCalled();
+  });
+
+  it('when on, the clip shows the stored image instead of its URL', async () => {
+    await saveImagesToLogseqItem.setValue(true);
+    await clipToLogseq({ data });
+    expect(fetchImage).toHaveBeenCalledWith(
+      'https://cdn.example.com/cat.png',
+      expect.objectContaining({ credentials: 'omit' }),
+    );
+    expect(saveImageAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ ext: 'png', name: 'cat' }),
+      'a cat',
+    );
+    expect(rootContent()).toBe('See ![a cat](../assets/stored.png) here');
+  });
+
+  it('when the image cannot be stored, the clip keeps its URL and is saved', async () => {
+    await saveImagesToLogseqItem.setValue(true);
+    saveImageAsset.mockRejectedValueOnce(new Error('Logseq refused'));
+    await clipToLogseq({ data });
+    expect(rootContent()).toBe(data);
   });
 });
