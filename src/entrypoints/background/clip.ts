@@ -2,8 +2,10 @@ import { isTreeTemplate, renderClip } from '@/utils/clip-template';
 import { runOnPage } from './page-queue';
 import { formatLogseqDate } from '@/utils/logseq-format';
 import { imageMarkdown } from '@/utils/utils';
+import { saveClipImages } from './logseq/image-assets';
 import {
   defaultTemplateIdItem,
+  saveImagesToLogseqItem,
   templates,
   type TemplateItemV1,
 } from '@/utils/storage';
@@ -82,6 +84,11 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
       'The template made no block to clip. Check it in the extension settings.',
     );
   }
+  // Experimental: the images of the clipped content go to the graph's assets.
+  // Off (the default), the blocks are exactly what the template made.
+  const root = (await saveImagesToLogseqItem.getValue().catch(() => false))
+    ? await saveClipImages(blocks[0], source.data, logseqService, source.url)
+    : blocks[0];
   // Only an outline template has a header (the root) apart from the content
   // (its children), so only it joins an earlier clip of the same page. A flat
   // template writes a new block every time.
@@ -95,7 +102,7 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
       const graph = await logseqService.getGraph();
       const { rootUuid, added, noteUuid, noteText } = await logseqService.clipBlocks(
         page,
-        blocks[0],
+        root,
         { tag: template.tag, group },
       );
       return {

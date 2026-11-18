@@ -6,6 +6,7 @@ import type { RecallOptions } from './recall/recall';
 import type { WrittenClip } from './clip-blocks';
 import type { GroupRequest } from './clip-group';
 import type { NoteBlockApi } from './note-blocks';
+import type { ImageAssetStore } from './image-assets';
 
 export interface LogseqClientInterface {
   getGraph(): any;
@@ -24,7 +25,7 @@ export interface LogseqClientInterface {
   search(query: string): any;
 }
 
-export interface LogseqServiceInterface extends NoteBlockApi {
+export interface LogseqServiceInterface extends NoteBlockApi, ImageAssetStore {
   client: any;
   getGraph(): any;
   search(query: string): any;

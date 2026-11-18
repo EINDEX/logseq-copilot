@@ -17,6 +17,8 @@ import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
 import { DBRecallSource } from '../recall/db-source';
+import { createDbImageStore } from './image-store';
+import type { ImageFile } from '../image-assets';
 import {
   getBlockMarker,
   splitTaskMarker,
@@ -120,6 +122,11 @@ type PageCache = Map<string, Promise<LogseqPageIdenity>>;
 
 export default class LogseqDBService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
+
+  private images = createDbImageStore(this.client);
+  public readonly imageAssetLimit = this.images.imageAssetLimit;
+  public saveImageAsset = (image: ImageFile, title: string) =>
+    this.images.saveImageAsset(image, title);
 
   private noteBlocks = createNoteBlockApi(
     this.client,

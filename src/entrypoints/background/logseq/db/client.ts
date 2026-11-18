@@ -225,6 +225,36 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     ]);
   };
 
+  /**
+   * Writes a file with `bytes` to the graph's assets folder; resolves with its
+   * path. Internal API, probed on 2.0.2: bytes go as a Node Buffer in JSON.
+   */
+  public writeAssetsdirFile = async (file: string, bytes: Uint8Array): Promise<string> => {
+    return await this.baseText('logseq.App.write_assetsdir_file', [
+      file,
+      { type: 'Buffer', data: Array.from(bytes) },
+      '',
+    ]);
+  };
+
+  /** Imports EDN (sqlite.build, as transit JSON) into the graph. Throws when refused. */
+  public importEdn = async (transit: string): Promise<void> => {
+    await this.baseText('logseq.App.import_edn', [transit]);
+  };
+
+  /**
+   * A datascript query that finds one uuid (`[:find ?u . ...]`). The API
+   * answers a found string as plain text, nothing as `null`.
+   */
+  public queryUuid = async (query: string): Promise<string | undefined> => {
+    const text = (await this.baseText('logseq.DB.datascriptQuery', [query]))
+      .trim()
+      .replace(/^"|"$/g, '');
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)
+      ? text
+      : undefined;
+  };
+
   public updateBlock = async (block: LogseqBlockType) => {
     return await this.baseJson('logseq.Editor.updateBlock', [
       block.uuid,

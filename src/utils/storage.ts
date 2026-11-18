@@ -10,6 +10,8 @@ export type LogseqCopliotConfig = {
   logseqAuthToken: string;
   enableClipNoteFloatButton: boolean;
   highlightClippedText: boolean;
+  /** Experimental: store the images of a clip in the graph's assets. */
+  saveImagesToLogseq: boolean;
   clipNoteLocation: string;
   clipNoteCustomPage: string;
   clipNoteTemplate: string;
@@ -469,6 +471,17 @@ export const highlightClippedTextItem = storage.defineItem<boolean>(
   },
 );
 
+/**
+ * Experimental, off by default: a clip stores its images in the graph's assets
+ * (background/logseq/image-assets.ts) instead of linking to their URLs.
+ */
+export const saveImagesToLogseqItem = storage.defineItem<boolean>(
+  'local:saveImagesToLogseq',
+  {
+    fallback: false,
+  },
+);
+
 export const clipNoteLocationItem = storage.defineItem<string>(
   'local:clipNoteLocation',
   {
@@ -501,6 +514,7 @@ export const getLogseqCopliotConfig =
       logseqAuthToken,
       enableClipNoteFloatButton,
       highlightClippedText,
+      saveImagesToLogseq,
       clipNoteLocation,
       clipNoteCustomPage,
       clipNoteTemplate,
@@ -511,6 +525,7 @@ export const getLogseqCopliotConfig =
       logseqAuthTokenItem.getValue(),
       enableClipNoteFloatButtonItem.getValue(),
       highlightClippedTextItem.getValue(),
+      saveImagesToLogseqItem.getValue(),
       clipNoteLocationItem.getValue(),
       clipNoteCustomPageItem.getValue(),
       clipNoteTemplateItem.getValue(),
@@ -523,6 +538,7 @@ export const getLogseqCopliotConfig =
       logseqAuthToken,
       enableClipNoteFloatButton,
       highlightClippedText,
+      saveImagesToLogseq,
       clipNoteLocation,
       clipNoteCustomPage,
       clipNoteTemplate,
@@ -559,6 +575,11 @@ export const saveLogseqCopliotConfig = async (
       highlightClippedTextItem.setValue(updates.highlightClippedText),
     );
   }
+  if (updates.saveImagesToLogseq !== undefined) {
+    updatePromises.push(
+      saveImagesToLogseqItem.setValue(updates.saveImagesToLogseq),
+    );
+  }
   if (updates.clipNoteLocation !== undefined) {
     updatePromises.push(
       clipNoteLocationItem.setValue(updates.clipNoteLocation),
@@ -586,6 +607,7 @@ export const storageItems = {
   logseqAuthToken: logseqAuthTokenItem,
   enableClipNoteFloatButton: enableClipNoteFloatButtonItem,
   highlightClippedText: highlightClippedTextItem,
+  saveImagesToLogseq: saveImagesToLogseqItem,
   clipNoteLocation: clipNoteLocationItem,
   clipNoteCustomPage: clipNoteCustomPageItem,
   clipNoteTemplate: clipNoteTemplateItem,
