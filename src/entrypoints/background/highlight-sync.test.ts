@@ -9,12 +9,21 @@ const calls = vi.hoisted(() => ({
   hold: false,
 }));
 const blocks = vi.hoisted(() => new Map<string, string>());
+const logseq = vi.hoisted(() => ({
+  graph: 'notes',
+  /** What reading a block does: fails when set. */
+  readError: null as Error | null,
+  reads: [] as string[],
+}));
 
 vi.mock('./logseq/tool', () => ({
   getLogseqService: async () => ({
-    getGraph: async () => 'notes',
-    readBlock: async (uuid: string) =>
-      blocks.has(uuid) ? { texts: [blocks.get(uuid)!], hasChildren: false } : null,
+    getGraph: async () => logseq.graph,
+    readBlock: async (uuid: string) => {
+      logseq.reads.push(uuid);
+      if (logseq.readError) throw logseq.readError;
+      return blocks.has(uuid) ? { texts: [blocks.get(uuid)!], hasChildren: false } : null;
+    },
     insertChildBlock: async (parent: string, content: string) => {
       calls.log.push(`insert start ${content}`);
       // A test that asks for it holds the first write until it lets it go.
@@ -37,7 +46,8 @@ vi.mock('./logseq/tool', () => ({
   }),
 }));
 
-import { syncHighlightNote } from './highlight-sync';
+import { checkHighlightLinks, syncHighlightNote } from './highlight-sync';
+import { deleteHighlight } from '@/utils/highlight-service';
 
 const highlight = (id: string, extra: Partial<HighlightData> = {}): HighlightData => ({
   id,
@@ -67,6 +77,9 @@ beforeEach(async () => {
   calls.log.length = 0;
   calls.gates.length = 0;
   calls.hold = false;
+  logseq.graph = 'notes';
+  logseq.readError = null;
+  logseq.reads.length = 0;
   blocks.clear();
   blocks.set('node-1', '- the clip');
   await highlights.setValue([
@@ -128,10 +141,96 @@ describe('syncHighlightNote', () => {
   });
 
   it('a failed sync does not hold up the next one, and leaves the local note', async () => {
-    blocks.delete('node-1');
-    await expect(syncHighlightNote('linked')).rejects.toThrow(/gone from Logseq/);
+    logseq.graph = 'another';
+    await expect(syncHighlightNote('linked')).rejects.toThrow(/"another" is open/);
     expect((await stored('linked'))?.note).toBe('one');
-    blocks.set('node-1', '- the clip');
+    // Another open graph is not a deleted clip: the link stays.
+    expect((await stored('linked'))?.logseq).toBeDefined();
+    logseq.graph = 'notes';
     await expect(syncHighlightNote('linked')).resolves.toBe(true);
+  });
+});
+
+describe('a clip that was deleted in Logseq', () => {
+  it('drops the link of the highlight and keeps everything else, when a sync finds the node gone', async () => {
+    blocks.delete('node-1');
+    await expect(syncHighlightNote('linked')).resolves.toBe(false);
+    const after = await stored('linked');
+    expect(after?.logseq).toBeUndefined();
+    expect(after?.note).toBe('one');
+    expect(after?.range.textContent).toBe('x');
+    // Nothing was written to Logseq, and the next save is local only.
+    expect(calls.log).toEqual([]);
+    await expect(syncHighlightNote('linked')).resolves.toBe(false);
+    expect(calls.log).toEqual([]);
+  });
+
+  it('does not bring a dropped link back when a sync that was running ends', async () => {
+    calls.hold = true;
+    const sync = syncHighlightNote('linked');
+    await vi.waitFor(() => expect(calls.gates).toHaveLength(1));
+    blocks.delete('node-1');
+    await expect(checkHighlightLinks(['linked'])).resolves.toEqual(['linked']);
+    calls.gates[0]();
+    await sync;
+    expect((await stored('linked'))?.logseq).toBeUndefined();
+  });
+});
+
+describe('checkHighlightLinks', () => {
+  it('unlinks the highlights whose node is gone, with one read per node', async () => {
+    blocks.delete('node-1');
+    await expect(checkHighlightLinks(['linked', 'other', 'older'])).resolves.toEqual([
+      'linked',
+      'other',
+    ]);
+    expect(logseq.reads).toEqual(['node-1']);
+    expect((await stored('linked'))).toMatchObject({ note: 'one' });
+    expect((await stored('linked'))?.logseq).toBeUndefined();
+    expect((await stored('other'))?.logseq).toBeUndefined();
+  });
+
+  it('leaves a highlight whose node is there, and one that was not asked about', async () => {
+    await expect(checkHighlightLinks(['linked'])).resolves.toEqual([]);
+    expect((await stored('linked'))?.logseq).toBeDefined();
+    blocks.delete('node-1');
+    await checkHighlightLinks(['linked']);
+    expect((await stored('other'))?.logseq).toBeDefined();
+  });
+
+  it('does not touch the highlights of a graph that is not the open one', async () => {
+    logseq.graph = 'another';
+    blocks.delete('node-1');
+    await expect(checkHighlightLinks(['linked'])).resolves.toEqual([]);
+    expect(logseq.reads).toEqual([]);
+    expect((await stored('linked'))?.logseq).toBeDefined();
+  });
+
+  it('changes nothing when Logseq cannot be asked', async () => {
+    logseq.readError = new Error('Cannot connect to Logseq.');
+    await expect(checkHighlightLinks(['linked'])).resolves.toEqual([]);
+    expect((await stored('linked'))?.logseq).toBeDefined();
+  });
+
+  it('writes nothing to Logseq, and nothing to storage when nothing is gone', async () => {
+    await checkHighlightLinks(['linked', 'other']);
+    blocks.delete('node-1');
+    await checkHighlightLinks(['linked']);
+    expect(calls.log).toEqual([]);
+  });
+});
+
+describe('deleting a highlight', () => {
+  it('never touches Logseq: the clip and the comment block stay', async () => {
+    await syncHighlightNote('linked');
+    const written = [...calls.log];
+    const before = new Map(blocks);
+
+    await deleteHighlight('linked');
+
+    expect(await stored('linked')).toBeUndefined();
+    expect(calls.log).toEqual(written);
+    expect(blocks).toEqual(before);
+    expect(logseq.reads.filter((u) => u === 'c-one')).toEqual([]);
   });
 });

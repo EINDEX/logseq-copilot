@@ -81,7 +81,7 @@ describe('HighlightCommentPopup comment sync', () => {
     await open(linked);
     await saveComment('a comment');
     expect((await highlights.getValue())[0].note).toBe('a comment');
-    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:syncHighlightNote', { id: 'h1' });
+    expect(sendMessage).toHaveBeenCalledWith('logseq:syncHighlightNote', { id: 'h1' });
     expect(container.querySelector('[data-comment-sync-error]')).toBeNull();
   });
 
@@ -89,6 +89,7 @@ describe('HighlightCommentPopup comment sync', () => {
     await open(base);
     await saveComment('a comment');
     expect((await highlights.getValue())[0].note).toBe('a comment');
+    // Not asked about either: it has no clip.
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
@@ -105,14 +106,61 @@ describe('HighlightCommentPopup comment sync', () => {
   });
 
   it('tries again on the next save after a failure, also with the same comment, and clears the message', async () => {
-    sendMessage.mockRejectedValueOnce(new Error('Cannot connect to Logseq.'));
+    let failed = false;
+    sendMessage.mockImplementation(async (type: string) => {
+      if (type === 'logseq:syncHighlightNote' && !failed) {
+        failed = true;
+        throw new Error('Cannot connect to Logseq.');
+      }
+      return type === 'logseq:checkHighlightLinks' ? [] : true;
+    });
     await open(linked);
     await saveComment('a comment');
     expect(container.querySelector('[data-comment-sync-error]')).not.toBeNull();
 
     await act(async () => button('Edit').click());
     await act(async () => button('Save').click());
-    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(sendMessage.mock.calls.filter(([type]) => type === 'logseq:syncHighlightNote')).toHaveLength(2);
     expect(container.querySelector('[data-comment-sync-error]')).toBeNull();
+  });
+});
+
+describe('HighlightCommentPopup clip deleted in Logseq', () => {
+  const removed = () => container.querySelector('[data-removed-from-logseq]');
+
+  it('asks once when it opens for a linked highlight, and says nothing while the clip is there', async () => {
+    sendMessage.mockResolvedValue([]);
+    await open(linked);
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith('logseq:checkHighlightLinks', { ids: ['h1'] });
+    expect(removed()).toBeNull();
+  });
+
+  it('shows that the highlight was removed from Logseq when the clip is gone', async () => {
+    sendMessage.mockResolvedValue(['h1']);
+    await open(linked);
+    expect(removed()?.textContent).toBe('Removed from Logseq');
+  });
+
+  it('shows nothing when Logseq could not be asked', async () => {
+    sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq.'));
+    await open(linked);
+    expect(removed()).toBeNull();
+  });
+
+  it('does not ask for a highlight without a link', async () => {
+    await open(base);
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(removed()).toBeNull();
+  });
+
+  it('saves a comment locally, without an error, when the sync finds the clip gone', async () => {
+    sendMessage.mockImplementation(async (type: string) =>
+      type === 'logseq:checkHighlightLinks' ? [] : false,
+    );
+    await open(linked);
+    await saveComment('a comment');
+    expect((await highlights.getValue())[0].note).toBe('a comment');
+    expect(container.querySelector('[data-comment-sync-error]')).toBeNull();
+    expect(removed()?.textContent).toBe('Removed from Logseq');
   });
 });

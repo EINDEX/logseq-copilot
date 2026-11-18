@@ -18,7 +18,8 @@ import {
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import { clipToLogseq } from '@/entrypoints/background/clip';
 import { syncAnnotationNote, NoteSyncError } from '@/entrypoints/background/logseq/note-sync';
-import { syncHighlightNote } from '@/entrypoints/background/highlight-sync';
+import { checkHighlightLinks, syncHighlightNote } from '@/entrypoints/background/highlight-sync';
+import { deleteHighlight } from '@/utils/highlight-service';
 import { blockTexts } from '@/entrypoints/background/logseq/clip-blocks';
 
 const variant = inject('logseqVariant');
@@ -220,12 +221,21 @@ describe(`syncing highlight comments (${variant})`, () => {
     expect(JSON.stringify(tree)).not.toContain(comment);
   });
 
-  test('writes nothing when the note block is gone', async () => {
+  test('writes the comment as a new last child when the note block is gone, nothing for a blank one', async () => {
     const { link } = await clip('s-bullet', 'soon gone');
     await api('logseq.Editor.removeBlock', [link.noteUuid]);
     await eventually(async () => await read(link.noteUuid!), (b) => b === null);
-    await expect(sync(link, 'edited')).rejects.toThrow(/comment block is gone/);
+
+    // A blank comment writes nothing and forgets the block.
+    expect(await sync(link, '')).toEqual({ graph: link.graph, nodeUuid: link.nodeUuid });
+    expect(await childrenOf(link.nodeUuid, 1)).toHaveLength(1);
+
+    const written = await sync(link, 'edited');
+    expect(written).toMatchObject({ nodeUuid: link.nodeUuid, syncedText: 'edited' });
+    expect(written?.noteUuid).not.toBe(link.noteUuid);
+    expect((await read(written!.noteUuid!))?.text).toBe('edited');
     expect(await read(link.noteUuid!)).toBeNull();
+    expect((await childrenOf(link.nodeUuid, 2))[1]).toBe('edited');
   });
 
   test('writes nothing when the linked graph is not the open one', async () => {
@@ -329,5 +339,86 @@ describe(`syncing highlight comments (${variant})`, () => {
     const children = await childrenOf(link.nodeUuid, 2);
     expect(children).toHaveLength(2);
     expect(children[1]).toBe('edit 3');
+  });
+
+  describe('a clip deleted in Logseq', () => {
+    const linkedHighlight = (id: string, link: LogseqLink, note: string): HighlightData => ({
+      ...(annotate(link, note) as unknown as HighlightData),
+      id,
+      hostname: 'example.com',
+      range: {
+        startContainerXPath: '/html',
+        endContainerXPath: '/html',
+        startOffset: 0,
+        endOffset: 1,
+        textContent: 'x',
+      },
+      createdAt: 1,
+      lastAccessedAt: 1,
+      note,
+      logseq: link,
+    });
+    const removeNode = async (uuid: string) => {
+      await api('logseq.Editor.removeBlock', [uuid]);
+      await eventually(() => read(uuid), (block) => block === null);
+    };
+    const stored = async (id: string) => (await highlights.getValue()).find((h) => h.id === id);
+
+    test('the check drops the link of a highlight whose node was deleted, and only of it', async () => {
+      const gone = await clip('s-bullet', 'first note');
+      const kept = await clip('s-fallback');
+      await highlights.setValue([
+        linkedHighlight('gone', gone.link, 'first note'),
+        linkedHighlight('kept', kept.link, 'kept note'),
+      ]);
+
+      // Nothing is gone yet.
+      expect(await checkHighlightLinks(['gone', 'kept'])).toEqual([]);
+
+      await removeNode(gone.link.nodeUuid);
+      expect(await checkHighlightLinks(['gone', 'kept'])).toEqual(['gone']);
+
+      const after = await stored('gone');
+      expect(after?.logseq).toBeUndefined();
+      expect(after?.note).toBe('first note');
+      expect((await stored('kept'))?.logseq).toEqual(kept.link);
+      // The clip that is still there was not touched.
+      expect(await read(kept.link.nodeUuid)).not.toBeNull();
+    });
+
+    test('a sync that finds the node gone drops the link, writes nothing and does not fail', async () => {
+      const { link } = await clip('s-fallback');
+      await highlights.setValue([linkedHighlight('syncing', link, 'a comment')]);
+      await removeNode(link.nodeUuid);
+
+      expect(await syncHighlightNote('syncing')).toBe(false);
+      expect((await stored('syncing'))?.logseq).toBeUndefined();
+      expect((await stored('syncing'))?.note).toBe('a comment');
+      // The node is not recreated.
+      expect(await read(link.nodeUuid)).toBeNull();
+    });
+
+    test('a node that is there is not mistaken for a gone one, with or without its comment block', async () => {
+      const { link } = await clip('s-bullet', 'first note');
+      await highlights.setValue([linkedHighlight('present', link, 'first note')]);
+      // Only the comment block is deleted: the node is still there.
+      await removeNode(link.noteUuid!);
+      expect(await checkHighlightLinks(['present'])).toEqual([]);
+      expect((await stored('present'))?.logseq).toEqual(link);
+    });
+
+    test('deleting a highlight leaves the clip and its comment in Logseq', async () => {
+      const { link } = await clip('s-fallback');
+      await highlights.setValue([linkedHighlight('removed', link, 'a comment')]);
+      await syncHighlightNote('removed');
+      const written = (await stored('removed'))!.logseq!;
+      expect(await childrenOf(link.nodeUuid, 2)).toHaveLength(2);
+
+      await deleteHighlight('removed');
+
+      expect(await stored('removed')).toBeUndefined();
+      expect(await read(link.nodeUuid)).not.toBeNull();
+      expect((await read(written.noteUuid!))?.text).toBe('a comment');
+    });
   });
 });

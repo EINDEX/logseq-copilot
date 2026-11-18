@@ -10,7 +10,12 @@ import type { NoteBlockApi } from './note-blocks';
  * The comment is one child block, the last one, of the node the clip added.
  * The block is ours only while it still has the text we wrote
  * (`logseq.syncedText`): a block the user changed in Logseq is never
- * overwritten or removed, and one with blocks below it is never removed. A node or block that is gone is never recreated.
+ * overwritten or removed, and one with blocks below it is never removed. A
+ * node that is gone is never recreated: it is a NodeGoneError (the link is
+ * dropped). A comment block that is gone while its node is there counts as no
+ * comment block: the link forgets it and a comment is written as a new block
+ * (a blank comment writes nothing). That is what the user editing the comment
+ * asked for; a block they changed is still never touched.
  */
 
 /** A sync that did not write what the user asked for: the message is for them. */
@@ -18,6 +23,17 @@ export class NoteSyncError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'NoteSyncError';
+  }
+}
+
+/**
+ * The node the clip added is gone from Logseq: the highlight no longer has a
+ * clip to sync to. Whoever syncs drops the link, and the user is told nothing.
+ */
+export class NodeGoneError extends NoteSyncError {
+  constructor() {
+    super('The clip is gone from Logseq, so the comment was not synced.');
+    this.name = 'NodeGoneError';
   }
 }
 
@@ -62,9 +78,7 @@ export const syncAnnotationNote = async (
   /** A new comment block under the node, which must still be there. */
   const addComment = async (): Promise<LogseqLink> => {
     if ((await api.readBlock(link.nodeUuid)) === null) {
-      throw new NoteSyncError(
-        'The clip is gone from Logseq, so the comment was not synced.',
-      );
+      throw new NodeGoneError();
     }
     const { uuid } = await api.insertChildBlock(link.nodeUuid, comment);
     return tracked(link, uuid, comment);
@@ -76,9 +90,9 @@ export const syncAnnotationNote = async (
 
   const block = await api.readBlock(link.noteUuid);
   if (block === null) {
-    throw new NoteSyncError(
-      'The comment block is gone from Logseq, so the comment was not synced.',
-    );
+    // The comment block goes with its node: tell which of the two is gone.
+    if ((await api.readBlock(link.nodeUuid)) === null) throw new NodeGoneError();
+    return comment === '' ? untracked(link) : await addComment();
   }
   const written = link.syncedText;
   const unchanged = block.texts.some((text) => sameText(text, written));
