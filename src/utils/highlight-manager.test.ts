@@ -6,19 +6,23 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import { HighlightManager } from './highlight-manager';
+import { HighlightManager, IMAGE_HIGHLIGHT_ATTRIBUTE } from './highlight-manager';
 import {
   HighlightService,
   deleteHighlight,
   updateHighlightNote,
 } from './highlight-service';
 import { contentEvents } from './content-events';
-import type { HighlightData } from '@/types/highlight';
+import type {
+  HighlightData,
+  ImageHighlightData,
+  TextHighlightData,
+} from '@/types/highlight';
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: window.location.href,
   title: 'Page',
@@ -577,6 +581,106 @@ describe('HighlightManager', () => {
       manager().cleanup();
 
       expect(matchesInPage(dark)).toBe(false);
+    });
+  });
+
+  describe('image highlights', () => {
+    const SRC = 'https://e.com/cat.png';
+    const imageHighlight = (id: string, src = SRC): ImageHighlightData => ({
+      id,
+      url: window.location.href,
+      title: 'Page',
+      hostname: window.location.hostname,
+      color: 'yellow',
+      image: { xpath: '/html/body[1]/img[1]', src, alt: 'a cat' },
+      createdAt: 1,
+      lastAccessedAt: 1,
+    });
+    const img = () => document.getElementById('img') as HTMLImageElement;
+    const ids = () => img().getAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE);
+
+    beforeEach(() => {
+      document.body.innerHTML = `<p id="p">hello world</p><img id="img" src="${SRC}" alt="a cat">`;
+    });
+
+    it('restores an image highlight as an outline on the image, next to text ones', async () => {
+      await seed([imageHighlight('i'), highlight('t')]);
+      await manager().initialize();
+
+      expect(ids()).toBe('i');
+      expect([...registry.keys()]).toEqual([name('t')]);
+      const css = document.getElementById('logseq-copilot-image-highlight')!.textContent!;
+      expect(css).toContain(`img[${IMAGE_HIGHLIGHT_ATTRIBUTE}]`);
+      expect(css).toContain('outline: 3px solid');
+      expect(css).not.toContain('background');
+    });
+
+    it('shows nothing for an image the page does not have any more', async () => {
+      await seed([imageHighlight('gone', 'https://e.com/other.png'), highlight('t')]);
+      await manager().initialize();
+
+      expect(ids()).toBeNull();
+      expect(document.getElementById('logseq-copilot-image-highlight')).toBeNull();
+      expect([...registry.keys()]).toEqual([name('t')]);
+    });
+
+    it('takes the outline away when the highlight is deleted elsewhere, keeping another one', async () => {
+      await seed([imageHighlight('a'), imageHighlight('b')]);
+      await manager().initialize();
+      expect(ids()).toBe('a b');
+
+      await deleteHighlight('a');
+      await vi.waitFor(() => expect(removed).toEqual(['a']));
+      expect(ids()).toBe('b');
+
+      await deleteHighlight('b');
+      await vi.waitFor(() => expect(removed).toEqual(['a', 'b']));
+      expect(img().hasAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE)).toBe(false);
+    });
+
+    it('saves a new image highlight and outlines the image', async () => {
+      await manager().initialize();
+      const saved = await manager().addImageHighlight(img(), 'a note');
+
+      expect(saved).toMatchObject({ image: { src: SRC, alt: 'a cat' }, note: 'a note' });
+      expect(saved?.range).toBeUndefined();
+      expect(ids()).toBe(saved!.id);
+      expect((await stored()).map((h) => h.id)).toEqual([saved!.id]);
+    });
+
+    it('scrolls the image to the middle and pulses it', async () => {
+      await seed([imageHighlight('i')]);
+      await manager().initialize();
+
+      expect(await manager().scrollToHighlight('i')).toBe(true);
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'center' }));
+      expect(scrollIntoView.mock.contexts[0]).toBe(img());
+      expect(animate).toHaveBeenCalled();
+    });
+
+    it('opens the comment popup on a click on the image', async () => {
+      await seed([imageHighlight('i')]);
+      await manager().initialize();
+      const shown: HighlightData[] = [];
+      offs.push(contentEvents.on('showHighlightComment', ({ highlightData }) => shown.push(highlightData)));
+
+      // A real click is trusted; a page script's is not, and is ignored.
+      const click = (isTrusted: boolean) =>
+        (manager() as any).handleHighlightClick({ isTrusted, target: img(), clientX: 5, clientY: 6 });
+      await click(false);
+      expect(shown).toEqual([]);
+      await click(true);
+      expect(shown.map((h) => h.id)).toEqual(['i']);
+    });
+
+    it('takes every outline away on cleanup', async () => {
+      await seed([imageHighlight('i')]);
+      await manager().initialize();
+
+      manager().cleanup();
+
+      expect(img().hasAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE)).toBe(false);
+      expect(document.getElementById('logseq-copilot-image-highlight')).toBeNull();
     });
   });
 });

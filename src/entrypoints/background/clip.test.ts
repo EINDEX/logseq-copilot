@@ -322,3 +322,20 @@ describe('grouping the clips of a page', () => {
     expect(groupOf()).toBeUndefined();
   });
 });
+
+describe('backgroundClipFallback of a click on an image', () => {
+  it('clips the image the menu click reports, as Markdown', () => {
+    expect(
+      backgroundClipFallback(
+        { srcUrl: 'https://example.com/a (1).png', pageUrl: 'https://example.com/' },
+        { title: 'Page' },
+        'task',
+      ),
+    ).toEqual({
+      url: 'https://example.com/',
+      title: 'Page',
+      data: '![](https://example.com/a%20(1).png)',
+      templateId: 'task',
+    });
+  });
+});

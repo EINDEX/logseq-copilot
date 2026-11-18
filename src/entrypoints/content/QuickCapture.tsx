@@ -1,4 +1,5 @@
-import { buildTurndownService } from '@/utils';
+import { buildTurndownService, imageMarkdown } from '@/utils';
+import { HighlightService } from '@/utils/highlight-service';
 import { useEffect, useRef, useState } from 'react';
 import { Container, createRoot } from 'react-dom/client';
 import { browser, type Browser } from 'wxt/browser';
@@ -17,6 +18,7 @@ import '@/assets/globals.css';
 // Content-script only rules (search keyword highlight).
 import './index.module.scss';
 import log from '@/utils/logger';
+import { fromExtensionContext, type MessageSenderLike } from '@/utils/message-sender';
 import { clipErrorMessage, type ClipCommandOptions } from '@/utils/clip-feedback';
 import { useStorageItem } from '@/hooks/use-storage-item';
 import type { ClipResult } from '@/types/clip';
@@ -37,25 +39,85 @@ export const hasClippableSelection = (
   // getSelection() is never null in practice; with no selection rangeCount is 0.
   !!selection && selection.rangeCount > 0 && !selection.isCollapsed;
 
-/** The selection, taken when a clip starts: its text and its range. */
-interface Captured {
-  text: string;
-  range: Range;
-}
+/**
+ * What a clip takes when it starts: the Markdown to clip, and what to
+ * highlight once it is in Logseq: the selected text's range, or one image (none
+ * when the image of a context menu click is not found in the page).
+ */
+type Captured = { text: string } & (
+  | { range: Range; image?: undefined }
+  | { image: HTMLImageElement | null; range?: undefined }
+);
+
+/**
+ * The one image a selection is: a selection without text over exactly one
+ * image. Null for any other selection.
+ */
+export const selectedImage = (range: Range): HTMLImageElement | null => {
+  if (range.toString().trim()) return null;
+  const root = range.commonAncestorContainer;
+  if (root instanceof HTMLImageElement) return root;
+  const scope = root instanceof Element ? root : root.parentElement;
+  const images = Array.from(scope?.querySelectorAll('img') ?? []).filter((image) =>
+    range.intersectsNode(image),
+  );
+  return images.length === 1 ? images[0] : null;
+};
+
+/** One image as a clip: `![alt](src)`, and the image to highlight. */
+const captureImage = (image: HTMLImageElement): Captured => ({
+  text: imageMarkdown(image.getAttribute('alt') ?? '', HighlightService.imageSource(image)),
+  image,
+});
 
 /**
  * The selection as Markdown, with a clone of its range (the highlight is saved
- * from it): moving focus later (the picker panel) cannot lose it. Null without
- * a selection: the clip is the page link.
+ * from it): moving focus later (the picker panel) cannot lose it. A selection
+ * that is one image is that image. Null without a selection: the clip is the
+ * page link.
  */
 const captureSelection = (): Captured | null => {
   const selection = getSelection();
   if (!hasClippableSelection(selection)) return null;
   const range = selection.getRangeAt(0).cloneRange();
+  const image = selectedImage(range);
+  if (image && HighlightService.imageSource(image)) return captureImage(image);
   return {
     text: buildTurndownService().turndown(range.cloneContents()),
     range,
   };
+};
+
+/** The element the last context menu was opened on (see trackContextMenu). */
+let contextMenuTarget: EventTarget | null = null;
+
+/**
+ * Remember what the context menu opens on: "Clip image" gets the image's URL
+ * only, and the page can show the same URL more than once.
+ */
+export const trackContextMenu = () =>
+  document.addEventListener(
+    'contextmenu',
+    (event) => {
+      // A page script's event is not the user's menu.
+      if (event.isTrusted) contextMenuTarget = event.target;
+    },
+    true,
+  );
+
+/**
+ * The image a "Clip image" context menu click was on, found by its URL: the
+ * element the menu opened on when it shows it, else the first image of the
+ * page that does. Without one the clip is the URL alone, with no highlight.
+ */
+const captureContextImage = (srcUrl: string): Captured => {
+  const shows = (node: unknown): node is HTMLImageElement =>
+    node instanceof HTMLImageElement &&
+    (HighlightService.imageSource(node) === srcUrl || node.src === srcUrl);
+  const image = shows(contextMenuTarget)
+    ? contextMenuTarget
+    : (Array.from(document.querySelectorAll('img')).find(shows) ?? null);
+  return image ? captureImage(image) : { text: imageMarkdown('', srcUrl), image: null };
 };
 
 /**
@@ -71,7 +133,7 @@ const sendClip = async (
   note?: string,
 ): Promise<ClipResult> => {
   if (!captured) return await clipPage(templateId, note);
-  const { text, range } = captured;
+  const { text } = captured;
   getSelection()?.empty();
   const clipped = await sendMessage(
     'logseq:clipWithSelection',
@@ -84,12 +146,12 @@ const sendClip = async (
         },
   );
   // A failed clip threw above: it leaves no highlight.
-  void saveHighlightIfEnabled(range, note, linkFromClip(clipped));
+  void saveHighlightIfEnabled(captured, note, linkFromClip(clipped));
   return clipped;
 };
 
 const saveHighlightIfEnabled = async (
-  range: Range,
+  captured: Captured,
   note?: string,
   logseq?: LogseqLink,
 ) => {
@@ -99,20 +161,26 @@ const saveHighlightIfEnabled = async (
     log.debug('[QuickCapture] Could not read the highlight option', error);
     return;
   }
-  await saveHighlight(range, note, logseq);
+  await saveHighlight(captured, note, logseq);
 };
 
 const capture = (templateId?: string) => sendClip(captureSelection(), templateId);
 
-const saveHighlight = async (range: Range, note?: string, logseq?: LogseqLink) => {
+const saveHighlight = async (captured: Captured, note?: string, logseq?: LogseqLink) => {
   try {
-    // Add temporary highlight for immediate feedback, then persist it.
     const highlightManager = HighlightManager.getInstance();
-    highlightManager.addTemporaryHighlight(range);
+    if (captured.range) {
+      // Add temporary highlight for immediate feedback, then persist it.
+      highlightManager.addTemporaryHighlight(captured.range);
+    }
     // Only saving needs the restored highlight state; the clip must not wait
     // for a slow restore.
     await highlightManager.ready;
-    await highlightManager.addHighlight(range, note || undefined, undefined, logseq);
+    if (captured.range) {
+      await highlightManager.addHighlight(captured.range, note || undefined, undefined, logseq);
+    } else if (captured.image) {
+      await highlightManager.addImageHighlight(captured.image, note || undefined, undefined, logseq);
+    }
   } catch (error) {
     log.debug('[QuickCapture] Failed to save highlight', error);
   }
@@ -155,6 +223,34 @@ export const runClipCommand = (
   const clip = () =>
     command === 'page' ? clipPage(templateId) : capture(templateId);
   return feedback === 'sender' ? clip().then(() => undefined) : clipInPage(clip);
+};
+
+/**
+ * "Clip image" from the context menu: the image at `srcUrl` as `![alt](src)`,
+ * highlighted like a clipped selection once it is in Logseq.
+ */
+export const runImageClipCommand = (
+  srcUrl: string,
+  { templateId }: ClipCommandOptions = {},
+): Promise<void> =>
+  clipInPage(() => sendClip(captureContextImage(srcUrl), templateId));
+
+/**
+ * `content:quickCaptureImage`: only from this extension's background (the
+ * context menu), never from another content script; the URL a string.
+ */
+export const onQuickCaptureImage = async ({
+  data,
+  sender,
+}: {
+  data: ClipCommandOptions & { srcUrl: string };
+  sender: MessageSenderLike;
+}): Promise<void> => {
+  if (!fromExtensionContext(sender) || typeof data?.srcUrl !== 'string') {
+    log.warn('[QuickCapture] content:quickCaptureImage not from the extension, ignored');
+    return;
+  }
+  return runImageClipCommand(data.srcUrl, data);
 };
 
 /**

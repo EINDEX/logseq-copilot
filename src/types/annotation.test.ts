@@ -73,6 +73,18 @@ describe('highlightToAnnotation', () => {
     });
   });
 
+  it('anchors a stored image highlight to its image', () => {
+    const image = { xpath: '/html/body[1]/img[1]', src: 'https://example.com/a.png', alt: 'a' };
+    const { range: _range, ...rest } = highlight;
+    expect(highlightToAnnotation({ ...rest, image, note: 'n' })).toEqual({
+      id: 'h1',
+      url: 'https://example.com/a',
+      title: 'A',
+      anchor: { kind: 'image', image },
+      note: 'n',
+    });
+  });
+
   it('carries the note and the link along', () => {
     const logseq = { graph: 'notes', nodeUuid: 'n' };
     expect(highlightToAnnotation({ ...highlight, note: 'hi', logseq })).toMatchObject({

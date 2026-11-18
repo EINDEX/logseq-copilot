@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 import { highlights } from '@/utils/storage';
 
 const calls = vi.hoisted(() => ({
@@ -49,7 +49,7 @@ vi.mock('./logseq/tool', () => ({
 import { checkHighlightLinks, syncHighlightNote } from './highlight-sync';
 import { deleteHighlight } from '@/utils/highlight-service';
 
-const highlight = (id: string, extra: Partial<HighlightData> = {}): HighlightData => ({
+const highlight = (id: string, extra: Partial<TextHighlightData> = {}): TextHighlightData => ({
   id,
   url: 'https://example.com/',
   title: 'Example',
@@ -158,7 +158,7 @@ describe('a clip that was deleted in Logseq', () => {
     const after = await stored('linked');
     expect(after?.logseq).toBeUndefined();
     expect(after?.note).toBe('one');
-    expect(after?.range.textContent).toBe('x');
+    expect(after?.range?.textContent).toBe('x');
     // Nothing was written to Logseq, and the next save is local only.
     expect(calls.log).toEqual([]);
     await expect(syncHighlightNote('linked')).resolves.toBe(false);

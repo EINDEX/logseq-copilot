@@ -7,14 +7,14 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { HighlightList, quoteBarColor } from './HighlightList';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 import { HIGHLIGHT_COLORS } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: `https://example.com/${id}`,
   title: `Page ${id}`,
@@ -41,6 +41,57 @@ describe('HighlightList', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+  });
+
+  describe('an image highlight', () => {
+    const { range: _range, ...base } = highlight('img');
+    const image: HighlightData = {
+      ...base,
+      image: {
+        xpath: '/html/body[1]/img[1]',
+        src: 'https://e.com/cat.png',
+        alt: 'a cat',
+      },
+    };
+
+    it('shows the image from its own URL, without a Referer, and its alt text', () => {
+      render(<HighlightList highlights={[image]} onSelect={noop} onDelete={noop} />);
+      const img = screen.getByRole('img', { name: 'a cat' });
+      expect(img.tagName).toBe('IMG');
+      expect(img.getAttribute('src')).toBe('https://e.com/cat.png');
+      expect(img.getAttribute('referrerpolicy')).toBe('no-referrer');
+      expect(img.getAttribute('loading')).toBe('lazy');
+      expect(img.getAttribute('decoding')).toBe('async');
+      // Not CORS: an image without CORS headers must still show.
+      expect(img.hasAttribute('crossorigin')).toBe(false);
+      expect(screen.getByText('a cat')).toBeTruthy();
+    });
+
+    it.each([
+      ['a data URL', 'data:image/svg+xml;base64,PHN2Zy8+'],
+      ['a script URL', 'javascript:alert(1)'],
+      ['an extension URL', 'chrome-extension://abc/icon.png'],
+      ['a file URL', 'file:///etc/passwd'],
+      ['loopback', 'http://127.0.0.1:12315/api'],
+      ['a private address', 'http://192.168.1.1/cam.jpg'],
+      ['localhost', 'https://localhost/a.png'],
+      ['IPv6 loopback', 'http://[::1]/a.png'],
+      ['not a URL', 'cat.png'],
+    ])('never loads it from %s: an image icon', (_, src) => {
+      const other = { ...image, image: { ...image.image!, src } } as HighlightData;
+      const { container } = render(
+        <HighlightList highlights={[other]} onSelect={noop} onDelete={noop} />,
+      );
+      expect(container.querySelector('img')).toBeNull();
+      expect(screen.getByRole('img', { name: 'a cat' }).tagName).toBe('SPAN');
+    });
+
+    it('shows an image icon when the image does not load', () => {
+      render(<HighlightList highlights={[image]} onSelect={noop} onDelete={noop} />);
+      fireEvent.error(screen.getByRole('img', { name: 'a cat' }));
+      const placeholder = screen.getByRole('img', { name: 'a cat' });
+      expect(placeholder.tagName).toBe('SPAN');
+    });
   });
 
   describe('what it shows', () => {

@@ -99,6 +99,9 @@ export interface MessagingProtocol {
 
   'content:quickCapturePage': (data?: ClipCommandOptions) => void;
 
+  /** "Clip image" from the context menu: the image the menu was opened on. */
+  'content:quickCaptureImage': (data: ClipCommandOptions & { srcUrl: string }) => void;
+
   /** Whether the page has a selection that `quickCaptureWithSelection` would clip. */
   'content:hasSelection': () => boolean;
 

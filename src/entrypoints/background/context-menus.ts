@@ -3,6 +3,7 @@ import log from '@/utils/logger';
 
 export const CLIP_SELECTION_MENU_ID = 'clip-with-selection';
 export const CLIP_PAGE_MENU_ID = 'clip-page';
+export const CLIP_IMAGE_MENU_ID = 'clip-image';
 // The id predates the sidebar showing more than highlights.
 export const OPEN_SIDEBAR_MENU_ID = 'open-highlights-sidebar';
 
@@ -15,6 +16,7 @@ const CLIP_MENUS = [
     contexts: ['selection'],
   },
   { id: CLIP_PAGE_MENU_ID, title: 'Clip page link', contexts: ['page'] },
+  { id: CLIP_IMAGE_MENU_ID, title: 'Clip image', contexts: ['image'] },
 ] as const;
 
 /**
@@ -54,11 +56,12 @@ export const buildClipMenus = (
  */
 export const parseClipMenuId = (
   menuItemId: string | number,
-): { command: 'selection' | 'page'; templateId?: string } | undefined => {
+): { command: 'selection' | 'page' | 'image'; templateId?: string } | undefined => {
   const id = String(menuItemId);
   for (const [command, prefix] of [
     ['selection', CLIP_SELECTION_MENU_ID],
     ['page', CLIP_PAGE_MENU_ID],
+    ['image', CLIP_IMAGE_MENU_ID],
   ] as const) {
     if (id === prefix) return { command };
     if (id.startsWith(`${prefix}:`)) {

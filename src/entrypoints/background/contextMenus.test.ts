@@ -97,6 +97,9 @@ describe('background context menus', () => {
       'clip-page',
       'clip-page:default',
       'clip-page:task',
+      'clip-image',
+      'clip-image:default',
+      'clip-image:task',
       'open-highlights-sidebar',
     ]);
   });
@@ -119,7 +122,7 @@ describe('background context menus', () => {
       );
     });
 
-    it('creates the same two clip items as ever with one template', async () => {
+    it('creates the clip items as plain items with one template', async () => {
       await templates.setValue([
         { id: 'default', name: 'Clip', content: '{{content}}' },
       ]);
@@ -139,6 +142,12 @@ describe('background context menus', () => {
           title: 'Clip page link',
           visible: true,
           contexts: ['page'],
+        },
+        {
+          id: 'clip-image',
+          title: 'Clip image',
+          visible: true,
+          contexts: ['image'],
         },
         {
           id: 'open-highlights-sidebar',
@@ -218,6 +227,9 @@ describe('background context menus', () => {
       await new Promise((r) => setTimeout(r, 30));
       expect(duplicates).toEqual([]);
       expect([...menuIds].sort()).toEqual([
+        'clip-image',
+        'clip-image:a',
+        'clip-image:b',
         'clip-page',
         'clip-page:a',
         'clip-page:b',

@@ -13,6 +13,7 @@
  * (measured on desktop at 1440px), not copies.
  */
 import type { BrowserContext } from '@playwright/test';
+import zlib from 'node:zlib';
 
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -418,19 +419,78 @@ export function braveResultsHtml(query: string, rerender = false) {
 </html>`;
 }
 
+/** An article of the fixture site; with `image`, a figure after the paragraph. */
+export interface Article {
+  title: string;
+  paragraph: string;
+  /**
+   * `src` under https://example.com/images/ or, cross-origin and without
+   * CORS, https://cdn.example.org/images/ is served (fixtureImage).
+   */
+  image?: { src: string; alt: string };
+}
+
 /** An article page with a unique title and paragraph to select and clip. */
-export function articleHtml(title: string, paragraph: string) {
+export function articleHtml(title: string, paragraph: string, image?: Article['image']) {
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-<style>body { background: #fff; color: #111; font: 16px/1.5 sans-serif; margin: 40px; }</style>
+<style>body { background: #fff; color: #111; font: 16px/1.5 sans-serif; margin: 40px; }
+html.dark body { background: #111; color: #eee; }</style>
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
   <p id="target">${escapeHtml(paragraph)}</p>
+  ${
+    image
+      ? `<figure><img id="target-image" src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" width="320" height="200"></figure>`
+      : ''
+  }
   <p>Some other text that is not part of the selection.</p>
 </body>
 </html>`;
+}
+
+/** A 320x200 PNG: a teal-to-blue gradient with a light band, for the article image. */
+export function fixtureImage(): Buffer {
+  const width = 320;
+  const height = 200;
+  const crc = (buf: Buffer) => {
+    let c = ~0;
+    for (const byte of buf) {
+      c ^= byte;
+      for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+    }
+    return ~c >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const head = Buffer.alloc(4);
+    head.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const tail = Buffer.alloc(4);
+    tail.writeUInt32BE(crc(body));
+    return Buffer.concat([head, body, tail]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8);
+  const raw = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const band = Math.abs(y - height / 2 - (x - width / 2) * 0.3) < 14;
+      const at = y * (width * 3 + 1) + 1 + x * 3;
+      raw[at] = band ? 235 : 40 + (x * 60) / width;
+      raw[at + 1] = band ? 245 : 140 - (y * 50) / height;
+      raw[at + 2] = band ? 245 : 160 + (x * 80) / width;
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', zlib.deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
 /** `rhs` is read by the fixture route only; the extension reads `q`. */
@@ -459,7 +519,7 @@ export const braveUrl = (query: string, { rerender }: { rerender?: boolean } = {
  */
 export async function routeFixtureSites(
   context: BrowserContext,
-  articles: Map<string, { title: string; paragraph: string }>,
+  articles: Map<string, Article>,
 ) {
   // Anything else stays offline. Registered first because Playwright tries
   // the most recently added route first.
@@ -494,7 +554,16 @@ export async function routeFixtureSites(
     };
     return route.fulfill({
       contentType: 'text/html',
-      body: articleHtml(article.title, article.paragraph),
+      body: articleHtml(article.title, article.paragraph, article.image),
     });
   });
+  // After example.com/**: Playwright tries the route added last first.
+  // The same image on another origin, without CORS headers: it shows, but
+  // could not be loaded in CORS mode.
+  await context.route('https://cdn.example.org/images/**', (route) =>
+    route.fulfill({ contentType: 'image/png', body: fixtureImage() }),
+  );
+  await context.route('https://example.com/images/**', (route) =>
+    route.fulfill({ contentType: 'image/png', body: fixtureImage() }),
+  );
 }

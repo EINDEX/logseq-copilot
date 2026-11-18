@@ -15,7 +15,7 @@ import {
 } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
-import type { HighlightData } from '@/types/highlight';
+import type { HighlightData, TextHighlightData } from '@/types/highlight';
 
 vi.mock('@/assets/globals.css', () => ({}));
 // logseq:urlSearch (what Logseq has about the page) has a mock of its own.
@@ -109,8 +109,8 @@ const userClick = (target: Element) => {
 
 const highlight = (
   id: string,
-  overrides: Partial<HighlightData> = {},
-): HighlightData => ({
+  overrides: Partial<TextHighlightData> = {},
+): TextHighlightData => ({
   id,
   url: PAGE,
   title: 'Page one',

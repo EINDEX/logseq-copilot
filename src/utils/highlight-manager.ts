@@ -19,6 +19,8 @@ const BRAND_HIGHLIGHT = {
   light: 'rgba(133, 200, 200, 0.5)',
   dark: 'rgba(133, 200, 200, 0.35)',
   flash: 'rgba(133, 200, 200, 0.85)',
+  /** The outline of a highlighted image. */
+  outline: 'rgb(133, 200, 200)',
 };
 
 /**
@@ -46,12 +48,23 @@ export const highlightColor = (color: string | undefined) =>
   HIGHLIGHT_COLORS[color ?? 'yellow'] ?? HIGHLIGHT_COLORS.yellow;
 
 /**
+ * Attribute on a highlighted <img>: the ids of its highlights, space
+ * separated. The CSS Highlight API paints text only, so an image is outlined
+ * by a stylesheet rule on this attribute.
+ */
+export const IMAGE_HIGHLIGHT_ATTRIBUTE = 'data-logseq-copilot-highlight';
+
+const IMAGE_HIGHLIGHT_STYLE_ID = 'logseq-copilot-image-highlight';
+
+/**
  * Manages highlights display and restoration on web pages
  */
 export class HighlightManager {
   private static instance: HighlightManager | null = null;
   private highlights: HighlightRegistry;
   private highlightMap: Map<string, Highlight> = new Map();
+  /** The images shown as highlighted, by highlight id. */
+  private imageMap: Map<string, HTMLImageElement> = new Map();
   private readyPromise: Promise<void> | null = null;
   private clickEventListener: ((event: MouseEvent) => void) | null = null;
   private stopSync: (() => void) | null = null;
@@ -115,6 +128,23 @@ export class HighlightManager {
       event.clientY,
     );
 
+    // A highlighted image: its attribute names the highlight.
+    const image = target.closest?.(`img[${IMAGE_HIGHLIGHT_ATTRIBUTE}]`);
+    if (image) {
+      const ids = (image.getAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE) ?? '').split(' ');
+      const pageHighlights = await this.getPageHighlights();
+      const highlightData = pageHighlights.find(
+        (h) => h.image && ids.includes(h.id),
+      );
+      if (highlightData) {
+        contentEvents.emit('showHighlightComment', {
+          highlightData,
+          clickPosition: { x: event.clientX, y: event.clientY },
+        });
+      }
+      return;
+    }
+
     const clickedRange = caretRangeAtPoint(event.clientX, event.clientY);
     if (!clickedRange) {
       log.debug('[HighlightManager] No range found at click point');
@@ -132,6 +162,7 @@ export class HighlightManager {
     log.debug('[HighlightManager] Page highlights data:', pageHighlights);
 
     for (const highlightData of pageHighlights) {
+      if (highlightData.image) continue;
       const range = HighlightService.deserializeRange(highlightData.range);
       if (range) {
         log.debug(
@@ -308,6 +339,7 @@ export class HighlightManager {
    * Display a highlight on the page
    */
   async displayHighlight(highlightData: HighlightData): Promise<boolean> {
+    if (highlightData.image) return this.displayImageHighlight(highlightData);
     try {
       const range = HighlightService.deserializeRange(highlightData.range);
       if (!range) {
@@ -342,6 +374,70 @@ export class HighlightManager {
         error,
       );
       return false;
+    }
+  }
+
+  /**
+   * Outline the image of an image highlight. False when the page does not
+   * have the image (any more).
+   */
+  private displayImageHighlight(highlightData: HighlightData): boolean {
+    const image = highlightData.image
+      ? HighlightService.deserializeImage(highlightData.image)
+      : null;
+    if (!image) {
+      log.warn(
+        `[HighlightManager] Could not find the image of highlight ${highlightData.id}`,
+      );
+      return false;
+    }
+    const ids = new Set(
+      (image.getAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE) ?? '').split(' ').filter(Boolean),
+    );
+    ids.add(highlightData.id);
+    image.setAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE, [...ids].join(' '));
+    this.imageMap.set(highlightData.id, image);
+    this.injectImageHighlightCSS();
+    log.debug(`[HighlightManager] Displayed image highlight ${highlightData.id}`);
+    return true;
+  }
+
+  /** The one stylesheet that outlines every highlighted image. */
+  private injectImageHighlightCSS(): void {
+    if (document.getElementById(IMAGE_HIGHLIGHT_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = IMAGE_HIGHLIGHT_STYLE_ID;
+    // Full-strength brand teal: the translucent text tint is too faint for a
+    // line. !important: pages often reset the outline of their images.
+    style.textContent = `
+      img[${IMAGE_HIGHLIGHT_ATTRIBUTE}] {
+        outline: 3px solid ${BRAND_HIGHLIGHT.outline} !important;
+        outline-offset: 2px !important;
+        cursor: pointer;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /** Save a new highlight of an image and outline it. */
+  async addImageHighlight(
+    image: HTMLImageElement,
+    note?: string,
+    tags?: string[],
+    logseq?: LogseqLink,
+  ): Promise<HighlightData | null> {
+    try {
+      const result = await HighlightService.saveImageHighlight(image, note, tags, logseq);
+      if (!result.success || !result.data) {
+        log.error('[HighlightManager] Failed to save image highlight:', result.message);
+        return null;
+      }
+      const highlightData = result.data as HighlightData;
+      this.displayImageHighlight(highlightData);
+      return highlightData;
+    } catch (error) {
+      log.error('[HighlightManager] Failed to add image highlight:', error);
+      return null;
     }
   }
 
@@ -431,6 +527,14 @@ export class HighlightManager {
       // The highlight map is filled by the restore.
       await this.ready;
 
+      const image =
+        this.imageMap.get(highlightId) ?? (await this.getSavedImage(highlightId));
+      if (image) {
+        image.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+        this.pulseElement(image);
+        return true;
+      }
+
       // Without the CSS Highlight API (or if the restore could not show this
       // one) nothing is displayed, so work the range out from what is saved.
       const displayed = this.highlightMap.get(highlightId);
@@ -466,7 +570,14 @@ export class HighlightManager {
   private async getSavedRange(highlightId: string): Promise<Range | null> {
     const pageHighlights = await HighlightService.getCurrentPageHighlights();
     const saved = pageHighlights.find((h) => h.id === highlightId);
-    return saved ? HighlightService.deserializeRange(saved.range) : null;
+    return saved && !saved.image ? HighlightService.deserializeRange(saved.range) : null;
+  }
+
+  /** The image of a saved image highlight of this page, if the page has it. */
+  private async getSavedImage(highlightId: string): Promise<HTMLImageElement | null> {
+    const pageHighlights = await HighlightService.getCurrentPageHighlights();
+    const saved = pageHighlights.find((h) => h.id === highlightId);
+    return saved?.image ? HighlightService.deserializeImage(saved.image) : null;
   }
 
   /**
@@ -508,7 +619,12 @@ export class HighlightManager {
    */
   private pulseRange(range: Range): void {
     const element = this.getRangeElement(range);
-    if (typeof element?.animate !== 'function') return;
+    if (element) this.pulseElement(element);
+  }
+
+  /** Pulse an outline around `element` (see pulseRange). */
+  private pulseElement(element: Element): void {
+    if (typeof element.animate !== 'function') return;
 
     const outline = (color: string) => ({
       outline: `2px solid ${color}`,
@@ -622,6 +738,21 @@ export class HighlightManager {
     }
 
     this.highlightMap.delete(highlightId);
+
+    const image = this.imageMap.get(highlightId);
+    if (image) {
+      this.unmarkImage(image, highlightId);
+      this.imageMap.delete(highlightId);
+    }
+  }
+
+  /** Take one highlight id off an image, and the attribute with the last one. */
+  private unmarkImage(image: HTMLImageElement, highlightId: string): void {
+    const ids = (image.getAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE) ?? '')
+      .split(' ')
+      .filter((id) => id && id !== highlightId);
+    if (ids.length > 0) image.setAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE, ids.join(' '));
+    else image.removeAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE);
   }
 
   /**
@@ -658,7 +789,9 @@ export class HighlightManager {
       // the highlights were restored).
       for (const { id, url } of previous) {
         if (savedIds.has(id)) continue;
-        if (url !== href && !this.highlightMap.has(id)) continue;
+        if (url !== href && !this.highlightMap.has(id) && !this.imageMap.has(id)) {
+          continue;
+        }
 
         this.forgetHighlight(id);
         contentEvents.emit('highlightRemoved', { highlightId: id });
@@ -770,6 +903,11 @@ export class HighlightManager {
       this.stopThemeSync = null;
 
       this.highlightMap.clear();
+      for (const image of this.imageMap.values()) {
+        image.removeAttribute(IMAGE_HIGHLIGHT_ATTRIBUTE);
+      }
+      this.imageMap.clear();
+      document.getElementById(IMAGE_HIGHLIGHT_STYLE_ID)?.remove();
       this.readyPromise = null;
 
       log.debug('[HighlightManager] Cleaned up');
