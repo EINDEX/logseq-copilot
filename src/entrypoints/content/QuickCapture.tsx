@@ -17,6 +17,8 @@ import '@/assets/globals.css';
 import './index.module.scss';
 import log from '@/utils/logger';
 import { clipErrorMessage, type ClipCommandOptions } from '@/utils/clip-feedback';
+import { useStorageItem } from '@/hooks/use-storage-item';
+import { enableClipNoteFloatButtonItem } from '@/utils/storage';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
@@ -392,12 +394,22 @@ const ThemedQuickCapture = (props: QuickCaptureProps) => {
   );
 };
 
+/**
+ * ThemedQuickCapture that follows the floating button option: `showFloatButton`
+ * is the value read at startup, and a change in the options page applies to
+ * this open page without a reload.
+ */
+const LiveQuickCapture = ({ showFloatButton }: QuickCaptureProps) => {
+  const live = useStorageItem(enableClipNoteFloatButtonItem, showFloatButton);
+  return <ThemedQuickCapture showFloatButton={live} />;
+};
+
 const mountQuickCapture = (
   contrainer: Container,
   props: QuickCaptureProps = {},
 ) => {
   const root = createRoot(contrainer);
-  root.render(<ThemedQuickCapture {...props} />);
+  root.render(<LiveQuickCapture {...props} />);
   return root;
 };
 
