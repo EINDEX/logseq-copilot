@@ -77,7 +77,10 @@ describe('AppSidebar', () => {
       </MemoryRouter>,
     );
     expect(container.textContent).not.toContain('AI Configuration');
+    // The templates list (with its add button) stays; it has no entry of its own.
     expect(container.textContent).toContain('Templates');
+    const nav = Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(nav).not.toContain('/templates');
   });
 });
 
