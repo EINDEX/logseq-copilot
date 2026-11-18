@@ -81,6 +81,7 @@ export default defineContentScript({
       if (!import.meta.env.FIREFOX) detectArc(ctx);
     }
 
+    /** The enabled search engine this page belongs to, and its stored config. */
     async function getEngine() {
       // Get enabled search engines from storage
       const enabledEngines = await searchEngineConfig.getValue();
@@ -99,10 +100,11 @@ export default defineContentScript({
           });
 
           if (customEngine.isMatch()) {
-            return customEngine;
+            return { engine: customEngine, key: JSON.stringify(engineConfig) };
           }
         }
       }
+      return undefined;
     }
 
     const mount = async (container: Element, query: string, hostFont: string) => {
@@ -182,15 +184,43 @@ export default defineContentScript({
       }
     }
 
+    // The engine the card is drawn for (null: none), by its stored config.
+    let current: { engine: CustomSearchEngine; key: string } | undefined;
+
+    const startEngine = (next: { engine: CustomSearchEngine; key: string }) => {
+      current = next;
+      run(next.engine);
+      // A search engine switched off or edited meanwhile no longer reruns.
+      next.engine.reload(() => {
+        if (current === next) run(next.engine);
+      });
+    };
+
+    // The list of search engines (options page) applies to this open page:
+    // the card appears, goes away or follows the edited engine.
+    let engineChanges = Promise.resolve();
+    const stopWatchingEngines = searchEngineConfig.watch(() => {
+      engineChanges = engineChanges
+        .then(async () => {
+          const next = await getEngine();
+          if (next?.key === current?.key) return;
+          searchCard?.remove();
+          searchCard = undefined;
+          current = undefined;
+          if (next) startEngine(next);
+        })
+        .catch((error) =>
+          log.error('[content] Failed to apply the search engine change', error),
+        );
+    });
+    ctx.onInvalidated(stopWatchingEngines);
+
     const mountUi = async () => {
       const searchEngine = await getEngine();
 
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      if (searchEngine) {
-        run(searchEngine);
-        searchEngine.reload(() => run(searchEngine));
-      }
+      if (searchEngine) startEngine(searchEngine);
 
       // Highlights (restore, comment popup) do not depend on the floating
       // clip button; the option only controls the button itself.

@@ -226,6 +226,18 @@ describe('QuickCapture without the float button', () => {
     expect(container.querySelector('img.quickCapture')).toBeNull();
   });
 
+  it('shows and hides the float button when the option changes, without a remount', async () => {
+    await act(async () => {
+      await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: true });
+    });
+    expect(container.querySelector('img.quickCapture')).not.toBeNull();
+
+    await act(async () => {
+      await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: false });
+    });
+    expect(container.querySelector('img.quickCapture')).toBeNull();
+  });
+
   it('still opens the highlight comment popup', async () => {
     const { contentEvents } = await import('@/utils/content-events');
     await act(async () => {
@@ -250,6 +262,7 @@ describe('QuickCapture float button on mouse events', () => {
     (globalThis as any).Highlight = class {
       add() {}
     };
+    await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: true });
     document.body.innerHTML = '<p id="p">hello world</p>';
 
     const { default: mountQuickCapture } = await import('./QuickCapture');

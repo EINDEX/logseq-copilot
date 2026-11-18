@@ -102,7 +102,7 @@ describe('content script startup', () => {
     );
 
     // Do not await main: the restore below never resolves until we say so.
-    void (contentScript as any).main({});
+    void (contentScript as any).main({ onInvalidated: vi.fn() });
 
     // All handlers are registered synchronously, before any await.
     for (const name of [
@@ -135,7 +135,7 @@ describe('content script startup', () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       new Promise(() => {}),
     );
-    void (contentScript as any).main({});
+    void (contentScript as any).main({ onInvalidated: vi.fn() });
 
     await messaging.handlers.get('content:quickCapturePage')!({
       data: undefined,
@@ -149,7 +149,7 @@ describe('content script startup', () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       restore.promise,
     );
-    void (contentScript as any).main({});
+    void (contentScript as any).main({ onInvalidated: vi.fn() });
 
     selectText();
     await messaging.handlers.get('content:quickCapture')!({ data: undefined });
@@ -167,7 +167,7 @@ describe('content script startup', () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       new Promise(() => {}),
     );
-    void (contentScript as any).main({});
+    void (contentScript as any).main({ onInvalidated: vi.fn() });
     const hasSelection = messaging.handlers.get('content:hasSelection')!;
 
     document.body.innerHTML = '<p id="p">hello world</p>';
@@ -185,7 +185,7 @@ describe('content script startup', () => {
     vi.spyOn(HighlightService, 'getCurrentPageHighlights').mockReturnValue(
       new Promise(() => {}),
     );
-    void (contentScript as any).main({});
+    void (contentScript as any).main({ onInvalidated: vi.fn() });
     messaging.sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq'));
 
     // From the background: shown in the page, the command resolves.
@@ -210,7 +210,7 @@ describe('content script startup', () => {
       );
 
       // Not awaited: it is still waiting for the restore and the UI.
-      void (contentScript as any).main({});
+      void (contentScript as any).main({ onInvalidated: vi.fn() });
 
       // Registered synchronously, before any await, so before the float button
       // setting is even read.
@@ -230,7 +230,7 @@ describe('content script startup', () => {
       const removed = vi.fn();
       const off = contentEvents.on('highlightRemoved', removed);
 
-      void (contentScript as any).main({});
+      void (contentScript as any).main({ onInvalidated: vi.fn() });
       await HighlightManager.getInstance().ready;
 
       await fakeBrowser.storage.local.set({ highlights: [] });
@@ -266,14 +266,14 @@ describe('content script UI mounting', () => {
   // The highlights list lives in the browser sidebar: the page only gets the
   // comment popup (and the float button, when it is on).
   it('mounts the highlight UI (comment popup) with the default config, where the float button is off', async () => {
-    await (contentScript as any).main({});
+    await (contentScript as any).main({ onInvalidated: vi.fn() });
 
     expect(new Set(mountedNames())).toEqual(new Set(['logseq-copilot-popup']));
   });
 
   it('mounts the highlight UI as well when the float button is on', async () => {
     await fakeBrowser.storage.local.set({ enableClipNoteFloatButton: true });
-    await (contentScript as any).main({});
+    await (contentScript as any).main({ onInvalidated: vi.fn() });
 
     expect(new Set(mountedNames())).toEqual(new Set(['logseq-copilot-popup']));
   });
@@ -281,7 +281,7 @@ describe('content script UI mounting', () => {
 
 // Browsers without a sidebar of their own (src/utils/sidebar.ts).
 describe('content script in-page highlights sidebar', () => {
-  const ctx = { addEventListener: vi.fn() };
+  const ctx = { addEventListener: vi.fn(), onInvalidated: vi.fn() };
   const sidebarUi = {
     mount: vi.fn(),
     remove: vi.fn(),
