@@ -51,7 +51,8 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
   },
   { id: 'task', name: 'Task', content: TASK_TEMPLATE_CONTENT },
   {
-    // The property lines are properties on file graphs, plain text on DB graphs.
+    // A file graph reads the property lines; a DB graph gets them set as
+    // properties of the user (background/logseq/db/properties.ts).
     id: 'reading-note',
     name: 'Reading note',
     content: `- [{{title}}]({{url}})

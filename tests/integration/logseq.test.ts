@@ -1163,7 +1163,7 @@ const blockRendingForTest = (title: string, url: string, content: string) =>
   });
 
 describe(`nesting the clipped content under the link (${variant})`, () => {
-  type Node = { text: string; children: Node[] };
+  type Node = { text: string; children: Node[]; raw?: any };
 
   const eventually = async <T>(fn: () => Promise<T>, ok: (v: T) => boolean) => {
     let value = await fn();
@@ -1179,6 +1179,7 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
   const toNode = (block: any): Node => ({
     text: String(block.content ?? block.title ?? ''),
     children: (block.children ?? []).map(toNode),
+    raw: block,
   });
 
   /** The root block of the page that mentions `marker`, with its children. */
@@ -1299,7 +1300,24 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
     }
   });
 
-  test('keeps property lines as text on a DB graph, as properties on a file graph', async () => {
+  /**
+   * The url of the `source` property of a DB block: getPageBlocksTree lists
+   * the value block of a url or text property among the children (it has
+   * `created-from-property`), the Logseq UI does not.
+   */
+  const dbProperty = async (uuid: string, title: string) => {
+    const properties = (await api('logseq.Editor.getAllProperties')).body as any[];
+    const ident = properties.find(
+      (p) => p.title === title && String(p.ident).startsWith(':user.property/'),
+    )?.ident;
+    const block = (await api('logseq.Editor.getBlock', [uuid])).body;
+    const value = ident ? block?.[ident] : undefined;
+    return value && typeof value === 'object' ? value.title : value;
+  };
+  const ownChildren = (node: Node) =>
+    node.children.filter((c) => !c.raw?.[':logseq.property/created-from-property']);
+
+  test('sets the property lines as properties on a DB graph, a file graph reads them', async () => {
     const reading = TEMPLATE_PRESETS.find((p) => p.id === 'reading-note')!;
     const { stamp, url } = await clipWith(reading.content, 'reading', {
       data: 'Quote.',
@@ -1308,12 +1326,20 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
       () => readClip(`nested-${stamp}`),
       (node) => (node?.children.length ?? 0) >= 1,
     );
-    expect(clip!.children.map((c) => c.text)).toEqual(['Quote.']);
-    expect(clip!.text).toContain(`source:: ${url}`);
-    expect(clip!.text).toMatch(/date:: \[\[.+\]\]/);
-    if (!isDB) {
-      const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
-      const root = (body as any[]).find((b) => b.content.includes(`nested-${stamp}`));
+    expect(ownChildren(clip!).map((c) => c.text)).toEqual(['Quote.']);
+    const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+    const root = (body as any[]).find((b) =>
+      String(b.content ?? b.title).includes(`nested-${stamp}`),
+    );
+    if (isDB) {
+      // The lines are properties of the user now, not text.
+      expect(clip!.text).not.toContain('source::');
+      expect(clip!.text).not.toContain('date::');
+      expect(await dbProperty(root.uuid, 'source')).toBe(url);
+      expect(await dbProperty(root.uuid, 'date')).toMatch(/\w/);
+    } else {
+      expect(clip!.text).toContain(`source:: ${url}`);
+      expect(clip!.text).toMatch(/date:: \[\[.+\]\]/);
       expect(root.properties?.source).toContain(url);
     }
   });
@@ -1356,10 +1382,14 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
     );
     expect(clip).toBeDefined();
     // The property is the URL, with no backslash and no other change.
-    expect(clip!.text.split('\n')).toContain(`source:: ${value}`);
-    if (!isDB) {
-      const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
-      const root = (body as any[]).find((b) => b.content.includes(title));
+    const { body } = await api('logseq.Editor.getPageBlocksTree', [TEST_PAGE]);
+    const root = (body as any[]).find((b) => String(b.content ?? b.title).includes(title));
+    if (isDB) {
+      // A url property of the user, its value the URL.
+      expect(clip!.text).not.toContain('source::');
+      expect(await dbProperty(root.uuid, 'source')).toBe(value);
+    } else {
+      expect(clip!.text.split('\n')).toContain(`source:: ${value}`);
       expect(root.properties?.source).toBe(value);
     }
 
@@ -1378,11 +1408,12 @@ describe(`nesting the clipped content under the link (${variant})`, () => {
           JSON.stringify(b).includes(stamp),
         ),
     );
+    // Once: the value block of the url property is not a clip of its own.
     expect(
-      ((found as any).response?.blocks ?? []).some((b: any) =>
+      ((found as any).response?.blocks ?? []).filter((b: any) =>
         JSON.stringify(b).includes(stamp),
       ),
-    ).toBe(true);
+    ).toHaveLength(1);
   });
 });
 

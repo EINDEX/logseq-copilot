@@ -113,7 +113,7 @@ describe('clipBlocks on a DB graph, task markers', () => {
     ]);
   });
 
-  test('leaves properties as text', async () => {
+  test('leaves property lines that are not the template properties as text', async () => {
     const { client, calls } = makeClient();
     const service = new LogseqDBService();
     service.client = client as any;
@@ -129,6 +129,121 @@ describe('clipBlocks on a DB graph, task markers', () => {
     await expect(service.clipBlocks('Page', leaf('TODO x'))).rejects.toThrow(
       'no such property',
     );
+  });
+});
+
+describe('clipBlocks template properties', () => {
+  const USER_URL = {
+    ident: ':user.property/source-x1',
+    title: 'source',
+    ':logseq.property/type': 'url',
+  };
+  const USER_NUM = {
+    ident: ':user.property/rating-x2',
+    title: 'rating',
+    ':logseq.property/type': 'number',
+  };
+  const withProperties = (props: any[] = []) => {
+    const made = makeClient();
+    const all = [...props];
+    const client = {
+      ...made.client,
+      getAllProperties: vi.fn(async () => all),
+      createProperty: vi.fn(async (title: string, type: string) => {
+        made.calls.push(`create ${title} | ${type}`);
+        all.push({ ident: `:user.property/${title}-new`, title, ':logseq.property/type': type });
+        return 'Added: {:property 1}.';
+      }),
+      setBlockProperty: vi.fn(async (uuid: string, ident: string, value: unknown) => {
+        made.calls.push(`property ${uuid} | ${ident} = ${JSON.stringify(value)}`);
+        return null;
+      }),
+      getPage: vi.fn(async (): Promise<any> => ({ id: 193 })),
+      createJournalPage: vi.fn(),
+    };
+    return { client, calls: made.calls };
+  };
+  const block = (content: string, properties: any[], ...children: ClipBlock[]): ClipBlock => ({
+    content,
+    children,
+    properties,
+  });
+  const SOURCE = { key: 'source', value: 'https://e.com', line: 1, kind: 'url' };
+
+  test('DB: strips the property lines before writing, then sets them by ident', async () => {
+    const { client, calls } = withProperties([USER_URL]);
+    const service = new LogseqDBService();
+    service.client = client as any;
+    await service.clipBlocks(
+      'Page',
+      block(
+        'TODO link\nsource:: https://e.com\nread-on:: Nov 19th, 2026\nbody',
+        [
+          SOURCE,
+          { key: 'read-on', value: 'Nov 19th, 2026', line: 2, kind: 'date', date: 'Nov 19th, 2026' },
+        ],
+        block('child\nrating:: 5', [{ key: 'rating', value: '5', line: 1, kind: 'default' }]),
+      ),
+    );
+    expect(calls).toEqual([
+      'create read-on | date',
+      'append Page | link\nbody',
+      'status b1 | Todo',
+      'property b1 | :user.property/source-x1 = "https://e.com"',
+      'property b1 | :user.property/read-on-new = 193',
+      'create rating | default',
+      'child b1 | child',
+      'property b2 | :user.property/rating-new = "5"',
+    ]);
+  });
+
+  test('DB: a value that does not fit keeps its line as text, the clip saves', async () => {
+    const { client, calls } = withProperties([USER_NUM]);
+    const service = new LogseqDBService();
+    service.client = client as any;
+    await expect(
+      service.clipBlocks(
+        'Page',
+        block('link\nrating:: great', [{ key: 'rating', value: 'great', line: 1, kind: 'default' }]),
+      ),
+    ).resolves.toMatchObject({ rootUuid: 'b1' });
+    expect(calls).toEqual(['append Page | link\nrating:: great']);
+  });
+
+  test('DB: a property Logseq refuses after the write is logged, not a failure', async () => {
+    const { client, calls } = withProperties([USER_URL]);
+    client.setBlockProperty.mockRejectedValue(new Error('500'));
+    const service = new LogseqDBService();
+    service.client = client as any;
+    await expect(
+      service.clipBlocks('Page', block('link\nsource:: https://e.com', [SOURCE])),
+    ).resolves.toMatchObject({ rootUuid: 'b1' });
+    expect(calls).toEqual(['append Page | link']);
+  });
+
+  test('DB: the properties list cannot be read: every line stays text', async () => {
+    const { client, calls } = withProperties();
+    client.getAllProperties.mockRejectedValue(new Error('down'));
+    const service = new LogseqDBService();
+    service.client = client as any;
+    await service.clipBlocks('Page', block('link\nsource:: https://e.com', [SOURCE]));
+    expect(calls).toEqual(['append Page | link\nsource:: https://e.com']);
+  });
+
+  test('DB: a line that no longer says the property stays (the text changed after render)', async () => {
+    const { client, calls } = withProperties([USER_URL]);
+    const service = new LogseqDBService();
+    service.client = client as any;
+    await service.clipBlocks('Page', block('link\nother text', [SOURCE]));
+    expect(calls).toEqual(['append Page | link\nother text']);
+  });
+
+  test('file: writes the text as it is, property lines included', async () => {
+    const { client, calls } = withProperties([USER_URL]);
+    const service = new LogseqService();
+    service.client = client as any;
+    await service.clipBlocks('Page', block('link\nsource:: https://e.com', [SOURCE]));
+    expect(calls).toEqual(['append Page | link\nsource:: https://e.com']);
   });
 });
 
