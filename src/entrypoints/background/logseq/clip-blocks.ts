@@ -3,10 +3,14 @@ import log from '@/utils/logger';
 
 /** How a service writes one block of a clip. */
 export interface BlockWriter {
-  /** A block at the end of `page`. */
-  append(page: string, content: string): Promise<BlockWritten>;
+  /** A block at the end of `page`; `block` is the block of the clip it is. */
+  append(page: string, content: string, block: ClipBlock): Promise<BlockWritten>;
   /** A block as the last child of the block `parentUuid`. */
-  insertChild(parentUuid: string, content: string): Promise<BlockWritten>;
+  insertChild(
+    parentUuid: string,
+    content: string,
+    block: ClipBlock,
+  ): Promise<BlockWritten>;
 }
 
 /**
@@ -113,7 +117,7 @@ export const writeClipBlocks = async (
 
   const writeChildren = async (parentUuid: string, children: ClipBlock[]) => {
     for (const child of children) {
-      const { uuid, text } = await writer.insertChild(parentUuid, child.content);
+      const { uuid, text } = await writer.insertChild(parentUuid, child.content, child);
       written++;
       if (child.note && noteUuid === undefined) {
         noteUuid = uuid;
@@ -138,7 +142,7 @@ export const writeClipBlocks = async (
     if (target) {
       const [first, ...others] = root.children;
       node = { ...first, children: [...first.children, ...others] };
-      const made = await writer.insertChild(target.uuid, node.content);
+      const made = await writer.insertChild(target.uuid, node.content, node);
       rootUuid = made.uuid;
       written++;
       if (node.note) {
@@ -146,7 +150,7 @@ export const writeClipBlocks = async (
         noteText = made.text ?? node.content;
       }
     } else {
-      const made = await writer.append(page, root.content);
+      const made = await writer.append(page, root.content, root);
       rootUuid = made.uuid;
       written++;
       if (root.note) {

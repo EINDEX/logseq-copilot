@@ -11,7 +11,9 @@ import { createNoteBlockApi } from '../note-blocks';
 import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
+import { withoutPropertyLines } from '@/utils/block-meta';
 import type { TemplateTag } from '@/utils/storage';
+import { createPropertyPlanner } from './properties';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
@@ -359,27 +361,52 @@ export default class LogseqDBService implements LogseqServiceInterface {
    * Appends a clip: its root block and the tree below it. A task marker at the
    * start of any block (root or child), `TODO ` or `LATER `, becomes the
    * block's status: Logseq keeps tasks in a property, not in the text.
-   * Properties (`key:: value`) stay text: a DB graph does not read them from
-   * the text, and setting them through the API would create a property of the
-   * plugin instead of the user's own.
+   * A DB graph does not read `key:: value` lines from the text. The property
+   * lines of the template (`block.properties`, see block-meta.ts) are resolved
+   * before the block is written (db/properties.ts): the lines that become
+   * properties are left out of its text and set on it by ident after it is
+   * written. Any other property line stays text, and so does one whose value
+   * does not fit, or when the graph cannot be read. Inline `#tags` stay in the
+   * text: a DB graph makes them tags of the block itself.
    *
-   * The tag goes on the root as a class (`addBlockTag`), the text stays clean.
+   * The template's `tag` goes on the root as a class (`addBlockTag`), the
+   * text stays clean.
    */
   public async clipBlocks(
     page: string,
     root: ClipBlock,
     opts: { tag?: TemplateTag; group?: GroupRequest } = {},
   ) {
+    const planner = createPropertyPlanner(this.client);
     const write = async (
       create: (text: string) => Promise<unknown>,
       content: string,
+      block: ClipBlock,
     ) => {
-      const { content: text, status } = splitTaskMarker(content);
+      const lines = content.split('\n');
+      const planned = (
+        await Promise.all(
+          (block.properties ?? [])
+            // The line still says it (an image of the clip may have changed the text).
+            .filter((p) => lines[p.line]?.startsWith(`${p.key}::`))
+            .map(async (p) => ({ line: p.line, write: await planner.resolve(p) })),
+        )
+      ).filter((p) => p.write !== undefined);
+      const { content: text, status } = splitTaskMarker(
+        withoutPropertyLines(content, planned),
+      );
       const uuid = blockUuid(await create(text));
       if (status) {
         const result = await this.client.setBlockStatus(uuid, status);
         if (result && typeof result === 'object' && 'error' in result) {
           throw new Error(String(result.error));
+        }
+      }
+      for (const { write: property } of planned) {
+        try {
+          await this.client.setBlockProperty(uuid, property!.ident, property!.value);
+        } catch (error) {
+          log.warn(`The clip was saved, but its property ${property!.ident} was not set.`, error);
         }
       }
       return { uuid, ...(text !== content && { text }) };
@@ -398,12 +425,13 @@ export default class LogseqDBService implements LogseqServiceInterface {
       page,
       root,
       {
-        append: (to, content) =>
-          write((text) => this.client.appendBlock(to, text), content),
-        insertChild: (parentUuid, content) =>
+        append: (to, content, block) =>
+          write((text) => this.client.appendBlock(to, text), content, block),
+        insertChild: (parentUuid, content, block) =>
           write(
             (text) => this.client.insertChildBlock(parentUuid, text),
             content,
+            block,
           ),
       },
       name ? (rootUuid) => this.tagBlock(rootUuid, name) : undefined,

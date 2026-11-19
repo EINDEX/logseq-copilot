@@ -217,6 +217,55 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     ]);
   };
 
+  /**
+   * Every property of the graph: `ident`, `title`, `:logseq.property/type`,
+   * built-in ones included (probed on 2.0.2).
+   */
+  public getAllProperties = async () => {
+    return await this.baseJson('logseq.Editor.getAllProperties', []);
+  };
+
+  /**
+   * Makes a property of the user (`:user.property/...`) titled `title` with
+   * the type `type`. Logseq answers a text (`Added: {:property 1}.`), not the
+   * property: read it back with getAllProperties. It makes a second property
+   * when one of that title exists, so look first.
+   */
+  public createProperty = async (title: string, type: string) => {
+    return await this.baseText('logseq.Editor.upsertNodes', [
+      [
+        {
+          operation: 'add',
+          entityType: 'property',
+          id: 'property',
+          data: { title, 'property-type': type },
+        },
+      ],
+    ]);
+  };
+
+  /**
+   * Sets the property `ident` (always the full ident: a bare name makes a
+   * property of the plugin) on a block. Logseq checks the value against the
+   * type and answers a refusal with HTTP 500, which throws.
+   */
+  public setBlockProperty = async (uuid: string, ident: string, value: unknown) => {
+    const result = await this.baseJson('logseq.Editor.upsertBlockProperty', [
+      uuid,
+      ident,
+      value,
+    ]);
+    if (result && typeof result === 'object' && 'error' in result) {
+      throw new Error(String((result as any).error));
+    }
+    return result;
+  };
+
+  /** The journal page of `date` (a title in the graph's date format), made when missing. */
+  public createJournalPage = async (date: string) => {
+    return await this.baseJson('logseq.Editor.createJournalPage', [date]);
+  };
+
   /** Tags the block with the class `tagUuid`. Always by uuid, never by name. */
   public addBlockTag = async (blockUuid: string, tagUuid: string) => {
     return await this.baseJson('logseq.Editor.addBlockTag', [

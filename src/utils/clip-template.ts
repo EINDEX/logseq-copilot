@@ -70,11 +70,28 @@ import {
   type MidLine,
   type ValueSite,
 } from './logseq-format';
+import { parseBlockMeta, type TemplateProperty } from './block-meta';
 
 export interface ClipBlock {
   content: string;
   children: ClipBlock[];
   /** This block holds the note of the clip, and nothing else (see `{{note}}`). */
+  note?: true;
+  /**
+   * The `key:: value` lines of the template in `content` (block-meta.ts): a
+   * DB graph sets them as properties. Only when there are some.
+   */
+  properties?: TemplateProperty[];
+}
+
+/**
+ * A block with `literal`: per character of `content`, '1' when the template
+ * wrote it, '0' when it is page text or the note (see `renderClipLiteral`).
+ */
+export interface LiteralBlock {
+  content: string;
+  literal: string;
+  children: LiteralBlock[];
   note?: true;
 }
 
@@ -218,6 +235,8 @@ export const placeNoteTags = (template: string): string =>
   );
 
 const NOTE_PLACE = '__clip_note';
+/** The marks of the render in progress that tracks what is page text. */
+let activeTrack: Track | undefined;
 // Registered on first use: the engine lives in a module that imports this one.
 let notePlaceRegistered = false;
 const registerNotePlace = () => {
@@ -226,23 +245,84 @@ const registerNotePlace = () => {
   engine.registerFilter(
     NOTE_PLACE,
     (value: unknown, column: number, alone: boolean) => {
-      const text = neutraliseNote(
-        value === undefined || value === null ? '' : String(value),
-        Number(column),
+      const text = track(
+        neutraliseNote(
+          value === undefined || value === null ? '' : String(value),
+          Number(column),
+        ),
+        activeTrack,
       );
       return alone && text !== '' ? NOTE_MARK + text : text;
     },
   );
 };
 
+// ---- what is page text --------------------------------------------------------
+
+/**
+ * Two characters (private use) that wrap each output of a page value and of
+ * the note while a template renders, so that the text of the template can be
+ * told from them afterwards (`renderClipLiteral`). Chosen not to be in the
+ * template or in any value.
+ */
+interface Track {
+  open: string;
+  close: string;
+}
+
+const pickTrack = (texts: (string | undefined)[]): Track | undefined => {
+  const all = texts.join('');
+  const free: string[] = [];
+  for (let code = 0xe100; code <= 0xf8ff && free.length < 2; code++) {
+    const char = String.fromCharCode(code);
+    if (!all.includes(char)) free.push(char);
+  }
+  return free.length === 2 ? { open: free[0], close: free[1] } : undefined;
+};
+
+/** `text` wrapped in the marks of `marks`; empty text stays empty. */
+const track = (text: string, marks: Track | undefined) =>
+  marks && text !== '' ? marks.open + text + marks.close : text;
+
+/**
+ * The text without the marks, and its `literal` mask. Undefined when the
+ * marks do not pair up (a filter of the template cut them).
+ */
+const untrack = (
+  marked: string,
+  { open, close }: Track,
+): { text: string; literal: string } | undefined => {
+  let text = '';
+  let literal = '';
+  let inside = false;
+  for (const char of marked) {
+    if (char === open) {
+      if (inside) return undefined;
+      inside = true;
+    } else if (char === close) {
+      if (!inside) return undefined;
+      inside = false;
+    } else {
+      text += char;
+      literal += (inside ? '0' : '1').repeat(char.length);
+    }
+  }
+  return inside ? undefined : { text, literal };
+};
+
 /** The blocks with the mark of the note block read into `note`, the mark gone. */
-const readNoteMarks = (blocks: ClipBlock[]): ClipBlock[] =>
+const readNoteMarks = (blocks: LiteralBlock[]): LiteralBlock[] =>
   blocks.map((block) => {
     const marked = block.content.startsWith(NOTE_MARK);
     const { note: _drop, ...rest } = block;
+    let literal = '';
+    for (let i = 0; i < block.content.length; i++) {
+      if (block.content[i] !== NOTE_MARK) literal += block.literal[i];
+    }
     return {
       ...rest,
       content: block.content.replaceAll(NOTE_MARK, ''),
+      literal,
       children: readNoteMarks(block.children),
       ...(marked && { note: true as const }),
     };
@@ -259,11 +339,15 @@ const render = (
   template: string,
   vars: ClipVars,
   write: (site: ValueSite) => string,
+  marks?: Track,
 ) => {
   registerNotePlace();
   const note = cleanNote(vars.note);
-  return renderWithPageValues(
-    placeNoteTags(note === '' ? dropEmptyNote(template) : template),
+  const previous = activeTrack;
+  activeTrack = marks;
+  try {
+    return renderWithPageValues(
+      placeNoteTags(note === '' ? dropEmptyNote(template) : template),
     {
       // `{{note}}` is placed by `placeNoteTags`; `note` is for a tag that
       // reads it (`{% if note %}`). The note is the user's own text.
@@ -273,10 +357,13 @@ const render = (
       time: logseqTimeFormat(vars.time),
       dt: vars.time,
     },
-    { content: vars.data, title: vars.title, url: vars.url },
-    write,
-    [note],
-  );
+      { content: vars.data, title: vars.title, url: vars.url },
+      (site) => track(write(site), marks),
+      [note],
+    );
+  } finally {
+    activeTrack = previous;
+  }
 };
 
 /** A template rendered into a single block, trimmed. */
@@ -327,16 +414,26 @@ export const closesFence = (text: string, fence: '`' | '~') =>
 // ---- outline parser ---------------------------------------------------------
 
 interface Draft {
-  block: ClipBlock;
+  block: LiteralBlock;
   depth: number;
   lines: string[];
+  literals: string[];
 }
 
-const pruneEmpty = (blocks: ClipBlock[]): ClipBlock[] =>
+const pruneEmpty = <T extends { content: string; children: T[] }>(
+  blocks: T[],
+): T[] =>
   blocks.flatMap((block) => {
     block.children = pruneEmpty(block.children);
     return block.content === '' ? block.children : [block];
   });
+
+/** Blocks without their `literal`. */
+const dropLiteral = (blocks: LiteralBlock[]): ClipBlock[] =>
+  blocks.map(({ literal: _literal, children, ...block }) => ({
+    ...block,
+    children: dropLiteral(children),
+  }));
 
 /**
  * Parses outline markdown into a block tree.
@@ -349,24 +446,42 @@ const pruneEmpty = (blocks: ClipBlock[]): ClipBlock[] =>
  *   block.
  * - Empty blocks are skipped, their children move up a level.
  */
-export const parseOutline = (text: string): ClipBlock[] => {
-  const roots: ClipBlock[] = [];
+export const parseOutline = (text: string): ClipBlock[] =>
+  dropLiteral(parseLiteralOutline(text, '1'.repeat(text.length)));
+
+/**
+ * `parseOutline` that carries `literal` (one mark per character of `text`)
+ * to the text of each block.
+ */
+const parseLiteralOutline = (text: string, literal: string): LiteralBlock[] => {
+  const roots: LiteralBlock[] = [];
   const drafts: Draft[] = [];
   const stack: Draft[] = [];
   let current: Draft | undefined;
-  const rows = text.split(/\r?\n/);
+  const rows: string[] = [];
+  const rowLiterals: string[] = [];
+  for (let at = 0; ; ) {
+    const newline = text.indexOf('\n', at);
+    const end = newline === -1 ? text.length : newline;
+    const cut = end > at && text[end - 1] === '\r' && newline !== -1 ? end - 1 : end;
+    rows.push(text.slice(at, cut));
+    rowLiterals.push(literal.slice(at, cut));
+    if (newline === -1) break;
+    at = newline + 1;
+  }
   // A mark opens a fence only when a mark follows, else it is text.
   const lastMark = rows.findLastIndex(
     (row) => isFenceMark(row) || isFenceMark(row.replace(/^[ \t]*- /, '')),
   );
   let fence = false;
 
-  const start = (depth: number, first: string, row: number) => {
+  const start = (depth: number, first: string, firstLiteral: string, row: number) => {
     while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
     const draft: Draft = {
-      block: { content: '', children: [] },
+      block: { content: '', literal: '', children: [] },
       depth,
       lines: [first],
+      literals: [firstLiteral],
     };
     (stack.length ? stack[stack.length - 1].block.children : roots).push(
       draft.block,
@@ -378,14 +493,17 @@ export const parseOutline = (text: string): ClipBlock[] => {
   };
 
   for (const [row, raw] of rows.entries()) {
+    const rawLiteral = rowLiterals[row];
     const whitespace = /^[ \t]*/.exec(raw)![0];
     const indent = indentWidth(whitespace);
     const body = raw.slice(whitespace.length);
+    const bodyLiteral = rawLiteral.slice(whitespace.length);
 
     if (!fence && (body.startsWith('- ') || body === '-')) {
       start(
         Math.min(Math.floor(indent / 2), current ? current.depth + 1 : 0),
         body.slice(2),
+        bodyLiteral.slice(2),
         row,
       );
       continue;
@@ -393,21 +511,29 @@ export const parseOutline = (text: string): ClipBlock[] => {
 
     if (body === '') {
       current?.lines.push('');
+      current?.literals.push('');
       continue;
     }
     if (!current) {
-      start(0, '', row);
+      start(0, '', '', row);
     }
     const draft = current!;
     const strip = Math.min(indent, draft.depth * 2 + 2);
     const line = ' '.repeat(indent - strip) + body;
     draft.lines.push(line);
+    draft.literals.push('1'.repeat(indent - strip) + bodyLiteral);
     if (fence) fence = !isFenceMark(line);
     else fence = row < lastMark && isFenceMark(line);
   }
 
-  for (const draft of drafts)
-    draft.block.content = draft.lines.join('\n').trim();
+  for (const draft of drafts) {
+    const joined = draft.lines.join('\n');
+    const joinedLiteral = draft.literals.join('1');
+    const content = joined.trim();
+    const from = joined.length - joined.trimStart().length;
+    draft.block.content = content;
+    draft.block.literal = joinedLiteral.slice(from, from + content.length);
+  }
   return pruneEmpty(roots);
 };
 
@@ -613,7 +739,7 @@ const writeTreeValue = (site: ValueSite): string => {
  * The blocks with one root: the first root takes the others as children, after
  * its own. An empty list stays empty.
  */
-export const singleRoot = (blocks: ClipBlock[]): ClipBlock[] => {
+export const singleRoot = <T extends ClipBlock | LiteralBlock>(blocks: T[]): T[] => {
   if (blocks.length <= 1) return blocks;
   const [root, ...others] = blocks;
   return [{ ...root, children: [...root.children, ...others] }];
@@ -628,34 +754,114 @@ export const singleRoot = (blocks: ClipBlock[]): ClipBlock[] => {
 export const countRoots = (template: string): number =>
   isTreeTemplate(template) ? parseOutline(template).length : 1;
 
-/**
- * Renders a template into the blocks to write: at most one root (see the module
- * header). A flat template is one block, the same text `blockRending` made; a
- * tree template is parsed into its tree. A tree template of only empty bullets
- * renders to no block at all.
- */
-export const renderClip = (template: string, vars: ClipVars): ClipBlock[] => {
+/** The rendered text of a template, and what of it is page text. */
+const renderText = (
+  template: string,
+  vars: ClipVars,
+  write: (site: ValueSite) => string,
+  marks: Track | undefined,
+): { text: string; literal: string } | undefined => {
+  const text = render(template, vars, write, marks);
+  return marks ? untrack(text, marks) : { text, literal: '1'.repeat(text.length) };
+};
+
+/** The blocks of a template, with `marks` what is page text (see `renderClip`). */
+const renderBlocks = (
+  template: string,
+  vars: ClipVars,
+  marks?: Track,
+): LiteralBlock[] | undefined => {
   const note = cleanNote(vars.note);
-  let blocks: ClipBlock[];
+  let blocks: LiteralBlock[];
   if (!isTreeTemplate(template)) {
-    blocks = [{ content: renderFlatClip(template, vars), children: [] }];
+    const rendered = renderText(template, vars, escapeValueSite, marks);
+    if (!rendered) return undefined;
+    const content = rendered.text.trim();
+    const from = rendered.text.length - rendered.text.trimStart().length;
+    blocks = [
+      {
+        content,
+        literal: rendered.literal.slice(from, from + content.length),
+        children: [],
+      },
+    ];
   } else {
-    const text = render(template, vars, writeTreeValue);
-    blocks = readNoteMarks(singleRoot(parseOutline(text)));
+    const rendered = renderText(template, vars, writeTreeValue, marks);
+    if (!rendered) return undefined;
+    blocks = readNoteMarks(
+      singleRoot(parseLiteralOutline(rendered.text, rendered.literal)),
+    );
   }
   // A template without `{{note}}` keeps the note anyway: the last child of the
   // clip's root, a block of its own.
   if (note !== '' && !usesNote(template) && blocks.length > 0) {
     const [root] = blocks;
+    const content = neutraliseNote(note);
     blocks = [
       {
         ...root,
         children: [
           ...root.children,
-          { content: neutraliseNote(note), children: [], note: true },
+          { content, literal: '0'.repeat(content.length), children: [], note: true },
         ],
       },
     ];
   }
   return blocks;
+};
+
+const sameTree = (a: LiteralBlock[], b: LiteralBlock[]): boolean =>
+  a.length === b.length &&
+  a.every(
+    (block, i) =>
+      block.content === b[i].content &&
+      block.note === b[i].note &&
+      sameTree(block.children, b[i].children),
+  );
+
+const allPageText = (blocks: LiteralBlock[]): LiteralBlock[] =>
+  blocks.map((block) => ({
+    ...block,
+    literal: '0'.repeat(block.content.length),
+    children: allPageText(block.children),
+  }));
+
+/**
+ * `renderClip` with `literal` on each block: which characters of its text the
+ * template wrote ('1') and which are page text or the note ('0'). The page
+ * values and the note are wrapped in marks while the template renders and
+ * taken out after. The blocks are always those of a render without marks:
+ * when the marks did not survive the template, or changed what it made (a
+ * filter that counts the characters of the note), everything counts as page
+ * text.
+ */
+export const renderClipLiteral = (
+  template: string,
+  vars: ClipVars,
+): LiteralBlock[] => {
+  const plain = renderBlocks(template, vars)!;
+  const marks = pickTrack([template, vars.data, vars.title, vars.url, vars.note]);
+  const tracked = marks && renderBlocks(template, vars, marks);
+  return tracked && sameTree(plain, tracked) ? tracked : allPageText(plain);
+};
+
+/**
+ * Renders a template into the blocks to write: at most one root (see the module
+ * header). A flat template is one block, the same text `blockRending` made; a
+ * tree template is parsed into its tree. A tree template of only empty bullets
+ * renders to no block at all. A block that has property lines of the template
+ * (block-meta.ts) has them in `properties`.
+ */
+export const renderClip = (template: string, vars: ClipVars): ClipBlock[] => {
+  const date = formatLogseqDate(vars.time, vars.preferredDateFormat);
+  const toClip = (blocks: LiteralBlock[]): ClipBlock[] =>
+    blocks.map(({ literal, children, ...block }) => {
+      const { properties } = parseBlockMeta(block.content, literal, date);
+      return {
+        ...block,
+        children: toClip(children),
+        ...(properties.length > 0 && { properties }),
+      };
+    });
+  return toClip(renderClipLiteral(template, vars));
 };
