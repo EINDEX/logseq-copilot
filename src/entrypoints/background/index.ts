@@ -6,7 +6,7 @@ import {
   migrateLegacyClipSettingsToTemplates,
   migrateRecallRuleDefaultsToEnglish,
 } from './upgrade';
-import { getLogseqService } from './logseq/tool';
+import { getGraphKind, getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
 import { inPageSidebarOpenItem, templates } from '@/utils/storage';
 import { TASK_TEMPLATE_ID } from '@/utils/default-templates';
@@ -110,6 +110,23 @@ export default defineBackground({
     onMessage('logseq:checkHighlightLinks', async ({ data }) => {
       return await checkHighlightLinks(data.ids);
     });
+
+    onMessage('logseq:listTags', async () => {
+      const logseqService = await getLogseqService();
+      return await logseqService.listTags();
+    });
+
+    onMessage('logseq:listProperties', async () => {
+      try {
+        const logseqService = await getLogseqService();
+        return await logseqService.listProperties();
+      } catch (error) {
+        log.warn('Could not list the properties of the graph.', error);
+        return [];
+      }
+    });
+
+    onMessage('logseq:graphKind', () => getGraphKind());
 
     onMessage('app:openOptions', async () => {
       browser.runtime.openOptionsPage();

@@ -33,6 +33,19 @@ export interface GraphTag {
   uuid?: string;
 }
 
+/**
+ * A property of the graph the template editor offers. `type` is the type of
+ * a DB graph's property (`default`, `url`, `date`, `number`, ...); a file
+ * graph has no types.
+ */
+export interface GraphProperty {
+  title: string;
+  type?: string;
+}
+
+/** The kind of graph Logseq has open; null when Logseq cannot be reached. */
+export type GraphKind = 'file' | 'db' | null;
+
 export interface TemplateItemV1 {
   id: string;
   name: string;

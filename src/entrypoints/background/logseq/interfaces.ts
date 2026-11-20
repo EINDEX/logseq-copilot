@@ -1,7 +1,7 @@
 import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
 import type { RecallResult } from '@/types/recall';
 import type { ClipBlock } from '@/utils/clip-template';
-import type { GraphTag } from '@/utils/storage';
+import type { GraphProperty, GraphTag } from '@/utils/storage';
 import type { RecallOptions } from './recall/recall';
 import type { WrittenClip } from './clip-blocks';
 import type { GroupRequest } from './clip-group';
@@ -66,6 +66,12 @@ export interface LogseqServiceInterface extends NoteBlockApi, ImageAssetStore {
    * The tags of the graph, by name, the ones of a DB graph with their uuid. Throws when Logseq cannot answer.
    */
   listTags(): Promise<GraphTag[]>;
+  /**
+   * The properties to offer in the template editor, by title: a DB graph's
+   * own properties with their type, the keys a file graph uses. Throws when
+   * Logseq cannot answer.
+   */
+  listProperties(): Promise<GraphProperty[]>;
   changeBlockMarker(
     uuid: string,
     marker: string,

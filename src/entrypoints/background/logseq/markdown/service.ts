@@ -8,7 +8,7 @@ import { createNoteBlockApi } from '../note-blocks';
 import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
-import type { GraphTag } from '@/utils/storage';
+import type { GraphProperty, GraphTag } from '@/utils/storage';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
@@ -31,6 +31,26 @@ export const MAX_SEARCH_BLOCKS = 50;
 /** Pages that some block or page has as a tag (`tags::`). */
 const TAGGED_PAGES_QUERY =
   '[:find ?n :where [?x :block/tags ?p] [?p :block/original-name ?n]]';
+
+/** Every property key in use: `properties-order` lists the keys of an entity. */
+const PROPERTY_KEYS_QUERY =
+  '[:find ?k :where [?b :block/properties-order ?o] [(identity ?o) [?k ...]]]';
+
+/** Keys Logseq writes for itself (hidden in its own UI). */
+const HIDDEN_PROPERTY_KEYS = new Set([
+  'id',
+  'collapsed',
+  'heading',
+  'background-color',
+  'card-last-interval',
+  'card-repeats',
+  'card-ease-factor',
+  'card-next-schedule',
+  'card-last-reviewed',
+  'card-last-score',
+  'created-at',
+  'updated-at',
+]);
 
 export default class LogseqService implements LogseqServiceInterface {
   public client: LogseqClient = new LogseqClient();
@@ -277,6 +297,29 @@ export default class LogseqService implements LogseqServiceInterface {
     return [...names]
       .sort((a, b) => a.localeCompare(b))
       .map((name) => ({ name }));
+  }
+
+  /**
+   * The property keys the graph's blocks and pages use (0.10.x has no
+   * `getAllProperties`), without the ones Logseq keeps for itself.
+   */
+  public async listProperties(): Promise<GraphProperty[]> {
+    const rows = await this.client.datascriptQuery(PROPERTY_KEYS_QUERY);
+    if (!Array.isArray(rows)) {
+      throw new Error(
+        rows && typeof rows === 'object' && 'error' in rows
+          ? String((rows as any).error)
+          : 'Logseq did not return the properties of the graph.',
+      );
+    }
+    const keys = new Set<string>();
+    for (const row of rows) {
+      const key = String(Array.isArray(row) ? row[0] : row).replace(/^:/, '');
+      if (key && !HIDDEN_PROPERTY_KEYS.has(key) && !key.startsWith('logseq.')) {
+        keys.add(key);
+      }
+    }
+    return [...keys].sort((a, b) => a.localeCompare(b)).map((title) => ({ title }));
   }
 
   public async changeBlockMarker(

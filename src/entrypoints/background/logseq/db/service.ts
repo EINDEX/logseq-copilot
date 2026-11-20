@@ -12,8 +12,8 @@ import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import { withoutPropertyLines } from '@/utils/block-meta';
-import type { GraphTag } from '@/utils/storage';
-import { createPropertyPlanner } from './properties';
+import type { GraphProperty, GraphTag } from '@/utils/storage';
+import { createPropertyPlanner, userProperties } from './properties';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
@@ -462,6 +462,13 @@ export default class LogseqDBService implements LogseqServiceInterface {
       }
     }
     return [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** The user's own properties with their type, by title. */
+  public async listProperties(): Promise<GraphProperty[]> {
+    return (await userProperties(this.client))
+      .map(({ title, type }) => ({ title, type }))
+      .sort((a, b) => a.title.localeCompare(b.title));
   }
 
   public async changeBlockMarker(

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   act,
   cleanup,
@@ -11,6 +11,10 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { EditorView } from '@codemirror/view';
 import { fakeBrowser } from 'wxt/testing';
 import { templates } from '@/utils/storage';
+
+const sendMessage = vi.hoisted(() => vi.fn());
+vi.mock('@/types/messaging', () => ({ sendMessage }));
+
 import TemplateEditPage from './template-edit-page';
 
 const CONTENT = '#Clip [{{title}}]({{url}})\n{{content}}';
@@ -77,6 +81,13 @@ const settle = () =>
 describe('TemplateEditPage', () => {
   beforeEach(async () => {
     fakeBrowser.reset();
+    sendMessage.mockReset();
+    // Logseq is not reachable: what the background answers then.
+    sendMessage.mockImplementation(async (type: string) => {
+      if (type === 'logseq:listTags') throw new Error('Cannot connect to Logseq');
+      if (type === 'logseq:graphKind') return null;
+      return [];
+    });
     await templates.setValue([
       {
         id: 'a',
@@ -96,7 +107,7 @@ describe('TemplateEditPage', () => {
 
   it.each([
     ['name', () => screen.getByLabelText('Name'), 'Alpha'],
-    ['custom page', () => screen.getByLabelText('Custom Page Name'), 'Inbox'],
+    ['page', () => screen.getByLabelText('Page name'), 'Inbox'],
   ] as const)(
     'keeps the caret where the user typed in the %s field after the save lands',
     async (_, getField, initial) => {
@@ -289,6 +300,115 @@ describe('TemplateEditPage', () => {
       });
     });
     await waitFor(() => expect(outline().disabled).toBe(false));
+  });
+
+  describe('graph', () => {
+    it('asks Logseq once for the properties, the graph kind and the tags', async () => {
+      renderAt('/template/a');
+      await screen.findByDisplayValue('Alpha');
+      await settle();
+      const asked = sendMessage.mock.calls.map(([type]) => type).sort();
+      expect(asked).toEqual([
+        'logseq:graphKind',
+        'logseq:listProperties',
+        'logseq:listTags',
+      ]);
+    });
+
+    it('shows the type badges of a DB graph', async () => {
+      await templates.setValue([
+        { id: 'p', name: 'Props', content: '- a\n  source:: {{url}}' },
+      ]);
+      sendMessage.mockImplementation(async (type: string) => {
+        if (type === 'logseq:graphKind') return 'db';
+        if (type === 'logseq:listProperties') return [{ title: 'source', type: 'url' }];
+        return [{ name: 'Reading', uuid: 'u' }];
+      });
+      renderAt('/template/p');
+      await screen.findByDisplayValue('Props');
+      await waitFor(() =>
+        expect(document.querySelector('.cm-tpl-type')?.textContent).toBe('url'),
+      );
+    });
+
+    it('keeps working when every request fails', async () => {
+      sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq'));
+      renderAt('/template/b');
+      await screen.findByDisplayValue('Beta');
+      await settle();
+      typeInEditor(2, 'x');
+      await waitFor(async () =>
+        expect((await stored('b'))?.content).toBe('xbeta content'),
+      );
+      expect(document.querySelector('.cm-tpl-type')).toBeNull();
+    });
+
+    it('has no Tag section, and a stored `tag` key does not get in the way', async () => {
+      await templates.setValue([
+        { id: 't', name: 'Tagged', content: 'x', tag: { name: 'Old' } } as never,
+      ]);
+      renderAt('/template/t');
+      await screen.findByDisplayValue('Tagged');
+      expect(screen.queryByRole('combobox', { name: 'Tag' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Tag' })).toBeNull();
+      typeAt(screen.getByLabelText('Name') as HTMLInputElement, 6, '!');
+      await waitFor(async () => expect((await stored('t'))?.name).toBe('Tagged!'));
+    });
+  });
+
+  describe('Save to', () => {
+    const segment = (name: string) => screen.getByRole('button', { name });
+    const pageField = () => screen.queryByLabelText('Page name');
+
+    it('is a segmented control; the page field shows for Page… only', async () => {
+      renderAt('/template/a');
+      await screen.findByDisplayValue('Alpha');
+      expect(screen.getByRole('group', { name: 'Save to' })).toBeTruthy();
+      expect(segment('Page…').getAttribute('aria-pressed')).toBe('true');
+      expect(segment('Journal').getAttribute('aria-pressed')).toBe('false');
+      expect((pageField() as HTMLInputElement).value).toBe('Inbox');
+
+      fireEvent.click(segment('Current page'));
+      await waitFor(async () =>
+        expect((await stored('a'))?.clipNoteLocation).toBe('currentPage'),
+      );
+      expect(segment('Current page').getAttribute('aria-pressed')).toBe('true');
+      expect(pageField()).toBeNull();
+
+      fireEvent.click(segment('Journal'));
+      await waitFor(async () =>
+        expect((await stored('a'))?.clipNoteLocation).toBe('journal'),
+      );
+      expect(pageField()).toBeNull();
+
+      fireEvent.click(segment('Page…'));
+      await waitFor(async () =>
+        expect((await stored('a'))?.clipNoteLocation).toBe('customPage'),
+      );
+      expect((pageField() as HTMLInputElement).value).toBe('Inbox');
+      const saved = await stored('a');
+      expect(saved?.clipNoteCustomPage).toBe('Inbox');
+      expect(saved?.content).toBe(CONTENT);
+    });
+
+    it('defaults to Journal for a template without a location', async () => {
+      renderAt('/template/b');
+      await screen.findByDisplayValue('Beta');
+      expect(segment('Journal').getAttribute('aria-pressed')).toBe('true');
+      expect(pageField()).toBeNull();
+    });
+  });
+
+  it('has no explanatory text', async () => {
+    renderAt('/template/a');
+    await screen.findByDisplayValue('Alpha');
+    const text = document.body.textContent ?? '';
+    expect(text).not.toMatch(/Only used when/);
+    expect(text).not.toMatch(/Configure your template/);
+    expect(text).not.toMatch(/Choose where clips/);
+    expect(text).not.toMatch(/Define the content structure/);
+    expect(screen.queryByRole('heading', { name: 'Template Name' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Template Content' })).toBeNull();
   });
 
   describe('page rules', () => {

@@ -5,6 +5,7 @@ import LogseqClient from './client';
 import LogseqDBService from './db/service';
 import LogseqService from './markdown/service';
 import { LogseqServiceInterface } from './interfaces';
+import type { GraphKind } from '@/utils/storage';
 
 const client = new LogseqClient();
 const logseqServiceDB = new LogseqDBService();
@@ -246,6 +247,20 @@ export const renderBlock = (
 
   block.html = html;
   return block;
+};
+
+/**
+ * The kind of graph Logseq has open: 2.x answers `true` for a DB graph, 0.10.x
+ * has no such method and answers `{ error }`. Null when Logseq cannot be
+ * reached (not running, wrong address or token).
+ */
+export const getGraphKind = async (): Promise<GraphKind> => {
+  try {
+    const resp = await client.isDBGraph();
+    return resp === 'true' || resp === true ? 'db' : 'file';
+  } catch {
+    return null;
+  }
 };
 
 export const getLogseqService = async (config?: LogseqCopliotSettingsV1): Promise<LogseqServiceInterface> => {
