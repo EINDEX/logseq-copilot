@@ -291,39 +291,6 @@ describe('TemplateEditPage', () => {
     await waitFor(() => expect(outline().disabled).toBe(false));
   });
 
-  describe('Tag', () => {
-    beforeAll(() => {
-      globalThis.ResizeObserver ??= class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      } as never;
-      Element.prototype.scrollIntoView ??= () => {};
-    });
-
-    it('saves a typed tag on the template and clears it again', async () => {
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
-      const field = () => screen.getByRole('combobox', { name: 'Tag' });
-      expect(field().textContent).toBe('No tag');
-
-      fireEvent.click(field());
-      // Logseq is not reachable in a unit test: the field takes free text.
-      fireEvent.change(await screen.findByPlaceholderText('Search or type a tag'), {
-        target: { value: 'Reading' },
-      });
-      fireEvent.click(await screen.findByRole('option', { name: 'Reading' }));
-      await waitFor(async () =>
-        expect((await stored('b'))?.tag).toEqual({ name: 'Reading' }),
-      );
-      expect(field().textContent).toBe('#Reading');
-
-      fireEvent.click(field());
-      fireEvent.click(await screen.findByRole('option', { name: 'No tag' }));
-      await waitFor(async () => expect((await stored('b'))?.tag).toBeUndefined());
-      expect(field().textContent).toBe('No tag');
-    });
-  });
   describe('page rules', () => {
     const field = () => screen.getByPlaceholderText(/github\.com/) as HTMLInputElement;
     const add = () => screen.getByRole('button', { name: 'Add pattern' });

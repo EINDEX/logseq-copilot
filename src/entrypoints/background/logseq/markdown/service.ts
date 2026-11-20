@@ -3,12 +3,12 @@ import LogseqClient from './client';
 import { renderBlock, resolveBlockRefs } from '../tool';
 import { LogseqServiceInterface } from '../interfaces';
 import { throwIfClientError } from '../error';
-import { blockUuid, withTagText, writeClipBlocks } from '../clip-blocks';
+import { blockUuid, writeClipBlocks } from '../clip-blocks';
 import { createNoteBlockApi } from '../note-blocks';
 import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
-import type { TemplateTag } from '@/utils/storage';
+import type { GraphTag } from '@/utils/storage';
 import log from '@/utils/logger';
 import type { RecallResult } from '@/types/recall';
 import { recall, type RecallOptions } from '../recall/recall';
@@ -213,15 +213,13 @@ export default class LogseqService implements LogseqServiceInterface {
 
   /**
    * Appends a clip: its root block and the tree below it. A file graph reads
-   * task markers in the text, and the tag too: it is `#[[name]]` in the first
-   * line of the root (see withTagText), so it needs no second call.
+   * task markers, tags and properties in the text.
    */
   public async clipBlocks(
     page: string,
     root: ClipBlock,
-    opts: { tag?: TemplateTag; group?: GroupRequest } = {},
+    opts: { group?: GroupRequest } = {},
   ) {
-    const name = opts.tag?.name.trim();
     // A block of a file graph is a task when it has a marker.
     const target = opts.group
       ? findGroupTarget(
@@ -233,7 +231,7 @@ export default class LogseqService implements LogseqServiceInterface {
       : undefined;
     return await writeClipBlocks(
       page,
-      name ? { ...root, content: withTagText(root.content, name) } : root,
+      root,
       {
         append: async (to, content) => {
           const block = await this.client.appendBlock(to, content);
@@ -244,7 +242,6 @@ export default class LogseqService implements LogseqServiceInterface {
           return { uuid: blockUuid(block) };
         },
       },
-      undefined,
       target,
     );
   }
@@ -253,7 +250,7 @@ export default class LogseqService implements LogseqServiceInterface {
    * File graphs have no tag API. Pages already used as tags (`tags::`) come
    * first from a query; a graph without any lists its pages (no journals).
    */
-  public async listTags(): Promise<TemplateTag[]> {
+  public async listTags(): Promise<GraphTag[]> {
     const names = new Set<string>();
     try {
       const rows = await this.client.datascriptQuery(TAGGED_PAGES_QUERY);

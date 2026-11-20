@@ -111,11 +111,6 @@ export default defineBackground({
       return await checkHighlightLinks(data.ids);
     });
 
-    onMessage('logseq:listTags', async () => {
-      const logseqService = await getLogseqService();
-      return await logseqService.listTags();
-    });
-
     onMessage('app:openOptions', async () => {
       browser.runtime.openOptionsPage();
     });

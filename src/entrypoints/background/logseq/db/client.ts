@@ -201,23 +201,6 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   };
 
   /**
-   * A page by name; with `{ class: true }` the tag of that name, which is
-   * returned as it is when it exists. Never `createTag`: that one makes a
-   * second class in the plugin namespace.
-   */
-  public createPage = async (
-    name: string,
-    properties: Record<string, unknown> = {},
-    opts: { class?: boolean; redirect?: boolean } = {},
-  ) => {
-    return await this.baseJson('logseq.Editor.createPage', [
-      name,
-      properties,
-      opts,
-    ]);
-  };
-
-  /**
    * Every property of the graph: `ident`, `title`, `:logseq.property/type`,
    * built-in ones included (probed on 2.0.2).
    */
@@ -264,14 +247,6 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
   /** The journal page of `date` (a title in the graph's date format), made when missing. */
   public createJournalPage = async (date: string) => {
     return await this.baseJson('logseq.Editor.createJournalPage', [date]);
-  };
-
-  /** Tags the block with the class `tagUuid`. Always by uuid, never by name. */
-  public addBlockTag = async (blockUuid: string, tagUuid: string) => {
-    return await this.baseJson('logseq.Editor.addBlockTag', [
-      blockUuid,
-      tagUuid,
-    ]);
   };
 
   /**

@@ -8,7 +8,6 @@ import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import type { RecallResult } from './recall';
 import type { ClipCommandOptions } from '@/utils/clip-feedback';
-import type { TemplateTag } from '@/utils/storage';
 import type { ClipResult } from './clip';
 
 // Define all message types for cross-context communication
@@ -68,12 +67,6 @@ export interface MessagingProtocol {
    * Logseq.
    */
   'logseq:checkHighlightLinks': (data: { ids: string[] }) => string[];
-
-  /**
-   * The tags of the graph a template can pick (the options page). Errors are
-   * thrown (LogseqError) and reach the sender as a readable message.
-   */
-  'logseq:listTags': () => TemplateTag[];
 
   'logseq:changeBlockMarker': (data: {
     uuid: string;
