@@ -48,9 +48,9 @@ export const resolveTemplate = (
 
 /**
  * Render `source` with its template (the default one without a choice) and append it
- * where the template says: one root block with everything else below it, the
- * template's tag on the root. Throws when nothing was clipped, Logseq failures
- * as LogseqError (a readable message for the user).
+ * where the template says: one root block with everything else below it.
+ * Throws when nothing was clipped, Logseq failures as LogseqError (a readable
+ * message for the user).
  */
 export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   const template = resolveTemplate(
@@ -103,7 +103,7 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
       const { rootUuid, added, noteUuid, noteText } = await logseqService.clipBlocks(
         page,
         root,
-        { tag: template.tag, group },
+        { group },
       );
       return {
         page,

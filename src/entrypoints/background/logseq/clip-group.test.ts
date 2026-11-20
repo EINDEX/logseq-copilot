@@ -77,17 +77,14 @@ describe('writeClipBlocks into an existing block', () => {
 
   it('appends the one child, with its subtree, and writes no root', async () => {
     const { calls, writer } = make();
-    const onRoot = vi.fn();
     const result = await writeClipBlocks(
       'P',
       leaf('root', leaf('c', leaf('d'))),
       writer,
-      onRoot,
       target,
     );
     expect(calls).toEqual(['child T | c', 'child n1 | d']);
     expect(result).toMatchObject({ rootUuid: 'n1', children: 1, added: true, groupedUnder: 'T' });
-    expect(onRoot).not.toHaveBeenCalled();
   });
 
   it('makes the first child the node and the others its children, after its own', async () => {
@@ -96,7 +93,6 @@ describe('writeClipBlocks into an existing block', () => {
       'P',
       leaf('root', leaf('a', leaf('a1')), leaf('b'), leaf('c', leaf('c1'))),
       writer,
-      undefined,
       target,
     );
     expect(calls).toEqual([
@@ -116,7 +112,6 @@ describe('writeClipBlocks into an existing block', () => {
       'P',
       leaf('root', leaf('a'), leaf('b'), note),
       writer,
-      undefined,
       target,
     );
     expect(calls).toEqual(['child T | a', 'child n1 | b', 'child n1 | my note']);
@@ -126,14 +121,14 @@ describe('writeClipBlocks into an existing block', () => {
   it('names the node itself as the note block when the note is the only child', async () => {
     const { calls, writer } = make();
     const note: ClipBlock = { content: 'my note', children: [], note: true };
-    const result = await writeClipBlocks('P', leaf('root', note), writer, undefined, target);
+    const result = await writeClipBlocks('P', leaf('root', note), writer, target);
     expect(calls).toEqual(['child T | my note']);
     expect(result).toMatchObject({ rootUuid: 'n1', noteUuid: 'n1' });
   });
 
   it('writes nothing for a root without children, and names the existing block', async () => {
     const { calls, writer } = make();
-    const result = await writeClipBlocks('P', leaf('root'), writer, undefined, target);
+    const result = await writeClipBlocks('P', leaf('root'), writer, target);
     expect(calls).toEqual([]);
     expect(result).toMatchObject({ rootUuid: 'T', added: false });
   });

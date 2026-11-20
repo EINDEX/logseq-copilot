@@ -4,10 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTemplate } from '@/hooks/use-templates';
-import { TemplateItemV1, type TemplateTag } from '@/utils/storage';
+import { TemplateItemV1 } from '@/utils/storage';
 import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
 import { ClipPreview } from '../components/clip-preview';
-import { TagField } from '../components/tag-field';
 import { RulesField } from '../components/rules-field';
 import {
     TemplateEditor,
@@ -79,10 +78,6 @@ const TemplateEditPage: React.FC = () => {
         handleFieldUpdate('clipNoteLocation', value);
     };
 
-    const handleTagChange = (tag: TemplateTag | undefined) => {
-        updateTemplate({ tag });
-    };
-
     const handleCustomPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         handleTextChange('clipNoteCustomPage', event.target.value);
     };
@@ -143,20 +138,6 @@ const TemplateEditPage: React.FC = () => {
                             Only used when "Custom Page" is selected as the location.
                         </p>
                     </div>
-                </div>
-            </PageSection>
-
-            <PageSection
-                title="Tag"
-                description="Put a tag on the first block of every clip."
-            >
-                <div className="flex flex-col items-start gap-2">
-                    <Label htmlFor="template-tag">Tag</Label>
-                    <TagField
-                        id="template-tag"
-                        value={template.tag}
-                        onChange={handleTagChange}
-                    />
                 </div>
             </PageSection>
 

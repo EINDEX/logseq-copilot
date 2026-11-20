@@ -12,7 +12,7 @@ import { findGroupTarget, type GroupRequest } from '../clip-group';
 import { expandClips } from '../clip-recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import { withoutPropertyLines } from '@/utils/block-meta';
-import type { TemplateTag } from '@/utils/storage';
+import type { GraphTag } from '@/utils/storage';
 import { createPropertyPlanner } from './properties';
 import { LogseqError, NoSearchingResult, throwIfClientError } from '../error';
 import log from '@/utils/logger';
@@ -368,14 +368,11 @@ export default class LogseqDBService implements LogseqServiceInterface {
    * written. Any other property line stays text, and so does one whose value
    * does not fit, or when the graph cannot be read. Inline `#tags` stay in the
    * text: a DB graph makes them tags of the block itself.
-   *
-   * The template's `tag` goes on the root as a class (`addBlockTag`), the
-   * text stays clean.
    */
   public async clipBlocks(
     page: string,
     root: ClipBlock,
-    opts: { tag?: TemplateTag; group?: GroupRequest } = {},
+    opts: { group?: GroupRequest } = {},
   ) {
     const planner = createPropertyPlanner(this.client);
     const write = async (
@@ -411,7 +408,6 @@ export default class LogseqDBService implements LogseqServiceInterface {
       }
       return { uuid, ...(text !== content && { text }) };
     };
-    const name = opts.tag?.name.trim();
     // A block of a DB graph is a task when it has a status.
     const target = opts.group
       ? findGroupTarget(
@@ -434,7 +430,6 @@ export default class LogseqDBService implements LogseqServiceInterface {
             block,
           ),
       },
-      name ? (rootUuid) => this.tagBlock(rootUuid, name) : undefined,
       target,
     );
   }
@@ -452,44 +447,9 @@ export default class LogseqDBService implements LogseqServiceInterface {
     return tags;
   }
 
-  /**
-   * The uuid of the tag `name`: the graph's own tag of that title (any case),
-   * otherwise the class `createPage` makes (it returns the class itself when
-   * there is one, so no duplicate). Never `createTag`, which makes a second
-   * class in the plugin namespace.
-   */
-  private async resolveTagUuid(name: string): Promise<string> {
-    const wanted = name.toLowerCase();
-    const found = (await this.allTags()).find((tag) =>
-      [tag?.title, tag?.name].some(
-        (text) => typeof text === 'string' && text.toLowerCase() === wanted,
-      ),
-    );
-    if (typeof found?.uuid === 'string' && found.uuid) return found.uuid;
-    const page = await this.client.createPage(
-      name,
-      {},
-      { class: true, redirect: false },
-    );
-    return blockUuid(page);
-  }
-
-  /**
-   * Tags `rootUuid` with the tag `name` by uuid, never by name: a name can
-   * resolve to the wrong class. A failure (the HTTP API reports one as a 200
-   * response carrying `{ error }`) is logged by the caller, not a clip failure.
-   */
-  private async tagBlock(rootUuid: string, name: string) {
-    const tagUuid = await this.resolveTagUuid(name);
-    const result = await this.client.addBlockTag(rootUuid, tagUuid);
-    if (result && typeof result === 'object' && 'error' in result) {
-      throw new Error(String((result as any).error));
-    }
-  }
-
   /** The graph's own tags, built-in classes left out. */
-  public async listTags(): Promise<TemplateTag[]> {
-    const names = new Map<string, TemplateTag>();
+  public async listTags(): Promise<GraphTag[]> {
+    const names = new Map<string, GraphTag>();
     for (const tag of await this.allTags()) {
       if (tag?.[BUILT_IN_PROPERTY]) continue;
       const name = tag?.title ?? tag?.name;

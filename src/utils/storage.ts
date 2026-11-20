@@ -25,11 +25,10 @@ export interface LogseqCopliotSettingsV1 {
 }
 
 /**
- * The tag a template puts on the root block of its clips. `uuid` is the tag
- * class of a DB graph when the editor picked it from the graph; it may be
- * stale, so a clip finds the tag again by `name`.
+ * A tag of the graph the template editor offers: its name, and on a DB graph
+ * the uuid of its class.
  */
-export interface TemplateTag {
+export interface GraphTag {
   name: string;
   uuid?: string;
 }
@@ -40,8 +39,6 @@ export interface TemplateItemV1 {
   content: string;
   clipNoteLocation?: string;
   clipNoteCustomPage?: string;
-  /** Empty: no tag. */
-  tag?: TemplateTag;
   /**
    * 常用: offered in the picker panel of the clip shortcut and the float
    * button. The default template always counts as pinned; no template is

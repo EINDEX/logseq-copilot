@@ -1,5 +1,4 @@
 import type { ClipBlock } from '@/utils/clip-template';
-import log from '@/utils/logger';
 
 /** How a service writes one block of a clip. */
 export interface BlockWriter {
@@ -46,23 +45,8 @@ export const blockTexts = (block: unknown): string[] => {
   return [content, title, fullTitle].filter((text): text is string => typeof text === 'string');
 };
 
-/** A tag as text: `#[[name]]`. */
-export const tagText = (name: string) => `#[[${name}]]`;
-
 export const LEADING_TASK_MARKER =
   /^(?:TODO|LATER|NOW|DOING|DONE|WAITING|WAIT|IN-PROGRESS|CANCELED|CANCELLED) /;
-
-/**
- * `content` with the tag as text in its first line: in front of it, behind a
- * task marker the block starts with (a marker is only read at the very start).
- * Content that has this exact tag text already comes back unchanged.
- */
-export const withTagText = (content: string, name: string): string => {
-  const tag = tagText(name);
-  if (content.includes(tag)) return content;
-  const at = LEADING_TASK_MARKER.exec(content)?.[0].length ?? 0;
-  return `${content.slice(0, at)}${tag} ${content.slice(at)}`;
-};
 
 /** What a clip wrote: the one node it added, and what is below it. */
 export interface WrittenClip {
@@ -88,17 +72,14 @@ export interface WrittenClip {
  * Writes a clip's block tree to `page`.
  *
  * Without `target`: the root as a new block at the end of the page, then the
- * children of each block below it, in order, depth first. `onRoot` runs once
- * the root is written, before its children; what it throws does not stop the
- * clip.
+ * children of each block below it, in order, depth first.
  *
  * With `target` (an existing top-level block of the same page, see
  * clip-group.ts): the root is not written again, and the clip adds exactly one
  * node to the target. The root's children become one child of the target: a
  * single child is appended with its subtree; with several, the first is the
  * node and the others follow as its children, after its own, in order. A root
- * without children adds nothing. `onRoot` does not run: a tag belongs to a
- * root that is written.
+ * without children adds nothing.
  *
  * Fails with a readable message at the first block Logseq refuses; what was
  * written before it stays. The result has the uuid of the block that holds the
@@ -108,7 +89,6 @@ export const writeClipBlocks = async (
   page: string,
   root: ClipBlock,
   writer: BlockWriter,
-  onRoot?: (rootUuid: string) => Promise<void>,
   target?: { uuid: string },
 ): Promise<WrittenClip> => {
   let written = 0;
@@ -156,13 +136,6 @@ export const writeClipBlocks = async (
       if (root.note) {
         noteUuid = rootUuid;
         noteText = made.text ?? root.content;
-      }
-      if (onRoot) {
-        try {
-          await onRoot(rootUuid);
-        } catch (error) {
-          log.warn('The clip was saved, but its tag was not applied.', error);
-        }
       }
     }
     await writeChildren(rootUuid, node.children);

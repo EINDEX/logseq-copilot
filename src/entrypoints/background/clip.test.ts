@@ -15,7 +15,7 @@ const clipBlocks = vi.fn(
   async (
     page: string,
     root: { content: string; children: unknown[] },
-    _opts?: { tag?: { name: string; uuid?: string }; group?: { url: string } },
+    _opts?: { group?: { url: string } },
   ) => {
     await client.appendBlock(page, root.content);
     return { rootUuid: 'root-1', children: 0, added: true };
@@ -218,14 +218,13 @@ describe('clipping with a template', () => {
     });
   });
 
-  it('hands the template tag to the service', async () => {
-    const tag = { name: 'Reading', uuid: 'u-1' };
-    await templates.setValue([{ id: 't', name: 'T', content: 'x', tag }]);
+  it('ignores a `tag` key a stored template still has', async () => {
+    await templates.setValue([
+      { id: 't', name: 'T', content: 'x', tag: { name: 'Old' } } as never,
+    ]);
     await clipToLogseq({ data: '' });
-    expect(clipBlocks.mock.calls[0][2]).toEqual({ tag });
-    await templates.setValue([{ id: 'n', name: 'N', content: 'x' }]);
-    await clipToLogseq({ data: '' });
-    expect(clipBlocks.mock.calls[1][2]).toEqual({ tag: undefined });
+    expect(clipBlocks.mock.calls[0][1].content).toBe('x');
+    expect(clipBlocks.mock.calls[0][2]).toEqual({ group: undefined });
   });
 
   it('writes a flat template with a selection as one block', async () => {

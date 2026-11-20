@@ -156,32 +156,11 @@ describe(`recalling whole clips (${variant})`, () => {
   });
 });
 
-describe(`the template tag (${variant})`, () => {
+describe(`the tags of the graph (${variant})`, () => {
   let service: LogseqServiceInterface;
   beforeAll(async () => {
     service = await getLogseqService();
   });
-
-  const clipTagged = async (name: string) => {
-    const stamp = Date.now();
-    await templates.setValue([
-      {
-        id: 'tagged',
-        name: 'Tagged',
-        content: '[{{title}}]({{url}})',
-        clipNoteLocation: 'customPage',
-        clipNoteCustomPage: TEST_PAGE,
-        tag: { name },
-      },
-    ]);
-    const result = await clipToLogseq({
-      url: `https://example.com/tag-${stamp}`,
-      title: `Tag page ${stamp}`,
-      data: '',
-      templateId: 'tagged',
-    } as any);
-    return { stamp, ...result };
-  };
 
   test('lists tags without the built-in ones', async () => {
     const tags = await service.listTags();
@@ -189,40 +168,4 @@ describe(`the template tag (${variant})`, () => {
     for (const tag of tags) expect(tag.name).toBeTruthy();
     if (isDB) expect(tags.map((t) => t.name)).not.toContain('Task');
   });
-
-  if (isDB) {
-    test('tags the root with a class, once, and the text stays clean', async () => {
-      const name = `Reading${Date.now()}`;
-      const first = await clipTagged(name);
-      const second = await clipTagged(name);
-      const read = async (uuid: string) =>
-        (await api('logseq.Editor.getBlock', [uuid])).body;
-      const tagTitles = async (uuid: string) => {
-        const block = await eventually(
-          () => read(uuid),
-          (b) => (b?.tags ?? []).length > 0,
-        );
-        return (block.tags ?? []).map((t: any) => t.title ?? t.name);
-      };
-      expect(await tagTitles(first.rootUuid)).toContain(name);
-      expect(await tagTitles(second.rootUuid)).toContain(name);
-      expect(text(await read(first.rootUuid))).not.toContain(`#${name}`);
-
-      const all = (await api('logseq.Editor.getAllTags')).body as any[];
-      const same = all.filter((t) => String(t.title ?? t.name).toLowerCase() === name.toLowerCase());
-      expect(same).toHaveLength(1);
-      expect((await service.listTags()).map((t) => t.name)).toContain(name);
-    });
-  } else {
-    test('puts #[[name]] in the first line of the root, once', async () => {
-      const name = `Reading ${Date.now()}`;
-      const { rootUuid } = await clipTagged(name);
-      const block = await eventually(
-        async () => (await api('logseq.Editor.getBlock', [rootUuid])).body,
-        (b) => !!b?.content,
-      );
-      expect(block.content.split('\n')[0]).toContain(`#[[${name}]]`);
-      expect(block.content.split(`#[[${name}]]`)).toHaveLength(2);
-    });
-  }
 });

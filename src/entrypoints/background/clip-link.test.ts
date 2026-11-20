@@ -31,7 +31,6 @@ vi.mock('./logseq/tool', () => ({
           page,
           root,
           { append: (to, content) => write(to, content), insertChild: write },
-          undefined,
           state.group && opts.group ? { uuid: 'T' } : undefined,
         ),
     };
