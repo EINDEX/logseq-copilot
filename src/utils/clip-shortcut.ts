@@ -1,5 +1,3 @@
-import { storage } from '#imports';
-
 /**
  * A key combination the user recorded. Matched on `code` (the physical key),
  * not `key`: with Shift or Alt held, `key` is another character ("U" becomes
@@ -15,12 +13,6 @@ export interface KeyCombo {
   /** What the key is printed as in the user's layout; display only. */
   label?: string;
 }
-
-/** The clip command's shortcut the user set in the options; null: the browser's. */
-export const clipShortcutItem = storage.defineItem<KeyCombo | null>(
-  'local:clipShortcut',
-  { fallback: null },
-);
 
 /** The name of the clip command in the manifest. */
 export const CLIP_COMMAND = 'clip';
@@ -92,19 +84,6 @@ export const comboFromEvent = (event: KeyEventLike): KeyCombo | null => {
   return combo;
 };
 
-/** Whether a key press is the combo: same physical key, same modifiers. */
-export const matchesCombo = (
-  event: KeyEventLike,
-  combo: KeyCombo | null | undefined,
-): boolean =>
-  !!combo &&
-  !!event.code &&
-  event.code === combo.code &&
-  event.ctrlKey === combo.ctrl &&
-  event.altKey === combo.alt &&
-  event.shiftKey === combo.shift &&
-  event.metaKey === combo.meta;
-
 export const combosEqual = (
   a: KeyCombo | null | undefined,
   b: KeyCombo | null | undefined,
@@ -116,21 +95,6 @@ export const combosEqual = (
   a.alt === b.alt &&
   a.shift === b.shift &&
   a.meta === b.meta;
-
-/** Whether a stored value is a usable combo (storage can hold anything). */
-export const isKeyCombo = (value: unknown): value is KeyCombo => {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.code === 'string' &&
-    v.code !== '' &&
-    !isModifierCode(v.code) &&
-    typeof v.ctrl === 'boolean' &&
-    typeof v.alt === 'boolean' &&
-    typeof v.shift === 'boolean' &&
-    typeof v.meta === 'boolean'
-  );
-};
 
 const NAMED_CODES: Record<string, string> = {
   Space: 'Space',
@@ -397,32 +361,4 @@ export const comboProblem = (
   if (mac && combo.meta && combo.code === 'Tab') return 'reserved';
   if (combo.code === 'Escape') return 'unsupported-key';
   return null;
-};
-
-/** How long a trigger from the other source still counts as the same press. */
-export const SHORTCUT_DEDUPE_MS = 300;
-
-/** Where the clip shortcut was seen: a key press in the page, or the browser's command. */
-export type ShortcutSource = 'page' | 'command';
-
-/**
- * Runs `fire` unless the clip shortcut fired from the other source within
- * `SHORTCUT_DEDUPE_MS`. The browser command and the in-page shortcut can both
- * see one key press; the second would confirm the picker the first just
- * opened. Presses from one source are never dropped: those are the user's.
- */
-export const createShortcutDeduper = (
-  now: () => number = () => Date.now(),
-) => {
-  const last: Record<ShortcutSource, number> = {
-    page: Number.NEGATIVE_INFINITY,
-    command: Number.NEGATIVE_INFINITY,
-  };
-  return <T>(source: ShortcutSource, fire: () => T): T | undefined => {
-    const time = now();
-    const other: ShortcutSource = source === 'page' ? 'command' : 'page';
-    if (time - last[other] < SHORTCUT_DEDUPE_MS) return undefined;
-    last[source] = time;
-    return fire();
-  };
 };

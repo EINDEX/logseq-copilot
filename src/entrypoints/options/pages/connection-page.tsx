@@ -2,6 +2,7 @@ import React from 'react';
 import { LogseqConnectOptions } from '../components/Connect';
 import { ClipNoteOptions } from '../components/ClipNote';
 import { SidebarOptions } from '../components/SidebarOptions';
+import { ExperimentalOptions } from '../components/ExperimentalOptions';
 import { PageLayout } from '../components/page-layout';
 
 const SettingsPage: React.FC = () => {
@@ -10,6 +11,7 @@ const SettingsPage: React.FC = () => {
             <LogseqConnectOptions />
             <ClipNoteOptions />
             <SidebarOptions />
+            <ExperimentalOptions />
         </PageLayout>
     );
 };

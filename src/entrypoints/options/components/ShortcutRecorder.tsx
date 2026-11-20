@@ -6,14 +6,12 @@ import { notifyCommandShortcutsChanged } from '@/hooks/use-command-shortcuts';
 import {
   CLIP_COMMAND,
   COMBO_PROBLEM_TEXT,
-  clipShortcutItem,
   combosEqual,
   comboFromEvent,
   comboKeys,
   comboProblem,
   defaultClipCombo,
   isFirefoxKey,
-  isKeyCombo,
   isMacPlatform,
   parseBrowserShortcut,
   toFirefoxShortcut,
@@ -58,18 +56,57 @@ const keysOfBrowserShortcut = (text: string, mac: boolean): string[] => {
 };
 
 /**
- * Records the clip shortcut. Firefox changes the real command. Chrome and
- * Edge cannot, so the combo is stored and listened for in pages
- * (src/entrypoints/content/clip-shortcut.ts), beside the browser's own.
+ * The clip shortcut row. Firefox changes the real command from here. Chrome,
+ * Edge and Brave cannot, so the row shows the browser's shortcut and opens the
+ * browser's own shortcuts page.
  */
-export const ShortcutRecorder = () => {
+export const ShortcutRecorder = () => (FIREFOX ? <FirefoxRecorder /> : <BrowserShortcut />);
+
+const BrowserShortcut = () => {
+  const mac = useMemo(isMacPlatform, []);
+  const [shortcut, setShortcut] = useState('');
+
+  const refresh = useCallback(() => {
+    readBrowserShortcut()
+      .then(setShortcut)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    // The browser's shortcut page is a tab away.
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [refresh]);
+
+  const keys = keysOfBrowserShortcut(shortcut, mac);
+
+  return (
+    <div className="flex items-center gap-3">
+      <span id="clip-shortcut" className="inline-flex min-h-8 items-center">
+        {keys.length > 0 ? (
+          <Keycaps keys={keys} />
+        ) : (
+          <span className="text-sm text-muted-foreground">Not set</span>
+        )}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => void browser.tabs.create({ url: SHORTCUTS_URL })}
+      >
+        Change
+      </Button>
+    </div>
+  );
+};
+
+const FirefoxRecorder = () => {
   const mac = useMemo(isMacPlatform, []);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
-  // The shortcut of the browser's command (`clip`).
   const [browserShortcut, setBrowserShortcut] = useState('');
-  // The combo recorded for pages (Chrome, Edge).
-  const [inPage, setInPage] = useState<KeyCombo | null>(null);
 
   const refresh = useCallback(() => {
     readBrowserShortcut()
@@ -79,40 +116,23 @@ export const ShortcutRecorder = () => {
 
   useEffect(() => {
     refresh();
-    clipShortcutItem
-      .getValue()
-      .then((value) => setInPage(isKeyCombo(value) ? value : null))
-      .catch(() => {});
-    const unwatch = clipShortcutItem.watch((value) =>
-      setInPage(isKeyCombo(value) ? value : null),
-    );
-    // The browser's shortcut page is a tab away.
-    window.addEventListener('focus', refresh);
-    return () => {
-      unwatch();
-      window.removeEventListener('focus', refresh);
-    };
   }, [refresh]);
 
   const commit = useCallback(
     async (combo: KeyCombo) => {
       const problem = comboProblem(combo, mac);
       if (problem) return setError(COMBO_PROBLEM_TEXT[problem]);
-      if (FIREFOX) {
-        if (!isFirefoxKey(combo)) return setError(COMBO_PROBLEM_TEXT['unsupported-key']);
-        try {
-          await firefoxCommands().update({
-            name: CLIP_COMMAND,
-            shortcut: toFirefoxShortcut(combo, mac),
-          });
-        } catch (err) {
-          return setError(err instanceof Error ? err.message : String(err));
-        }
-        refresh();
-        notifyCommandShortcutsChanged();
-      } else {
-        await clipShortcutItem.setValue(combo);
+      if (!isFirefoxKey(combo)) return setError(COMBO_PROBLEM_TEXT['unsupported-key']);
+      try {
+        await firefoxCommands().update({
+          name: CLIP_COMMAND,
+          shortcut: toFirefoxShortcut(combo, mac),
+        });
+      } catch (err) {
+        return setError(err instanceof Error ? err.message : String(err));
       }
+      refresh();
+      notifyCommandShortcutsChanged();
       setError('');
       setRecording(false);
     },
@@ -141,29 +161,20 @@ export const ShortcutRecorder = () => {
   const reset = async () => {
     setError('');
     setRecording(false);
-    if (FIREFOX) {
-      try {
-        await firefoxCommands().reset(CLIP_COMMAND);
-      } catch (err) {
-        return setError(err instanceof Error ? err.message : String(err));
-      }
-      refresh();
-      notifyCommandShortcutsChanged();
-    } else {
-      await clipShortcutItem.removeValue();
+    try {
+      await firefoxCommands().reset(CLIP_COMMAND);
+    } catch (err) {
+      return setError(err instanceof Error ? err.message : String(err));
     }
+    refresh();
+    notifyCommandShortcutsChanged();
   };
 
-  const browserCombo = parseBrowserShortcut(browserShortcut, mac);
-  const shown = FIREFOX ? browserCombo : (inPage ?? browserCombo);
-  const keys = FIREFOX
-    ? keysOfBrowserShortcut(browserShortcut, mac)
-    : inPage
-      ? comboKeys(inPage, mac)
-      : keysOfBrowserShortcut(browserShortcut, mac);
-  const changed = FIREFOX
-    ? !combosEqual(shown, defaultClipCombo(mac))
-    : inPage !== null;
+  const keys = keysOfBrowserShortcut(browserShortcut, mac);
+  const changed = !combosEqual(
+    parseBrowserShortcut(browserShortcut, mac),
+    defaultClipCombo(mac),
+  );
 
   return (
     <div className="flex flex-col items-start gap-2">
@@ -212,23 +223,6 @@ export const ShortcutRecorder = () => {
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
-      )}
-      {!FIREFOX && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Browser</span>
-          {browserShortcut ? (
-            <Keycaps keys={keysOfBrowserShortcut(browserShortcut, mac)} />
-          ) : (
-            <span>Not set</span>
-          )}
-          <button
-            type="button"
-            className="text-primary hover:underline"
-            onClick={() => void browser.tabs.create({ url: SHORTCUTS_URL })}
-          >
-            Change
-          </button>
-        </div>
       )}
     </div>
   );
