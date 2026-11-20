@@ -15,6 +15,7 @@ import { marked } from 'marked';
 import {
   blockRefTitle,
   blockRefUuids,
+  getGraphKind,
   getLogseqService,
   markMatches,
   renderBlock,
@@ -193,5 +194,24 @@ describe('getLogseqService', () => {
       throw new Error('network');
     };
     expect(await getLogseqService()).toBeInstanceOf(LogseqService);
+  });
+});
+
+describe('getGraphKind', () => {
+  test.each([
+    [true, 'db'],
+    ['true', 'db'],
+    [{ error: 'MethodNotExist: check_current_is_db_graph' }, 'file'],
+    [false, 'file'],
+  ])('answer %j is a %s graph', async (v, kind) => {
+    answer.run = async () => v;
+    expect(await getGraphKind()).toBe(kind);
+  });
+
+  test('is null when Logseq cannot be reached', async () => {
+    answer.run = async () => {
+      throw new Error('network');
+    };
+    expect(await getGraphKind()).toBeNull();
   });
 });

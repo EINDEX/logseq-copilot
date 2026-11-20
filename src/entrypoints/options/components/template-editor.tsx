@@ -20,9 +20,13 @@ import { countRoots } from '@/utils/clip-template';
 import { isLossless, toCanonical, toStored } from '@/utils/outline-doc';
 import {
   External,
+  NO_GRAPH,
   outlineExtensions,
+  setGraph,
   textExtensions,
+  type EditorGraph,
 } from './template-editor-extensions';
+import { segmentClass, segmentedGroupClass } from './segmented';
 
 type Mode = 'outline' | 'text';
 
@@ -36,6 +40,8 @@ interface TemplateEditorProps {
   value: string;
   /** The stored form of every change the user makes. */
   onChange: (stored: string) => void;
+  /** The Logseq graph that completes tags and properties; none without Logseq. */
+  graph?: EditorGraph;
 }
 
 /**
@@ -53,7 +59,7 @@ interface TemplateEditorProps {
 export const TemplateEditor = forwardRef<
   TemplateEditorHandle,
   TemplateEditorProps
->(({ value, onChange }, ref) => {
+>(({ value, onChange, graph = NO_GRAPH }, ref) => {
   const [mode, setMode] = useState<Mode>(() =>
     isLossless(value) ? 'outline' : 'text',
   );
@@ -69,6 +75,8 @@ export const TemplateEditor = forwardRef<
   onChangeRef.current = onChange;
   const valueRef = useRef(value);
   valueRef.current = value;
+  const graphRef = useRef(graph);
+  graphRef.current = graph;
 
   /** The stored form of what the editor shows. */
   const storedOf = (editor: EditorView, as: Mode) => {
@@ -82,7 +90,9 @@ export const TemplateEditor = forwardRef<
       doc,
       selection: { anchor: doc.length },
       extensions: [
-        as === 'outline' ? outlineExtensions() : textExtensions(),
+        as === 'outline'
+          ? outlineExtensions(graphRef.current)
+          : textExtensions(graphRef.current),
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return;
           if (update.transactions.some((tr) => tr.annotation(External))) return;
@@ -134,6 +144,11 @@ export const TemplateEditor = forwardRef<
     editor.setState(createState(next, value));
   }, [value, createState]);
 
+  // The graph arrives after the editor opens.
+  useEffect(() => {
+    view.current?.dispatch({ effects: setGraph.of(graph) });
+  }, [graph]);
+
   const switchTo = (next: Mode) => {
     const editor = view.current;
     if (!editor || next === viewMode.current) return;
@@ -168,15 +183,7 @@ export const TemplateEditor = forwardRef<
         aria-pressed={mode === target}
         disabled={disabled}
         onClick={() => switchTo(target)}
-        className={cn(
-          'rounded px-2.5 py-1 text-xs font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          mode === target
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground',
-          disabled &&
-            'cursor-not-allowed opacity-50 hover:text-muted-foreground',
-        )}
+        className={segmentClass(mode === target, disabled)}
       >
         {label}
       </button>
@@ -201,7 +208,7 @@ export const TemplateEditor = forwardRef<
         <div
           role="group"
           aria-label="Editor mode"
-          className="inline-flex gap-0.5 rounded-md bg-muted p-0.5"
+          className={segmentedGroupClass}
         >
           {segment(
             'outline',

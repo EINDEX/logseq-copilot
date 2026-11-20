@@ -257,6 +257,49 @@ describe('clipBlocks on a file graph, task markers', () => {
   });
 });
 
+describe('listProperties', () => {
+  test('DB: the properties of the user with their type, by title', async () => {
+    const service = new LogseqDBService();
+    service.client = {
+      getAllProperties: vi.fn(async () => [
+        { ident: ':user.property/source-x', title: 'source', ':logseq.property/type': 'url' },
+        { ident: ':user.property/Area-y', title: 'Area' },
+        { ident: ':plugin.property._test_plugin/url', title: 'url' },
+        { ident: 'alias', title: 'Alias', ':logseq.property/built-in?': true },
+      ]),
+    } as any;
+    await expect(service.listProperties()).resolves.toEqual([
+      { title: 'Area', type: 'default' },
+      { title: 'source', type: 'url' },
+    ]);
+  });
+
+  test('file: the keys in use, without the ones Logseq keeps for itself', async () => {
+    const service = new LogseqService();
+    service.client = {
+      datascriptQuery: vi.fn(async () => [
+        ['source'],
+        [':type'],
+        ['id'],
+        ['collapsed'],
+        ['logseq.order-list-type'],
+        ['tags'],
+      ]),
+    } as any;
+    await expect(service.listProperties()).resolves.toEqual([
+      { title: 'source' },
+      { title: 'tags' },
+      { title: 'type' },
+    ]);
+  });
+
+  test('file: throws when the query fails', async () => {
+    const service = new LogseqService();
+    service.client = { datascriptQuery: vi.fn(async () => ({ error: 'nope' })) } as any;
+    await expect(service.listProperties()).rejects.toThrow('nope');
+  });
+});
+
 describe('listTags', () => {
   test('DB: the graph tags without the built-in classes, by title', async () => {
     const service = new LogseqDBService();

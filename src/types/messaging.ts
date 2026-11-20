@@ -8,6 +8,7 @@ import { ChangeBlockMarkerResult, LogseqSearchResult } from './logseqBlock';
 import { LogseqResponseType } from '@/entrypoints/background/logseq/client';
 import type { RecallResult } from './recall';
 import type { ClipCommandOptions } from '@/utils/clip-feedback';
+import type { GraphKind, GraphProperty, GraphTag } from '@/utils/storage';
 import type { ClipResult } from './clip';
 
 // Define all message types for cross-context communication
@@ -67,6 +68,22 @@ export interface MessagingProtocol {
    * Logseq.
    */
   'logseq:checkHighlightLinks': (data: { ids: string[] }) => string[];
+
+  /**
+   * The tags of the graph, for the template editor's `#` completion. Errors are
+   * thrown (LogseqError) and reach the sender as a readable message.
+   */
+  'logseq:listTags': () => GraphTag[];
+
+  /**
+   * The properties of the graph, for the template editor: a DB graph's own
+   * properties with their type, the property keys used in a file graph.
+   * Empty when Logseq cannot be reached; never rejects.
+   */
+  'logseq:listProperties': () => GraphProperty[];
+
+  /** Whether Logseq has a file or a DB graph open; null when unreachable. */
+  'logseq:graphKind': () => GraphKind;
 
   'logseq:changeBlockMarker': (data: {
     uuid: string;

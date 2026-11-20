@@ -2,12 +2,18 @@
  * CodeMirror extensions of the template editor. The document is the template
  * text; Outline mode is decorations and keymaps over it (see `outline-doc.ts`
  * for the text model and the editing commands), Text mode only highlights.
+ *
+ * Tags (`#Tag`, `#[[Tag]]`) and properties (`key:: value` lines after a
+ * block's first line) are written in the text as in Logseq; the graph the
+ * editor knows (`setGraph`) completes their names and shows the type of a DB
+ * graph's properties. Without a graph everything is typed by hand.
  */
 import {
   Annotation,
   EditorSelection,
   EditorState,
   Prec,
+  StateEffect,
   StateField,
   type Extension,
   type Range,
@@ -33,11 +39,14 @@ import {
 import {
   acceptCompletion,
   autocompletion,
+  startCompletion,
+  type Completion,
   type CompletionContext,
   type CompletionResult,
 } from '@codemirror/autocomplete';
 import { format } from 'date-fns';
 import { logseqTimeFormat } from '@/utils/logseq-format';
+import type { GraphKind, GraphProperty, GraphTag } from '@/utils/storage';
 import {
   backspace,
   deleteForward,
@@ -50,6 +59,7 @@ import {
   scan,
   shiftEnter,
   type DocState,
+  type Row,
 } from '@/utils/outline-doc';
 
 // ---- variables ----------------------------------------------------------------
@@ -77,6 +87,47 @@ export const variableSamples = (now = new Date()): Record<string, string> => ({
 
 /** Marks a transaction that replaces the document from outside the user. */
 export const External = Annotation.define<boolean>();
+
+// ---- graph ----------------------------------------------------------------------
+
+/** What the editor knows of the Logseq graph; empty when it is not reachable. */
+export interface EditorGraph {
+  kind: GraphKind;
+  properties: GraphProperty[];
+  tags: GraphTag[];
+}
+
+export const NO_GRAPH: EditorGraph = { kind: null, properties: [], tags: [] };
+
+/** Replaces the graph the editor completes from. */
+export const setGraph = StateEffect.define<EditorGraph>();
+
+const graphField = StateField.define<EditorGraph>({
+  create: () => NO_GRAPH,
+  update: (value, tr) => {
+    for (const effect of tr.effects) if (effect.is(setGraph)) value = effect.value;
+    return value;
+  },
+});
+
+/** The graph's property of title `key`, in any case (as the clip matches it). */
+const propertyOf = (graph: EditorGraph, key: string) => {
+  const lower = key.toLowerCase();
+  return graph.properties.find(
+    (property) => property.title.toLowerCase() === lower,
+  );
+};
+
+/** The type a badge and the value completion go by: DB graphs only. */
+const typeOf = (graph: EditorGraph, key: string) =>
+  graph.kind === 'db' ? propertyOf(graph, key)?.type : undefined;
+
+/** The variables a value of a property of `type` can take. */
+export const variablesFor = (type: string | undefined): readonly string[] => {
+  if (type === 'date') return ['date', 'time'];
+  if (type === 'url') return ['url'];
+  return VARIABLE_NAMES;
+};
 
 // ---- widgets --------------------------------------------------------------------
 
@@ -196,12 +247,58 @@ class PlaceholderWidget extends WidgetType {
   }
 }
 
+/** The type of a DB graph's property, after its `key::`. */
+class TypeWidget extends WidgetType {
+  constructor(readonly type: string) {
+    super();
+  }
+
+  eq(other: TypeWidget) {
+    return other.type === this.type;
+  }
+
+  toDOM() {
+    const badge = document.createElement('span');
+    badge.className = 'cm-tpl-type';
+    badge.textContent = this.type;
+    return badge;
+  }
+}
+
+/** "+ Property" at the end of a block's first line, shown on hover. */
+class AddPropertyWidget extends WidgetType {
+  eq(other: WidgetType) {
+    return other instanceof AddPropertyWidget;
+  }
+
+  toDOM(view: EditorView) {
+    const button = document.createElement('span');
+    button.className = 'cm-tpl-add-prop';
+    button.setAttribute('role', 'button');
+    button.setAttribute('aria-label', 'Add property');
+    button.textContent = '+ Property';
+    // Keeps the focus and the caret where they are until the click.
+    button.addEventListener('mousedown', (event) => event.preventDefault());
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      addProperty(view, view.posAtDOM(button));
+    });
+    return button;
+  }
+
+  ignoreEvent() {
+    return true;
+  }
+}
+
 // ---- decorations ------------------------------------------------------------------
 
 const VARIABLE = /\{\{(-?)([^{}\n]*?)(-?)\}\}/g;
 const LINK = /\[([^\]\n]*)\]\(([^)\n]*)\)/g;
 const TASK = /^(TODO|LATER|NOW|DOING|DONE)(?= |$)/;
 const PROPERTY = /^[A-Za-z_][\w-]*::(?= |$)/;
+/** A property line's key, as the clip reads it (`block-meta.ts`). */
+const PROPERTY_KEY = /^(\S+?)::(?=[ \t]|$)/;
 const CONTENT_ALONE = /^\s*\{\{-?\s*content\s*(?:\|[^{}]*)?-?\}\}\s*$/;
 
 const parseVariable = (inner: string) => {
@@ -218,6 +315,10 @@ interface Built {
 
 const markerDecoration = Decoration.replace({ widget: new BulletWidget() });
 const spacerDecoration = Decoration.replace({ widget: new SpacerWidget() });
+const addPropertyDecoration = Decoration.widget({
+  widget: new AddPropertyWidget(),
+  side: 2,
+});
 
 /** Decorations of the whole document; it is small. */
 const build = (text: string, outline: boolean): Built => {
@@ -317,6 +418,7 @@ const build = (text: string, outline: boolean): Built => {
           ),
         );
       }
+      all.push(addPropertyDecoration.range(row.end));
     } else {
       const property = PROPERTY.exec(content);
       if (property) {
@@ -345,6 +447,94 @@ const decorationField = (outline: boolean) =>
       EditorView.atomicRanges.of((view) => view.state.field(field).atomic),
     ],
   });
+
+// ---- properties -------------------------------------------------------------------
+
+/** The row (line) of the outline at `pos`, read the way the clip reads it. */
+const rowAt = (state: EditorState, pos: number) => {
+  const layout = scan(state.doc.toString());
+  const row = layout.rows[state.doc.lineAt(pos).number - 1];
+  return { layout, row };
+};
+
+/** Where a row's text starts behind any further indentation. */
+const textStart = (state: EditorState, row: Row) =>
+  row.textFrom + /^[ \t]*/.exec(state.sliceDoc(row.textFrom, row.end))![0].length;
+
+/** The key of a property line, and where its `::` ends. */
+const propertyKey = (state: EditorState, row: Row) => {
+  if (row.kind !== 'cont') return null;
+  const from = textStart(state, row);
+  const match = PROPERTY_KEY.exec(state.sliceDoc(from, row.end));
+  return match ? { key: match[1], end: from + match[0].length } : null;
+};
+
+const buildBadges = (state: EditorState): DecorationSet => {
+  const graph = state.field(graphField);
+  if (graph.kind !== 'db' || graph.properties.length === 0) {
+    return Decoration.none;
+  }
+  const badges: Range<Decoration>[] = [];
+  for (const row of scan(state.doc.toString()).rows) {
+    const property = propertyKey(state, row);
+    const type = property && typeOf(graph, property.key);
+    if (!property || !type) continue;
+    badges.push(
+      Decoration.widget({ widget: new TypeWidget(type), side: 1 }).range(
+        property.end,
+      ),
+    );
+  }
+  return Decoration.set(badges);
+};
+
+/** The type badges of a DB graph's properties: decorations, never text. */
+const badgeField = StateField.define<DecorationSet>({
+  create: buildBadges,
+  update: (value, tr) =>
+    tr.docChanged || tr.effects.some((effect) => effect.is(setGraph))
+      ? buildBadges(tr.state)
+      : value,
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+/**
+ * Where a new property line of the block at `pos` goes: behind the block's
+ * first line and the property lines right under it. Returns the position and
+ * the line's indentation.
+ */
+const propertySlot = (state: EditorState, pos: number) => {
+  const { layout, row } = rowAt(state, pos);
+  const block = layout.blocks[row.block];
+  const first = layout.rows[block.firstRow];
+  let last = block.firstRow;
+  while (
+    last < block.lastRow &&
+    propertyKey(state, layout.rows[last + 1]) !== null
+  ) {
+    last++;
+  }
+  // The block's text column: behind `- `, or the first line's indent.
+  const indent = first.textFrom - first.start;
+  return { at: layout.rows[last].end, indent: ' '.repeat(indent) };
+};
+
+/**
+ * Adds an empty property line under the block at `pos` (see `propertySlot`)
+ * and opens the property names there.
+ */
+export const addProperty = (view: EditorView, pos: number) => {
+  const { at, indent } = propertySlot(view.state, pos);
+  const insert = `\n${indent}`;
+  view.dispatch({
+    changes: { from: at, insert },
+    selection: { anchor: at + insert.length },
+    userEvent: 'input',
+    scrollIntoView: true,
+  });
+  startCompletion(view);
+  view.focus();
+};
 
 /** A caret or selection end inside a marker or chip moves out of it. */
 const snapSelection = EditorState.transactionFilter.of((tr) => {
@@ -591,13 +781,18 @@ const variableSource = (
   const open = match.from;
   const typed = /^\{\{-?\s*/.exec(match.text)![0].length;
   const samples = variableSamples();
+  // In a property's value, only the variables that fit its type.
+  const value = valueOf(context.state, open);
+  const names = value
+    ? variablesFor(typeOf(context.state.field(graphField), value.key))
+    : VARIABLE_NAMES;
   return {
     from: open + typed,
     validFor: /^[\w.]*$/,
-    options: VARIABLE_NAMES.map((name, index) => ({
+    options: names.map((name, index) => ({
       label: name,
       // Keeps the list in the order of VARIABLE_NAMES, not alphabetical.
-      boost: VARIABLE_NAMES.length - index,
+      boost: names.length - index,
       detail: samples[name],
       type: 'variable',
       apply: (view, _completion, _from, to) => {
@@ -611,6 +806,204 @@ const variableSource = (
       },
     })),
   };
+};
+
+/** The property whose value `pos` is in, if any. */
+const valueOf = (state: EditorState, pos: number) => {
+  const { row } = rowAt(state, pos);
+  const property = propertyKey(state, row);
+  return property && pos >= property.end ? property : null;
+};
+
+/** The variables for an empty value behind `key:: `, filtered by its type. */
+const valueSource = (context: CompletionContext): CompletionResult | null => {
+  const { state, pos } = context;
+  const value = valueOf(state, pos);
+  if (!value || state.sliceDoc(value.end, pos).trim() !== '') return null;
+  // `key::` just typed opens nothing: Enter there is a new line.
+  if (pos === value.end && !context.explicit) return null;
+  // Right behind `key::`, the value still needs its space.
+  const space = pos === value.end ? ' ' : '';
+  const samples = variableSamples();
+  const names = variablesFor(typeOf(state.field(graphField), value.key));
+  return {
+    from: pos,
+    filter: false,
+    options: names.map((name) => ({
+      label: `{{${name}}}`,
+      detail: samples[name],
+      type: 'variable',
+      apply: `${space}{{${name}}}`,
+    })),
+  };
+};
+
+/** Items whose name starts with `typed` (any case), then those containing it. */
+const matching = <T>(
+  items: readonly T[],
+  name: (item: T) => string,
+  typed: string,
+): T[] => {
+  const lower = typed.toLowerCase();
+  const starts: T[] = [];
+  const contains: T[] = [];
+  for (const item of items) {
+    const text = name(item).toLowerCase();
+    if (text.startsWith(lower)) starts.push(item);
+    else if (text.includes(lower)) contains.push(item);
+  }
+  return [...starts, ...contains];
+};
+
+/** What can be typed as a property name. */
+const NAME = /^[^\s:#{}[\]]*$/;
+
+/**
+ * Property names: on a line inside a block (not its first line) while its
+ * first word is typed, or after `::` typed on its own. `::` on the first line
+ * of a block, or behind other text, adds the property line under the block.
+ * Accepting a name writes `name:: ` and opens the values.
+ */
+const propertySource = (
+  context: CompletionContext,
+): CompletionResult | null => {
+  const { state, pos, explicit } = context;
+  const { layout, row } = rowAt(state, pos);
+  const start = row.kind === 'cont' ? textStart(state, row) : row.textFrom;
+  if (pos < start) return null;
+  const before = state.sliceDoc(start, pos);
+  const graph = state.field(graphField);
+  // The block's other properties are not offered again.
+  const block = layout.blocks[row.block];
+  const taken = new Set<string>();
+  for (let index = block.firstRow; index <= block.lastRow; index++) {
+    const other = layout.rows[index];
+    const property = other === row ? null : propertyKey(state, other);
+    if (property) taken.add(property.key.toLowerCase());
+  }
+  // A title with white space cannot be the `key::` of a line.
+  const usable = graph.properties.filter(
+    (property) =>
+      !/\s/.test(property.title) && !taken.has(property.title.toLowerCase()),
+  );
+  const option = (property: GraphProperty): Completion => ({
+    label: property.title,
+    detail: graph.kind === 'db' ? property.type : undefined,
+    type: 'property',
+  });
+
+  if (/(^|\s)::$/.test(before)) {
+    if (usable.length === 0) return null;
+    const ownLine = row.kind === 'cont' && before === '::';
+    const apply = (name: string) => (view: EditorView) => {
+      if (ownLine) {
+        view.dispatch({
+          changes: { from: pos - 2, to: pos, insert: `${name}:: ` },
+          selection: { anchor: pos - 2 + name.length + 3 },
+          userEvent: 'input.complete',
+        });
+      } else {
+        // The `::` goes, with the space before it.
+        const from = pos - /\s*::$/.exec(before)![0].length;
+        const { at, indent } = propertySlot(view.state, pos);
+        const changes = view.state.changes([
+          { from, to: pos, insert: '' },
+          { from: at, insert: `\n${indent}${name}:: ` },
+        ]);
+        view.dispatch({
+          changes,
+          selection: { anchor: changes.mapPos(at, 1) },
+          userEvent: 'input.complete',
+          scrollIntoView: true,
+        });
+      }
+      startCompletion(view);
+    };
+    return {
+      from: pos,
+      filter: false,
+      options: usable.map((property) => ({
+        ...option(property),
+        apply: apply(property.title),
+      })),
+    };
+  }
+
+  if (row.kind !== 'cont' || !NAME.test(before)) return null;
+  if (!before && !explicit) return null;
+  const rest = state.sliceDoc(pos, row.end);
+  const tail = /^[^\s:#{}[\]]*/.exec(rest)![0];
+  // A key that has its `::` already: only the name changes.
+  const keyed = rest.slice(tail.length).startsWith('::');
+  const apply = (name: string) => (view: EditorView) => {
+    const insert = keyed ? name : `${name}:: `;
+    view.dispatch({
+      changes: { from: start, to: pos + tail.length, insert },
+      selection: { anchor: start + insert.length },
+      userEvent: 'input.complete',
+    });
+    if (!keyed) startCompletion(view);
+  };
+  const found = matching(usable, (property) => property.title, before);
+  // Text in a block opens nothing unless it starts a property's name.
+  const lower = before.toLowerCase();
+  if (
+    !explicit &&
+    !found.some((p) => p.title.toLowerCase().startsWith(lower))
+  ) {
+    return null;
+  }
+  const options: Completion[] = found.map((property) => ({
+    ...option(property),
+    apply: apply(property.title),
+  }));
+  if (before && !found.some((p) => p.title.toLowerCase() === lower)) {
+    options.push({ label: `New ${before}`, type: 'new', apply: apply(before) });
+  }
+  if (options.length === 0) return null;
+  return { from: start, filter: false, options };
+};
+
+/** `#Name`, or `#[[Name]]` when the name is not a single word. */
+const tagText = (name: string) =>
+  /^[^\s#,.!?;:"'()[\]{}`]+$/.test(name) ? `#${name}` : `#[[${name}]]`;
+
+/** Tags after a `#` at the start of a line or behind white space. */
+const tagSource = (context: CompletionContext): CompletionResult | null => {
+  const match = context.matchBefore(
+    /(?<=^|\s)#(?:\[\[[^\]\n]*|[^\s#,[\]{}]*)/,
+  );
+  if (!match) return null;
+  const bracket = match.text.startsWith('#[[');
+  const typed = match.text.slice(bracket ? 3 : 1).trim();
+  const apply =
+    (name: string) =>
+    (view: EditorView, _completion: Completion, _from: number, to: number) => {
+      const closing =
+        bracket && view.state.sliceDoc(to, to + 2) === ']]' ? 2 : 0;
+      const insert = tagText(name);
+      view.dispatch({
+        changes: { from: match.from, to: to + closing, insert },
+        selection: { anchor: match.from + insert.length },
+        userEvent: 'input.complete',
+      });
+    };
+  const found = matching(
+    context.state.field(graphField).tags,
+    (tag) => tag.name,
+    typed,
+  );
+  const options: Completion[] = found.map((tag) => ({
+    label: tag.name,
+    type: 'tag',
+    apply: apply(tag.name),
+  }));
+  const lower = typed.toLowerCase();
+  if (typed && !found.some((tag) => tag.name.toLowerCase() === lower)) {
+    options.push({ label: `New #${typed}`, type: 'new', apply: apply(typed) });
+  }
+  if (options.length === 0) return null;
+  return { from: match.from, filter: false, options };
 };
 
 // ---- theme ------------------------------------------------------------------------------
@@ -720,6 +1113,42 @@ const theme = EditorView.theme({
     color: 'var(--muted-foreground)',
     opacity: '0.7',
   },
+  '.cm-tpl-type': {
+    display: 'inline-block',
+    marginLeft: '0.35em',
+    padding: '0 0.4em',
+    fontFamily: mono,
+    fontSize: '0.7em',
+    lineHeight: '1.5',
+    textIndent: '0',
+    verticalAlign: 'middle',
+    borderRadius: '0.25rem',
+    color: 'var(--muted-foreground)',
+    backgroundColor: tint('--muted-foreground', 10),
+    boxShadow: `inset 0 0 0 1px ${tint('--muted-foreground', 18)}`,
+    userSelect: 'none',
+  },
+  '.cm-tpl-add-prop': {
+    display: 'inline-block',
+    marginLeft: '0.75rem',
+    padding: '0 0.45em',
+    fontSize: '0.75em',
+    lineHeight: '1.6',
+    textIndent: '0',
+    verticalAlign: 'middle',
+    borderRadius: '0.25rem',
+    color: 'var(--muted-foreground)',
+    cursor: 'pointer',
+    userSelect: 'none',
+    opacity: '0',
+    transition: 'opacity 120ms',
+  },
+  '.cm-line:hover .cm-tpl-add-prop': { opacity: '1' },
+  '.cm-tpl-add-prop:hover': {
+    color: 'var(--primary)',
+    backgroundColor: tint('--primary', 14),
+  },
+  '.cm-tpl-empty .cm-tpl-add-prop': { display: 'none' },
 
   // Autocomplete.
   '.cm-tooltip': {
@@ -750,6 +1179,7 @@ const theme = EditorView.theme({
     color: 'var(--accent-foreground)',
   },
   '.cm-tooltip-autocomplete .cm-completionLabel': { flex: 'none' },
+  '.cm-tooltip-autocomplete .cm-tpl-new': { color: 'var(--muted-foreground)' },
   '.cm-tooltip-autocomplete .cm-completionMatchedText': {
     textDecoration: 'none',
     fontWeight: '600',
@@ -769,7 +1199,9 @@ const theme = EditorView.theme({
 
 // ---- assembly -----------------------------------------------------------------------------
 
-const shared = (): Extension[] => [
+const shared = (graph: EditorGraph): Extension[] => [
+  graphField.init(() => graph),
+  badgeField,
   theme,
   history(),
   EditorView.lineWrapping,
@@ -781,8 +1213,9 @@ const shared = (): Extension[] => [
     autocorrect: 'off',
   }),
   autocompletion({
-    override: [variableSource],
+    override: [variableSource, valueSource, propertySource, tagSource],
     icons: false,
+    optionClass: (completion) => (completion.type === 'new' ? 'cm-tpl-new' : ''),
     closeOnBlur: true,
     maxRenderedOptions: 8,
   }),
@@ -795,9 +1228,9 @@ const shared = (): Extension[] => [
   ]),
 ];
 
-export const outlineExtensions = (): Extension[] => {
+export const outlineExtensions = (graph = NO_GRAPH): Extension[] => {
   return [
-    ...shared(),
+    ...shared(graph),
     decorationField(true),
     snapSelection,
     keepCanonical,
@@ -807,8 +1240,8 @@ export const outlineExtensions = (): Extension[] => {
   ];
 };
 
-export const textExtensions = (): Extension[] => [
-  ...shared(),
+export const textExtensions = (graph = NO_GRAPH): Extension[] => [
+  ...shared(graph),
   decorationField(false),
   Prec.high(textKeymap),
 ];

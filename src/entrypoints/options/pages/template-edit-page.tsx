@@ -1,9 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTemplate } from '@/hooks/use-templates';
+import { sendMessage } from '@/types/messaging';
 import { TemplateItemV1 } from '@/utils/storage';
 import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
 import { ClipPreview } from '../components/clip-preview';
@@ -12,6 +12,8 @@ import {
     TemplateEditor,
     type TemplateEditorHandle,
 } from '../components/template-editor';
+import type { EditorGraph } from '../components/template-editor-extensions';
+import { segmentClass, segmentedGroupClass } from '../components/segmented';
 
 const VARIABLES = [
     ['{{title}}', 'Page title'],
@@ -21,6 +23,12 @@ const VARIABLES = [
     ['{{date}}', 'Current date'],
     ['{{time}}', 'Current time'],
     ['{{dt}}', 'Date/time object'],
+] as const;
+
+const LOCATIONS = [
+    ['journal', 'Journal'],
+    ['currentPage', 'Current page'],
+    ['customPage', 'Page…'],
 ] as const;
 
 type TextField = 'name' | 'content' | 'clipNoteCustomPage';
@@ -35,11 +43,41 @@ interface Draft {
     fields: Partial<Pick<TemplateItemV1, TextField>>;
 }
 
+/** The answer of a request, or `fallback` when it fails (Logseq not reachable). */
+const ask = <T,>(request: () => Promise<T>, fallback: T): Promise<T> =>
+    Promise.resolve()
+        .then(request)
+        .then((value) => value ?? fallback, () => fallback);
+
+/**
+ * The graph the editor completes tags and properties from, asked once when the
+ * page opens. Undefined until Logseq answers; empty when it cannot be reached.
+ */
+const useEditorGraph = (): EditorGraph | undefined => {
+    const [graph, setGraph] = useState<EditorGraph>();
+    useEffect(() => {
+        let live = true;
+        const list = <T,>(items: T[]) => (Array.isArray(items) ? items : []);
+        Promise.all([
+            ask(() => sendMessage('logseq:graphKind'), null),
+            ask(() => sendMessage('logseq:listProperties'), []),
+            ask(() => sendMessage('logseq:listTags'), []),
+        ]).then(([kind, properties, tags]) => {
+            if (live) setGraph({ kind, properties: list(properties), tags: list(tags) });
+        });
+        return () => {
+            live = false;
+        };
+    }, []);
+    return graph;
+};
+
 const TemplateEditPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { template, updateTemplate, loading } = useTemplate(id!);
     const [draft, setDraft] = useState<Draft>({ fields: {} });
     const editorRef = useRef<TemplateEditorHandle>(null);
+    const graph = useEditorGraph();
 
     if (loading) {
         return <PageLoading title="Edit Template">Loading template...</PageLoading>;
@@ -51,6 +89,7 @@ const TemplateEditPage: React.FC = () => {
 
     const draftFields = draft.id === id ? draft.fields : {};
     const textValue = (field: TextField) => draftFields[field] ?? template[field] ?? '';
+    const location = template.clipNoteLocation || 'journal';
 
     const handleFieldUpdate = (field: keyof TemplateItemV1, value: string) => {
         updateTemplate({ [field]: value });
@@ -74,74 +113,53 @@ const TemplateEditPage: React.FC = () => {
         editorRef.current?.insertVariable(variable.slice(2, -2));
     };
 
-    const handleLocationChange = (value: string) => {
-        handleFieldUpdate('clipNoteLocation', value);
-    };
-
     const handleCustomPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         handleTextChange('clipNoteCustomPage', event.target.value);
     };
 
     return (
-        <PageLayout
-            title="Edit Template"
-            description="Configure your template settings, clip location, and content."
-        >
-            <PageSection title="Template Name">
+        <PageLayout title="Edit Template">
+            <PageSection>
                 <div className="space-y-2">
                     <Label htmlFor="template-name">Name</Label>
                     <Input
                         id="template-name"
                         value={textValue('name')}
                         onChange={handleNameChange}
-                        placeholder="Enter template name"
+                        placeholder="Template name"
                     />
                 </div>
-            </PageSection>
 
-            <PageSection
-                title="Clip Location"
-                description="Choose where clips using this template will be saved."
-            >
-                <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="space-y-3">
-                        <Label>Location</Label>
-                        <RadioGroup
-                            value={template.clipNoteLocation || 'journal'}
-                            onValueChange={handleLocationChange}
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="journal" id="journal" />
-                                <Label htmlFor="journal">Journal</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="currentPage" id="currentPage" />
-                                <Label htmlFor="currentPage">Current Page</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="customPage" id="customPage" />
-                                <Label htmlFor="customPage">Custom Page</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="custom-page-name">Custom Page Name</Label>
-                        <Input
-                            id="custom-page-name"
-                            disabled={template.clipNoteLocation !== 'customPage'}
-                            value={textValue('clipNoteCustomPage')}
-                            onChange={handleCustomPageChange}
-                            placeholder="Enter custom page name"
-                        />
-                        <p className="text-sm text-muted-foreground">
-                            Only used when "Custom Page" is selected as the location.
-                        </p>
+                <div className="space-y-2">
+                    <Label id="save-to-label">Save to</Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div role="group" aria-labelledby="save-to-label" className={segmentedGroupClass}>
+                            {LOCATIONS.map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    aria-pressed={location === value}
+                                    onClick={() => handleFieldUpdate('clipNoteLocation', value)}
+                                    className={segmentClass(location === value)}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        {location === 'customPage' && (
+                            <Input
+                                aria-label="Page name"
+                                value={textValue('clipNoteCustomPage')}
+                                onChange={handleCustomPageChange}
+                                placeholder="Page name"
+                                className="h-8 w-56"
+                            />
+                        )}
                     </div>
                 </div>
             </PageSection>
 
-            <PageSection title="Page Rules">
+            <PageSection title="Page rules">
                 <RulesField
                     id="template-rules"
                     value={template.rules}
@@ -149,50 +167,41 @@ const TemplateEditPage: React.FC = () => {
                 />
             </PageSection>
 
-            <PageSection
-                title="Template Content"
-                description="Define the content structure for clips using this template."
-            >
+            <PageSection>
                 <TemplateEditor
                     key={id}
                     ref={editorRef}
                     value={textValue('content')}
                     onChange={(content) => handleTextChange('content', content)}
+                    graph={graph}
                 />
 
-                <ClipPreview template={textValue('content')} />
-
-                <div className="space-y-2">
-                    <h3 className="text-sm font-medium">Available Variables</h3>
-                    <dl className="grid gap-x-6 gap-y-1.5 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
-                        {VARIABLES.map(([name, label]) => (
-                            <div key={name} className="flex gap-2">
-                                <dt>
-                                    <button
-                                        type="button"
-                                        onClick={() => insertVariable(name)}
-                                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
-                                    >
-                                        {name}
-                                    </button>
-                                </dt>
-                                <dd>{label}</dd>
-                            </div>
-                        ))}
-                    </dl>
+                <div className="flex flex-wrap items-center gap-1.5">
+                    {VARIABLES.map(([name, description]) => (
+                        <button
+                            key={name}
+                            type="button"
+                            title={description}
+                            onClick={() => insertVariable(name)}
+                            className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
+                        >
+                            {name}
+                        </button>
+                    ))}
+                    <a
+                        href="https://liquidjs.com/tutorials/intro-to-liquid.html"
+                        className="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Liquid syntax ↗
+                    </a>
                 </div>
 
-                <a
-                    href="https://liquidjs.com/tutorials/intro-to-liquid.html"
-                    className="inline-block text-sm text-primary hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Learn more about LiquidJS template syntax →
-                </a>
+                <ClipPreview template={textValue('content')} />
             </PageSection>
         </PageLayout>
     );
 };
 
-export default TemplateEditPage; 
+export default TemplateEditPage;

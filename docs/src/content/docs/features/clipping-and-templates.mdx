@@ -18,11 +18,11 @@ A clipped selection is converted to Markdown first. Links, lists, code blocks an
 
 ## Where the Clip Goes
 
-The block is added to the end of a page of your graph, chosen by the template:
+The block is added to the end of a page of your graph, chosen by the template's **Save to**:
 
 - **Journal**: the journal page of today.
-- **Current Page**: the page that is open in Logseq right now. On the Journals home, where no single page is open, the clip goes to today's journal.
-- **Custom Page**: a page you name.
+- **Current page**: the page that is open in Logseq right now. On the Journals home, where no single page is open, the clip goes to today's journal.
+- **Page…**: a page you name.
 
 ## Templates
 
@@ -32,7 +32,7 @@ Open the extension options and look at the **Templates** list in the sidebar.
 - Drag a template by its handle to reorder the list. Hover a template to show its delete button.
 - **Clipping uses the first template in the list.** To clip with another one, drag it to the top.
 
-A template has a name, a clip location (Journal, Current Page or Custom Page with its page name) and the content of the block.
+A template has a name, where it saves (Journal, Current page, or Page… with its page name) and the content of the block.
 
 The default template is:
 
@@ -51,6 +51,24 @@ The default template is:
 | `{{date}}` | Today's date, in the date format of your Logseq |
 | `{{time}}` | The current time, as `HH:mm` |
 | `{{dt}}` | The current date and time as a date object, for filters |
+
+### Tags and Properties
+
+Write tags and properties in the template itself, the way you write them in Logseq: `#Tag` or `#[[Tag Name]]` in a block, and `key:: value` lines under the first line of a block. The **Reading note** template has two properties:
+
+```
+- [{{title}}]({{url}})
+  source:: {{url}}
+  date:: [[{{date}}]]
+  - {{content}}
+```
+
+- **File graphs** read the tags and properties from the text of the clip.
+- **DB graphs** make the tags real tags of their block. A property line becomes a property of the block: your property of that name, or a new one. A new property is a date when the value is `{{date}}`, a URL when the value is a URL, and text otherwise. A value that does not fit the type of your property stays in the block as text.
+
+Only what the template writes counts. A `#` or `key::` in the page title or the clipped text never becomes a tag or a property.
+
+While you type, the template editor offers the property names and tags of your graph, and the variables that fit a property's type.
 
 Templates are written in [LiquidJS](https://liquidjs.com/tutorials/intro-to-liquid.html), so you can use filters and conditions. For example, `{{ dt | date: "%Y-%m-%d %H:%M" }}` writes the date and the time in your own format.
 
