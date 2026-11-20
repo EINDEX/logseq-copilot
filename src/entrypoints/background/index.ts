@@ -5,6 +5,7 @@ import {
   migrateGithubRecallRuleToRepoScope,
   migrateLegacyClipSettingsToTemplates,
   migrateRecallRuleDefaultsToEnglish,
+  removeInPageClipShortcut,
 } from './upgrade';
 import { getGraphKind, getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
@@ -390,6 +391,9 @@ export default defineBackground({
       // Idempotent, so it is safe on every install/update (version gating via
       // versionCompare was unreliable).
       await changeOptionsHostToHostNameAndPort();
+      await removeInPageClipShortcut().catch((err) =>
+        log.error('Failed to remove the in-page clip shortcut:', err),
+      );
       await migrateRecallRuleDefaultsToEnglish().catch((err) =>
         log.error('Failed to migrate the recall rule defaults:', err),
       );
