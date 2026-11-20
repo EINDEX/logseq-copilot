@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SHORTCUT_DEDUPE_MS,
   comboFromEvent,
   comboKeys,
   comboProblem,
   combosEqual,
-  createShortcutDeduper,
   defaultClipCombo,
   formatCombo,
-  isKeyCombo,
-  matchesCombo,
   parseBrowserShortcut,
   toFirefoxShortcut,
   type KeyCombo,
@@ -50,57 +46,11 @@ describe('comboFromEvent', () => {
   });
 });
 
-describe('matchesCombo', () => {
-  const stored = combo({ ctrl: true, shift: true });
-
-  it('matches the same physical key and modifiers', () => {
-    expect(matchesCombo(press({ code: 'KeyU', key: 'U', ctrlKey: true, shiftKey: true }), stored)).toBe(true);
-  });
-
-  it('matches on code, although Shift and Alt change `key`', () => {
-    expect(matchesCombo(press({ code: 'KeyU', key: 'u', ctrlKey: true, shiftKey: true }), stored)).toBe(true);
-    const alt = combo({ alt: true, meta: true });
-    expect(matchesCombo(press({ code: 'KeyU', key: 'Dead', altKey: true, metaKey: true }), alt)).toBe(true);
-    expect(matchesCombo(press({ code: 'KeyU', key: 'ü', altKey: true, metaKey: true }), alt)).toBe(true);
-  });
-
-  it('does not match another key, with the same `key` text', () => {
-    expect(matchesCombo(press({ code: 'KeyI', key: 'U', ctrlKey: true, shiftKey: true }), stored)).toBe(false);
-  });
-
-  it('needs exactly the modifiers: no extra, none missing', () => {
-    expect(matchesCombo(press({ code: 'KeyU', ctrlKey: true }), stored)).toBe(false);
-    expect(
-      matchesCombo(press({ code: 'KeyU', ctrlKey: true, shiftKey: true, altKey: true }), stored),
-    ).toBe(false);
-  });
-
-  it('tells macOS Command from Control', () => {
-    const cmd = combo({ meta: true, shift: true });
-    expect(matchesCombo(press({ code: 'KeyU', metaKey: true, shiftKey: true }), cmd)).toBe(true);
-    expect(matchesCombo(press({ code: 'KeyU', ctrlKey: true, shiftKey: true }), cmd)).toBe(false);
-    expect(matchesCombo(press({ code: 'KeyU', metaKey: true, shiftKey: true }), stored)).toBe(false);
-  });
-
-  it('matches nothing without a combo', () => {
-    expect(matchesCombo(press({ code: 'KeyU', ctrlKey: true }), null)).toBe(false);
-  });
-});
-
-describe('combosEqual and isKeyCombo', () => {
+describe('combosEqual', () => {
   it('ignores the label', () => {
     expect(combosEqual(combo({ label: 'U' }), combo())).toBe(true);
     expect(combosEqual(combo({ ctrl: true }), combo())).toBe(false);
     expect(combosEqual(null, combo())).toBe(false);
-  });
-
-  it('accepts a combo and rejects what else storage can hold', () => {
-    expect(isKeyCombo(combo({ ctrl: true }))).toBe(true);
-    expect(isKeyCombo(null)).toBe(false);
-    expect(isKeyCombo('Ctrl+U')).toBe(false);
-    expect(isKeyCombo({ code: 'KeyU' })).toBe(false);
-    expect(isKeyCombo(combo({ code: 'ShiftLeft' }))).toBe(false);
-    expect(isKeyCombo({ ...combo(), ctrl: 'yes' })).toBe(false);
   });
 });
 
@@ -234,55 +184,5 @@ describe('comboProblem', () => {
 
   it('rejects Escape: it cancels the recorder', () => {
     expect(comboProblem(combo({ code: 'Escape', ctrl: true }), false)).toBe('unsupported-key');
-  });
-});
-
-describe('createShortcutDeduper', () => {
-  it('runs once when the page and the browser command both see one press', () => {
-    let time = 1000;
-    const once = createShortcutDeduper(() => time);
-    const calls: string[] = [];
-    once('page', () => calls.push('page'));
-    time += 20;
-    once('command', () => calls.push('command'));
-    expect(calls).toEqual(['page']);
-  });
-
-  it('does the same when the command comes first', () => {
-    let time = 1000;
-    const once = createShortcutDeduper(() => time);
-    const calls: string[] = [];
-    once('command', () => calls.push('command'));
-    time += 20;
-    once('page', () => calls.push('page'));
-    expect(calls).toEqual(['command']);
-  });
-
-  it('runs again for the next press, from the other source too', () => {
-    let time = 1000;
-    const once = createShortcutDeduper(() => time);
-    const calls: string[] = [];
-    once('page', () => calls.push('open'));
-    time += SHORTCUT_DEDUPE_MS;
-    once('command', () => calls.push('save'));
-    expect(calls).toEqual(['open', 'save']);
-  });
-
-  it('never drops two presses seen by the same source', () => {
-    let time = 1000;
-    const once = createShortcutDeduper(() => time);
-    const calls: string[] = [];
-    once('command', () => calls.push('open'));
-    time += 10;
-    once('command', () => calls.push('save'));
-    time += 10;
-    once('page', () => calls.push('page'));
-    expect(calls).toEqual(['open', 'save']);
-  });
-
-  it('returns what the run returns, and nothing for a duplicate', () => {
-    const once = createShortcutDeduper(() => 5000);
-    expect(once('page', () => 7)).toBe(7);
-    expect(once('command', () => 8)).toBeUndefined();
   });
 });

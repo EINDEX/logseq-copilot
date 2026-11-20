@@ -285,3 +285,11 @@ export const migrateGithubRecallRuleToRepoScope = async () => {
 
   if (changed) await recallRulesConfig.setValue(migrated);
 };
+
+/**
+ * Earlier builds let the user record an in-page clip shortcut. It is gone:
+ * the browser's own shortcut is the only one. Remove what was stored.
+ */
+export const removeInPageClipShortcut = async () => {
+  await storage.removeItem('local:clipShortcut');
+};
