@@ -45,6 +45,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     const resp = await this.baseJson('logseq.Editor.appendBlockInPage', [
       page,
       content,
+      { focus: false },
     ]);
     return resp;
   };
@@ -54,7 +55,7 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     return await this.baseJson('logseq.Editor.insertBlock', [
       parentUuid,
       content,
-      { sibling: false },
+      { sibling: false, focus: false },
     ]);
   };
 
