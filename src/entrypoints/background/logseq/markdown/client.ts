@@ -48,6 +48,7 @@ export default class LogseqClient
     const resp = await this.baseJson('logseq.Editor.appendBlockInPage', [
       page,
       content,
+      { focus: false },
     ]);
     return resp;
   };
@@ -57,7 +58,7 @@ export default class LogseqClient
     return await this.baseJson('logseq.Editor.insertBlock', [
       parentUuid,
       content,
-      { sibling: false },
+      { sibling: false, focus: false },
     ]);
   };
 
