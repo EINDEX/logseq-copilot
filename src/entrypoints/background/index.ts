@@ -138,11 +138,11 @@ export default defineBackground({
     // the active tab of the current window can be another page once focus has
     // moved.
     onMessage('logseq:clipWithSelection', async ({ data, sender }) => {
-      const { text, templateId, note } =
+      const { text, templateId, note, subframe } =
         typeof data === 'string'
-          ? { text: data, templateId: undefined, note: undefined }
+          ? { text: data, templateId: undefined, note: undefined, subframe: false }
           : data;
-      return await quickCapture(text, sender.tab, templateId, note);
+      return await quickCapture(text, sender.tab, templateId, note, subframe !== true);
     });
 
     // The browser sidebar names the tab beside it: its messages have no
@@ -205,12 +205,13 @@ export default defineBackground({
     };
 
     // Without the sender's tab (an extension page sent the message), clip the
-    // active tab of the current window.
+    // active tab of the current window. `pageImages`: see `clip`.
     const quickCapture = async (
       data: string,
       senderTab?: { id?: number; url?: string; title?: string },
       templateId?: string,
       note?: string,
+      pageImages = true,
     ) => {
       const tab = senderTab ?? (await getCurrentTab());
       if (!tab) throw new Error('No tab to clip.');
@@ -223,11 +224,20 @@ export default defineBackground({
           ...(note && { note }),
         },
         tab.id,
+        pageImages,
       );
     };
 
-    const clip = async (source: ClipSource, tabId: number | undefined) => {
-      const clipped = await clipToLogseq(source);
+    // "Save images to Logseq" asks the tab for the images of the clip only
+    // when they come from the page itself (`pageImages`), never for a clip
+    // from a frame inside it: that frame chose the URL, and the page would
+    // fetch it with its own cookies.
+    const clip = async (
+      source: ClipSource,
+      tabId: number | undefined,
+      pageImages = true,
+    ) => {
+      const clipped = await clipToLogseq(source, pageImages ? tabId : undefined);
       await clearClipErrorBadges();
       if (tabId !== undefined) debounceBadgeSearch(source.url, tabId);
       return clipped;
@@ -303,7 +313,12 @@ export default defineBackground({
     const relayClipCommand = async (
       send: (tabId: number) => Promise<void>,
       tab: Browser.tabs.Tab | undefined,
-      info: { selectionText?: string; pageUrl?: string; srcUrl?: string } = {},
+      info: {
+        selectionText?: string;
+        pageUrl?: string;
+        srcUrl?: string;
+        frameId?: number;
+      } = {},
       templateId?: string,
     ) => {
       if (tab?.id !== undefined) {
@@ -317,11 +332,15 @@ export default defineBackground({
       try {
         const fallback = backgroundClipFallback(info, tab, templateId);
         if (!fallback) throw new Error(CANNOT_CLIP_PAGE);
-        await clip(fallback, tab?.id);
+        await clip(fallback, tab?.id, !inSubframe(info));
       } catch (err) {
         await showClipErrorBadge(tab?.id, clipErrorMessage(err));
       }
     };
+
+    // A context menu opened in a frame inside the page (0: the page itself).
+    const inSubframe = (info: { frameId?: number }) =>
+      info.frameId !== undefined && info.frameId !== 0;
 
     // The data of a clip command sent to the content script.
     const clipOptions = (templateId?: string) =>
@@ -354,11 +373,15 @@ export default defineBackground({
           (tabId) =>
             sendMessage(
               'content:quickCaptureImage',
-              { ...clipOptions(templateId), srcUrl },
+              {
+                ...clipOptions(templateId),
+                srcUrl,
+                ...(inSubframe(info) && { subframe: true }),
+              },
               { tabId },
             ),
           tab,
-          { srcUrl, pageUrl: info.pageUrl },
+          { srcUrl, pageUrl: info.pageUrl, frameId: info.frameId },
           templateId,
         );
       } else {

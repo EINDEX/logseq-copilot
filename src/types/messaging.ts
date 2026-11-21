@@ -10,6 +10,7 @@ import type { RecallResult } from './recall';
 import type { ClipCommandOptions } from '@/utils/clip-feedback';
 import type { GraphKind, GraphProperty, GraphTag } from '@/utils/storage';
 import type { ClipResult } from './clip';
+import type { PageImage } from '@/utils/image-bytes';
 
 // Define all message types for cross-context communication
 export interface MessagingProtocol {
@@ -33,11 +34,15 @@ export interface MessagingProtocol {
    * The text is the selection as Markdown. With `templateId`, it is clipped
    * with that template, without it (the bare text) with the default one.
    * `note` is what the user typed in the picker panel (`{{note}}`).
+   * `subframe`: the clip is an image of a frame inside the page, which the
+   * page itself is never asked for ("Save images to Logseq").
    * Rejects with a readable message (LogseqError) when nothing was clipped.
    * Resolves with the clip.
    */
   'logseq:clipWithSelection': (
-    data: string | { text: string; templateId?: string; note?: string },
+    data:
+      | string
+      | { text: string; templateId?: string; note?: string; subframe?: boolean },
   ) => ClipResult;
 
   /**
@@ -109,8 +114,13 @@ export interface MessagingProtocol {
 
   'content:quickCapturePage': (data?: ClipCommandOptions) => void;
 
-  /** "Clip image" from the context menu: the image the menu was opened on. */
-  'content:quickCaptureImage': (data: ClipCommandOptions & { srcUrl: string }) => void;
+  /**
+   * "Clip image" from the context menu: the image the menu was opened on.
+   * `subframe`: it is in a frame inside the page, not the page itself.
+   */
+  'content:quickCaptureImage': (
+    data: ClipCommandOptions & { srcUrl: string; subframe?: boolean },
+  ) => void;
 
   /** Whether the page has a selection that `quickCaptureWithSelection` would clip. */
   'content:hasSelection': () => boolean;
@@ -120,6 +130,14 @@ export interface MessagingProtocol {
    * of the viewport. Resolves to false when the page has no such highlight.
    */
   'content:scrollToHighlight': (data: { id: string }) => boolean;
+
+  /**
+   * From the background only, for "Save images to Logseq": the image at `url`
+   * as the page gets it (content/page-image.ts). Null when the page cannot
+   * have it as an image, or the tab is no longer on `pageUrl`, the page
+   * clipped (its `#hash` aside).
+   */
+  'content:fetchImage': (data: { url: string; pageUrl: string }) => PageImage | null;
 }
 
 // Create the messaging instance

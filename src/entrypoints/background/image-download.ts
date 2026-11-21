@@ -1,9 +1,19 @@
 import log from '@/utils/logger';
 import { isPrivateHost } from '@/utils/private-host';
+import {
+  ascii,
+  imageExtOf,
+  MAX_DOWNLOAD_BYTES,
+  MIME_BY_EXT,
+  readCapped,
+  sniffImageExt,
+  startsWith,
+} from '@/utils/image-bytes';
 
 /*
  * Downloading an image the page names, from the background, for "Save images
- * to Logseq" (logseq/image-assets.ts). The URL is the page's, and the
+ * to Logseq" (logseq/image-assets.ts), when the clip's tab cannot give it
+ * (page-image.ts: the page's own request comes first). The URL is the page's, and the
  * extension can fetch any host (`<all_urls>`, CORS does not stop it): so only
  * http(s), no host of this machine or the local network, no redirects, no
  * cookies, no Referer, a size cap while reading, a timeout, and nothing is
@@ -24,40 +34,14 @@ export interface ImageFile {
   name: string;
 }
 
-/** Larger downloads are not used: the download stops as soon as it has more. */
-export const MAX_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+export { MAX_DOWNLOAD_BYTES, MIME_BY_EXT, sniffImageExt } from '@/utils/image-bytes';
+
 /**
  * An image with more pixels is never decoded (24 MP, about 96 MB once
  * decoded): a small file can say it is a huge image.
  */
 export const MAX_DECODE_PIXELS = 24_000_000;
 const DOWNLOAD_TIMEOUT_MS = 15_000;
-
-export const MIME_BY_EXT: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  avif: 'image/avif',
-  bmp: 'image/bmp',
-  svg: 'image/svg+xml',
-};
-
-const startsWith = (bytes: Uint8Array, signature: number[], offset = 0) =>
-  signature.every((b, i) => bytes[offset + i] === b);
-
-const ascii = (text: string) => [...text].map((c) => c.charCodeAt(0));
-
-/** The kind of image the bytes are, by their first bytes. */
-export const sniffImageExt = (bytes: Uint8Array): string | undefined => {
-  if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47])) return 'png';
-  if (startsWith(bytes, [0xff, 0xd8, 0xff])) return 'jpg';
-  if (startsWith(bytes, ascii('GIF8'))) return 'gif';
-  if (startsWith(bytes, ascii('RIFF')) && startsWith(bytes, ascii('WEBP'), 8)) return 'webp';
-  if (startsWith(bytes, ascii('ftypavif'), 4)) return 'avif';
-  if (startsWith(bytes, ascii('BM'))) return 'bmp';
-  return undefined;
-};
 
 /** The width and height an image's header gives, or null when it cannot be read. */
 export const imageDimensions = (
@@ -162,35 +146,6 @@ export const isFetchableImageUrl = (url: string, pageUrl?: string): boolean => {
   }
 };
 
-/** The body of `resp`, or null once it has more than `cap` bytes (it stops reading then). */
-const readCapped = async (resp: Response, cap: number): Promise<Uint8Array | null> => {
-  if (Number(resp.headers.get('content-length')) > cap) {
-    await resp.body?.cancel().catch(() => {});
-    return null;
-  }
-  if (!resp.body) return new Uint8Array(0);
-  const reader = resp.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > cap) {
-      await reader.cancel().catch(() => {});
-      return null;
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(total);
-  let at = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, at);
-    at += chunk.length;
-  }
-  return bytes;
-};
-
 /**
  * The image at `url`, or null when it cannot be had: a URL that is not
  * fetched (`isFetchableImageUrl`), a redirect, a failed or refused request
@@ -221,9 +176,7 @@ export const downloadImage = async (url: string, pageUrl?: string): Promise<Imag
     const bytes = await readCapped(resp, MAX_DOWNLOAD_BYTES);
     if (!bytes || bytes.length === 0) return null;
 
-    const type = resp.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ?? '';
-    // The bytes decide, the header only for what has no signature (SVG).
-    const ext = sniffImageExt(bytes) ?? (type === 'image/svg+xml' ? 'svg' : undefined);
+    const ext = imageExtOf(bytes, resp.headers.get('content-type'));
     if (!ext) return null;
     return { bytes, ext, name: imageName(url) };
   } catch (error) {

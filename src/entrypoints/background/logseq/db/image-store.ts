@@ -4,9 +4,18 @@ import { assertStorableImage, type AssetRef, type ImageAssetStore, type ImageFil
  * Images in the assets of a DB graph, made the way Logseq makes a pasted one
  * (frontend.handler.editor.assets): the file is `assets/<uuid>.<ext>`, and an
  * Asset node with that uuid, under the Asset tag, has its type, size and
- * SHA-256 checksum. Another block shows it as `[[uuid]]`. Internal APIs,
- * probed on Logseq 2.0.2: `write_assetsdir_file` writes bytes given as
- * `{ type: 'Buffer', data: [...] }`, `import_edn` creates the node.
+ * SHA-256 checksum. Another block shows it as `[[uuid]]`. Probed on Logseq
+ * 2.0.2: `write_assetsdir_file` (internal) writes bytes given as
+ * `{ type: 'Buffer', data: [...] }`.
+ *
+ * The node is made with `insertBlock` and `addBlockTag`, which validate only
+ * what they change. Not with `import_edn`: it validates the whole graph
+ * after the import and refuses it for any invalid entity already there (a
+ * graph imported from a file graph can have hundreds).
+ *
+ * The node first, the file after: the API can remove a block, not a file.
+ * When a step fails, the node made here (its uuid is new, Logseq refuses one
+ * that exists) is removed, and no file is left without its node.
  */
 
 /**
@@ -19,7 +28,15 @@ export const DB_GRAPH_IMAGE_LIMIT = 270_000;
 /** What the store needs of the DB graph client. */
 export interface DbGraphAssetClient {
   writeAssetsdirFile(file: string, bytes: Uint8Array): Promise<string>;
-  importEdn(transit: string): Promise<void>;
+  /** A block `uuid` as the last child of `parentUuid`, with these properties (full idents). */
+  insertBlockWithProperties(
+    parentUuid: string,
+    content: string,
+    uuid: string,
+    properties: Record<string, string | number>,
+  ): Promise<unknown>;
+  addBlockTag(uuid: string, tagUuid: string): Promise<unknown>;
+  removeBlock(uuid: string): Promise<unknown>;
   /** A query that finds one uuid, or nothing. */
   queryUuid(query: string): Promise<string | undefined>;
   getBlockViaUuid(uuid: string): Promise<any>;
@@ -36,64 +53,16 @@ const sha256 = async (bytes: Uint8Array) =>
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-/** A string in transit JSON: one that starts with a transit mark is escaped. */
-const transitString = (text: string) => (/^[~^`]/.test(text) ? `~${text}` : text);
-
 /**
- * The title of the Asset node: the alt text, without what a DB graph could
- * read as a reference or tag, else the file name.
+ * The title of the Asset node: the alt text, without what a DB graph reads
+ * as a reference, a tag, a heading, math or code, else the file name.
  */
 export const assetTitle = (title: string, image: ImageFile) =>
   title
-    .replace(/[[\]#(){}]/g, ' ')
+    .replace(/[[\]#(){}$`]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 100) || image.name;
-
-/** The EDN (as transit JSON) that makes the Asset node below the Asset tag. */
-export const assetEdn = (asset: {
-  classUuid: string;
-  uuid: string;
-  title: string;
-  ext: string;
-  size: number;
-  checksum: string;
-}) =>
-  JSON.stringify([
-    '^ ',
-    '~:pages-and-blocks',
-    [
-      [
-        '^ ',
-        '~:page',
-        ['^ ', '~:block/uuid', `~u${asset.classUuid}`],
-        '~:blocks',
-        [
-          [
-            '^ ',
-            '~:block/title',
-            transitString(asset.title),
-            '~:block/uuid',
-            `~u${asset.uuid}`,
-            '~:build/keep-uuid?',
-            true,
-            '~:build/tags',
-            ['~:logseq.class/Asset'],
-            '~:build/properties',
-            [
-              '^ ',
-              '~:logseq.property.asset/type',
-              transitString(asset.ext),
-              '~:logseq.property.asset/size',
-              asset.size,
-              '~:logseq.property.asset/checksum',
-              asset.checksum,
-            ],
-          ],
-        ],
-      ],
-    ],
-  ]);
 
 /** Stores images as Asset nodes of a DB graph. */
 export const createDbImageStore = (client: DbGraphAssetClient): ImageAssetStore => ({
@@ -115,19 +84,23 @@ export const createDbImageStore = (client: DbGraphAssetClient): ImageAssetStore 
 
     const classUuid = await client.queryUuid(ASSET_CLASS_QUERY);
     if (!classUuid) throw new Error('The graph has no Asset tag.');
-    await client.writeAssetsdirFile(file, image.bytes);
-    await client.importEdn(
-      assetEdn({
-        classUuid,
-        uuid,
-        title: assetTitle(title, image),
-        ext: image.ext,
-        size: image.bytes.length,
-        checksum,
-      }),
-    );
-    const node = await client.getBlockViaUuid(uuid);
-    if (!node?.uuid || node.uuid !== uuid) throw new Error('Logseq did not make the Asset.');
+    try {
+      // The properties before the tag: Logseq tags a block with Asset only
+      // when it has an asset type.
+      await client.insertBlockWithProperties(classUuid, assetTitle(title, image), uuid, {
+        'logseq.property.asset/type': image.ext,
+        'logseq.property.asset/size': image.bytes.length,
+        'logseq.property.asset/checksum': checksum,
+      });
+      await client.addBlockTag(uuid, classUuid);
+      const node = await client.getBlockViaUuid(uuid);
+      if (!node?.uuid || node.uuid !== uuid) throw new Error('Logseq did not make the Asset.');
+      await client.writeAssetsdirFile(file, image.bytes);
+    } catch (error) {
+      // insertBlock can fail after it made the block: remove it all the same.
+      await client.removeBlock(uuid).catch(() => {});
+      throw error;
+    }
     return { kind: 'ref', uuid };
   },
 });

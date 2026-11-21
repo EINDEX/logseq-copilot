@@ -327,6 +327,19 @@ describe('clipping an image', () => {
     expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', MARKDOWN);
   });
 
+  it('"Clip image" in a frame inside the page says so with the clip', async () => {
+    vi.spyOn(HighlightManager.prototype, 'addImageHighlight').mockResolvedValue(null);
+    const { onQuickCaptureImage } = await import('./QuickCapture');
+    await onQuickCaptureImage({
+      sender: { id: fakeBrowser.runtime.id },
+      data: { srcUrl: 'https://frame.example/pic.png', subframe: true },
+    } as never);
+    expect(sendMessage).toHaveBeenCalledWith('logseq:clipWithSelection', {
+      text: '![](https://frame.example/pic.png)',
+      subframe: true,
+    });
+  });
+
   it('"Clip image" finds the image by its URL, and clips the URL alone without one', async () => {
     const addImage = vi
       .spyOn(HighlightManager.prototype, 'addImageHighlight')

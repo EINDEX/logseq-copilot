@@ -14,6 +14,8 @@ import {
 } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { sendMessage } from '@/types/messaging';
+import { bytesToBase64 } from '@/utils/image-bytes';
+import { saveImagesToLogseqItem } from '@/utils/storage';
 import {
   CannotConnectWithLogseq,
   LogseqError,
@@ -31,6 +33,11 @@ const service = vi.hoisted(() => ({
   recall: vi.fn(),
   search: vi.fn(),
   urlSearch: vi.fn(),
+  imageAssetLimit: 1_000_000,
+  saveImageAsset: vi.fn(async (image: { name: string; ext: string }) => ({
+    kind: 'path' as const,
+    path: `../assets/${image.name}.${image.ext}`,
+  })),
   client: {
     getUserConfig: vi.fn(),
     appendBlock: vi.fn(),
@@ -377,5 +384,87 @@ describe('clip results and notes', () => {
     expect((service.clipBlocks.mock.calls.at(-1)![1] as any).children).toEqual([
       { content: 'hello', children: [], note: true },
     ]);
+  });
+});
+
+describe('"Save images to Logseq" asks the tab the clip came from', () => {
+  const pageTab = { id: 3, url: 'https://media.lan.example/titles/347', title: 'Title 347' };
+  const imageUrl = 'https://media.lan.example/api/titles/347/backdrop';
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+
+  beforeEach(async () => {
+    await saveImagesToLogseqItem.setValue(true);
+    await templates.setValue([{ id: 'flat', name: 'Flat', content: '{{content}}' }]);
+    service.client.getUserConfig.mockResolvedValue({ preferredDateFormat: 'yyyy-MM-dd' });
+    service.client.appendBlock.mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await saveImagesToLogseqItem.setValue(false);
+  });
+
+  test('a clip from a content script stores the image its page gives', async () => {
+    const toTab = vi.spyOn(fakeBrowser.tabs, 'sendMessage').mockResolvedValue({
+      res: { base64: bytesToBase64(PNG), contentType: 'image/png' },
+    } as any);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const send = vi
+      .spyOn(fakeBrowser.runtime, 'sendMessage')
+      .mockImplementationOnce(async (message: any) => {
+        const res = await fakeBrowser.runtime.onMessage.trigger(message, { tab: pageTab } as any);
+        return res.find((r: unknown) => !!r);
+      });
+
+    await sendMessage('logseq:clipWithSelection', `![Backdrop](${imageUrl})`).finally(() =>
+      send.mockRestore(),
+    );
+    const asked = [...toTab.mock.calls];
+    const downloads = fetchSpy.mock.calls.length;
+    toTab.mockRestore();
+    fetchSpy.mockRestore();
+
+    expect(asked).toEqual([
+      [
+        3,
+        expect.objectContaining({ type: 'content:fetchImage', data: { url: imageUrl, pageUrl: pageTab.url } }),
+        { frameId: 0 },
+      ],
+    ]);
+    expect(downloads).toBe(0);
+    expect(service.saveImageAsset).toHaveBeenCalledWith(
+      { bytes: PNG, ext: 'png', name: 'backdrop' },
+      'Backdrop',
+    );
+    expect(service.client.appendBlock.mock.calls.at(-1)![1]).toBe(
+      '![Backdrop](../assets/backdrop.png)',
+    );
+  });
+
+  test('an image of a frame inside the page is never asked of the tab', async () => {
+    const toTab = vi.spyOn(fakeBrowser.tabs, 'sendMessage');
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(PNG, { headers: { 'Content-Type': 'image/png' } }));
+    const frameImage = 'https://frame.example/pic.png';
+    const send = vi
+      .spyOn(fakeBrowser.runtime, 'sendMessage')
+      .mockImplementationOnce(async (message: any) => {
+        const res = await fakeBrowser.runtime.onMessage.trigger(message, { tab: pageTab } as any);
+        return res.find((r: unknown) => !!r);
+      });
+
+    await sendMessage('logseq:clipWithSelection', {
+      text: `![](${frameImage})`,
+      subframe: true,
+    }).finally(() => send.mockRestore());
+    const asked = toTab.mock.calls.length;
+    const downloads = fetchSpy.mock.calls.map(([url, init]) => [url, (init as RequestInit)?.credentials]);
+    toTab.mockRestore();
+    fetchSpy.mockRestore();
+
+    expect(asked).toBe(0);
+    // The background's own download: no cookies.
+    expect(downloads).toEqual([[frameImage, 'omit']]);
+    expect(service.client.appendBlock.mock.calls.at(-1)![1]).toBe('![](../assets/pic.png)');
   });
 });
