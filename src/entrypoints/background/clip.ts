@@ -50,9 +50,13 @@ export const resolveTemplate = (
  * Render `source` with its template (the default one without a choice) and append it
  * where the template says: one root block with everything else below it.
  * Throws when nothing was clipped, Logseq failures as LogseqError (a readable
- * message for the user).
+ * message for the user). `tabId`, the tab of the page clipped, is asked for
+ * the images of the clip first ("Save images to Logseq").
  */
-export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
+export const clipToLogseq = async (
+  source: ClipSource,
+  tabId?: number,
+): Promise<ClipResult> => {
   const template = resolveTemplate(
     await templates.getValue(),
     source.templateId,
@@ -87,7 +91,7 @@ export const clipToLogseq = async (source: ClipSource): Promise<ClipResult> => {
   // Experimental: the images of the clipped content go to the graph's assets.
   // Off (the default), the blocks are exactly what the template made.
   const root = (await saveImagesToLogseqItem.getValue().catch(() => false))
-    ? await saveClipImages(blocks[0], source.data, logseqService, source.url)
+    ? await saveClipImages(blocks[0], source.data, logseqService, source.url, tabId)
     : blocks[0];
   // Only an outline template has a header (the root) apart from the content
   // (its children), so only it joins an earlier clip of the same page. A flat

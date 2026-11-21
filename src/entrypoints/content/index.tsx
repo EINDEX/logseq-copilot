@@ -13,6 +13,7 @@ import mountQuickCapture, {
   runPickedClip,
   trackContextMenu,
 } from './QuickCapture';
+import { onFetchImage } from './page-image';
 import { CustomSearchEngine } from './searchingEngines/searchingEngines';
 import { keepOnPage } from './searchingEngines/keep-on-page';
 import { onMessage } from '@/types/messaging';
@@ -80,6 +81,10 @@ export default defineContentScript({
     onMessage('content:scrollToHighlight', async (message) => {
       return HighlightManager.getInstance().scrollToHighlight(message.data.id);
     });
+
+    // From the background, "Save images to Logseq": an image of a clip, as
+    // this page gets it.
+    onMessage('content:fetchImage', onFetchImage);
 
     // Browsers without a sidebar of their own, and Arc, get it drawn on the
     // page (src/utils/sidebar.ts): once per tab, so in the top frame of web

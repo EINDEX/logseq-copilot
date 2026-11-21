@@ -131,18 +131,21 @@ const sendClip = async (
   captured: Captured | null,
   templateId?: string,
   note?: string,
+  /** An image of a frame inside the page (see `logseq:clipWithSelection`). */
+  subframe?: boolean,
 ): Promise<ClipResult> => {
   if (!captured) return await clipPage(templateId, note);
   const { text } = captured;
   getSelection()?.empty();
   const clipped = await sendMessage(
     'logseq:clipWithSelection',
-    templateId === undefined && !note
+    templateId === undefined && !note && !subframe
       ? text
       : {
           text,
           ...(templateId !== undefined && { templateId }),
           ...(note && { note }),
+          ...(subframe && { subframe: true }),
         },
   );
   // A failed clip threw above: it leaves no highlight.
@@ -227,13 +230,16 @@ export const runClipCommand = (
 
 /**
  * "Clip image" from the context menu: the image at `srcUrl` as `![alt](src)`,
- * highlighted like a clipped selection once it is in Logseq.
+ * highlighted like a clipped selection once it is in Logseq. `subframe`: the
+ * menu was opened in a frame inside the page.
  */
 export const runImageClipCommand = (
   srcUrl: string,
-  { templateId }: ClipCommandOptions = {},
+  { templateId, subframe }: ClipCommandOptions & { subframe?: boolean } = {},
 ): Promise<void> =>
-  clipInPage(() => sendClip(captureContextImage(srcUrl), templateId));
+  clipInPage(() =>
+    sendClip(captureContextImage(srcUrl), templateId, undefined, subframe === true),
+  );
 
 /**
  * `content:quickCaptureImage`: only from this extension's background (the
@@ -243,7 +249,7 @@ export const onQuickCaptureImage = async ({
   data,
   sender,
 }: {
-  data: ClipCommandOptions & { srcUrl: string };
+  data: ClipCommandOptions & { srcUrl: string; subframe?: boolean };
   sender: MessageSenderLike;
 }): Promise<void> => {
   if (!fromExtensionContext(sender) || typeof data?.srcUrl !== 'string') {
