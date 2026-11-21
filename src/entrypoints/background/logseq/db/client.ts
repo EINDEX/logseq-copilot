@@ -261,9 +261,27 @@ export default class LogseqClient extends LogseqClientBase implements LogseqClie
     ]);
   };
 
-  /** Imports EDN (sqlite.build, as transit JSON) into the graph. Throws when refused. */
-  public importEdn = async (transit: string): Promise<void> => {
-    await this.baseText('logseq.App.import_edn', [transit]);
+  /**
+   * A block `uuid` as the last child of `parentUuid` (a block or a page),
+   * then its properties, given by full ident. Logseq refuses a uuid that
+   * exists; a refused property can leave the block made (HTTP 500).
+   */
+  public insertBlockWithProperties = async (
+    parentUuid: string,
+    content: string,
+    uuid: string,
+    properties: Record<string, string | number>,
+  ) => {
+    return await this.baseJson('logseq.Editor.insertBlock', [
+      parentUuid,
+      content,
+      { sibling: false, focus: false, customUUID: uuid, properties },
+    ]);
+  };
+
+  /** Tags the block `uuid` with the tag `tagUuid`. Throws when refused. */
+  public addBlockTag = async (uuid: string, tagUuid: string) => {
+    return await this.baseText('logseq.Editor.addBlockTag', [uuid, tagUuid]);
   };
 
   /**

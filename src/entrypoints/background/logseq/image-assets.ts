@@ -1,13 +1,16 @@
 import type { ClipBlock } from '@/utils/clip-template';
 import log from '@/utils/logger';
 import { decodeImage, downloadImage, MIME_BY_EXT, type ImageFile } from '../image-download';
+import { fetchImageFromTab } from '../page-image';
 
 export type { ImageFile } from '../image-download';
 
 /*
  * "Save images to Logseq" (experimental): the images of a clip are downloaded
  * and stored in the graph's assets, and the clip shows the stored file instead
- * of the remote URL. Whatever goes wrong with an image (download, size,
+ * of the remote URL. Each image is asked of the clip's tab first, as the page
+ * gets it (../page-image.ts), then downloaded by the background itself
+ * (../image-download.ts). Whatever goes wrong with an image (download, size,
  * upload), the clip keeps its remote URL and is saved all the same.
  */
 
@@ -214,6 +217,8 @@ export const saveClipImages = async (
   store: ImageAssetStore,
   /** The page clipped: its own origin may be a local one (`isFetchableImageUrl`). */
   pageUrl?: string,
+  /** The tab of the page clipped: it is asked for each image first. */
+  tabId?: number,
 ): Promise<ClipBlock> => {
   try {
     const clipped = new Set(findImages(data).map((image) => image.dest));
@@ -229,7 +234,7 @@ export const saveClipImages = async (
 
     const stored = new Map<string, AssetRef>();
     for (const [dest, label] of [...labels].slice(0, MAX_IMAGES_PER_CLIP)) {
-      const ref = await storeImage(destUrl(dest), unescapeLabel(label), store, pageUrl);
+      const ref = await storeImage(destUrl(dest), unescapeLabel(label), store, pageUrl, tabId);
       if (ref) stored.set(dest, ref);
     }
     if (stored.size === 0) return root;
@@ -246,14 +251,32 @@ export const saveClipImages = async (
   }
 };
 
+/**
+ * The image at `url`: as the page of tab `tabId` gets it when the clip has a
+ * tab and that tab is still on `pageUrl`, otherwise (or when the page cannot
+ * give it) downloaded by the background itself, without cookies or
+ * redirects. Null when neither has it.
+ */
+const getImage = async (
+  url: string,
+  pageUrl?: string,
+  tabId?: number,
+): Promise<ImageFile | null> =>
+  // Only with the page clipped: the tab answers only while it is still on it.
+  (tabId !== undefined && tabId >= 0 && pageUrl
+    ? await fetchImageFromTab(tabId, url, pageUrl)
+    : null) ??
+  (await downloadImage(url, pageUrl));
+
 /** Download, fit and store one image. Null, never a throw, when it is not stored. */
 const storeImage = async (
   url: string,
   title: string,
   store: ImageAssetStore,
   pageUrl?: string,
+  tabId?: number,
 ): Promise<AssetRef | null> => {
-  const downloaded = await downloadImage(url, pageUrl);
+  const downloaded = await getImage(url, pageUrl, tabId);
   if (!downloaded) {
     log.debug('[image-assets] Keeps the URL, no image at', url);
     return null;

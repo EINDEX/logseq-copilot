@@ -16,6 +16,11 @@ import {
   type ImageFile,
 } from './image-assets';
 import { MAX_DECODE_PIXELS } from '../image-download';
+import { bytesToBase64 } from '@/utils/image-bytes';
+
+// The clip's tab (content:fetchImage, ../page-image.ts).
+const { sendMessage } = vi.hoisted(() => ({ sendMessage: vi.fn() }));
+vi.mock('@/types/messaging', () => ({ sendMessage }));
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
@@ -305,5 +310,69 @@ describe('saveClipImages', () => {
     const root = block('text only');
     expect(await saveClipImages(root, 'text only', store())).toBe(root);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  describe('with the tab of the clip', () => {
+    // Behind a login on the local network: only the page gets it.
+    const url = 'https://media.lan.example/api/titles/347/backdrop';
+    const data = imageMarkdown('Backdrop', url);
+    const fromPage = { base64: bytesToBase64(PNG), contentType: 'image/png' };
+
+    beforeEach(() => {
+      sendMessage.mockReset();
+    });
+
+    it('asks the page first, and downloads nothing itself when the page has it', async () => {
+      sendMessage.mockResolvedValue(fromPage);
+      const s = store();
+      const saved = await saveClipImages(block(data), data, s, 'https://media.lan.example/t/347', 5);
+      expect(saved.content).toBe('![Backdrop](../assets/backdrop.png)');
+      expect(sendMessage).toHaveBeenCalledWith(
+        'content:fetchImage',
+        { url, pageUrl: 'https://media.lan.example/t/347' },
+        { tabId: 5, frameId: 0 },
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(s.saveImageAsset).toHaveBeenCalledWith(
+        { bytes: PNG, ext: 'png', name: 'backdrop' },
+        'Backdrop',
+      );
+    });
+
+    it('downloads it itself, without cookies or redirects, when the page cannot', async () => {
+      // A cross-origin image without CORS headers: the page's fetch fails.
+      sendMessage.mockResolvedValue(null);
+      const cdn = imageMarkdown('cat', 'https://cdn.example/cat.png');
+      const saved = await saveClipImages(block(cdn), cdn, store(), 'https://e.com/p', 5);
+      expect(saved.content).toBe('![cat](../assets/cat.png)');
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://cdn.example/cat.png',
+        expect.objectContaining({ credentials: 'omit', redirect: 'error' }),
+      );
+
+      // No content script in the tab.
+      sendMessage.mockRejectedValue(new Error('Receiving end does not exist.'));
+      expect((await saveClipImages(block(cdn), cdn, store(), 'https://e.com/p', 5)).content).toBe(
+        '![cat](../assets/cat.png)',
+      );
+    });
+
+    it('keeps the URL when neither the page nor the download has it', async () => {
+      sendMessage.mockResolvedValue(null);
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 302 }));
+      const s = store();
+      expect((await saveClipImages(block(data), data, s, 'https://e.com/p', 5)).content).toBe(data);
+      expect(s.saveImageAsset).not.toHaveBeenCalled();
+    });
+
+    it('asks no tab without one, or without the page clipped', async () => {
+      const cat = imageMarkdown('cat', 'https://cdn.example/cat.png');
+      await saveClipImages(block(cat), cat, store(), 'https://e.com/p');
+      await saveClipImages(block(cat), cat, store(), 'https://e.com/p', -1);
+      // Nor without the page clipped: the tab answers only on that page.
+      await saveClipImages(block(cat), cat, store(), undefined, 5);
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
   });
 });
