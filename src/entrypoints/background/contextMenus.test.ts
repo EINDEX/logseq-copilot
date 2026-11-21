@@ -451,6 +451,47 @@ describe('background context menus', () => {
       );
     });
 
+    it('marks "Clip image" in a frame inside the page, so its tab is not asked for the image', () => {
+      const srcUrl = 'https://frame.example/pic.png';
+      click('clip-image', { srcUrl, frameId: 0 });
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCaptureImage',
+        { srcUrl },
+        { tabId: 7 },
+      );
+      click('clip-image', { srcUrl });
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCaptureImage',
+        { srcUrl },
+        { tabId: 7 },
+      );
+      click('clip-image:task', { srcUrl, frameId: 4 });
+      expect(sendMessage).toHaveBeenLastCalledWith(
+        'content:quickCaptureImage',
+        { templateId: 'task', srcUrl, subframe: true },
+        { tabId: 7 },
+      );
+    });
+
+    it('clips an image of a frame from the background without asking its tab', async () => {
+      vi.mocked(sendMessage).mockRejectedValue(new Error('no receiver'));
+      const srcUrl = 'https://frame.example/pic.png';
+      click('clip-image', { srcUrl, frameId: 4, pageUrl: 'https://e.com/' });
+      await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
+      expect(clipToLogseq).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: `![](${srcUrl})` }),
+        undefined,
+      );
+
+      vi.mocked(clipToLogseq).mockClear();
+      click('clip-image', { srcUrl, frameId: 0, pageUrl: 'https://e.com/' });
+      await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
+      expect(clipToLogseq).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: `![](${srcUrl})` }),
+        7,
+      );
+    });
+
     it('ignores items that are not its own', () => {
       click('something-else');
       expect(sendMessage).not.toHaveBeenCalled();
@@ -476,6 +517,7 @@ describe('background context menus', () => {
       await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
       expect(clipToLogseq).toHaveBeenCalledWith(
         expect.objectContaining({ data: 'a quote', templateId: 'task' }),
+        7,
       );
     });
   });
@@ -515,11 +557,15 @@ describe('background context menus', () => {
       clickSelection({ selectionText: 'a quote', pageUrl: pdfTab.url }, pdfTab);
 
       await vi.waitFor(() => expect(clipToLogseq).toHaveBeenCalledTimes(1));
-      expect(clipToLogseq).toHaveBeenCalledWith({
-        url: 'https://example.com/paper.pdf',
-        title: 'paper.pdf',
-        data: 'a quote',
-      });
+      // With the tab: the images of a clip are asked of it first.
+      expect(clipToLogseq).toHaveBeenCalledWith(
+        {
+          url: 'https://example.com/paper.pdf',
+          title: 'paper.pdf',
+          data: 'a quote',
+        },
+        7,
+      );
       await vi.waitFor(() => expect(clearClipErrorBadges).toHaveBeenCalledTimes(1));
       expect(showClipErrorBadge).not.toHaveBeenCalled();
     });

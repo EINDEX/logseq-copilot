@@ -25,3 +25,25 @@ describe.each([
     ]);
   });
 });
+
+describe('db client Asset calls', () => {
+  test('inserts a block with its uuid and properties below the parent', async () => {
+    const client = new DBClient();
+    const spy = vi.fn().mockResolvedValue({ uuid: 'u' });
+    client.baseJson = spy;
+    await client.insertBlockWithProperties('p', 'title', 'u', { 'logseq.property.asset/size': 3 });
+    expect(spy).toHaveBeenCalledWith('logseq.Editor.insertBlock', [
+      'p',
+      'title',
+      { sibling: false, focus: false, customUUID: 'u', properties: { 'logseq.property.asset/size': 3 } },
+    ]);
+  });
+
+  test('tags a block', async () => {
+    const client = new DBClient();
+    const spy = vi.fn().mockResolvedValue('null');
+    client.baseText = spy;
+    await client.addBlockTag('u', 't');
+    expect(spy).toHaveBeenCalledWith('logseq.Editor.addBlockTag', ['u', 't']);
+  });
+});

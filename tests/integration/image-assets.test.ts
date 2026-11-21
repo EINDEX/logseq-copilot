@@ -88,6 +88,11 @@ const PHOTO = png(64, 48);
 const OTHER = png(32, 32);
 // Larger than any graph takes; Node has no OffscreenCanvas to make it smaller.
 const HUGE = png(600, 600, true);
+/** A 16x9 WebP (cwebp -q 80), what the extension makes of a large image. */
+const WEBP = Buffer.from(
+  'UklGRlQAAABXRUJQVlA4IEgAAADQAQCdASoQAAkAAUAmJbACdAEOu4iZAAD+/GvXdmh+L/yzxE/iyNapfr/5MV/hW7a/4U2rMl/+/f4B/zVr7r//3WGkvmoAAAA=',
+  'base64',
+);
 
 let server: http.Server;
 let base: string;
@@ -139,6 +144,7 @@ beforeAll(async () => {
     if (req.url?.startsWith('/photo.png')) return send('image/png', PHOTO);
     if (req.url?.startsWith('/other.png')) return send('image/png', OTHER);
     if (req.url?.startsWith('/huge.png')) return send('image/png', HUGE);
+    if (req.url?.startsWith('/api/titles/347/backdrop')) return send('image/webp', WEBP);
     if (req.url?.startsWith('/page.png')) return send('text/html', '<p>not an image</p>');
     res.writeHead(404);
     res.end();
@@ -276,6 +282,37 @@ describe(`save images to Logseq (${variant} graph)`, () => {
     expect(asset.title).toBe('~:logseq.class/Tag Other evil page othereviltag');
     for (const page of ['Other evil page', 'othereviltag']) {
       expect(await api('logseq.Editor.getPage', [page]), page).toBeFalsy();
+    }
+  });
+
+  test('a WebP with a CJK alt text is stored though the graph has an invalid entity (DB graph)', async () => {
+    if (variant !== 'db') return;
+    await saveImagesToLogseqItem.setValue(true);
+    // A block the graph's own validation refuses (a graph imported from a
+    // file graph can have hundreds): Logseq takes the property, but an
+    // import_edn after it fails ("1 validation error(s)").
+    const holder = await api('logseq.Editor.appendBlockInPage', [TEST_PAGE, 'invalid holder']);
+    await api('logseq.Editor.upsertBlockProperty', [holder.uuid, 'logseq.property.asset/checksum', 'x']);
+    try {
+      const alt = '赛博朋克：边缘行者背景图';
+      const text = await clipText(imageMarkdown(alt, `${base}/api/titles/347/backdrop`));
+      const uuid = text.match(/^\[\[([0-9a-f-]{36})\]\]$/)?.[1];
+      expect(uuid, text).toBeTruthy();
+      const asset = await api('logseq.DB.datascriptQuery', [
+        `[:find (pull ?e [:block/title {:block/page [:db/ident]} {:block/tags [:db/ident]} :logseq.property.asset/type :logseq.property.asset/size :logseq.property.asset/checksum]) . :where [?e :block/uuid #uuid "${uuid}"]]`,
+      ]);
+      expect(asset).toMatchObject({
+        title: alt,
+        page: { ident: ':logseq.class/Asset' },
+        tags: [{ ident: ':logseq.class/Asset' }],
+        ':logseq.property.asset/type': 'webp',
+        ':logseq.property.asset/size': WEBP.length,
+        ':logseq.property.asset/checksum': crypto.createHash('sha256').update(WEBP).digest('hex'),
+      });
+      const dir = await graphDir();
+      expect(fs.readFileSync(path.join(dir, 'assets', `${uuid}.webp`)).equals(WEBP)).toBe(true);
+    } finally {
+      await api('logseq.Editor.removeBlock', [holder.uuid]);
     }
   });
 });
