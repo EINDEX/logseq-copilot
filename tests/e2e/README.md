@@ -282,11 +282,10 @@ LOGSEQ_VARIANT=file LOGSEQ_BIN=$BIN LOGSEQ_API_PORT=12399 pnpm test:live
 
 ### Run on CI
 
-`.github/workflows/site-check.yml`: every day at 01:23 UTC on `wxt`, and by
+`.github/workflows/site-check.yml`: every day at 01:23 UTC on `main`, and by
 hand (Actions > Site check > Run workflow, on any ref) with the inputs
 `sites` (empty for all) and `open_issue`. GitHub starts `schedule` runs only
-from the workflow file on the default branch, so the daily run needs the
-file on `main`.
+from the workflow file on the default branch, so the daily run checks `main`.
 
 - The table goes into the job summary; results and screenshots are the
   artifact `site-check`. The job fails when a site is `broken` or `degraded`.
