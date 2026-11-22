@@ -6,10 +6,9 @@ name: Site check
 # tests/e2e/README.md). The job fails when a site is `broken` or `degraded`;
 # `blocked` (captcha, consent page) and `skipped` do not fail it.
 #
-# Scheduled runs check out `wxt`, the development branch, so a broken site is
-# found before it is released. GitHub starts `schedule` runs only from the
-# workflow file on the default branch (`main`): the daily run starts once this
-# file is on main. Manual runs check out the ref picked in "Use workflow from".
+# Scheduled runs check out the default branch (`main`): GitHub starts
+# `schedule` runs only from the workflow file there. Manual runs check out the
+# ref picked in "Use workflow from".
 
 on:
   schedule:
@@ -49,7 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'schedule' && 'wxt' || github.ref }}
           persist-credentials: false
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -164,7 +162,7 @@ jobs:
       COMPLETE: ${{ needs.check.outputs.complete }}
       REPORT: ${{ needs.check.outputs.report }}
       COMMIT: ${{ needs.check.outputs.commit }}
-      REF: ${{ github.event_name == 'schedule' && 'wxt' || github.ref_name }}
+      REF: ${{ github.ref_name }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
