@@ -38,8 +38,33 @@ const renderAt = (path: string) =>
     </MemoryRouter>,
   );
 
-const editor = () =>
-  EditorView.findFromDOM(document.querySelector('.cm-editor') as HTMLElement)!;
+const mountedEditor = () => {
+  const dom = document.querySelector<HTMLElement>('.cm-editor');
+  return dom ? EditorView.findFromDOM(dom) : null;
+};
+
+const editor = () => {
+  const view = mountedEditor();
+  if (!view) throw new Error('The editor is not mounted');
+  return view;
+};
+
+// TemplateEditor creates its EditorView in an effect, which can run after
+// the fields of the page are already on screen. Waits for that view; given
+// the view of the template opened before, waits for the one replacing it.
+const findEditor = (previous?: EditorView) =>
+  waitFor(() => {
+    const view = mountedEditor();
+    expect(view).toBeTruthy();
+    expect(view).not.toBe(previous);
+    return view!;
+  });
+
+const openTemplate = async (id: string, name: string) => {
+  renderAt(`/template/${id}`);
+  await screen.findByDisplayValue(name);
+  await findEditor();
+};
 
 // Types one character at the caret the way a browser does: the value
 // changes, the caret lands after the new character, then `input` fires.
@@ -111,8 +136,7 @@ describe('TemplateEditPage', () => {
   ] as const)(
     'keeps the caret where the user typed in the %s field after the save lands',
     async (_, getField, initial) => {
-      renderAt('/template/a');
-      await screen.findByDisplayValue('Alpha');
+      await openTemplate('a', 'Alpha');
       const field = getField() as HTMLInputElement;
       expect(field.value).toBe(initial);
 
@@ -133,8 +157,7 @@ describe('TemplateEditPage', () => {
   );
 
   it('keeps the caret in the content after the save lands', async () => {
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
     expect(editor().state.doc.toString()).toBe(CONTENT_DOC);
 
     typeInEditor(5, 'x');
@@ -154,8 +177,7 @@ describe('TemplateEditPage', () => {
   });
 
   it('keeps every keystroke when typing faster than storage answers', async () => {
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
 
     typeInEditor(2, 'a');
     typeInEditor(3, 'b');
@@ -177,24 +199,24 @@ describe('TemplateEditPage', () => {
   });
 
   it('shows the stored values of the template that is opened next', async () => {
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
     typeInEditor(2, 'x');
     await waitFor(async () => {
       expect((await stored('a'))?.content).toBe('x' + CONTENT);
     });
 
+    const previous = editor();
     act(() => {
       navigate('/template/b');
     });
 
     expect(await screen.findByDisplayValue('Beta')).toBeTruthy();
-    expect(editor().state.doc.toString()).toBe('- beta content');
+    const next = await findEditor(previous);
+    expect(next.state.doc.toString()).toBe('- beta content');
   });
 
   it('previews the blocks of the template as it is typed', async () => {
-    renderAt('/template/b');
-    await screen.findByDisplayValue('Beta');
+    await openTemplate('b', 'Beta');
     const bullets = () => document.querySelectorAll('[data-clip-block]');
     expect(bullets()).toHaveLength(1);
 
@@ -205,8 +227,7 @@ describe('TemplateEditPage', () => {
   });
 
   it('inserts a variable chip at the caret when it is clicked', async () => {
-    renderAt('/template/b');
-    await screen.findByDisplayValue('Beta');
+    await openTemplate('b', 'Beta');
     act(() => {
       editor().dispatch({ selection: { anchor: 7 } });
     });
@@ -230,8 +251,7 @@ describe('TemplateEditPage', () => {
     const write = vi.spyOn(fakeBrowser.storage.local, 'set');
     const before = await templates.getValue();
 
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
     await settle();
     expect(write).not.toHaveBeenCalled();
 
@@ -246,8 +266,7 @@ describe('TemplateEditPage', () => {
   });
 
   it('opens a template the outline would change in Text, with Outline disabled', async () => {
-    renderAt('/template/c');
-    await screen.findByDisplayValue('Gamma');
+    await openTemplate('c', 'Gamma');
 
     expect(
       document
@@ -263,8 +282,7 @@ describe('TemplateEditPage', () => {
   });
 
   it('switches between Outline and the stored text', async () => {
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
     const mode = () =>
       document
         .querySelector('[data-testid="template-editor"]')
@@ -283,8 +301,7 @@ describe('TemplateEditPage', () => {
   });
 
   it('enables Outline in Text once the text is a plain outline', async () => {
-    renderAt('/template/c');
-    await screen.findByDisplayValue('Gamma');
+    await openTemplate('c', 'Gamma');
     const outline = () =>
       screen.getByRole('button', { name: 'Outline' }) as HTMLButtonElement;
     expect(outline().disabled).toBe(true);
@@ -304,8 +321,7 @@ describe('TemplateEditPage', () => {
 
   describe('graph', () => {
     it('asks Logseq once for the properties, the graph kind and the tags', async () => {
-      renderAt('/template/a');
-      await screen.findByDisplayValue('Alpha');
+      await openTemplate('a', 'Alpha');
       await settle();
       const asked = sendMessage.mock.calls.map(([type]) => type).sort();
       expect(asked).toEqual([
@@ -324,8 +340,7 @@ describe('TemplateEditPage', () => {
         if (type === 'logseq:listProperties') return [{ title: 'source', type: 'url' }];
         return [{ name: 'Reading', uuid: 'u' }];
       });
-      renderAt('/template/p');
-      await screen.findByDisplayValue('Props');
+      await openTemplate('p', 'Props');
       await waitFor(() =>
         expect(document.querySelector('.cm-tpl-type')?.textContent).toBe('url'),
       );
@@ -333,8 +348,7 @@ describe('TemplateEditPage', () => {
 
     it('keeps working when every request fails', async () => {
       sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq'));
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
+      await openTemplate('b', 'Beta');
       await settle();
       typeInEditor(2, 'x');
       await waitFor(async () =>
@@ -347,8 +361,7 @@ describe('TemplateEditPage', () => {
       await templates.setValue([
         { id: 't', name: 'Tagged', content: 'x', tag: { name: 'Old' } } as never,
       ]);
-      renderAt('/template/t');
-      await screen.findByDisplayValue('Tagged');
+      await openTemplate('t', 'Tagged');
       expect(screen.queryByRole('combobox', { name: 'Tag' })).toBeNull();
       expect(screen.queryByRole('heading', { name: 'Tag' })).toBeNull();
       typeAt(screen.getByLabelText('Name') as HTMLInputElement, 6, '!');
@@ -361,8 +374,7 @@ describe('TemplateEditPage', () => {
     const pageField = () => screen.queryByLabelText('Page name');
 
     it('is a segmented control; the page field shows for Page… only', async () => {
-      renderAt('/template/a');
-      await screen.findByDisplayValue('Alpha');
+      await openTemplate('a', 'Alpha');
       expect(screen.getByRole('group', { name: 'Save to' })).toBeTruthy();
       expect(segment('Page…').getAttribute('aria-pressed')).toBe('true');
       expect(segment('Journal').getAttribute('aria-pressed')).toBe('false');
@@ -392,16 +404,14 @@ describe('TemplateEditPage', () => {
     });
 
     it('defaults to Journal for a template without a location', async () => {
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
+      await openTemplate('b', 'Beta');
       expect(segment('Journal').getAttribute('aria-pressed')).toBe('true');
       expect(pageField()).toBeNull();
     });
   });
 
   it('has no explanatory text', async () => {
-    renderAt('/template/a');
-    await screen.findByDisplayValue('Alpha');
+    await openTemplate('a', 'Alpha');
     const text = document.body.textContent ?? '';
     expect(text).not.toMatch(/Only used when/);
     expect(text).not.toMatch(/Configure your template/);
@@ -416,8 +426,7 @@ describe('TemplateEditPage', () => {
     const add = () => screen.getByRole('button', { name: 'Add pattern' });
 
     it('stores a pattern with Enter or Add, and removes it again', async () => {
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
+      await openTemplate('b', 'Beta');
       expect((await stored('b'))?.rules).toBeUndefined();
 
       fireEvent.change(field(), { target: { value: 'github.com/*/issues/*' } });
@@ -440,8 +449,7 @@ describe('TemplateEditPage', () => {
     });
 
     it('does not store an invalid pattern and says why', async () => {
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
+      await openTemplate('b', 'Beta');
 
       fireEvent.change(field(), { target: { value: 'a.com/**/b' } });
       expect(screen.getByRole('alert').textContent).toBeTruthy();
@@ -457,12 +465,10 @@ describe('TemplateEditPage', () => {
         { id: 'a', name: 'Alpha', content: 'x', rules: ['a.com'] },
         { id: 'b', name: 'Beta', content: 'y' },
       ]);
-      renderAt('/template/a');
-      await screen.findByDisplayValue('Alpha');
+      await openTemplate('a', 'Alpha');
       expect(screen.getByLabelText('Patterns').textContent).toBe('a.com');
       cleanup();
-      renderAt('/template/b');
-      await screen.findByDisplayValue('Beta');
+      await openTemplate('b', 'Beta');
       expect(screen.queryByLabelText('Patterns')).toBeNull();
     });
   });
