@@ -14,6 +14,7 @@ const context = (
 ): ProcessedSearchContext => ({
   originalUrl: new URL('https://example.com/'),
   processedUrl: new URL('https://example.com/'),
+  urlMatch: {},
   excludeKeywords: [],
   includeKeywords: [],
   searchScope: {},
@@ -277,5 +278,133 @@ describe('filterResults', () => {
       ctx,
     );
     expect(uuids(res)).toEqual(['code', 'plain']);
+  });
+});
+
+describe('keepQueryParams and urlForms', () => {
+  const ytForms = ['youtube.com/watch?v={id}', 'youtu.be/{id}'];
+
+  it('the allowlist is applied to the processed URL', async () => {
+    await seedRules([
+      rule({ urlPattern: 'youtube', queryProcessing: { keepQueryParams: ['v'] } }),
+    ]);
+    const ctx = await processor.processSearchContext(
+      'https://www.youtube.com/watch?v=AAA&t=30s&list=L&index=2&feature=share',
+    );
+    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/watch?v=AAA');
+    expect(ctx.originalUrl.search).toContain('list=L');
+    expect(ctx.urlMatch).toEqual({ keepQueryParams: ['v'] });
+  });
+
+  it('without an allowlist the query stays as it was', async () => {
+    await seedRules([rule()]);
+    const ctx = await processor.processSearchContext('https://x.example/a?b=2&utm_source=n');
+    expect(ctx.processedUrl.href).toBe('https://x.example/a?b=2&utm_source=n');
+    expect(ctx.urlMatch).toEqual({});
+  });
+
+  it('an empty allowlist counts as unset', async () => {
+    await seedRules([rule({ queryProcessing: { keepQueryParams: [], urlForms: [] } })]);
+    const ctx = await processor.processSearchContext('https://x.example/a?b=2');
+    expect(ctx.processedUrl.search).toBe('?b=2');
+    expect(ctx.urlMatch).toEqual({});
+  });
+
+  it('the most specific rule that sets one decides, field by field', async () => {
+    await seedRules([
+      rule({ id: 'all', urlPattern: '.*', queryProcessing: { keepQueryParams: ['a', 'b'], urlForms: ytForms } }),
+      rule({ id: 'site', urlPattern: 'x\\.example', queryProcessing: { keepQueryParams: ['b'] } }),
+      rule({ id: 'page', urlPattern: 'x\\.example/page' }),
+    ]);
+    const ctx = await processor.processSearchContext('https://x.example/page?a=1&b=2&c=3');
+    expect(ctx.appliedRules.map((r) => r.id)).toEqual(['page', 'site', 'all']);
+    expect(ctx.urlMatch).toEqual({ keepQueryParams: ['b'], urlForms: ytForms });
+    expect(ctx.processedUrl.search).toBe('?b=2');
+  });
+
+  it('ignoreQueryParams still wins and removes everything', async () => {
+    await seedRules([
+      rule({ id: 'a', urlPattern: 'x\\.example/page', queryProcessing: { keepQueryParams: ['b'] } }),
+      rule({ id: 'b', urlPattern: 'x', queryProcessing: { ignoreQueryParams: true } }),
+    ]);
+    const ctx = await processor.processSearchContext('https://x.example/page?a=1&b=2');
+    expect(ctx.processedUrl.search).toBe('');
+    expect(ctx.urlMatch).toEqual({});
+  });
+
+  it('a URL of another form becomes the canonical one', async () => {
+    await seedRules([
+      rule({
+        urlPattern: 'youtu',
+        queryProcessing: { keepQueryParams: ['v'], urlForms: ytForms },
+      }),
+    ]);
+    const ctx = await processor.processSearchContext('https://youtu.be/AAA?si=x&t=3');
+    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/watch?v=AAA');
+    expect(ctx.urlMatch.urlForms).toEqual(ytForms);
+  });
+
+  it('a page of no form stays as it is', async () => {
+    await seedRules([
+      rule({ urlPattern: 'youtu', queryProcessing: { keepQueryParams: ['v'], urlForms: ytForms } }),
+    ]);
+    const ctx = await processor.processSearchContext('https://www.youtube.com/@channel');
+    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/@channel');
+  });
+});
+
+describe('rules stored before keepQueryParams existed', () => {
+  // The shape the extension stored up to 2.2 (no new fields).
+  const v1 = [
+    {
+      id: 'default-spa',
+      name: 'Single-page apps',
+      enabled: true,
+      urlPattern: '.*',
+      queryProcessing: {
+        ignoreHashFragments: true,
+        ignoreQueryParams: false,
+        excludeKeywords: [],
+        includeKeywords: [],
+        ignorePathSegments: [],
+      },
+      searchScope: { journalDateRange: { enabled: false, days: 30 } },
+      resultFiltering: { prioritizeRecent: false },
+    },
+    {
+      id: 'github-pr',
+      name: 'GitHub Pull Request',
+      enabled: false,
+      urlPattern: 'github\\.com.*/(pull|issues)/',
+      queryProcessing: {
+        ignoreHashFragments: true,
+        ignoreQueryParams: true,
+        excludeKeywords: [],
+        includeKeywords: [],
+        ignorePathSegments: ['files', 'commits'],
+        scopeDepth: 2,
+      },
+      searchScope: { journalDateRange: { enabled: false, days: 30 } },
+      resultFiltering: { prioritizeRecent: false },
+    },
+  ];
+
+  it('keep their behaviour: hash dropped, query untouched', async () => {
+    await seedRules(v1);
+    const ctx = await processor.processSearchContext('https://x.example/a?b=2&t=3#/route');
+    expect(ctx.appliedRules.map((r) => r.id)).toEqual(['default-spa']);
+    expect(ctx.processedUrl.href).toBe('https://x.example/a?b=2&t=3');
+    expect(ctx.urlMatch).toEqual({});
+    expect(ctx.scopeDepth).toBeUndefined();
+  });
+
+  it('an enabled github-pr rule still ignores the query and scopes to the repository', async () => {
+    await seedRules(v1.map((r) => (r.id === 'github-pr' ? { ...r, enabled: true } : r)));
+    const ctx = await processor.processSearchContext(
+      'https://github.com/foo/bar/pull/9/files?diff=split#x',
+    );
+    expect(ctx.processedUrl.href).toBe('https://github.com/foo/bar/pull/9');
+    expect(ctx.scopeDepth).toBe(2);
+    expect(ctx.urlMatch).toEqual({});
   });
 });

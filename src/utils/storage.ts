@@ -122,6 +122,13 @@ export interface RecallRuleConfig {
     // URL path segments the recall keeps (src/utils/recall-scope.ts):
     // undefined/0 = this page only, 2 on GitHub = the repository.
     scopeDepth?: number;
+    // Query parameters that identify the content (`v` on YouTube); a page's
+    // other parameters are ignored. Unset or empty: only tracking parameters
+    // are ignored. ignoreQueryParams wins (src/utils/recall-url-match.ts).
+    keepQueryParams?: string[];
+    // Equivalent shapes of one page's URL, templates without a scheme such as
+    // `youtube.com/watch?v={id}`; the first one is canonical.
+    urlForms?: string[];
   };
   // Search scope restrictions
   searchScope: {
