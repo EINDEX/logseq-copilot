@@ -1,5 +1,42 @@
 # Changelog
 
+## [2.2.0](https://github.com/EINDEX/logseq-copilot/compare/v2.1.0...v2.2.0) (2026-11-23)
+
+
+### Features
+
+* **clip:** choose the clip template by page rules ([e457f38](https://github.com/EINDEX/logseq-copilot/commit/e457f38aa72de17d231d203bde42d38f472de4aa))
+* **clip:** group clips of the same page under one block ([af7faa6](https://github.com/EINDEX/logseq-copilot/commit/af7faa6da7bed45f98263c21fcf2c62e243d1141)), closes [#37](https://github.com/EINDEX/logseq-copilot/issues/37)
+* **clip:** nest clipped content under the link with outline templates ([b25b12f](https://github.com/EINDEX/logseq-copilot/commit/b25b12ff4d9a585c8bdb53debebbcbef2e60bf57))
+* **clip:** pick a template and add a note before saving a clip ([8674806](https://github.com/EINDEX/logseq-copilot/commit/8674806f73d046779cfb652d15896c1aaf034595))
+* **clip:** save a page as a Logseq task with clip templates ([47637d4](https://github.com/EINDEX/logseq-copilot/commit/47637d4556605109b1659d7812b20667b0aad709))
+* **clip:** save clipped images to Logseq assets (experimental) ([9b6e7f2](https://github.com/EINDEX/logseq-copilot/commit/9b6e7f2ac68200a7bae9e3a9120783ba7e4217db))
+* **clip:** save images the page has loaded to Logseq assets ([26def73](https://github.com/EINDEX/logseq-copilot/commit/26def7361130bf4c274ec4658e8bb6a2f7dd0106))
+* **highlight:** highlight images on the page ([accbe1e](https://github.com/EINDEX/logseq-copilot/commit/accbe1eb8ae46c6d938262ba18d021992000a24b))
+* **highlight:** sync highlight comments to the clip in Logseq ([77bb5e9](https://github.com/EINDEX/logseq-copilot/commit/77bb5e9098a289d9392a7431d825985b0e454145))
+* **highlight:** unlink highlights whose clip was deleted in Logseq ([5a6cb62](https://github.com/EINDEX/logseq-copilot/commit/5a6cb627439149ee265c0b6a318381c7472e5a01))
+* **options:** change the clip shortcut in settings ([9b3821f](https://github.com/EINDEX/logseq-copilot/commit/9b3821f8fbdda992f209a3a8289f19e50ec1d1ca))
+* **options:** complete properties and tags in the template editor ([5542582](https://github.com/EINDEX/logseq-copilot/commit/5542582a6223e3bb9ee4ad0159092de4b8839b2b))
+* **options:** move experimental switches into their own section ([608d692](https://github.com/EINDEX/logseq-copilot/commit/608d692a4f8ed240caa6db3f6c9b944b0aac55c3))
+* **template:** apply outline tags and properties on DB graphs ([17aee94](https://github.com/EINDEX/logseq-copilot/commit/17aee94017c3082abede60040c28fe9735ed411e))
+
+
+### Bug Fixes
+
+* **clip:** keep the selection when the float button is pressed in Firefox ([9290259](https://github.com/EINDEX/logseq-copilot/commit/9290259306517571d3624854122b83db79d6fe5f)), closes [#143](https://github.com/EINDEX/logseq-copilot/issues/143)
+* **content:** apply setting changes to open pages without reload ([f3f8490](https://github.com/EINDEX/logseq-copilot/commit/f3f849003ac73a58a877b68227e60939484a5477))
+* **context-menu:** recreate menu items when onInstalled fires again ([23a5592](https://github.com/EINDEX/logseq-copilot/commit/23a559203e091ff5f15fdaf4c5cbe5f0b589ce99)), closes [#78](https://github.com/EINDEX/logseq-copilot/issues/78)
+* **highlight:** let the comment popup grow to fit its content ([d4d6b43](https://github.com/EINDEX/logseq-copilot/commit/d4d6b43aa05105beb9601365843ce5d6d2f67ed1))
+* **logseq:** don't put saved blocks into edit mode ([8c24dde](https://github.com/EINDEX/logseq-copilot/commit/8c24ddee49ace88f6f390798fa08fea343cb40a1))
+* **options:** keep one clip shortcut per browser ([7f1fcfc](https://github.com/EINDEX/logseq-copilot/commit/7f1fcfcfd0c7124a466885e43042887e3805f558))
+* **options:** keep template row actions off the shortcut label ([965baac](https://github.com/EINDEX/logseq-copilot/commit/965baac1d474e865787ea2c26ceaeae4935d5ae5))
+
+
+### Code Refactoring
+
+* **options:** drop the Templates nav item ([3718580](https://github.com/EINDEX/logseq-copilot/commit/3718580ae253ba30f67eefbb55e730a9d876508d))
+* **template:** drop the template tag field ([6e27cdd](https://github.com/EINDEX/logseq-copilot/commit/6e27cddeeebd6e4ef885da9b48b2ee09a6c93cf8))
+
 ## [2.1.0](https://github.com/EINDEX/logseq-copilot/compare/v2.0.1...v2.1.0) (2026-11-15)
 
 
