@@ -39,7 +39,7 @@ Browsers do not allow links to their settings pages. Copy the address into the a
 
 - **The page in the active tab**: The highlights saved for the exact address of that page, newest first, then the notes in your graph that mention the page. What counts as a match is tunable per website with [Recall Rules](/features/recall-rules/).
 - **It follows the active tab**: Switch to another tab, or open another page in the same tab, and the sidebar changes to match. It stays open, so you do not need to close and reopen it.
-- **Each highlight** shows the highlighted text as a quote, your note (if any), how long ago you created it, and its tags. Long text and long notes are cut short, and only the first three tags are listed, followed by the number of the rest.
+- **Each highlight** shows the highlighted text as a quote, or a small thumbnail of the highlighted image, your note (if any), how long ago you created it, and its tags. Long text and long notes are cut short, and only the first three tags are listed, followed by the number of the rest.
 - **A page without highlights or notes** shows "Nothing for this page yet".
 - **The header** names your graph: click it to open the graph in Logseq. The gear opens the extension options.
 
@@ -58,10 +58,11 @@ When a clip fails, the sidebar says why under the buttons.
 Move the pointer over a highlight, or move to it with the keyboard, to show its buttons.
 
 - **Locate it on the page**: Click the highlight. The page scrolls to the highlighted text and flashes it briefly.
-- **Edit the note**: Click the pencil button, type the note, then click **Save** (or press `Ctrl+Enter` / `Cmd+Enter`). Click **Cancel** or press `Escape` to drop your changes. If the comment popup of the same highlight is open on the page, it shows the new note.
+- **Edit the note**: Click the pencil button, type the note, then click **Save** (or press `Ctrl+Enter` / `Cmd+Enter`). Click **Cancel** or press `Escape` to drop your changes. If the comment popup of the same highlight is open on the page, it shows the new note. For a highlight made by a clip, the note is also written to the clip in Logseq, see [Comments in Logseq](/features/highlight-comments/#comments-in-logseq). If that fails, the sidebar says why, and the note is saved in your browser anyway.
+- **Removed from Logseq**: a highlight shows this label when its clip was deleted in Logseq. The highlight and its note stay here, and the note is no longer written to Logseq. The check runs when the sidebar loads the highlights of a page, and is skipped when Logseq cannot be reached.
 - **Delete it**: Click the trash button. The highlight is removed from the list and from the page right away. There is no confirmation and no undo.
 
-Highlights are created on the page itself by clipping a selection. See [Highlight Comments](/features/highlight-comments) for how to create them.
+Highlights are created on the page itself by clipping a selection or an image. See [Highlight Comments](/features/highlight-comments) for how to create them.
 
 ## Pages It Cannot Read
 

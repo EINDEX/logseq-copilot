@@ -1,20 +1,28 @@
 ---
 title: Clipping & Templates
-description: Clip selected text or a page link into your Logseq graph, shaped by templates you write.
+description: Clip selected text, an image or a page link into your Logseq graph, shaped by templates you write.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-Clipping sends what you are reading into your Logseq graph: the text you selected, or the link of the page. A **template** decides what the new block looks like and which page it goes to.
+Clipping sends what you are reading into your Logseq graph: the text you selected, an image, or the link of the page. A **template** decides what the new block looks like and which page it goes to.
 
 ## Ways to Clip
 
-- **Keyboard shortcut**: press `Ctrl+Shift+U`. You can change it in the browser's shortcut settings, the command is called **Make Clip note**. With text selected it clips the selection. With nothing selected it clips the page link.
-- **Right-click menu**: right-click selected text and choose **Clip "…"**, or right-click the page and choose **Clip page link**.
+- **Keyboard shortcut**: press `Ctrl+Shift+U`. The command is called **Make Clip note**. With text selected it clips the selection. With nothing selected it clips the page link. See [Changing the Shortcut](#changing-the-shortcut).
+- **Right-click menu**: right-click selected text and choose **Clip "…"**, an image and choose **Clip image**, or the page and choose **Clip page link**. With more than one template, each of these is a submenu with one item per template.
 - **Sidebar**: click the toolbar icon to open the [sidebar](/features/highlights-sidebar/), then **Clip page** to clip the link of the current page, or **Clip selection** to clip the text you selected on it.
 - **Floating button**: a small Logseq button that follows your text selection. It is off by default. Turn it on in the options under **Settings**, **Clip Note**, **Floating Button**.
+- **Save page as task**: a command with no default shortcut. See [Save a Page as a Task](#save-a-page-as-a-task).
 
-A clipped selection is converted to Markdown first. Links, lists, code blocks and images keep their shape in Logseq. It is also saved as a [highlight](/features/highlight-comments/) on the page.
+A clipped selection is converted to Markdown first. Links, lists, code blocks and images keep their shape in Logseq. A selection or an image is also saved as a [highlight](/features/highlight-comments/) on the page. To turn that off, switch off **Settings**, **Clip Note**, **Highlight clipped text**. The text is highlighted after the clip has been saved.
+
+### Changing the Shortcut
+
+The clip shortcut is shown under **Settings**, **Clip Note**, **Clip Shortcut**.
+
+- **Firefox**: click the shortcut, press the keys you want, and it is saved. **Reset shortcut** brings the default back.
+- **Chrome, Edge and Brave**: the row shows the browser's shortcut for **Make Clip note**, and **Change** opens the browser's shortcuts page, where you set it.
 
 ## Where the Clip Goes
 
@@ -24,22 +32,61 @@ The block is added to the end of a page of your graph, chosen by the template's 
 - **Current page**: the page that is open in Logseq right now. On the Journals home, where no single page is open, the clip goes to today's journal.
 - **Page…**: a page you name.
 
+A clip writes one top-level block, unless it [joins an earlier clip](#outline-templates) of the same page.
+
 ## Templates
 
 Open the extension options and look at the **Templates** list in the sidebar.
 
-- Click **+** to add a template, and click a template to edit it.
-- Drag a template by its handle to reorder the list. Hover a template to show its delete button.
-- **Clipping uses the first template in the list.** To clip with another one, drag it to the top.
+- Click **+** to add a template, and click a template to edit it. The menu offers Blank, Nested clip, Task and Reading note as starting points.
+- Drag a template by its handle to reorder the list. Hover a template to show its star, its pin and its delete button. The last template cannot be deleted.
 
-A template has a name, where it saves (Journal, Current page, or Page… with its page name) and the content of the block.
+A template has a name, where it saves (Journal, Current page, or Page… with its page name), page rules and the content of the block.
 
-The default template is:
+Two templates come built in: **Clip** and **Task**.
+
+The content of **Clip** is:
 
 ```
 #[[Clip]] [{{title}}]({{url}})
 {{content}}
 ```
+
+### The Default Template
+
+The **star** on a template makes it the default. The default is what the clip shortcut and the sidebar buttons use when no page rule picks another template. Until you star one, the default is the first template in the list.
+
+### Pick a Template When You Clip
+
+The clip shortcut and the floating button open a small panel in the corner of the page when more than one template is on offer. It lists the templates, numbered, and has a **Note** field. A template is on offer when:
+
+- its [page rules](#page-rules) match the page, or
+- it is the default, or
+- you **pinned** it with the pin on its row. The default is always pinned.
+
+Until you pin a template or add a page rule, only the default is on offer, and the shortcut saves at once without a panel.
+
+When the panel opens, a 3 second countdown runs and saves the highlighted template. The highlighted one is the best page rule match, else the default.
+
+- **Arrow keys**, pointing at the panel, or **clicking or typing in Note** stop the countdown for good.
+- **Enter**, a **digit** (1 to 9) or a **click** on a template saves with that template. Pressing the clip shortcut again saves at once.
+- **Escape** closes the panel and saves nothing.
+
+If the page is left or the tab is hidden while the countdown runs, the clip is saved at once.
+
+### The Note
+
+The note you type goes where `{{note}}` is in the template. A template without `{{note}}` adds a non-empty note as the last child block of the clip. A clip without a note is exactly what the template makes.
+
+### Page Rules
+
+Under **Page rules** in the template editor, add one or more URL patterns, and the template is picked for the pages that match.
+
+- A host: `github.com` matches that host only. `*.example.com` matches any subdomain of it, but not `example.com` itself.
+- A path after the host: `example.com/docs/guide` matches that path, `*` stands for one segment, and a trailing `/*` or `/**` stands for the rest of the path.
+- The scheme, query and hash of the page are ignored.
+
+When several templates match, the most specific wins: an exact host beats a `*.` host, then more literal path segments beat fewer, then the earlier template in the list. A matching template is offered in the panel even if it is not pinned, and the panel opens even when it is the only one. The sidebar buttons use the winner too. There are no page rules by default. They are separate from [recall rules](/features/recall-rules/).
 
 ### Variables
 
@@ -48,9 +95,36 @@ The default template is:
 | `{{title}}` | The title of the page |
 | `{{url}}` | The address of the page |
 | `{{content}}` | The selected content, as Markdown. Empty when you clip a page link. |
+| `{{note}}` | The note typed in the picker panel. Empty when there is none. |
 | `{{date}}` | Today's date, in the date format of your Logseq |
 | `{{time}}` | The current time, as `HH:mm` |
 | `{{dt}}` | The current date and time as a date object, for filters |
+
+### Outline Templates
+
+A template whose first line is a `- ` bullet is an **outline**. Bullets are indented by two spaces per level, and other lines continue the block above. This is the **Nested clip** template:
+
+```
+- [{{title}}]({{url}})
+  - {{content}}
+```
+
+When `{{content}}` is the first thing after a bullet, the selection is split into blocks: one per paragraph and list item, with nested lists as child blocks. Code blocks, tables and quotes stay whole. A bullet with no content, such as `{{content}}` for a page link, is left out. The editor shows an outline with a live preview and the variables as buttons. Templates stay plain text, and a template the outline cannot show as it is opens in Text mode.
+
+Templates that do not start with a bullet, like **Clip**, write one block, and a new one each time.
+
+An outline template also **groups clips of the same page**. A new clip joins the last top-level block of the target page that links to the same web page, and adds one child block to it. Two links are the same page when they differ only in the scheme, the hash, a trailing `/`, or tracking parameters such as `utm_*` and `fbclid`. Tasks group with tasks, and other clips with other clips.
+
+### Save a Page as a Task
+
+The **Task** template is an outline:
+
+```
+- TODO [{{title}}]({{url}})
+  - {{content}}
+```
+
+The command **Save page as task** clips the page, or the selection, with it. It has no default key, so set one on your browser's shortcuts page, the same way as for the [sidebar](/features/highlights-sidebar/#setting-the-keyboard-shortcut). The Task template is in the right-click submenus too. On a DB graph the `TODO` becomes the status of the block.
 
 ### Tags and Properties
 
@@ -66,13 +140,23 @@ Write tags and properties in the template itself, the way you write them in Logs
 - **File graphs** read the tags and properties from the text of the clip.
 - **DB graphs** make the tags real tags of their block. A property line becomes a property of the block: your property of that name, or a new one. A new property is a date when the value is `{{date}}`, a URL when the value is a URL, and text otherwise. A value that does not fit the type of your property stays in the block as text.
 
-Only what the template writes counts. A `#` or `key::` in the page title or the clipped text never becomes a tag or a property.
+Only what the template writes counts. A `#` or `key::` in the page title, the clipped text or the note never becomes a tag or a property.
 
 While you type, the template editor offers the property names and tags of your graph, and the variables that fit a property's type.
 
 Templates are written in [LiquidJS](https://liquidjs.com/tutorials/intro-to-liquid.html), so you can use filters and conditions. For example, `{{ dt | date: "%Y-%m-%d %H:%M" }}` writes the date and the time in your own format.
 
 Double brackets in the clipped text (`[[`, `{{` and `((`) are escaped, so a clip does not create links or macros in your graph by accident.
+
+## Images
+
+Images in a clip are links to the web address of the image. A link can stop working when the site removes the image.
+
+**Save images to Logseq** stores them in your graph's assets instead, and the block links to the local file. It is experimental and off by default. Turn it on in the options under **Settings**, **Experimental**. That section is at the bottom and is collapsed until you open it. It works on file graphs and DB graphs.
+
+- The image is first asked of the page you clipped from, so an image behind a login is saved as long as the page shows it. If that fails, the extension downloads it itself.
+- Images up to 8 MB are saved. Logseq's HTTP API accepts at most 1 MiB per request, so a larger image is re-encoded smaller when possible.
+- An image that cannot be fetched or stored keeps its web address, and the clip is still saved.
 
 <Aside title="Coming from 1.x">
 The single clip template and location of version 1 are moved into a template when you update. Clip location is now set per template.

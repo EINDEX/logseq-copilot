@@ -1,14 +1,14 @@
 ---
 title: Highlight Comments
-description: Highlight text on a web page, add a comment to it, and manage all your highlights. They are stored in your browser.
+description: Highlight text or an image on a web page, add a comment to it, and manage all your highlights. They are stored in your browser, and the comments are also written to the clip in Logseq.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-When you clip a selection, Logseq Copilot also keeps it as a **highlight**: the text stays marked in teal on the page, and you can click it to write a comment.
+When you clip a selection, Logseq Copilot also keeps it as a **highlight**: the text stays marked in teal on the page, and you can click it to write a comment. An image can be highlighted too.
 
-<Aside type="note" title="Highlights stay in your browser">
-Highlights and their comments are stored in your browser, in the extension's local storage. They are not sent to Logseq, and they are not synced to other browsers or devices. The clip itself, the block made from your template, is what goes to Logseq. A comment is not part of that clip.
+<Aside type="note" title="Highlights are stored in your browser">
+Highlights and their comments are stored in your browser, in the extension's local storage. They are not synced to other browsers or devices. The clip, the block made from your template, goes to Logseq. So does the comment of a highlight, as a child block of that clip. See [Comments in Logseq](#comments-in-logseq).
 </Aside>
 
 ## How to Use
@@ -17,7 +17,11 @@ Highlights and their comments are stored in your browser, in the extension's loc
 
 1. **Select text** on a web page.
 2. **Clip it**: press the clip shortcut (`Ctrl+Shift+U` by default), right-click and choose **Clip "…"**, or use the floating button if you turned it on. See [Clipping & Templates](/features/clipping-and-templates/) for all the ways.
-3. The selection is clipped into Logseq, marked on the page right away, and saved as a highlight.
+3. The selection is clipped into Logseq, and then marked on the page and saved as a highlight. A clip that fails leaves no highlight.
+
+To highlight an image, select it alone, or right-click it and choose **Clip image**. The image gets a teal outline on the page, and it is clipped to Logseq as a Markdown image.
+
+The setting **Highlight clipped text** under **Settings**, **Clip Note** is on by default. Turn it off and clips are not saved as highlights.
 
 Clipping the link of a page, with nothing selected, does not make a highlight.
 
@@ -26,7 +30,7 @@ Highlights belong to a web address. They show again when you open exactly the sa
 ### Adding a Comment
 
 1. **Click a highlight** on the page. A comment popup opens next to the click.
-2. The popup shows the highlighted text (shortened when it is long), the date you created it, and your comment if you wrote one.
+2. The popup shows the highlighted text (shortened when it is long) or a small copy of the highlighted image, the date you created it, and your comment if you wrote one.
 3. Click **Edit**, type your comment in the box, and click **Save**. Click **Cancel** to drop your changes.
 
 You can also edit the comment of a highlight in the [Sidebar](/features/highlights-sidebar/). If the comment popup of that highlight is open on the page, it shows the new comment.
@@ -34,8 +38,18 @@ You can also edit the comment of a highlight in the [Sidebar](/features/highligh
 ### Managing Comments
 
 - **Save**: click **Save**, or click anywhere outside the popup while you are editing. Clicking outside saves, it does not discard.
-- **Delete**: click **Delete** in the popup. The browser asks you to confirm, and then the highlight and its comment are removed from the browser and from the page.
+- **Delete**: click **Delete** in the popup. The browser asks you to confirm, and then the highlight and its comment are removed from the browser and from the page. Nothing is changed in Logseq.
 - **Comments are plain text.** The popup shows them exactly as you typed them, with line breaks. Markdown is not rendered.
+
+### Comments in Logseq
+
+A comment you write on a highlight is also written to Logseq, as the last child block of the block the clip added. Edit the comment and the block is updated. Clear it and the block is removed.
+
+- A comment block you changed in Logseq is never overwritten or removed. A new comment you save after that is added as a new block. A comment block with blocks below it is not removed either.
+- Only highlights made by a clip are linked to it, and the link is kept when you make the clip. Highlights made before 2.2 have no link, and their comments stay in the browser only.
+- The graph of the clip has to be the one open in Logseq. If it is not, or Logseq cannot be reached, the popup or the sidebar says why. The comment is saved in the browser either way, and the next save tries Logseq again.
+
+If you delete the clip in Logseq, the highlight is unlinked. The popup and the [sidebar](/features/highlights-sidebar/) show **Removed from Logseq** on it. The highlight and its comment stay in your browser, nothing is written to Logseq any more, and a comment is never written as a new clip.
 
 ### Keyboard Shortcuts
 
@@ -46,7 +60,7 @@ You can also edit the comment of a highlight in the [Sidebar](/features/highligh
 
 ### Smart Positioning
 
-The comment popup stays inside the window, wherever on the page you click.
+The comment popup stays inside the window, wherever on the page you click. It grows to fit a long text or comment.
 
 ### Theme Support
 
@@ -58,7 +72,7 @@ Open the extension options and choose **Highlights** to see every highlight you 
 
 - **Search** the text, title, website and comments of your highlights.
 - **Filter by website**, and click **Apply Filters**.
-- **Open the page** of a highlight by clicking its title.
+- **Open the page** of a highlight by clicking its title. An image highlight is listed with a thumbnail.
 - **Delete** a single highlight, or **Clear All** of them (after a confirmation).
 - **Export All** to a JSON file, with the text, comment, address, title and dates of each highlight, to keep a copy or to use them elsewhere.
 
@@ -80,7 +94,7 @@ The page also shows how many highlights you have, on how many websites, and how 
 
 **The comment does not save**:
 
-- Click **Save** and wait for the button to finish. Comments are saved in the browser, so Logseq does not need to be running for this.
+- Click **Save** and wait for the button to finish. Comments are saved in the browser, so Logseq does not need to be running for this. If the comment did not reach Logseq, the message says why.
 
 ## What's Next?
 
