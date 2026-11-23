@@ -36,5 +36,6 @@ test('the float button clips a mouse selection', async ({ page, ext, logseq, art
 
   await button.click();
 
-  await expect.poll(async () => (await logseq.findBlocks(id)).length, { timeout: 30_000 }).toBeGreaterThan(0);
+  // The selected words, not only the page link (its title has the id too).
+  await expect.poll(async () => (await logseq.findBlocks(`words ${id} end`)).length, { timeout: 30_000 }).toBeGreaterThan(0);
 });

@@ -348,4 +348,24 @@ describe('QuickCapture float button on mouse events', () => {
     });
     expect(buttonBox().style.display).toBe('none');
   });
+
+  // #143: Firefox clears the page's selection when the mouse goes down on an
+  // element that is not draggable (the logo is not), before the click clips
+  // it; the clip then has the page link only. A cancelled mousedown keeps it.
+  it.each([
+    ['the logo', () => container.querySelector('img.quickCapture')!],
+    ['its frame', () => buttonBox()],
+  ])('cancels the mousedown on %s so the selection stays', async (_, target) => {
+    const p = document.getElementById('p')!;
+    await act(async () => {
+      p.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    const mousedown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    await act(async () => {
+      target().dispatchEvent(mousedown);
+    });
+
+    expect(mousedown.defaultPrevented).toBe(true);
+  });
 });
