@@ -46,6 +46,39 @@ describe('clip error badge', () => {
     expect(hasClipErrorBadge(6)).toBe(false);
   });
 
+  it('sets the badge text color white where the browser supports it', async () => {
+    await showClipErrorBadge(5, 'message');
+
+    expect(action.setBadgeTextColor).toHaveBeenCalledWith({
+      color: '#ffffff',
+      tabId: 5,
+    });
+  });
+
+  it('still shows the badge where setBadgeTextColor is missing (Safari)', async () => {
+    (fakeBrowser as any).action = {
+      setBadgeText: action.setBadgeText,
+      setBadgeBackgroundColor: action.setBadgeBackgroundColor,
+      setTitle: action.setTitle,
+    };
+
+    await showClipErrorBadge(5, 'Cannot connect to Logseq');
+
+    expect(action.setBadgeText).toHaveBeenCalledWith({ text: '!', tabId: 5 });
+    expect(action.setBadgeBackgroundColor).toHaveBeenCalledWith({
+      color: '#d32f2f',
+      tabId: 5,
+    });
+    expect(action.setTitle).toHaveBeenCalledWith({
+      title: 'Cannot connect to Logseq',
+      tabId: 5,
+    });
+    expect(log.error).not.toHaveBeenCalledWith(
+      '[clip] Failed to show the error badge:',
+      expect.anything(),
+    );
+  });
+
   it('only logs without a tab', async () => {
     await showClipErrorBadge(undefined, 'Cannot connect to Logseq');
 

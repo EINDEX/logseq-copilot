@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import log from '@/utils/logger';
+import { setBadgeTextColorIfSupported } from './badge-text-color';
 
 /**
  * A failed clip that no page can show (its content script cannot be reached,
@@ -23,7 +24,7 @@ export const showClipErrorBadge = async (tabId: number | undefined, message: str
   await Promise.all([
     browser.action.setBadgeText({ text: '!', tabId }),
     browser.action.setBadgeBackgroundColor({ color: ERROR_BADGE_COLOR, tabId }),
-    browser.action.setBadgeTextColor({ color: '#ffffff', tabId }),
+    setBadgeTextColorIfSupported('#ffffff', tabId),
     browser.action.setTitle({ title: message, tabId }),
   ]).catch((err) => log.error('[clip] Failed to show the error badge:', err));
 };
