@@ -233,11 +233,17 @@ async function launchChromium(extensionPath: string, userDataDir: string, record
  */
 async function launchFirefox(userDataDir: string) {
   const port = await freePort();
+  // E2E_FIREFOX_BIN: a Firefox release instead of Playwright's build, driven
+  // over WebDriver BiDi. Playwright reads a bare argument as a URL to open
+  // there, so the debugger port goes in the pref the flag falls back to.
+  const release = process.env.E2E_FIREFOX_BIN;
   const context = await firefox.launchPersistentContext(userDataDir, {
+    ...(release && { channel: 'moz-firefox', executablePath: release }),
     headless: !process.env.E2E_HEADED,
     viewport: { width: 1400, height: 900 },
-    args: ['-start-debugger-server', String(port)],
+    args: release ? ['-start-debugger-server'] : ['-start-debugger-server', String(port)],
     firefoxUserPrefs: {
+      ...(release && { 'devtools.debugger.remote-port': port }),
       'devtools.debugger.remote-enabled': true,
       'devtools.debugger.prompt-connection': false,
       'devtools.chrome.enabled': true,

@@ -136,6 +136,11 @@ Linux: the same, under `xvfb-run -a` (Logseq needs a display; see
   changes).
 - `E2E_HEADED=1` shows the browser windows, `LOGSEQ_DEBUG=1` streams Logseq's
   logs.
+- `E2E_FIREFOX_BIN=<path to a Firefox release's firefox binary>` runs the
+  `firefox` project in that Firefox instead of Playwright's build, over
+  WebDriver BiDi (`channel: 'moz-firefox'`). The add-on is still installed
+  over the remote debugging protocol. Use it to check a bug that users see in
+  a Firefox release.
 - The Logseq window opens while the tests run; it is closed (with its helper
   processes) at the end, also when setup fails.
 
