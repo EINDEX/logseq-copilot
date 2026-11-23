@@ -1,0 +1,77 @@
+---
+title: Logseq Copilot 2.2
+description: What is new in Logseq Copilot 2.2, including a template picker with a note field, templates chosen by page, clips of one page grouped under one block, outline and task templates, image highlights, images saved to Logseq assets, highlight comments synced to Logseq, and a fix for the floating button in Firefox.
+date: 2026-11-24
+tags: [release]
+excerpt: "Logseq Copilot 2.2 changes how you clip. Pick a template and add a note before saving, let page rules choose the template, group clips of one page under one block, save a page as a task, and highlight images."
+lastUpdated: 2026-11-24
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Logseq Copilot 2.2 is about clipping. You can pick a template and type a note before a clip is saved, let the page choose the template, keep the clips of one page under one block, and save a page as a Logseq task. Images can be highlighted and, as an experiment, saved to your graph's assets. Comments on highlights now reach Logseq. This post covers what changed.
+
+<Aside type="note" title="Updating from 2.1">
+Nothing needs to be done. Clips from the clip shortcut look the same until you change a setting. Two things move in your template list: the template called **Default** is now called **Clip**, and a **Task** template is added once. Delete Task and it does not come back. The template tag field mentioned in some development builds never shipped in a release, so there is nothing to migrate.
+</Aside>
+
+## Pick a template and add a note
+
+When more than one template is on offer, the clip shortcut and the floating button open a small panel in the corner of the page instead of saving at once. It lists the templates, numbered, and has a **Note** field.
+
+A 3 second countdown runs and saves the highlighted template. Press an arrow key, point at the panel, or click or type in the note field, and the countdown stops for good. Then press Enter, a digit, or click a template to save. Escape saves nothing.
+
+The note goes where `{{note}}` is in the template. A template without `{{note}}` adds a non-empty note as the last child of the clip.
+
+What is on offer: the templates whose page rules match the page, the default template, and the templates you pinned. In the Templates list of the options, hover a template to show a star and a pin. The star makes it the default, the pin adds it to the panel. Until you star one, the default is the first template in the list. Nothing is pinned by default. With only the default on offer there is no panel, and the shortcut saves at once as in 2.1.
+
+The sidebar's **Clip page** and **Clip selection** buttons do not open the panel. They use the template that page rules pick, or else the default. With more than one template, the right-click clip items become submenus with one item per template.
+
+## Templates chosen by page
+
+A template can have page rules: URL patterns such as `github.com`, `*.example.com` or `example.com/docs/*`. Add them under **Page rules** in the template editor. A page that matches picks the template. The most specific pattern wins: an exact host beats a `*.` host, then more literal path segments, then the order of the list. In the picker, a match is highlighted first, so the countdown saves it, and a match opens the panel even when it is the only template. There are no page rules by default. They are separate from [recall rules](/features/recall-rules/).
+
+## Outline templates and grouped clips
+
+A template whose first line is a `- ` bullet is an outline. Indent bullets with two spaces. When `{{content}}` is the first thing after a bullet, the selection is split into blocks: one per paragraph and list item, with nested lists as child blocks. Code blocks, tables and quotes stay whole. Templates without a leading bullet, including the built-in **Clip**, write exactly what they wrote before. The **+** menu in the Templates list now offers Blank, Nested clip, Task and Reading note ([#76](https://github.com/EINDEX/logseq-copilot/issues/76)).
+
+An outline template also groups clips. A new clip joins the last top-level block of the target page that links to the same web page, and adds one child to it, so clipping a page five times gives one block with five children. Tasks group with tasks, and other clips with other clips ([#37](https://github.com/EINDEX/logseq-copilot/issues/37)).
+
+The template editor shows the template as an outline with a live preview and clickable variables. It completes the property names and tags of your graph while you type. See [Clipping & Templates](/features/clipping-and-templates/).
+
+On a DB graph, a `#tag` in a template becomes a tag of the block. A `key:: value` line becomes a property: your property of that name, or a new one. Property lines that do not fit stay in the block as text. A file graph reads the same text as before.
+
+## Save a page as a task
+
+The new **Save page as task** command clips with the **Task** template: a `TODO` block with the page link, and the selection below it. It has no default shortcut. Set one on your browser's shortcuts page. The right-click clip menu also lists Task as a template. On a DB graph the `TODO` becomes the block's status, so the sidebar shows the clip as a task you can mark done ([#82](https://github.com/EINDEX/logseq-copilot/issues/82)).
+
+## Images
+
+- Select an image alone, or right-click it and choose **Clip image**, to highlight it. It is outlined on the page, opens the same comment popup when clicked, and is listed with a thumbnail in the sidebar and under **Highlights** in the options.
+- **Save images to Logseq** stores the images of a clip in your graph's assets, so the block links to a local file instead of the web address, which can stop working ([#68](https://github.com/EINDEX/logseq-copilot/issues/68)). It is experimental and off by default. Turn it on under **Settings**, **Experimental**, a section at the bottom that is collapsed until you open it. It works on file graphs and DB graphs.
+- The image is first fetched by the page you clipped from, so images behind a login work as long as the page shows them. Images are capped at 8 MB, and larger ones are re-encoded smaller when possible, because Logseq's HTTP API accepts at most 1 MiB per request. An image that cannot be saved keeps its web address, and the clip is still saved.
+
+## Highlight comments in Logseq
+
+A comment you write on a highlight is now also written to Logseq, as the last child block of the clip it came from. A highlight remembers its clip, so this applies to highlights made in 2.2. Edit the comment and the block is updated. A block you changed in Logseq yourself is never overwritten or removed.
+
+If you delete the clip in Logseq, the highlight is unlinked: it and its comment stay in your browser, it is marked **Removed from Logseq**, and nothing more is written to Logseq. See [Highlight comments](/features/highlight-comments/).
+
+## Settings
+
+- **Clip Shortcut** is under **Settings**, **Clip Note**. In Firefox you record a new shortcut there. In Chrome, Edge and Brave it shows the browser's shortcut, and **Change** opens the browser's shortcuts page.
+- **Highlight clipped text** is a new switch in the same section, on by default. The text is highlighted after the clip has been saved.
+- Experimental switches have their own section, collapsed by default.
+- Setting changes, such as the floating button and the search engine list, now reach open pages without a reload.
+
+## Fixes
+
+- In Firefox, the floating button lost the selection, so only the page link was saved. This affected 2.0.0 to 2.1.0 ([#143](https://github.com/EINDEX/logseq-copilot/issues/143)).
+- The right-click menu items are created again when the browser updates, instead of reporting a duplicate id ([#78](https://github.com/EINDEX/logseq-copilot/issues/78)).
+- The comment popup grows to fit its text.
+- Blocks the extension saves are no longer put into edit mode in Logseq.
+- Chrome, Edge and Brave show one clip shortcut, the browser's own.
+
+## Get it
+
+Update from the store for your browser, or install from the [Installation](/installation) page. The code, release notes and issue tracker are on [GitHub](https://github.com/EINDEX/logseq-copilot). Questions and bug reports are welcome in [Discussions](https://github.com/EINDEX/logseq-copilot/discussions).
