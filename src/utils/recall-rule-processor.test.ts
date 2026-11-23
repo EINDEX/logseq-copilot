@@ -282,16 +282,16 @@ describe('filterResults', () => {
 });
 
 describe('keepQueryParams and urlForms', () => {
-  const ytForms = ['youtube.com/watch?v={id}', 'youtu.be/{id}'];
+  const ytForms = ['vid.example/watch?v={id}', 'v.example/{id}'];
 
   it('the allowlist is applied to the processed URL', async () => {
     await seedRules([
-      rule({ urlPattern: 'youtube', queryProcessing: { keepQueryParams: ['v'] } }),
+      rule({ urlPattern: 'vid\\.example', queryProcessing: { keepQueryParams: ['v'] } }),
     ]);
     const ctx = await processor.processSearchContext(
-      'https://www.youtube.com/watch?v=AAA&t=30s&list=L&index=2&feature=share',
+      'https://www.vid.example/watch?v=AAA&t=30s&list=L&index=2&feature=share',
     );
-    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/watch?v=AAA');
+    expect(ctx.processedUrl.href).toBe('https://www.vid.example/watch?v=AAA');
     expect(ctx.originalUrl.search).toContain('list=L');
     expect(ctx.urlMatch).toEqual({ keepQueryParams: ['v'] });
   });
@@ -335,21 +335,21 @@ describe('keepQueryParams and urlForms', () => {
   it('a URL of another form becomes the canonical one', async () => {
     await seedRules([
       rule({
-        urlPattern: 'youtu',
+        urlPattern: 'v(id)?\\.example',
         queryProcessing: { keepQueryParams: ['v'], urlForms: ytForms },
       }),
     ]);
-    const ctx = await processor.processSearchContext('https://youtu.be/AAA?si=x&t=3');
-    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/watch?v=AAA');
+    const ctx = await processor.processSearchContext('https://v.example/AAA?si=x&t=3');
+    expect(ctx.processedUrl.href).toBe('https://www.vid.example/watch?v=AAA');
     expect(ctx.urlMatch.urlForms).toEqual(ytForms);
   });
 
   it('a page of no form stays as it is', async () => {
     await seedRules([
-      rule({ urlPattern: 'youtu', queryProcessing: { keepQueryParams: ['v'], urlForms: ytForms } }),
+      rule({ urlPattern: 'v(id)?\\.example', queryProcessing: { keepQueryParams: ['v'], urlForms: ytForms } }),
     ]);
-    const ctx = await processor.processSearchContext('https://www.youtube.com/@channel');
-    expect(ctx.processedUrl.href).toBe('https://www.youtube.com/@channel');
+    const ctx = await processor.processSearchContext('https://www.vid.example/@channel');
+    expect(ctx.processedUrl.href).toBe('https://www.vid.example/@channel');
   });
 });
 

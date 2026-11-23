@@ -105,6 +105,9 @@ export interface RecallRuleConfig {
   name: string;
   enabled: boolean;
   description?: string;
+  // Shipped with the extension (src/utils/recall-builtin-rules.ts). A stored
+  // rule with the same id is the user's override of it.
+  builtin?: boolean;
   // URL matching patterns
   urlPattern: string; // Regex pattern to match URLs
   // Query processing rules

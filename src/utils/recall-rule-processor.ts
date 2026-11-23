@@ -1,5 +1,6 @@
 import { RecallRuleConfig, recallRulesConfig } from '@/utils/storage';
 import { log } from '@/utils';
+import { mergeBuiltinRules } from '@/utils/recall-builtin-rules';
 import {
   canonicalUrl,
   type UrlMatchOptions,
@@ -105,7 +106,7 @@ export class RecallRuleProcessor {
    */
   public async initialize(): Promise<void> {
     try {
-      this.rules = await recallRulesConfig.getValue();
+      this.rules = mergeBuiltinRules(await recallRulesConfig.getValue());
       log.debug('[RecallRuleProcessor] Loaded rules:', this.rules);
     } catch (error) {
       log.error('[RecallRuleProcessor] Failed to load rules:', error);
