@@ -382,7 +382,14 @@ const FloatButton = () => {
   };
 
   return (
-    <div ref={buttonRef} style={styles()} title="Clip to Logseq">
+    <div
+      ref={buttonRef}
+      style={styles()}
+      title="Clip to Logseq"
+      // Firefox clears the page's selection when the mouse goes down on an
+      // element that is not draggable, before the click clips it (#143).
+      onMouseDown={(event) => event.preventDefault()}
+    >
       <img
         className="quickCapture"
         src={logo}
