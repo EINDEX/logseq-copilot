@@ -61,6 +61,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
     const [newExcludeKeyword, setNewExcludeKeyword] = useState('');
     const [newIncludeKeyword, setNewIncludeKeyword] = useState('');
     const [newPathSegment, setNewPathSegment] = useState('');
+    const [newKeepParam, setNewKeepParam] = useState('');
     const [newRestrictPage, setNewRestrictPage] = useState('');
     const [newExcludePage, setNewExcludePage] = useState('');
 
@@ -140,7 +141,14 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        // An emptied allowlist is "off", the same as a rule that never had one.
+        const { keepQueryParams, ...queryProcessing } = formData.queryProcessing;
+        onSave({
+            ...formData,
+            queryProcessing: keepQueryParams?.length
+                ? { ...queryProcessing, keepQueryParams }
+                : queryProcessing,
+        });
     };
 
     const urlPatternResult = testUrlPattern();
@@ -159,6 +167,9 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
         }
     };
     const recallPrefix = scopePreview();
+    const ignoreQuery = formData.queryProcessing.ignoreQueryParams;
+    // Shipped with a built-in rule; not editable here.
+    const urlForms = formData.queryProcessing.urlForms ?? [];
 
     const help = (...lines: string[]) => (
         <Tooltip>
@@ -173,16 +184,17 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
         </Tooltip>
     );
 
-    const chips = (items: string[], parent: string, field: string) =>
+    const chips = (items: string[], parent: string, field: string, disabled = false) =>
         items.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className={`flex flex-wrap gap-1.5${disabled ? ' opacity-50' : ''}`}>
                 {items.map((item, index) => (
                     <Badge key={index} variant="secondary" className="gap-1 pr-1 font-normal">
                         {item}
                         <button
                             type="button"
                             onClick={() => handleArrayRemove(parent, field, index)}
-                            className="rounded-full p-0.5 hover:bg-foreground/10"
+                            disabled={disabled}
+                            className="rounded-full p-0.5 hover:bg-foreground/10 disabled:pointer-events-none"
                             aria-label={`Remove ${item}`}
                         >
                             <X className="h-3 w-3" />
@@ -198,6 +210,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
         parent: string,
         field: string,
         placeholder: string,
+        disabled = false,
     ) => {
         const add = () => {
             handleArrayAdd(parent, field, value);
@@ -209,6 +222,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={placeholder}
+                    disabled={disabled}
                     onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
@@ -216,7 +230,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         }
                     }}
                 />
-                <Button type="button" variant="outline" size="sm" className="h-9 w-9 shrink-0 p-0" onClick={add} aria-label="Add">
+                <Button type="button" variant="outline" size="sm" className="h-9 w-9 shrink-0 p-0" onClick={add} disabled={disabled} aria-label="Add">
                     <Plus className="h-4 w-4" />
                 </Button>
             </div>
@@ -356,7 +370,15 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                     </RadioGroup>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label className={`flex items-center gap-2${ignoreQuery ? ' text-muted-foreground' : ''}`}>
+                            Keep only these query parameters
+                            {help('Pages that differ in other parameters count as the same page.', 'e.g. keep "v" on YouTube.')}
+                        </Label>
+                        {listInput(newKeepParam, setNewKeepParam, 'queryProcessing', 'keepQueryParams', 'Parameter name', ignoreQuery)}
+                        {chips(formData.queryProcessing.keepQueryParams || [], 'queryProcessing', 'keepQueryParams', ignoreQuery)}
+                    </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
                             Exclude keywords
@@ -382,6 +404,16 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         {chips(formData.queryProcessing.ignorePathSegments, 'queryProcessing', 'ignorePathSegments')}
                     </div>
                 </div>
+                {urlForms.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <Label className="mr-1 text-muted-foreground">Same page under</Label>
+                        {urlForms.map((form) => (
+                            <code key={form} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                                {form}
+                            </code>
+                        ))}
+                    </div>
+                )}
             </PageSection>
 
             <PageSection title="Search scope" description="Where in your graph to search.">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Edit, Trash2 } from 'lucide-react';
+import { RefreshCw, Plus, Edit, Trash2, RotateCcw } from 'lucide-react';
 import { useRecallRules } from '@/hooks/use-recall-rules';
 import { RecallRuleConfig } from '@/utils/storage';
 import RecallRuleForm from '../components/RecallRuleForm';
@@ -26,6 +26,9 @@ const RecallRulesPage: React.FC = () => {
         refreshRules,
         addRecallRule,
         updateRecallRule,
+        isBuiltin,
+        isOverridden,
+        resetToBuiltin,
     } = useRecallRules();
 
     const [editingRule, setEditingRule] = useState<RecallRuleConfig | null>(null);
@@ -62,6 +65,12 @@ const RecallRulesPage: React.FC = () => {
         }
     };
 
+    const handleReset = async (id: string, name: string) => {
+        if (confirm(`Reset "${name}" to its built-in version?`)) {
+            await resetToBuiltin(id);
+        }
+    };
+
     const handleSave = async (ruleData: Omit<RecallRuleConfig, 'id'>) => {
         try {
             if (editingRule) {
@@ -94,6 +103,9 @@ const RecallRulesPage: React.FC = () => {
         [
             rule.queryProcessing.ignoreHashFragments && 'Ignore hash',
             rule.queryProcessing.ignoreQueryParams && 'Ignore query',
+            !rule.queryProcessing.ignoreQueryParams &&
+                rule.queryProcessing.keepQueryParams?.length &&
+                `Keep: ${rule.queryProcessing.keepQueryParams.join(', ')}`,
             rule.queryProcessing.scopeDepth &&
                 `Scope: ${rule.queryProcessing.scopeDepth} ${rule.queryProcessing.scopeDepth === 1 ? 'level' : 'levels'}`,
             rule.searchScope.journalDateRange?.enabled &&
@@ -117,7 +129,19 @@ const RecallRulesPage: React.FC = () => {
         <PageListRow key={rule.id} className="space-y-2">
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 space-y-0.5">
-                    <div className="text-sm font-medium">{rule.name}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                        {rule.name}
+                        {isBuiltin(rule.id) && (
+                            <Badge variant="secondary" className="font-normal">
+                                Built-in
+                            </Badge>
+                        )}
+                        {isOverridden(rule.id) && (
+                            <Badge variant="outline" className="font-normal text-muted-foreground">
+                                Modified
+                            </Badge>
+                        )}
+                    </div>
                     {rule.description && (
                         <p className="text-sm text-muted-foreground">{rule.description}</p>
                     )}
@@ -138,15 +162,31 @@ const RecallRulesPage: React.FC = () => {
                     >
                         <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(rule.id, rule.name)}
-                        aria-label={`Delete ${rule.name}`}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {isBuiltin(rule.id) ? (
+                        isOverridden(rule.id) ? (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReset(rule.id, rule.name)}
+                                aria-label={`Reset ${rule.name}`}
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <span className="h-8 w-8" aria-hidden />
+                        )
+                    ) : (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(rule.id, rule.name)}
+                            aria-label={`Delete ${rule.name}`}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </div>
 

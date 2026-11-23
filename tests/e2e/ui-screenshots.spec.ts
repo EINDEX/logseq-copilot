@@ -201,6 +201,12 @@ test.describe('UI screenshots', () => {
       await expect(page.locator('#urlPattern')).toHaveValue('github\\.com.*/(pull|issues)/');
       await shoot(page, 'options-recall-rule-form', scheme);
 
+      // A built-in rule: the query parameter allowlist and the URL forms.
+      await page.getByRole('button', { name: 'Cancel' }).first().click();
+      await page.getByRole('button', { name: 'Edit YouTube videos' }).click();
+      await expect(page.getByRole('button', { name: 'Remove v' })).toBeVisible();
+      await shoot(page, 'options-recall-rule-form-builtin', scheme);
+
       await page.goto(ext.url('options.html#/templates'));
       await expect(page.locator('#template-content')).toBeVisible();
       await shoot(page, 'options-templates', scheme);
