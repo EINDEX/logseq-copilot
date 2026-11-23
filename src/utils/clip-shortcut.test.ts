@@ -5,6 +5,7 @@ import {
   comboProblem,
   combosEqual,
   defaultClipCombo,
+  formatBrowserShortcut,
   formatCombo,
   parseBrowserShortcut,
   toFirefoxShortcut,
@@ -184,5 +185,29 @@ describe('comboProblem', () => {
 
   it('rejects Escape: it cancels the recorder', () => {
     expect(comboProblem(combo({ code: 'Escape', ctrl: true }), false)).toBe('unsupported-key');
+  });
+});
+
+describe('formatBrowserShortcut', () => {
+  it('keeps the symbols Chrome returns on macOS', () => {
+    expect(formatBrowserShortcut('⇧⌘U', true)).toBe('⇧⌘U');
+  });
+
+  it('turns the long names Safari returns on macOS into symbols', () => {
+    expect(formatBrowserShortcut('Shift+Command+U', true)).toBe('⇧⌘U');
+  });
+
+  it('reads the manifest Ctrl of Firefox as Command on macOS', () => {
+    expect(formatBrowserShortcut('Ctrl+Shift+U', true)).toBe('⇧⌘U');
+    expect(formatBrowserShortcut('MacCtrl+Alt+Up', true)).toBe('⌃⌥↑');
+  });
+
+  it('keeps the text of the browser elsewhere', () => {
+    expect(formatBrowserShortcut('Ctrl+Shift+U', false)).toBe('Ctrl+Shift+U');
+  });
+
+  it('returns what it cannot read as it is', () => {
+    expect(formatBrowserShortcut('Ctrl+Shift+Mystery', true)).toBe('Ctrl+Shift+Mystery');
+    expect(formatBrowserShortcut('', true)).toBe('');
   });
 });

@@ -53,6 +53,22 @@ describe('TemplatesSidebar', () => {
     expect(document.querySelectorAll('kbd')).toHaveLength(1);
   });
 
+  it('shows the shortcut compact on macOS, and its actions are there for the default row', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
+    (fakeBrowser as any).commands.getAll.mockResolvedValue([
+      { name: 'clip', shortcut: 'Shift+Command+U' },
+    ]);
+    renderSidebar();
+    const kbd = await screen.findByText('⇧⌘U');
+    const row = kbd.closest('[data-sidebar="menu-item"]') as HTMLElement;
+    expect(within(row).getByRole('button', { name: 'Default template' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(row).getByRole('button', { name: 'Pinned' }).getAttribute('aria-pressed')).toBe('true');
+    // The label fades when the actions show, and the actions are hidden until then.
+    expect(kbd.className).toContain('group-hover/item:opacity-0');
+    expect(within(row).getByRole('button', { name: 'Default template' }).className).toContain('opacity-0');
+    vi.restoreAllMocks();
+  });
+
   it('shows the shortcut of the clip-task command beside Task', async () => {
     (fakeBrowser as any).commands.getAll.mockResolvedValue([
       { name: 'clip-task', shortcut: 'Alt+T' },
@@ -60,7 +76,7 @@ describe('TemplatesSidebar', () => {
     renderSidebar();
     const key = await screen.findByText('Alt+T');
     await waitFor(() =>
-      expect(key.closest('a')?.textContent).toContain('Task'),
+      expect(key.closest('[data-sidebar="menu-item"]')?.textContent).toContain('Task'),
     );
   });
 

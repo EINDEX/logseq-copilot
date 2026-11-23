@@ -223,40 +223,65 @@ test.describe('options: template pin and default', () => {
     await options.expectText('github.com/*/issues/*');
   });
 
-  test('a template row keeps its title, shortcut label and actions apart', async ({ ext, browserName }) => {
+  test('a template row keeps its title readable; the label and the actions share one strip', async ({ ext, browserName }) => {
     test.skip(browserName !== 'chromium', 'measures layout through Playwright, which cannot attach to Firefox extension pages');
     await ext.connect();
     await ext.setStorage({
       templates: [
-        template('alpha', 'A rather long template name that has to be cut short'),
-        template('beta', 'Beta'),
+        template('alpha', 'Alpha'),
+        template('beta', 'A rather long template name that has to be cut short'),
       ],
     });
     const options = await ext.openPage('options.html#/template/alpha');
     const page = options.page!;
     // The clip command has a default shortcut, so the first row shows its label.
-    const row = page.locator('[data-sidebar="menu-item"]', { hasText: 'A rather long' });
+    const row = page.locator('[data-sidebar="menu-item"]', { hasText: 'Alpha' });
     await expect(row.locator('kbd')).toBeVisible();
+    const star = row.locator('[aria-label="Default template"]');
+    const pin = row.locator('[aria-label="Pinned"]');
+    const trash = row.locator('button:has(.sr-only)');
+    const title = row.locator('span').first();
 
+    // The title is whole: it is not cut while the label is shown.
+    const full = await title.evaluate((el) => el.scrollWidth <= el.clientWidth);
+    expect(full).toBe(true);
+    // At rest the actions are hidden, also on the default row.
+    await expect(star).toHaveCSS('opacity', '0');
+    await expect(pin).toHaveCSS('opacity', '0');
+    await expect(row.locator('kbd')).toHaveCSS('opacity', '1');
+    const before = (await title.boundingBox())!;
+
+    // On hover the actions replace the label, and the title does not move.
     await row.hover();
-    const box = async (selector: string) => (await row.locator(selector).first().boundingBox())!;
-    const title = await box('span');
-    const label = await box('kbd');
-    const star = await box('[aria-label="Default template"]');
-    const pin = await box('[aria-label="Pinned"]');
-    const trash = await box('button:has(.sr-only)');
-    const gap = (left: { x: number; width: number }, right: { x: number }) => right.x - (left.x + left.width);
+    await expect(star).toHaveCSS('opacity', '1');
+    await expect(pin).toHaveCSS('opacity', '1');
+    await expect(trash).toHaveCSS('opacity', '1');
+    await expect(row.locator('kbd')).toHaveCSS('opacity', '0');
+    expect(await title.boundingBox()).toEqual(before);
+    const box = async (locator: typeof star) => (await locator.boundingBox())!;
+    const [s, p, t] = [await box(star), await box(pin), await box(trash)];
+    expect(p.x - (s.x + s.width)).toBeGreaterThanOrEqual(0);
+    expect(t.x - (p.x + p.width)).toBeGreaterThanOrEqual(0);
+    // No action covers the title.
+    expect(s.x).toBeGreaterThanOrEqual(before.x + before.width);
 
-    // Left to right: title, label, star, pin, trash; none covers another.
-    expect(gap(title, label)).toBeGreaterThanOrEqual(0);
-    expect(gap(label, star)).toBeGreaterThanOrEqual(0);
-    expect(gap(star, pin)).toBeGreaterThanOrEqual(0);
-    expect(gap(pin, trash)).toBeGreaterThanOrEqual(0);
-    // The long title is cut with an ellipsis instead of pushing the label.
-    await expect(row.locator('span').first()).toHaveCSS('text-overflow', 'ellipsis');
+    // A long title is cut with an ellipsis, only at the strip of the actions.
+    await expect(
+      page.locator('[data-sidebar="menu-item"]', { hasText: 'A rather long' }).locator('span').first(),
+    ).toHaveCSS('text-overflow', 'ellipsis');
 
-    // A mouse click leaves no focus ring on the star.
-    await row.locator('[aria-label="Default template"]').click();
-    await expect(row.locator('[aria-label="Default template"]')).toHaveCSS('box-shadow', 'none');
+    // A mouse click leaves no focus ring: not on the star, not on the row.
+    await star.click();
+    await expect(star).toHaveCSS('box-shadow', 'none');
+    const wrapper = row.locator('xpath=..');
+    await expect(wrapper).toHaveCSS('outline-style', 'none');
+    await expect(wrapper).toHaveCSS('box-shadow', 'none');
+
+    // Keyboard focus on the row shows a ring.
+    await page.keyboard.press('Escape');
+    await wrapper.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(wrapper).not.toHaveCSS('box-shadow', 'none');
   });
 });

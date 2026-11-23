@@ -156,6 +156,18 @@ export const comboKeys = (combo: KeyCombo, mac: boolean): string[] => {
 export const formatCombo = (combo: KeyCombo, mac: boolean): string =>
   comboKeys(combo, mac).join(mac ? '' : '+');
 
+/**
+ * A browser shortcut string for a compact label: symbols on macOS (`⇧⌘U` from
+ * Chrome's `⇧⌘U`, Safari's `Shift+Command+U`, Firefox's `Ctrl+Shift+U`), the
+ * browser's own text elsewhere. The raw string when it cannot be read.
+ */
+export const formatBrowserShortcut = (text: string, mac: boolean): string => {
+  const source = text.trim();
+  if (!mac) return source;
+  const combo = parseBrowserShortcut(source, mac);
+  return combo ? formatCombo(combo, mac) : source;
+};
+
 const WORD_KEYS: Record<string, string> = {
   space: 'Space',
   comma: 'Comma',
