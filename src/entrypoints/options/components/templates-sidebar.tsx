@@ -41,15 +41,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TASK_TEMPLATE_ID, TEMPLATE_PRESETS, type TemplatePreset } from "@/utils/default-templates"
 import { defaultTemplateIdItem, TemplateItemV1 } from "@/utils/storage"
+import { formatBrowserShortcut, isMacPlatform } from "@/utils/clip-shortcut"
 import { isPinned, resolveDefaultTemplate } from "@/utils/template-choice"
 
 // The row actions sit over the right edge of the row, so the link keeps that
 // strip free (`pr-*`): the star and the pin, plus the trash when it exists.
-// They are always laid out, only their opacity changes, so the shortcut label
-// and the title never move or sit under a button.
+// They are always laid out, only their opacity changes, so the title never
+// moves or sits under a button. The shortcut label lives in the same strip and
+// fades out while the actions are shown, so it never takes room from the title.
 const rowButton =
   'flex size-5 items-center justify-center rounded text-muted-foreground outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none'
 const revealOnHover = 'opacity-0 group-hover/item:opacity-100 group-has-[:focus-visible]/item:opacity-100'
+const hideOnHover = 'group-hover/item:opacity-0 group-has-[:focus-visible]/item:opacity-0'
 
 // SortableTemplateItem component
 const SortableTemplateItem = ({
@@ -88,7 +91,14 @@ const SortableTemplateItem = ({
   const isActive = location.pathname === `/template/${id}`;
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    // dnd-kit's attributes make this wrapper a focusable `role="button"`, which
+    // Safari outlines; show a ring for keyboard focus only (keyboard drag works).
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+    >
       <SidebarMenuItem className="group/item">
         <SidebarMenuButton 
           asChild 
@@ -101,13 +111,16 @@ const SortableTemplateItem = ({
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder" />
             <span className="min-w-0 flex-1 truncate text-left">{name}</span>
-            {shortcut && (
-              <kbd className="shrink-0 text-xs font-sans text-muted-foreground">
-                {shortcut}
-              </kbd>
-            )}
           </NavLink>
         </SidebarMenuButton>
+
+        {shortcut && (
+          <kbd
+            className={`pointer-events-none absolute right-2 top-1/2 max-w-[4.5rem] -translate-y-1/2 truncate whitespace-nowrap text-xs font-sans text-muted-foreground transition-opacity ${hideOnHover}`}
+          >
+            {formatBrowserShortcut(shortcut, isMacPlatform())}
+          </kbd>
+        )}
 
         <div className="absolute right-1 top-1.5 flex items-center gap-0.5">
           <button
@@ -115,7 +128,7 @@ const SortableTemplateItem = ({
             aria-label="Default template"
             aria-pressed={isDefault}
             onClick={() => onDefault(id)}
-            className={`${rowButton} ${isDefault ? '' : revealOnHover}`}
+            className={`${rowButton} ${revealOnHover}`}
           >
             <Star className={`size-3.5 ${isDefault ? 'fill-current' : ''}`} />
           </button>
@@ -126,7 +139,7 @@ const SortableTemplateItem = ({
             // The default is always pinned.
             disabled={isDefault}
             onClick={() => onPin(id, !pinned)}
-            className={`${rowButton} ${pinned ? '' : revealOnHover}`}
+            className={`${rowButton} ${revealOnHover}`}
           >
             <Pin className={`size-3.5 ${pinned ? 'fill-current' : ''}`} />
           </button>
