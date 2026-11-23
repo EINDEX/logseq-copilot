@@ -30,6 +30,7 @@ import {
   hasClipErrorBadge,
   showClipErrorBadge,
 } from './clip-error-badge';
+import { setBadgeTextColorIfSupported } from './badge-text-color';
 import { clipErrorMessage } from '@/utils/clip-feedback';
 import { isLogseqUrl } from '@/utils/logseq-url';
 import { startSidebarAction } from './sidebar-action';
@@ -468,7 +469,7 @@ export default defineBackground({
         tabId: tabId,
       });
       await browser.action.setBadgeBackgroundColor({ color: '#4caf50', tabId });
-      await browser.action.setBadgeTextColor({ color: '#ffffff', tabId });
+      await setBadgeTextColorIfSupported('#ffffff', tabId);
     }
   },
 });
