@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [WxtVitest()],
   test: {
     environment: 'happy-dom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'tests/pipeline/**/*.test.mjs'],
     exclude: [
       'tests/integration/**',
       'node_modules/**',
