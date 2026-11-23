@@ -317,3 +317,56 @@ describe.each(flavours)('urlSearch recall scope (%s graph)', (name, create) => {
     expect(res.response.blocks.map((b: any) => b.uuid)).not.toContain('host');
   });
 });
+
+describe.each(flavours)('urlSearch video pages (%s graph, #59)', (name, create) => {
+  // A graph with one clipped video and notes about other videos on the same
+  // path. Search is by substring, case-insensitive, like Logseq's.
+  const graph = [
+    ['clip', '[A talk](https://www.youtube.com/watch?v=AAA)'],
+    ['other1', '[Another](https://www.youtube.com/watch?v=CCC)'],
+    ['other2', 'https://www.youtube.com/watch?v=DDD&t=30s'],
+    ['other3', 'https://www.youtube.com/watch?v=EEE'],
+  ] as const;
+  const matching = (query: string) =>
+    graph.filter(([, content]) => content.toLowerCase().includes(query.toLowerCase()));
+  const block = (uuid: string) => ({
+    uuid,
+    content: graph.find(([id]) => id === uuid)![1],
+    page: { id: 1, name: 'p', originalName: 'P' },
+  });
+
+  const searchService = () => {
+    const service = create();
+    service.client =
+      name === 'file'
+        ? ({
+            getGraph: async () => ({ name: 'g', path: '/g' }),
+            find: async (query: string) => matching(query).map(([uuid]) => block(uuid)),
+          } as any)
+        : ({
+            getGraph: async () => ({ name: 'logseq_db_g' }),
+            search: async (query: string) => ({
+              blocks: matching(query).map(([uuid]) => ({ uuid, 'page?': null })),
+            }),
+            getBlockViaUuid: async (uuid: string) => block(uuid),
+            getPage: async () => ({ id: 1, name: 'p', originalName: 'P' }),
+          } as any);
+    return service;
+  };
+
+  test('a video that was not clipped counts 0', async () => {
+    const res = await searchService().urlSearch(
+      new URL('https://www.youtube.com/watch?v=BBB'),
+    );
+    expect(res.count).toBe(0);
+    expect(res.response.blocks).toEqual([]);
+  });
+
+  test('the clipped video counts 1', async () => {
+    const res = await searchService().urlSearch(
+      new URL('https://www.youtube.com/watch?v=AAA'),
+    );
+    expect(res.count).toBe(1);
+    expect(res.response.blocks.map((b: any) => b.uuid)).toEqual(['clip']);
+  });
+});
