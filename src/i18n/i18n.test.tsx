@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing';
 import { LanguageOptions } from '@/entrypoints/options/components/LanguageOptions';
@@ -53,6 +54,8 @@ describe('the UI in Chinese', () => {
     const unwatch = watchUiLanguage();
     render(<LanguageOptions />);
     const traditional = await radio('繁體中文');
+    // The selector is disabled until the stored setting is read.
+    await waitFor(() => expect(traditional.hasAttribute('disabled')).toBe(false));
     await act(async () => {
       fireEvent.click(traditional);
     });
