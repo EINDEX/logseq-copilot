@@ -14,6 +14,7 @@ import logo from '@/assets/img/logo.png?inline';
 import { buildPageTree, VISIBLE_PAGES, type RecallNode } from './recall-tree';
 import { RecallText } from './RecallText';
 import { formatRelativeTime } from './relative-time';
+import { useTranslation } from '@/i18n/react';
 import './recall-card.css';
 
 // Snippet windows (characters): a hit shows two lines, a context line one.
@@ -231,6 +232,7 @@ export const RecallCard = ({
   now = Date.now(),
 }: RecallCardProps) => {
   const [allPages, setAllPages] = useState(false);
+  const { t } = useTranslation();
 
   if (state === 'loading') return <Skeleton />;
 
@@ -241,9 +243,9 @@ export const RecallCard = ({
         <div className="lc-error" role="status">
           <IconAlertCircle className="lc-error-icon" aria-hidden />
           <span>
-            {error || 'Unable to connect to Logseq.'}{' '}
+            {error || t('content.recall.connectionFailed')}{' '}
             <button type="button" className="lc-inline-link" onClick={onOpenOptions}>
-              Check the connection
+              {t('content.recall.checkConnection')}
             </button>
           </span>
         </div>
@@ -257,7 +259,7 @@ export const RecallCard = ({
       <div className="lc-card">
         <div className="lc-empty" role="status">
           <img className="lc-logo" src={logo} alt="" />
-          No related notes in Logseq
+          {t('content.recall.noNotes')}
         </div>
       </div>
     );

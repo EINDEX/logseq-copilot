@@ -21,6 +21,7 @@ import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
 import { shadowRootMode } from '@/utils/shadow-mode';
+import { initI18n, watchUiLanguage } from '@/i18n/react';
 
 export default defineContentScript({
   // Set manifest options
@@ -46,6 +47,11 @@ export default defineContentScript({
   // 2. Set cssInjectionMode
 
   async main(ctx) {
+    // Synchronous: the UI mounts in the browser's language at once, and
+    // switches when the stored setting is read or changes.
+    void initI18n();
+    watchUiLanguage();
+
     // Register every message handler first, synchronously: nothing awaited
     // before this point, so a shortcut pressed while the page is still
     // starting up (or restoring highlights) is never dropped.

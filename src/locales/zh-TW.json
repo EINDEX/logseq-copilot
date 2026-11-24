@@ -1,0 +1,34 @@
+{
+  "background": {
+    "contextMenu": {
+      "clipImage": "剪存圖片",
+      "clipPage": "剪存頁面連結",
+      "clipSelection": "剪存「%s」",
+      "openSidebar": "開啟側邊欄",
+      "untitledTemplate": "未命名"
+    }
+  },
+  "content": {
+    "recall": {
+      "checkConnection": "檢查連線",
+      "connectionFailed": "無法連線到 Logseq。",
+      "noNotes": "Logseq 中沒有相關筆記"
+    }
+  },
+  "options": {
+    "settings": {
+      "description": "管理 Logseq Copilot 擴充功能的各項設定。",
+      "language": {
+        "auto": "自動",
+        "label": "語言"
+      },
+      "title": "設定"
+    }
+  },
+  "sidebar": {
+    "empty": {
+      "nothingYet": "這個頁面還沒有內容",
+      "unavailable": "無法在這個頁面使用"
+    }
+  }
+}

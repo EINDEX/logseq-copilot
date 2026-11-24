@@ -1,5 +1,6 @@
 import { templates, type TemplateItemV1 } from '@/utils/storage';
 import log from '@/utils/logger';
+import { initI18n, t, watchUiLanguage } from '@/i18n/core';
 
 export const CLIP_SELECTION_MENU_ID = 'clip-with-selection';
 export const CLIP_PAGE_MENU_ID = 'clip-page';
@@ -9,14 +10,15 @@ export const OPEN_SIDEBAR_MENU_ID = 'open-highlights-sidebar';
 
 type MenuProperties = Browser.contextMenus.CreateProperties;
 
+// Titles are keys, translated when the menus are built.
 const CLIP_MENUS = [
   {
     id: CLIP_SELECTION_MENU_ID,
-    title: 'Clip "%s"',
+    title: 'background.contextMenu.clipSelection',
     contexts: ['selection'],
   },
-  { id: CLIP_PAGE_MENU_ID, title: 'Clip page link', contexts: ['page'] },
-  { id: CLIP_IMAGE_MENU_ID, title: 'Clip image', contexts: ['image'] },
+  { id: CLIP_PAGE_MENU_ID, title: 'background.contextMenu.clipPage', contexts: ['page'] },
+  { id: CLIP_IMAGE_MENU_ID, title: 'background.contextMenu.clipImage', contexts: ['image'] },
 ] as const;
 
 /**
@@ -29,13 +31,13 @@ export const buildClipMenus = (
 ): MenuProperties[] => {
   const menus: MenuProperties[] = [];
   for (const { id, title, contexts } of CLIP_MENUS) {
-    menus.push({ id, title, visible: true, contexts: [...contexts] });
+    menus.push({ id, title: t(title), visible: true, contexts: [...contexts] });
     if (templateList.length < 2) continue;
     for (const template of templateList) {
       menus.push({
         id: `${id}:${template.id}`,
         parentId: id,
-        title: template.name || 'Untitled',
+        title: template.name || t('background.contextMenu.untitledTemplate'),
         visible: true,
         contexts: [...contexts],
       });
@@ -43,7 +45,7 @@ export const buildClipMenus = (
   }
   menus.push({
     id: OPEN_SIDEBAR_MENU_ID,
-    title: 'Open sidebar',
+    title: t('background.contextMenu.openSidebar'),
     visible: true,
     contexts: ['page', 'selection'],
   });
@@ -87,6 +89,8 @@ const createMenu = (item: MenuProperties) =>
   });
 
 const rebuild = async () => {
+  // The titles are in the stored UI language, read at startup.
+  await initI18n();
   const items = buildClipMenus(await templates.getValue());
   await browser.contextMenus.removeAll();
   for (const item of items) await createMenu(item);
@@ -103,3 +107,10 @@ export const rebuildContextMenus = (): Promise<void> => {
   });
   return queue;
 };
+
+/**
+ * Rebuild the context menu in the new language when the UI language changes.
+ * Call it synchronously at the start of the service worker.
+ */
+export const followUiLanguage = (): (() => void) =>
+  watchUiLanguage(() => void rebuildContextMenus());

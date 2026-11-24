@@ -1,0 +1,14 @@
+{
+  "commandClip": {
+    "message": "建立剪存筆記"
+  },
+  "commandClipTask": {
+    "message": "將頁面儲存為待辦事項"
+  },
+  "commandOpenSidebar": {
+    "message": "開啟側邊欄"
+  },
+  "extDescription": {
+    "message": "在搜尋結果旁和目前頁面的側邊欄中顯示你的 Logseq 筆記。把文字和連結剪存到你的圖譜。"
+  }
+}

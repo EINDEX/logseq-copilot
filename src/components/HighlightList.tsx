@@ -7,6 +7,8 @@ import type { HighlightData } from '@/types/highlight';
 import { highlightColor } from '@/utils/highlight-manager';
 import { HighlightImage } from './HighlightImage';
 import log from '@/utils/logger';
+import { intlLocale } from '@/i18n/language';
+import { useTranslation } from '@/i18n/react';
 
 /**
  * The list of highlights shown in the browser sidebar. It only renders what it
@@ -26,7 +28,7 @@ interface HighlightListProps {
   empty?: ReactNode;
 }
 
-const formatDate = (timestamp: number) => {
+const formatDate = (timestamp: number, locale: string) => {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -37,7 +39,7 @@ const formatDate = (timestamp: number) => {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -137,6 +139,8 @@ export function HighlightList({
   onUpdateNote,
   empty,
 }: HighlightListProps) {
+  const { i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (highlights.length === 0) {
@@ -192,7 +196,7 @@ export function HighlightList({
             {/* Metadata, tags and actions */}
             <div className="mt-1.5 flex items-center justify-between gap-2 pl-[15px] text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span>{formatDate(highlight.createdAt)}</span>
+                <span>{formatDate(highlight.createdAt, locale)}</span>
                 {removedFromLogseq?.has(highlight.id) && !highlight.logseq && (
                   <span className="inline-flex items-center gap-1" data-removed-from-logseq>
                     <IconLinkOff className="h-3 w-3" aria-hidden />
