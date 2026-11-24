@@ -86,6 +86,30 @@
     }
   },
   "options": {
+    "connection": {
+      "connect": "連線",
+      "connected": "已連線到 Logseq v{{version}}！",
+      "connecting": "連線中…",
+      "failed": "連線失敗",
+      "guide": "連線指南",
+      "hideToken": "隱藏",
+      "host": "主機（host）",
+      "hostPlaceholder": "Logseq 主機",
+      "invalid": {
+        "host": "Logseq 主機不是有效的主機名稱！",
+        "port": "Logseq 連接埠必須介於 1 到 65535 之間！",
+        "token": "缺少授權 token"
+      },
+      "notLoaded": "設定還沒有載入完成！",
+      "openGraph": "在 Logseq 中開啟 {{graph}}",
+      "port": "連接埠（1 ~ 65535）",
+      "portPlaceholder": "連接埠",
+      "saved": "設定已儲存，已連線到 Logseq。",
+      "showToken": "顯示",
+      "title": "連線 Logseq",
+      "token": "授權 token",
+      "tokenPlaceholder": "Logseq 授權 token"
+    },
     "errors": {
       "addProvider": "新增供應商失敗",
       "addRecallRule": "新增相關筆記規則失敗",
@@ -112,8 +136,109 @@
       "updateSettings": "更新設定失敗",
       "updateTemplate": "更新範本失敗"
     },
+    "highlights": {
+      "all": "所有醒目標示",
+      "applyFilters": "套用篩選",
+      "clearAll": "全部清除",
+      "confirmClearAll": "確定要刪除所有醒目標示嗎？此操作無法復原。",
+      "count": "共 {{total}} 則醒目標示，顯示 {{shown}} 則",
+      "delete": "刪除醒目標示",
+      "description": "管理你在各個網站上儲存的所有醒目標示",
+      "empty": {
+        "noMatch": "沒有符合搜尋的醒目標示",
+        "noMatchHint": "試試調整搜尋或篩選條件",
+        "none": "找不到醒目標示",
+        "noneHint": "在網頁上醒目標示文字，就會顯示在這裡"
+      },
+      "exportAll": "全部匯出",
+      "filterPlaceholder": "依網站篩選…",
+      "loading": "正在載入醒目標示…",
+      "meta": "{{total}} 則醒目標示 · {{websites}} 個網站 · 本週 {{thisWeek}} 則",
+      "searchPlaceholder": "搜尋醒目標示…",
+      "tags": "標籤",
+      "title": "醒目標示管理"
+    },
+    "nav": {
+      "group": "設定",
+      "highlights": "醒目標示",
+      "recallRules": "相關筆記規則",
+      "searchEngine": "搜尋引擎",
+      "settings": "設定"
+    },
+    "searchEngines": {
+      "builtIn": {
+        "description": "已預先設定、內建支援的搜尋引擎。",
+        "title": "內建搜尋引擎"
+      },
+      "confirmRemove": "確定要移除這個自訂搜尋引擎嗎？",
+      "custom": {
+        "description": "為任意網站新增你自己的搜尋引擎範本。",
+        "empty": "還沒有自訂搜尋引擎。",
+        "title": "自訂搜尋引擎"
+      },
+      "description": "選擇要為哪些搜尋引擎啟用 Logseq Copilot。",
+      "disabled": "已停用",
+      "enabledCount": "已啟用 {{enabled}} / {{total}} 個",
+      "form": {
+        "add": "新增自訂搜尋引擎",
+        "after": "之後",
+        "before": "之前",
+        "description": "建立自訂搜尋引擎範本，讓 Logseq Copilot 支援任意搜尋網站。",
+        "descriptionLabel": "描述",
+        "descriptionPlaceholder": "簡單描述這個搜尋引擎",
+        "editTitle": "編輯自訂搜尋引擎",
+        "elementSelector": "元素選擇器 *",
+        "elementSelectorExamples": "範例：「#sidebar」、「.results-container」、「main」",
+        "elementSelectorHelp": "Logseq Copilot 要插入位置的 CSS 選擇器",
+        "elementSelectorPlaceholder": "例如：#sidebar 或 .results-container",
+        "errors": {
+          "elementSelector": "請填寫元素選擇器",
+          "name": "請填寫名稱",
+          "querySelector": "請填寫查詢選擇器",
+          "urlPattern": "請填寫網址模式"
+        },
+        "firstChild": "第一個子元素",
+        "icon": "圖示",
+        "insertPosition": "插入位置",
+        "lastChild": "最後一個子元素",
+        "name": "名稱 *",
+        "namePlaceholder": "例如：自訂搜尋",
+        "querySelector": "查詢選擇器 *",
+        "querySelectorCss": "DOM 元素用 CSS 選擇器（例如「#search-input」）",
+        "querySelectorHelp": "如何從頁面中擷取搜尋詞",
+        "querySelectorParam": "URL 參數用「?paramName」（例如「?q」）",
+        "querySelectorPlaceholder": "例如：?q 或 #search-input",
+        "submit": "新增搜尋引擎",
+        "update": "更新搜尋引擎",
+        "urlPattern": "網址模式 *",
+        "urlPatternExamples": "範例：{{examples}}",
+        "urlPatternHelp": "用來比對搜尋引擎網站的規則運算式或主機名稱",
+        "urlPatternPlaceholder": "例如：search.example.com 或 .*\\.search\\.com"
+      },
+      "help": {
+        "missing": "如果沒有出現，請確認這裡已啟用該搜尋引擎，且「設定」中的連線正常。",
+        "search": "在已啟用的搜尋引擎上搜尋時，Logseq Copilot 會出現在搜尋結果的側邊欄，顯示 Logseq 圖譜中的相關筆記。停用不用的搜尋引擎可以節省記憶體。",
+        "title": "運作方式"
+      },
+      "loading": "正在載入搜尋引擎設定…",
+      "pattern": "比對模式：{{pattern}}",
+      "refresh": "重新整理",
+      "remove": "移除 {{name}}",
+      "title": "搜尋引擎設定"
+    },
     "settings": {
+      "clipNote": {
+        "floatingButton": "浮動按鈕",
+        "highlightClippedText": "醒目標示已剪存的文字",
+        "shortcut": "剪存快速鍵",
+        "title": "剪存備註"
+      },
       "description": "管理 Logseq Copilot 擴充功能的各項設定。",
+      "experimental": {
+        "description": "這些功能可能不穩定，後續版本中可能會有變動。",
+        "saveImages": "把圖片儲存到 Logseq",
+        "title": "實驗性功能"
+      },
       "language": {
         "auto": "自動",
         "label": "語言"

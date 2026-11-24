@@ -86,6 +86,30 @@
     }
   },
   "options": {
+    "connection": {
+      "connect": "连接",
+      "connected": "已连接到 Logseq v{{version}}！",
+      "connecting": "正在连接…",
+      "failed": "连接失败",
+      "guide": "连接指南",
+      "hideToken": "隐藏",
+      "host": "主机（host）",
+      "hostPlaceholder": "Logseq 主机",
+      "invalid": {
+        "host": "Logseq 主机不是有效的主机名！",
+        "port": "Logseq 端口必须在 1 到 65535 之间！",
+        "token": "缺少授权 token"
+      },
+      "notLoaded": "设置还没有加载完！",
+      "openGraph": "在 Logseq 中打开 {{graph}}",
+      "port": "端口（1 ~ 65535）",
+      "portPlaceholder": "端口",
+      "saved": "设置已保存，已连接到 Logseq。",
+      "showToken": "显示",
+      "title": "连接 Logseq",
+      "token": "授权 token",
+      "tokenPlaceholder": "Logseq 授权 token"
+    },
     "errors": {
       "addProvider": "添加服务商失败",
       "addRecallRule": "添加相关笔记规则失败",
@@ -112,8 +136,109 @@
       "updateSettings": "更新设置失败",
       "updateTemplate": "更新模板失败"
     },
+    "highlights": {
+      "all": "所有高亮",
+      "applyFilters": "应用筛选",
+      "clearAll": "全部清除",
+      "confirmClearAll": "确定要删除所有高亮吗？此操作无法撤销。",
+      "count": "共 {{total}} 条高亮，显示 {{shown}} 条",
+      "delete": "删除高亮",
+      "description": "管理你在各个网站上保存的所有高亮",
+      "empty": {
+        "noMatch": "没有符合搜索的高亮",
+        "noMatchHint": "试试调整搜索或筛选条件",
+        "none": "没有找到高亮",
+        "noneHint": "在网页上高亮文字，就会显示在这里"
+      },
+      "exportAll": "全部导出",
+      "filterPlaceholder": "按网站筛选…",
+      "loading": "正在加载高亮…",
+      "meta": "{{total}} 条高亮 · {{websites}} 个网站 · 本周 {{thisWeek}} 条",
+      "searchPlaceholder": "搜索高亮…",
+      "tags": "标签",
+      "title": "高亮管理"
+    },
+    "nav": {
+      "group": "设置",
+      "highlights": "高亮",
+      "recallRules": "相关笔记规则",
+      "searchEngine": "搜索引擎",
+      "settings": "设置"
+    },
+    "searchEngines": {
+      "builtIn": {
+        "description": "已预置、内置支持的搜索引擎。",
+        "title": "内置搜索引擎"
+      },
+      "confirmRemove": "确定要移除这个自定义搜索引擎吗？",
+      "custom": {
+        "description": "为任意网站添加你自己的搜索引擎模板。",
+        "empty": "还没有自定义搜索引擎。",
+        "title": "自定义搜索引擎"
+      },
+      "description": "选择要为哪些搜索引擎启用 Logseq Copilot。",
+      "disabled": "已停用",
+      "enabledCount": "已启用 {{enabled}} / {{total}} 个",
+      "form": {
+        "add": "添加自定义搜索引擎",
+        "after": "之后",
+        "before": "之前",
+        "description": "创建自定义搜索引擎模板，让 Logseq Copilot 支持任意搜索网站。",
+        "descriptionLabel": "描述",
+        "descriptionPlaceholder": "简单描述这个搜索引擎",
+        "editTitle": "编辑自定义搜索引擎",
+        "elementSelector": "元素选择器 *",
+        "elementSelectorExamples": "示例：“#sidebar”、“.results-container”、“main”",
+        "elementSelectorHelp": "Logseq Copilot 要插入位置的 CSS 选择器",
+        "elementSelectorPlaceholder": "例如：#sidebar 或 .results-container",
+        "errors": {
+          "elementSelector": "请填写元素选择器",
+          "name": "请填写名称",
+          "querySelector": "请填写查询选择器",
+          "urlPattern": "请填写网址模式"
+        },
+        "firstChild": "第一个子元素",
+        "icon": "图标",
+        "insertPosition": "插入位置",
+        "lastChild": "最后一个子元素",
+        "name": "名称 *",
+        "namePlaceholder": "例如：自定义搜索",
+        "querySelector": "查询选择器 *",
+        "querySelectorCss": "DOM 元素用 CSS 选择器（例如“#search-input”）",
+        "querySelectorHelp": "如何从页面中提取搜索词",
+        "querySelectorParam": "URL 参数用“?paramName”（例如“?q”）",
+        "querySelectorPlaceholder": "例如：?q 或 #search-input",
+        "submit": "添加搜索引擎",
+        "update": "更新搜索引擎",
+        "urlPattern": "网址模式 *",
+        "urlPatternExamples": "示例：{{examples}}",
+        "urlPatternHelp": "用来匹配搜索引擎网站的正则表达式或主机名",
+        "urlPatternPlaceholder": "例如：search.example.com 或 .*\\.search\\.com"
+      },
+      "help": {
+        "missing": "如果没有出现，请确认这里已启用该搜索引擎，并且“设置”中的连接正常。",
+        "search": "在已启用的搜索引擎上搜索时，Logseq Copilot 会出现在搜索结果的侧边栏，显示 Logseq 图谱中的相关笔记。停用不用的搜索引擎可以节省内存。",
+        "title": "工作原理"
+      },
+      "loading": "正在加载搜索引擎设置…",
+      "pattern": "匹配模式：{{pattern}}",
+      "refresh": "刷新",
+      "remove": "移除 {{name}}",
+      "title": "搜索引擎设置"
+    },
     "settings": {
+      "clipNote": {
+        "floatingButton": "悬浮按钮",
+        "highlightClippedText": "高亮已剪藏的文字",
+        "shortcut": "剪藏快捷键",
+        "title": "剪藏备注"
+      },
       "description": "管理 Logseq Copilot 扩展的各项设置。",
+      "experimental": {
+        "description": "这些功能可能不稳定，后续版本中可能会有变化。",
+        "saveImages": "把图片保存到 Logseq",
+        "title": "实验性功能"
+      },
       "language": {
         "auto": "自动",
         "label": "语言"

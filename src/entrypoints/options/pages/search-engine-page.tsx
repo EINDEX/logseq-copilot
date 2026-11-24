@@ -7,9 +7,11 @@ import { RefreshCw, Trash2 } from 'lucide-react';
 import { useSearchEngines } from '@/hooks/use-search-engines';
 import CustomSearchEngineForm from '../components/CustomSearchEngineForm';
 import { SearchEngineConfig } from '@/utils/storage';
+import { useTranslation } from '@/i18n/react';
 import { PageHelp, PageLayout, PageList, PageListRow, PageLoading, PageSection } from '../components/page-layout';
 
 const SearchEnginePage: React.FC = () => {
+    const { t } = useTranslation();
     const {
         searchEngines,
         loading,
@@ -25,7 +27,7 @@ const SearchEnginePage: React.FC = () => {
     } = useSearchEngines();
 
     if (loading) {
-        return <PageLoading title="Search Engine Configuration">Loading search engine configuration...</PageLoading>;
+        return <PageLoading title={t('options.searchEngines.title')}>{t('options.searchEngines.loading')}</PageLoading>;
     }
 
     const enabledEngines = getEnabledSearchEngines();
@@ -51,7 +53,7 @@ const SearchEnginePage: React.FC = () => {
     };
 
     const handleRemoveCustomEngine = async (id: string) => {
-        if (confirm('Are you sure you want to remove this custom search engine?')) {
+        if (confirm(t('options.searchEngines.confirmRemove'))) {
             await removeSearchEngine(id);
         }
     };
@@ -67,7 +69,7 @@ const SearchEnginePage: React.FC = () => {
                         </Label>
                         {!engine.enabled && (
                             <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                                Disabled
+                                {t('options.searchEngines.disabled')}
                             </Badge>
                         )}
                     </div>
@@ -76,7 +78,7 @@ const SearchEnginePage: React.FC = () => {
                     )}
                     {engine.isCustom && (
                         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                            Pattern: {engine.urlPattern}
+                            {t('options.searchEngines.pattern', { pattern: engine.urlPattern })}
                         </p>
                     )}
                 </div>
@@ -93,7 +95,7 @@ const SearchEnginePage: React.FC = () => {
                             size="sm"
                             onClick={() => handleRemoveCustomEngine(engine.id)}
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                            aria-label={`Remove ${engine.name}`}
+                            aria-label={t('options.searchEngines.remove', { name: engine.name })}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -110,13 +112,13 @@ const SearchEnginePage: React.FC = () => {
 
     return (
         <PageLayout
-            title="Search Engine Configuration"
-            description="Choose which search engines to enable Logseq Copilot integration for."
-            meta={`${enabledCount} of ${totalCount} enabled`}
+            title={t('options.searchEngines.title')}
+            description={t('options.searchEngines.description')}
+            meta={t('options.searchEngines.enabledCount', { enabled: enabledCount, total: totalCount })}
             actions={
                 <Button variant="outline" size="sm" onClick={handleRefresh}>
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
+                    {t('options.searchEngines.refresh')}
                 </Button>
             }
         >
@@ -127,20 +129,20 @@ const SearchEnginePage: React.FC = () => {
             )}
 
             <PageSection
-                title="Built-in Search Engines"
-                description="Pre-configured search engines with built-in integration."
+                title={t('options.searchEngines.builtIn.title')}
+                description={t('options.searchEngines.builtIn.description')}
             >
                 <PageList>{builtInEngines.map(renderEngine)}</PageList>
             </PageSection>
 
             <PageSection
-                title="Custom Search Engines"
-                description="Add your own search engine templates for any website."
+                title={t('options.searchEngines.custom.title')}
+                description={t('options.searchEngines.custom.description')}
                 actions={customEngines.length > 0 && <CustomSearchEngineForm onSave={handleAddCustomEngine} />}
             >
                 {customEngines.length === 0 ? (
                     <div className="flex flex-col items-start gap-3 rounded-md border border-dashed px-4 py-6">
-                        <p className="text-sm text-muted-foreground">No custom search engines configured.</p>
+                        <p className="text-sm text-muted-foreground">{t('options.searchEngines.custom.empty')}</p>
                         <CustomSearchEngineForm onSave={handleAddCustomEngine} />
                     </div>
                 ) : (
@@ -148,16 +150,9 @@ const SearchEnginePage: React.FC = () => {
                 )}
             </PageSection>
 
-            <PageHelp title="How it works">
-                <p>
-                    When you search on an enabled search engine, Logseq Copilot appears in the
-                    search results sidebar with relevant notes from your Logseq graph.
-                    Disable the engines you don't use to save memory.
-                </p>
-                <p>
-                    If it doesn't appear, check that the engine is enabled here and that the
-                    connection under Settings works.
-                </p>
+            <PageHelp title={t('options.searchEngines.help.title')}>
+                <p>{t('options.searchEngines.help.search')}</p>
+                <p>{t('options.searchEngines.help.missing')}</p>
             </PageHelp>
         </PageLayout>
     );

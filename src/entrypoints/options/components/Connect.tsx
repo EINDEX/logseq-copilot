@@ -7,38 +7,56 @@ import { useSettings } from '@/hooks/use-settings';
 import { getLogseqService } from '@/entrypoints/background/logseq/tool';
 import type { LogseqCopliotConfig } from '@/utils/storage';
 import { isValidLogseqHostName, isValidLogseqPort } from '@/utils/connection';
+import { useTranslation } from '@/i18n/react';
 import { PageSection } from './page-layout';
 
 /** Wait this long after the last edit before checking the connection. */
 export const CHECK_DEBOUNCE_MS = 600;
 
 /**
- * Why the connection settings cannot be checked yet, or null when they can.
- * An empty token is the "not configured yet" state, not an error.
+ * Key of why the connection settings cannot be checked yet, or null when
+ * they can. An empty token is the "not configured yet" state, not an error.
  */
+type ConnectionMessageKey =
+  | 'options.connection.invalid.host'
+  | 'options.connection.invalid.port'
+  | 'options.connection.invalid.token';
+
 const validateConnection = (
   config: Pick<LogseqCopliotConfig, 'logseqHostName' | 'logseqPort' | 'logseqAuthToken'>,
-): string | null => {
+): ConnectionMessageKey | null => {
   if (!isValidLogseqHostName(config.logseqHostName)) {
-    return 'Logseq Host is not a valid hostname!';
+    return 'options.connection.invalid.host';
   }
   if (!isValidLogseqPort(config.logseqPort)) {
-    return 'Logseq Port must be between 1 and 65535!';
+    return 'options.connection.invalid.port';
   }
   if (!config.logseqAuthToken) {
-    return 'Auth Token is missing';
+    return 'options.connection.invalid.token';
   }
   return null;
 };
 
+type ButtonMessage =
+  | ConnectionMessageKey
+  | 'options.connection.connect'
+  | 'options.connection.connected'
+  | 'options.connection.notLoaded';
+
 export const LogseqConnectOptions = () => {
+  const { t } = useTranslation();
   const { settings: logseqConfig, loading: settingsLoading, updateSettings } = useSettings();
   const [loading, setLoading] = React.useState(true);
   const [connected, setConnected] = React.useState(false);
-  const [buttonMessage, setButtonMessage] = React.useState('Connect');
-  const [notice, setNotice] = React.useState('');
+  // What the button says: a key, translated when it renders so a language
+  // switch applies at once. `connected` carries the Logseq version.
+  const [buttonMessage, setButtonMessage] = React.useState<ButtonMessage>('options.connection.connect');
+  const [connectedVersion, setConnectedVersion] = React.useState('');
+  // Show the "settings saved" notice.
+  const [notice, setNotice] = React.useState(false);
   // Why the last check failed. Shown under the button, which cannot wrap.
-  const [error, setError] = React.useState('');
+  // Logseq's own message, or true for the translated generic one.
+  const [error, setError] = React.useState<string | true>('');
   const [graph, setGraph] = React.useState<string | null>(null);
   const [showToken, setShowToken] = React.useState(false);
   // Only the newest check may update the state; older ones are stale.
@@ -48,7 +66,7 @@ export const LogseqConnectOptions = () => {
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!logseqConfig) return;
     const { name, value } = e.target;
-    setNotice('');
+    setNotice(false);
     setError('');
     updateSettings({ [name]: value });
   };
@@ -59,7 +77,7 @@ export const LogseqConnectOptions = () => {
     if (port === '' || parseInt(port) < 0) {
       port = '0'
     }
-    setNotice('');
+    setNotice(false);
     setError('');
     updateSettings({ logseqPort: parseInt(port) });
   }
@@ -85,8 +103,8 @@ export const LogseqConnectOptions = () => {
           if (isStale()) return false;
           setConnected(false);
           setGraph(null);
-          setButtonMessage('Connect');
-          setError(resp.msg || 'Connection failed');
+          setButtonMessage('options.connection.connect');
+          setError(resp.msg || true);
           return false;
         }
       }
@@ -96,17 +114,16 @@ export const LogseqConnectOptions = () => {
       setConnected(true);
       setError('');
       setGraph(graphName || null);
-      setButtonMessage(`Connected to Logseq v${version}!`);
+      setConnectedVersion(version);
+      setButtonMessage('options.connection.connected');
       return true;
     } catch (err) {
       log.error('Connection check failed:', err);
       if (isStale()) return false;
       setConnected(false);
       setGraph(null);
-      setButtonMessage('Connect');
-      setError(
-        err instanceof Error && err.message ? err.message : 'Connection failed',
-      );
+      setButtonMessage('options.connection.connect');
+      setError(err instanceof Error && err.message ? err.message : true);
       return false;
     } finally {
       if (!isStale()) setLoading(false);
@@ -117,7 +134,7 @@ export const LogseqConnectOptions = () => {
   // "Connect" only tests them and keeps the user on this page.
   const save = async () => {
     if (!logseqConfig) {
-      setButtonMessage('Configuration is not loaded yet!');
+      setButtonMessage('options.connection.notLoaded');
       return;
     }
 
@@ -129,10 +146,10 @@ export const LogseqConnectOptions = () => {
       return;
     }
 
-    setNotice('');
+    setNotice(false);
     setError('');
     if (await checkConnection(true)) {
-      setNotice('Settings saved and connected to Logseq.');
+      setNotice(true);
     }
   };
 
@@ -158,7 +175,7 @@ export const LogseqConnectOptions = () => {
       setGraph(null);
       setError('');
       // Nothing is wrong with an empty token yet; the user has not started.
-      setButtonMessage(logseqAuthToken ? invalid : 'Connect');
+      setButtonMessage(logseqAuthToken ? invalid : 'options.connection.connect');
       return;
     }
 
@@ -173,35 +190,35 @@ export const LogseqConnectOptions = () => {
 
   return (
     <PageSection
-      title="Logseq Connect"
+      title={t('options.connection.title')}
     >
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="logseqHostName">Host</Label>
+          <Label htmlFor="logseqHostName">{t('options.connection.host')}</Label>
           <Input
             id="logseqHostName"
             name="logseqHostName"
-            placeholder="Logseq Host"
+            placeholder={t('options.connection.hostPlaceholder')}
             onChange={onChange}
             value={logseqConfig?.logseqHostName || ''}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="logseqPort">Port (1 ~ 65535)</Label>
+          <Label htmlFor="logseqPort">{t('options.connection.port')}</Label>
           <Input
             id="logseqPort"
             type="number"
             min={1}
             max={65535}
             name="logseqPort"
-            placeholder="Port"
+            placeholder={t('options.connection.portPlaceholder')}
             onChange={changeLogseqPort}
             value={logseqConfig?.logseqPort || ''}
           />
         </div>
 
         <div className="space-y-2 sm:col-span-3">
-          <Label htmlFor="logseqAuthToken">Authorization Token</Label>
+          <Label htmlFor="logseqAuthToken">{t('options.connection.token')}</Label>
           <div className="relative">
             <Input
               id="logseqAuthToken"
@@ -209,7 +226,7 @@ export const LogseqConnectOptions = () => {
               type={showToken ? 'text' : 'password'}
               onChange={onChange}
               value={logseqConfig?.logseqAuthToken || ''}
-              placeholder="Logseq Authorization Token"
+              placeholder={t('options.connection.tokenPlaceholder')}
               className="pr-20"
             />
             <Button
@@ -219,21 +236,25 @@ export const LogseqConnectOptions = () => {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7"
               onClick={triggerShowToken}
             >
-              {showToken ? 'Hide' : 'Show'}
+              {showToken ? t('options.connection.hideToken') : t('options.connection.showToken')}
             </Button>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-3">
           <Button onClick={save} variant="outline" disabled={loading}>
-            {loading ? 'Connecting...' : buttonMessage}
+            {loading
+              ? t('options.connection.connecting')
+              : buttonMessage === 'options.connection.connected'
+                ? t(buttonMessage, { version: connectedVersion })
+                : t(buttonMessage)}
           </Button>
           {connected && graph && (
             <a
               className="text-sm text-primary hover:underline"
               href={`logseq://graph/${graph}`}
             >
-              Open {graph} in Logseq
+              {t('options.connection.openGraph', { graph })}
             </a>
           )}
           <a
@@ -242,19 +263,19 @@ export const LogseqConnectOptions = () => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Guide to Connection
+            {t('options.connection.guide')}
           </a>
         </div>
 
         {error && !loading && (
           <p role="alert" className="text-sm text-destructive break-words sm:col-span-3">
-            {error}
+            {error === true ? t('options.connection.failed') : error}
           </p>
         )}
 
         {notice && (
           <p role="status" className="text-sm text-primary sm:col-span-3">
-            {notice}
+            {t('options.connection.saved')}
           </p>
         )}
       </div>

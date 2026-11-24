@@ -86,6 +86,30 @@
     }
   },
   "options": {
+    "connection": {
+      "connect": "Connect",
+      "connected": "Connected to Logseq v{{version}}!",
+      "connecting": "Connecting...",
+      "failed": "Connection failed",
+      "guide": "Guide to Connection",
+      "hideToken": "Hide",
+      "host": "Host",
+      "hostPlaceholder": "Logseq Host",
+      "invalid": {
+        "host": "Logseq Host is not a valid hostname!",
+        "port": "Logseq Port must be between 1 and 65535!",
+        "token": "Auth Token is missing"
+      },
+      "notLoaded": "Configuration is not loaded yet!",
+      "openGraph": "Open {{graph}} in Logseq",
+      "port": "Port (1 ~ 65535)",
+      "portPlaceholder": "Port",
+      "saved": "Settings saved and connected to Logseq.",
+      "showToken": "Show",
+      "title": "Logseq Connect",
+      "token": "Authorization Token",
+      "tokenPlaceholder": "Logseq Authorization Token"
+    },
     "errors": {
       "addProvider": "Failed to add provider",
       "addRecallRule": "Failed to add recall rule",
@@ -112,8 +136,109 @@
       "updateSettings": "Failed to update settings",
       "updateTemplate": "Failed to update template"
     },
+    "highlights": {
+      "all": "All Highlights",
+      "applyFilters": "Apply Filters",
+      "clearAll": "Clear All",
+      "confirmClearAll": "Are you sure you want to delete ALL highlights? This action cannot be undone.",
+      "count": "{{shown}} of {{total}} highlights",
+      "delete": "Delete highlight",
+      "description": "Manage all your saved highlights across different websites",
+      "empty": {
+        "noMatch": "No highlights match your search",
+        "noMatchHint": "Try adjusting your search or filters",
+        "none": "No highlights found",
+        "noneHint": "Start highlighting text on websites to see them here"
+      },
+      "exportAll": "Export All",
+      "filterPlaceholder": "Filter by website...",
+      "loading": "Loading highlights...",
+      "meta": "{{total}} highlights · {{websites}} websites · {{thisWeek}} this week",
+      "searchPlaceholder": "Search highlights...",
+      "tags": "Tags",
+      "title": "Highlight Management"
+    },
+    "nav": {
+      "group": "Settings",
+      "highlights": "Highlights",
+      "recallRules": "Recall Rules",
+      "searchEngine": "Search Engine",
+      "settings": "Settings"
+    },
+    "searchEngines": {
+      "builtIn": {
+        "description": "Pre-configured search engines with built-in integration.",
+        "title": "Built-in Search Engines"
+      },
+      "confirmRemove": "Are you sure you want to remove this custom search engine?",
+      "custom": {
+        "description": "Add your own search engine templates for any website.",
+        "empty": "No custom search engines configured.",
+        "title": "Custom Search Engines"
+      },
+      "description": "Choose which search engines to enable Logseq Copilot integration for.",
+      "disabled": "Disabled",
+      "enabledCount": "{{enabled}} of {{total}} enabled",
+      "form": {
+        "add": "Add Custom Search Engine",
+        "after": "After",
+        "before": "Before",
+        "description": "Create a custom search engine template to integrate Logseq Copilot with any search website.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Brief description of this search engine",
+        "editTitle": "Edit Custom Search Engine",
+        "elementSelector": "Element Selector *",
+        "elementSelectorExamples": "Examples: \"#sidebar\", \".results-container\", \"main\"",
+        "elementSelectorHelp": "CSS selector for the element where Logseq Copilot should be inserted",
+        "elementSelectorPlaceholder": "e.g., #sidebar or .results-container",
+        "errors": {
+          "elementSelector": "Element selector is required",
+          "name": "Name is required",
+          "querySelector": "Query selector is required",
+          "urlPattern": "URL pattern is required"
+        },
+        "firstChild": "First Child",
+        "icon": "Icon",
+        "insertPosition": "Insert Position",
+        "lastChild": "Last Child",
+        "name": "Name *",
+        "namePlaceholder": "e.g., Custom Search",
+        "querySelector": "Query Selector *",
+        "querySelectorCss": "Use CSS selectors for DOM elements (e.g., \"#search-input\")",
+        "querySelectorHelp": "How to extract the search query from the page",
+        "querySelectorParam": "Use \"?paramName\" for URL parameters (e.g., \"?q\")",
+        "querySelectorPlaceholder": "e.g., ?q or #search-input",
+        "submit": "Add Search Engine",
+        "update": "Update Search Engine",
+        "urlPattern": "URL Pattern *",
+        "urlPatternExamples": "Examples: {{examples}}",
+        "urlPatternHelp": "Regex pattern or hostname to match the search engine website",
+        "urlPatternPlaceholder": "e.g., search.example.com or .*\\.search\\.com"
+      },
+      "help": {
+        "missing": "If it doesn't appear, check that the engine is enabled here and that the connection under Settings works.",
+        "search": "When you search on an enabled search engine, Logseq Copilot appears in the search results sidebar with relevant notes from your Logseq graph. Disable the engines you don't use to save memory.",
+        "title": "How it works"
+      },
+      "loading": "Loading search engine configuration...",
+      "pattern": "Pattern: {{pattern}}",
+      "refresh": "Refresh",
+      "remove": "Remove {{name}}",
+      "title": "Search Engine Configuration"
+    },
     "settings": {
+      "clipNote": {
+        "floatingButton": "Floating Button",
+        "highlightClippedText": "Highlight clipped text",
+        "shortcut": "Clip Shortcut",
+        "title": "Clip Note"
+      },
       "description": "Configure your Logseq Copilot extension settings.",
+      "experimental": {
+        "description": "These features may be unstable and may change in later versions.",
+        "saveImages": "Save images to Logseq",
+        "title": "Experimental"
+      },
       "language": {
         "auto": "Auto",
         "label": "Language"

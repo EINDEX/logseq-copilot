@@ -254,6 +254,36 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('options settings, highlights and search engines in each UI language', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    await ext.setStorage({ highlights: seededHighlights() });
+    const languages = [
+      { language: 'en', connected: /Connected to Logseq v/, highlights: 'Highlight Management', engines: 'Built-in Search Engines' },
+      { language: 'zh-CN', connected: /已连接到 Logseq v/, highlights: '高亮管理', engines: '内置搜索引擎' },
+      { language: 'zh-TW', connected: /已連線到 Logseq v/, highlights: '醒目標示管理', engines: '內建搜尋引擎' },
+    ];
+    for (const { language, connected, highlights, engines } of languages) {
+      await ext.setStorage({ uiLanguage: language });
+      for (const scheme of SCHEMES) {
+        await setScheme(page, scheme);
+
+        await page.goto(ext.url('options.html#/settings'));
+        await expect(page.getByRole('button', { name: connected })).toBeVisible();
+        await shoot(page, `options-settings-connection-${language}`, scheme);
+
+        await page.goto(ext.url('options.html#/highlights'));
+        await expect(page.getByRole('heading', { name: highlights })).toBeVisible();
+        await expect(page.getByText('HTTP API - Logseq')).toBeVisible();
+        await shoot(page, `options-highlights-${language}`, scheme);
+
+        await page.goto(ext.url('options.html#/search-engine'));
+        await expect(page.getByRole('heading', { name: engines })).toBeVisible();
+        await shoot(page, `options-search-engine-${language}`, scheme);
+      }
+    }
+  });
+
   test('template editor: outline, autocomplete and text mode, and the new template presets', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();
