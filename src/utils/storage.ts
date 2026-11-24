@@ -350,6 +350,29 @@ export const inPageSidebarOpenItem = storage.defineItem<boolean>(
 );
 
 /**
+ * The sidebar drawn on pages is pinned, in every tab: the page makes room for
+ * it instead of being covered (src/entrypoints/content/sidebar-dock.ts). It
+ * stays pinned when the sidebar closes and opens again.
+ */
+export const inPageSidebarPinnedItem = storage.defineItem<boolean>(
+  'local:inPageSidebarPinned',
+  {
+    fallback: false,
+  },
+);
+
+/**
+ * Sites (hostnames) where the pinned sidebar covers the page as when it is
+ * not pinned: the user's way out on a site that pushing breaks.
+ */
+export const inPageSidebarOverlayHostsItem = storage.defineItem<string[]>(
+  'local:inPageSidebarOverlayHosts',
+  {
+    fallback: [],
+  },
+);
+
+/**
  * The user's choice of the sidebar drawn on pages over the browser's own
  * (options page). `null` until the user picks: then it follows Arc detection
  * (src/utils/sidebar.ts).

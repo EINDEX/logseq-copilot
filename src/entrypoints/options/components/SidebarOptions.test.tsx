@@ -11,6 +11,8 @@ const stored = async () =>
 const inPageSwitch = () =>
   screen.findByRole('switch', { name: 'In-page sidebar' });
 
+const pinSwitch = () => screen.findByRole('switch', { name: 'Pin' });
+
 const expectChecked = async (checked: boolean) => {
   const toggle = await inPageSwitch();
   await vi.waitFor(() => {
@@ -90,10 +92,58 @@ describe('SidebarOptions', () => {
   });
 
   it('is not offered where the browser has no sidebar: it is always on the page there', async () => {
-    const { container } = render(<SidebarOptions />);
+    render(<SidebarOptions />);
     await act(async () => {});
 
-    expect(screen.queryByRole('switch')).toBeNull();
-    expect(container.textContent).toBe('');
+    expect(screen.queryByRole('switch', { name: 'In-page sidebar' })).toBeNull();
+    // Only the pin.
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
+    expect(await pinSwitch()).not.toBeNull();
+  });
+
+  describe('pin', () => {
+    const pinned = async () =>
+      (await fakeBrowser.storage.local.get('inPageSidebarPinned')).inPageSidebarPinned;
+
+    it('pins and unpins the sidebar on pages', async () => {
+      render(<SidebarOptions />);
+      const toggle = await pinSwitch();
+      await vi.waitFor(() => expect((toggle as HTMLButtonElement).disabled).toBe(false));
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      await vi.waitFor(async () => expect(await pinned()).toBe(true));
+
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      await vi.waitFor(async () => expect(await pinned()).toBe(false));
+    });
+
+    it('follows the pin of the sidebar', async () => {
+      render(<SidebarOptions />);
+      const toggle = await pinSwitch();
+
+      await act(async () => {
+        await fakeBrowser.storage.local.set({ inPageSidebarPinned: true });
+      });
+
+      await vi.waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'));
+    });
+
+    it('is there only while the sidebar on pages is in use', async () => {
+      (fakeBrowser as any).sidePanel = { open: vi.fn() };
+      render(<SidebarOptions />);
+      await expectChecked(false);
+      expect(screen.queryByRole('switch', { name: 'Pin' })).toBeNull();
+
+      await act(async () => {
+        fireEvent.click(await inPageSwitch());
+      });
+
+      expect(await pinSwitch()).not.toBeNull();
+    });
   });
 });

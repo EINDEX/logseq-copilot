@@ -1,11 +1,22 @@
 import { useState, type ComponentType, type MouseEvent } from 'react';
 import { IconNotes, IconRefresh, IconSettings } from '@tabler/icons-react';
-import { Check, ChevronDown, FilePlus, LoaderCircle, Search, TextSelect, X } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  FilePlus,
+  LoaderCircle,
+  Pin,
+  PinOff,
+  Search,
+  TextSelect,
+  X,
+} from 'lucide-react';
 import { HighlightList } from '@/components/HighlightList';
 import { LogseqResultList } from '@/components/LogseqResultList';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -206,6 +217,77 @@ const TemplateMenu = ({ label, templates, shortcuts, disabled, container, onPick
   </DropdownMenu>
 );
 
+/** The pin of the in-page sidebar (SidebarPanelProps.pin). */
+export interface SidebarPin {
+  /** Pinned: the page makes room for the sidebar, in every tab. */
+  pinned: boolean;
+  onPinnedChange: (pinned: boolean) => void;
+  /**
+   * The page's site, for a site that pushing breaks: the pinned sidebar
+   * covers the pages of a site the user takes out (`pushes` false).
+   */
+  site?: { host: string; pushes: boolean; onPushesChange: (pushes: boolean) => void };
+}
+
+interface PinButtonsProps {
+  pin: SidebarPin;
+  /** Inside the panel: a shadow root does not style a menu on the page's body. */
+  container: HTMLElement | null;
+}
+
+/**
+ * Pin, one click either way; once pinned, a chevron for the site of the page.
+ * On a site taken out, the pin shows crossed out: pinned, but not here.
+ */
+const PinButtons = ({ pin, container }: PinButtonsProps) => {
+  const { pinned, site } = pin;
+  const here = pinned && (site?.pushes ?? true);
+  const Icon = pinned && !here ? PinOff : Pin;
+  return (
+    <div className="flex items-center">
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label="Pin"
+        title="Pin"
+        aria-pressed={pinned}
+        onClick={() => pin.onPinnedChange(!pinned)}
+        className={`h-7 w-7 p-0 hover:text-foreground ${
+          pinned ? 'text-foreground' : 'text-muted-foreground'
+        }`}
+      >
+        <Icon className={`h-4 w-4 ${here ? 'fill-current' : ''}`} />
+      </Button>
+      {pinned && site && (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            {/* A plain button: Button does not forward its ref (TemplateMenu). */}
+            <button
+              type="button"
+              aria-label={`Pin on ${site.host}`}
+              className={buttonVariants({
+                variant: 'ghost',
+                size: 'sm',
+                className: '-ml-1 h-7 w-4 p-0 text-muted-foreground hover:text-foreground',
+              })}
+            >
+              <ChevronDown aria-hidden className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" container={container} className="min-w-44">
+            <DropdownMenuCheckboxItem
+              checked={site.pushes}
+              onCheckedChange={(checked) => site.onPushesChange(checked === true)}
+            >
+              <span className="truncate">{site.host}</span>
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+};
+
 export interface SidebarPanelProps {
   /**
    * `loading` while the highlights of the page are being read, `unavailable`
@@ -246,6 +328,8 @@ export interface SidebarPanelProps {
    */
   onClipActionsPointerEnter?: () => void;
   onOpenSettings: () => void;
+  /** Shows a pin button in the header (the in-page sidebar). */
+  pin?: SidebarPin;
   /** Shows a close button in the header. */
   onClose?: () => void;
 }
@@ -275,6 +359,7 @@ export function SidebarPanel({
   canClipSelection,
   onClipActionsPointerEnter,
   onOpenSettings,
+  pin,
   onClose,
 }: SidebarPanelProps) {
   // State, not a ref: the menus need the element once it is there.
@@ -319,6 +404,7 @@ export function SidebarPanel({
           >
             <IconSettings className="h-4 w-4" stroke={1.75} />
           </Button>
+          {pin && <PinButtons pin={pin} container={root} />}
           {onClose && (
             <Button
               variant="ghost"

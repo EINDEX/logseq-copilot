@@ -5,7 +5,7 @@ import {
   createShadowRootUi,
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { SidebarPanel } from '@/components/SidebarPanel';
+import { SidebarPanel, type SidebarPin } from '@/components/SidebarPanel';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useClipActions } from '@/hooks/use-clip-actions';
 import { ruledTemplateId, useClipTemplates } from '@/hooks/use-clip-templates';
@@ -13,15 +13,21 @@ import { useCommandShortcuts } from '@/hooks/use-command-shortcuts';
 import { useLogseqSearch } from '@/hooks/use-logseq-search';
 import { usePageHighlights } from '@/hooks/use-page-highlights';
 import { usePageRecall } from '@/hooks/use-page-recall';
+import { useStorageItem } from '@/hooks/use-storage-item';
 import { sendMessage } from '@/types/messaging';
 import { HighlightManager } from '@/utils/highlight-manager';
 import log from '@/utils/logger';
 import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
 import { shadowRootMode } from '@/utils/shadow-mode';
-import { inPageSidebarOpenItem } from '@/utils/storage';
+import {
+  inPageSidebarOpenItem,
+  inPageSidebarOverlayHostsItem,
+  inPageSidebarPinnedItem,
+} from '@/utils/storage';
 import { zIndex } from '@/utils/z-index';
 import '@/assets/globals.css';
 import { hasClippableSelection, runClipCommand } from './QuickCapture';
+import { applySidebarDock, removeSidebarDock } from './sidebar-dock';
 
 interface InPageSidebarProps {
   url: string;
@@ -33,10 +39,28 @@ const openSettings = () => {
   );
 };
 
+const logError = (what: string) => (error: unknown) =>
+  log.error(`[InPageSidebar] Failed to ${what}:`, error);
+
+/** Pins or unpins it in every tab. */
+const setPinned = (pinned: boolean) => {
+  inPageSidebarPinnedItem.setValue(pinned).catch(logError('pin the sidebar'));
+};
+
+/** Takes a site out of the pinned sidebar's pushing, or puts it back. */
+const setSitePushes = async (host: string, pushes: boolean) => {
+  const hosts = (await inPageSidebarOverlayHostsItem.getValue()).filter((h) => h !== host);
+  await inPageSidebarOverlayHostsItem.setValue(pushes ? hosts : [...hosts, host]);
+};
+
+/** The pinned sidebar pushes the pages of this site (startInPageSidebar). */
+const pushesOn = (host: string, overlayHosts: readonly string[]) => !overlayHosts.includes(host);
+
 /**
  * The sidebar for browsers without one of their own (Safari, Firefox for
  * Android): the same panel as the browser sidebar, docked to the right edge
- * of the page. It covers the page and leaves its layout alone. Its `logseq:`
+ * of the page. It covers the page and leaves its layout alone; pinned, the
+ * page makes room for it (sidebar-dock.ts, startInPageSidebar). Its `logseq:`
  * links are opened by the background (openLogseqLinksFromBackground on the
  * shadow root, in startInPageSidebar).
  */
@@ -90,6 +114,21 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
     if (!found) setNotice("Couldn't find this highlight on the page");
   };
 
+  const pinned = useStorageItem(inPageSidebarPinnedItem, false) ?? false;
+  const overlayHosts = useStorageItem(inPageSidebarOverlayHostsItem, []) ?? [];
+  const host = new URL(url).hostname;
+  const pin: SidebarPin = {
+    pinned,
+    onPinnedChange: setPinned,
+    site: {
+      host,
+      pushes: pushesOn(host, overlayHosts),
+      onPushesChange: (pushes) => {
+        setSitePushes(host, pushes).catch(logError('change the site'));
+      },
+    },
+  };
+
   // Closes it in every tab.
   const close = () => {
     inPageSidebarOpenItem
@@ -122,6 +161,7 @@ export function InPageSidebar({ url }: InPageSidebarProps) {
           shortcuts={shortcuts}
           canClipSelection={canClipSelection}
           onOpenSettings={openSettings}
+          pin={pin}
           onClose={close}
         />
       </div>
@@ -134,8 +174,10 @@ const renderSidebar = (root: Root) =>
 
 /**
  * Show the in-page sidebar while `inPageSidebarOpen` is set, and follow the
- * page: in-page navigations of single-page apps change the list. Call it once,
- * in the top frame of a web page.
+ * page: in-page navigations of single-page apps change the list. While it is
+ * shown and pinned (`inPageSidebarPinned`), the page makes room for it,
+ * except on the sites of `inPageSidebarOverlayHosts`. Call it once, in the
+ * top frame of a web page.
  */
 export async function startInPageSidebar(
   ctx: ContentScriptContext,
@@ -145,6 +187,21 @@ export async function startInPageSidebar(
   // Creating the UI is async (it loads the stylesheet): changes apply one
   // after the other, so a quick open and close ends closed.
   let applied = Promise.resolve();
+  // The page is only touched while the sidebar is shown and pinned.
+  let pinned = false;
+  let overlayHosts: string[] = [];
+  let docked = false;
+  const dock = () => {
+    const want = shown && pinned && pushesOn(location.hostname, overlayHosts);
+    if (want === docked) return;
+    if (want) applySidebarDock();
+    else removeSidebarDock();
+    docked = want;
+  };
+  ctx.onInvalidated(() => {
+    if (docked) removeSidebarDock();
+    docked = false;
+  });
 
   const show = async (open: boolean) => {
     if (open === shown) return;
@@ -192,6 +249,7 @@ export async function startInPageSidebar(
     if (open) ui!.mount();
     else ui!.remove();
     shown = open;
+    dock();
   };
 
   const apply = (open: boolean) => {
@@ -202,12 +260,34 @@ export async function startInPageSidebar(
       );
   };
 
-  // Watching comes first, so a change while reading is not missed.
+  // Watching comes first, so a change while reading is not missed. The pin
+  // is read before the open state, so an open pinned sidebar pushes the page
+  // as it is first shown.
+  let pinChanged = false;
+  let hostsChanged = false;
+  inPageSidebarPinnedItem.watch((value) => {
+    pinChanged = true;
+    pinned = value;
+    dock();
+  });
+  inPageSidebarOverlayHostsItem.watch((value) => {
+    hostsChanged = true;
+    overlayHosts = value;
+    dock();
+  });
   let changed = false;
   inPageSidebarOpenItem.watch((open) => {
     changed = true;
     apply(open);
   });
-  const open = await inPageSidebarOpenItem.getValue();
+  const [pinnedNow, hostsNow, open] = await Promise.all([
+    inPageSidebarPinnedItem.getValue(),
+    inPageSidebarOverlayHostsItem.getValue(),
+    inPageSidebarOpenItem.getValue(),
+  ]);
+  if (!pinChanged) pinned = pinnedNow;
+  if (!hostsChanged) overlayHosts = hostsNow;
   if (!changed) apply(open);
+  // For a sidebar shown before the pin was read.
+  dock();
 }

@@ -9,7 +9,8 @@ import {
 } from './upgrade';
 import { getGraphKind, getLogseqService } from './logseq/tool';
 import { SearchEngineConfigMigration } from '@/utils/migration';
-import { inPageSidebarOpenItem, templates } from '@/utils/storage';
+import { templates } from '@/utils/storage';
+import { closeInPageSidebarOnStartup } from '@/utils/sidebar';
 import { TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import {
   OPEN_SIDEBAR_MENU_ID,
@@ -431,12 +432,12 @@ export default defineBackground({
     });
 
     // The sidebar drawn on pages starts closed with the browser, like the
-    // browser's own.
+    // browser's own, unless it is pinned.
     browser.runtime.onStartup.addListener(() => {
       void rebuildContextMenus();
-      inPageSidebarOpenItem
-        .setValue(false)
-        .catch((err) => log.error('Failed to close the in-page sidebar:', err));
+      closeInPageSidebarOnStartup().catch((err) =>
+        log.error('Failed to close the in-page sidebar:', err),
+      );
     });
 
     browser.commands.onCommand.addListener((command, tab) => {
