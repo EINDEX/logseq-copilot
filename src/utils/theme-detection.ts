@@ -205,9 +205,11 @@ function detectSiteSpecificDarkMode(): Theme | null {
   // GitHub
   if (hostname.includes('github.')) {
     log.debug('[Theme Detection] Detecting GitHub theme...');
+    const colorMode = document.documentElement.getAttribute('data-color-mode');
     const isDark =
-      document.documentElement.getAttribute('data-color-mode') === 'dark' ||
-      document.documentElement.getAttribute('data-dark-theme') !== null;
+      colorMode === 'dark' ||
+      (colorMode !== 'light' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
     log.debug(
       '[Theme Detection] GitHub result:',
       isDark ? 'dark' : 'light',

@@ -39,3 +39,39 @@ describe('detectTheme on Brave Search', () => {
     expect(detectTheme()).toBe('light');
   });
 });
+
+describe('detectTheme on GitHub', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.documentElement.removeAttribute('data-color-mode');
+    document.documentElement.removeAttribute('data-dark-theme');
+    setURL('http://localhost:3000/');
+  });
+
+  const atGitHub = (mode: string) => {
+    setURL('https://github.com/logseq/logseq');
+    document.documentElement.setAttribute('data-dark-theme', 'dark');
+    document.documentElement.setAttribute('data-color-mode', mode);
+  };
+
+  it('is dark when the color mode is dark', () => {
+    atGitHub('dark');
+    prefersDark(false);
+    expect(detectTheme()).toBe('dark');
+  });
+
+  it('is light when the color mode is light, even with data-dark-theme set', () => {
+    atGitHub('light');
+    prefersDark(true);
+    expect(detectTheme()).toBe('light');
+  });
+
+  it('follows the system when the color mode is auto', () => {
+    atGitHub('auto');
+    prefersDark(true);
+    expect(detectTheme()).toBe('dark');
+
+    prefersDark(false);
+    expect(detectTheme()).toBe('light');
+  });
+});
