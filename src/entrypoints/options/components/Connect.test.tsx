@@ -159,4 +159,34 @@ describe('LogseqConnectOptions', () => {
     const link = screen.getByRole('link', { name: /Open .* in Logseq/ });
     expect(link.getAttribute('href')).toBe('logseq://graph/my graph');
   });
+
+  describe('when the check fails', () => {
+    const clickConnect = async () => {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Connected to Logseq/ }));
+      });
+      await advance(100);
+    };
+
+    it("shows Logseq's own reason when it refuses the Connect click", async () => {
+      await mount();
+      service.showMsg.mockResolvedValue({ status: 401, msg: 'Token not correct' });
+      await clickConnect();
+      expect(screen.getByRole('alert').textContent).toMatch(/Token not correct/);
+      expect(screen.getByRole('button', { name: 'Connect' })).toBeTruthy();
+    });
+
+    it('says "Connection failed" when Logseq gives no reason', async () => {
+      await mount();
+      service.showMsg.mockResolvedValue({ status: 500, msg: '' });
+      await clickConnect();
+      expect(screen.getByRole('alert').textContent).toBe('Connection failed');
+    });
+
+    it('says "Connection failed" when the error has no message', async () => {
+      service.getVersion.mockReset().mockRejectedValue('boom');
+      await mount();
+      expect(screen.getByRole('alert').textContent).toBe('Connection failed');
+    });
+  });
 });
