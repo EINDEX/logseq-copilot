@@ -8,6 +8,8 @@
     <meta name="manifest.open_at_install" content="false" />
     <!-- The icon in the Firefox sidebar launcher. -->
     <meta name="manifest.default_icon" content="icon-128.png" />
+    <!-- Safari has no side panel API: the sidebar is drawn on the page there. -->
+    <meta name="manifest.exclude" content="['safari']" />
   </head>
 
   <body>
