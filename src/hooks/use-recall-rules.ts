@@ -6,6 +6,7 @@ import {
   mergeBuiltinRules,
   rulesToStore,
 } from '@/utils/recall-builtin-rules';
+import { t } from '@/i18n/core';
 
 export interface UseRecallRulesReturn {
   /** The effective rules: stored ones, then the built-ins that are not stored. */
@@ -88,7 +89,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       log.debug('[useRecallRules] Recall rules loaded:', rulesData);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load recall rules';
+        err instanceof Error ? err.message : t('options.errors.loadRecallRules');
       setError(errorMessage);
       log.error('[useRecallRules] Failed to load recall rules:', err);
     } finally {
@@ -121,7 +122,7 @@ export function useRecallRules(): UseRecallRulesReturn {
         log.debug('[useRecallRules] Recall rule added:', newRule);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to add recall rule';
+          err instanceof Error ? err.message : t('options.errors.addRecallRule');
         setError(errorMessage);
         log.error('[useRecallRules] Failed to add recall rule:', err);
       }
@@ -146,7 +147,7 @@ export function useRecallRules(): UseRecallRulesReturn {
         log.debug('[useRecallRules] Recall rule updated:', { id, updates });
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update recall rule';
+          err instanceof Error ? err.message : t('options.errors.updateRecallRule');
         setError(errorMessage);
         log.error('[useRecallRules] Failed to update recall rule:', err);
       }
@@ -169,7 +170,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       log.debug('[useRecallRules] Recall rule deleted:', id);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to delete recall rule';
+        err instanceof Error ? err.message : t('options.errors.deleteRecallRule');
       setError(errorMessage);
       log.error('[useRecallRules] Failed to delete recall rule:', err);
     }
@@ -262,7 +263,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       log.debug('[useRecallRules] Recall rules reordered');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to reorder recall rules';
+        err instanceof Error ? err.message : t('options.errors.reorderRecallRules');
       setError(errorMessage);
       log.error('[useRecallRules] Failed to reorder recall rules:', err);
     }

@@ -14,6 +14,7 @@ import type { ClipResult } from '@/types/clip';
 import { TASK_TEMPLATE, TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import { getLogseqService } from './logseq/tool';
 import { throwIfClientError } from './logseq/error';
+import { t } from '@/i18n/core';
 
 /** What a clip records: the page, and the clipped text ('' for the page link only). */
 export interface ClipSource {
@@ -64,7 +65,7 @@ export const clipToLogseq = async (
   );
 
   if (!template) {
-    throw new Error('No clip template found. Add one in the extension settings.');
+    throw new Error(t('background.clip.noTemplate'));
   }
 
   const now = new Date();
@@ -84,9 +85,7 @@ export const clipToLogseq = async (
   });
 
   if (blocks.length === 0) {
-    throw new Error(
-      'The template made no block to clip. Check it in the extension settings.',
-    );
+    throw new Error(t('background.clip.emptyTemplate'));
   }
   // Experimental: the images of the clipped content go to the graph's assets.
   // Off (the default), the blocks are exactly what the template made.

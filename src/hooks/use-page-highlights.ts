@@ -8,6 +8,7 @@ import {
 } from '@/utils/highlight-service';
 import { sendMessage } from '@/types/messaging';
 import { clipErrorMessage } from '@/utils/clip-feedback';
+import { t } from '@/i18n/core';
 
 export interface PageHighlights {
   /** The highlights of the page, newest first; null while they are being read. */
@@ -82,7 +83,7 @@ export function usePageHighlights(url: string | null): PageHighlights {
   const deleteHighlight = async (id: string) => {
     setNotice(null);
     const result = await deleteStoredHighlight(id);
-    if (!result.success) setNotice("Couldn't delete the highlight");
+    if (!result.success) setNotice(t('sidebar.errors.deleteHighlight'));
   };
 
   const updateNote = async (id: string, note: string) => {
@@ -90,7 +91,7 @@ export function usePageHighlights(url: string | null): PageHighlights {
     const before = highlights?.find((h) => h.id === id);
     const result = await updateHighlightNote(id, note);
     if (!result.success) {
-      setNotice("Couldn't save the note");
+      setNotice(t('sidebar.errors.saveNote'));
       throw new Error(result.message);
     }
     // The note is saved here either way; a failure to sync it says why.

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { LogseqSearchResult } from '@/types/logseqBlock';
 import { sendMessage } from '@/types/messaging';
+import { t } from '@/i18n/core';
 
 export interface LogseqSearchState {
   /** What is in the search box. */
@@ -31,8 +32,6 @@ export interface LogseqSearch extends LogseqSearchState {
 
 const IDLE = { submitted: null, loading: false, error: null, result: null };
 
-const FAILED = 'Search failed';
-
 /**
  * A search of the Logseq graph (`logseq:search`) typed in the sidebar. It
  * does not depend on the page, so the result stays while the tab changes,
@@ -53,7 +52,7 @@ export function useLogseqSearch(): LogseqSearch {
     sendMessage('logseq:search', submitted).then(
       (answer) => {
         if (answer.status !== 200 || !answer.response) {
-          settle({ loading: false, error: answer.msg || FAILED, result: null });
+          settle({ loading: false, error: answer.msg || t('sidebar.errors.searchFailed'), result: null });
         } else {
           settle({ loading: false, error: null, result: answer.response });
         }
@@ -61,7 +60,7 @@ export function useLogseqSearch(): LogseqSearch {
       (error) => {
         settle({
           loading: false,
-          error: error instanceof Error && error.message ? error.message : FAILED,
+          error: error instanceof Error && error.message ? error.message : t('sidebar.errors.searchFailed'),
           result: null,
         });
       },

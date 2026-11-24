@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LogseqSearchResult } from '@/types/logseqBlock';
 import { sendMessage } from '@/types/messaging';
+import { t } from '@/i18n/core';
 
 export interface PageRecallState {
   /** True while the page is being searched. */
@@ -22,8 +23,6 @@ export interface PageRecall extends PageRecallState {
 }
 
 const IDLE: PageRecallState = { loading: false, error: null, result: null };
-
-const FAILED = "Couldn't search Logseq";
 
 /**
  * What the Logseq graph has about `url` (`logseq:urlSearch`: the background
@@ -60,7 +59,7 @@ export function usePageRecall(url: string | null): PageRecall {
     sendMessage('logseq:urlSearch', { url }).then(
       (answer) => {
         if (answer.status !== 200) {
-          settle({ loading: false, error: answer.msg || FAILED, result: null });
+          settle({ loading: false, error: answer.msg || t('sidebar.errors.recallFailed'), result: null });
         } else {
           settle({ loading: false, error: null, result: answer.response });
         }
@@ -68,7 +67,7 @@ export function usePageRecall(url: string | null): PageRecall {
       (error) => {
         settle({
           loading: false,
-          error: error instanceof Error && error.message ? error.message : FAILED,
+          error: error instanceof Error && error.message ? error.message : t('sidebar.errors.recallFailed'),
           result: null,
         });
       },

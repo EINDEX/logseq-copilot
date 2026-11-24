@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { aiConfig, AIConfig, AIProviderConfig } from '@/utils/storage';
 import { log } from '@/utils';
+import { t } from '@/i18n/core';
 
 export interface UseAIConfigReturn {
   aiConfig: AIConfig;
@@ -62,7 +63,7 @@ export function useAIConfig(): UseAIConfigReturn {
       log.debug('[useAIConfig] AI config loaded:', configData);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load AI config';
+        err instanceof Error ? err.message : t('options.errors.loadAiConfig');
       setError(errorMessage);
       log.error('[useAIConfig] Failed to load AI config:', err);
     } finally {
@@ -85,7 +86,7 @@ export function useAIConfig(): UseAIConfigReturn {
       log.debug('[useAIConfig] AI config updated:', updates);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to update AI config';
+        err instanceof Error ? err.message : t('options.errors.updateAiConfig');
       setError(errorMessage);
       log.error('[useAIConfig] Failed to update AI config:', err);
     }
@@ -117,7 +118,7 @@ export function useAIConfig(): UseAIConfigReturn {
         log.debug('[useAIConfig] Provider added:', newProvider);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to add provider';
+          err instanceof Error ? err.message : t('options.errors.addProvider');
         setError(errorMessage);
         log.error('[useAIConfig] Failed to add provider:', err);
       }
@@ -148,7 +149,7 @@ export function useAIConfig(): UseAIConfigReturn {
         log.debug('[useAIConfig] Provider updated:', { id, updates });
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update provider';
+          err instanceof Error ? err.message : t('options.errors.updateProvider');
         setError(errorMessage);
         log.error('[useAIConfig] Failed to update provider:', err);
       }
@@ -178,7 +179,7 @@ export function useAIConfig(): UseAIConfigReturn {
       log.debug('[useAIConfig] Provider deleted:', id);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to delete provider';
+        err instanceof Error ? err.message : t('options.errors.deleteProvider');
       setError(errorMessage);
       log.error('[useAIConfig] Failed to delete provider:', err);
     }
@@ -212,7 +213,7 @@ export function useAIConfig(): UseAIConfigReturn {
       log.debug('[useAIConfig] Providers reordered');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to reorder providers';
+        err instanceof Error ? err.message : t('options.errors.reorderProviders');
       setError(errorMessage);
       log.error('[useAIConfig] Failed to reorder providers:', err);
     }

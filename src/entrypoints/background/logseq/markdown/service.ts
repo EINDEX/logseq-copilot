@@ -26,6 +26,7 @@ import {
   searchTermsFor,
   type UrlMatchOptions,
 } from '@/utils/recall-url-match';
+import { t } from '@/i18n/core';
 
 /**
  * Blocks a search answers at most: a full `App.search` answer (10 blocks)
@@ -306,7 +307,7 @@ export default class LogseqService implements LogseqServiceInterface {
     if (names.size === 0) {
       const pages = throwIfClientError(await this.client.getAllPages());
       if (!Array.isArray(pages)) {
-        throw new Error('Logseq did not return its pages.');
+        throw new Error(t('background.logseq.noPages'));
       }
       for (const page of pages) {
         if (page?.['journal?'] === true) continue;
@@ -329,7 +330,7 @@ export default class LogseqService implements LogseqServiceInterface {
       throw new Error(
         rows && typeof rows === 'object' && 'error' in rows
           ? String((rows as any).error)
-          : 'Logseq did not return the properties of the graph.',
+          : t('background.logseq.noGraphProperties'),
       );
     }
     const keys = new Set<string>();
@@ -355,7 +356,7 @@ export default class LogseqService implements LogseqServiceInterface {
         uuid: uuid,
         status: 'failed',
         marker: marker,
-        msg: 'Not support scheduled task.',
+        msg: t('background.logseq.scheduledTask'),
       };
     }
     block.content = block.content.replace(block.marker, marker);

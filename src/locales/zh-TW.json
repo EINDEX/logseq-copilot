@@ -1,11 +1,39 @@
 {
   "background": {
+    "clip": {
+      "blockNotReturned": "Logseq 沒有回傳它寫入的區塊。",
+      "emptyTemplate": "範本沒有產生可剪存的區塊。請在擴充功能設定中檢查範本。",
+      "noTemplate": "找不到剪存範本。請在擴充功能設定中新增一個。",
+      "stoppedAfter": "Logseq 在寫入剪存的 {{written}} 個區塊後停止：{{reason}}"
+    },
     "contextMenu": {
       "clipImage": "剪存圖片",
       "clipPage": "剪存頁面連結",
       "clipSelection": "剪存「%s」",
       "openSidebar": "開啟側邊欄",
       "untitledTemplate": "未命名"
+    },
+    "error": {
+      "cannotConnect": "無法連線到 Logseq。請檢查 Logseq 是否正在執行，且 HTTP API 伺服器已啟動。",
+      "cannotConnectAt": "無法連線到 {{address}} 上的 Logseq。請檢查 Logseq 是否正在執行，且 HTTP API 伺服器已在該位址啟動。",
+      "httpStatus": "Logseq 回傳 HTTP {{status}}。",
+      "notFound": "找不到。",
+      "tokenRejected": "授權 token 不正確（Logseq 回傳 HTTP {{status}}）。請在 Logseq 的 API 伺服器設定中檢查。",
+      "unknown": "與 Logseq 通訊時發生非預期的錯誤。",
+      "versionTooLow": "Logseq 版本過低，請升級你的 Logseq 版本。\nhttps://logseq.com/downloads"
+    },
+    "logseq": {
+      "blockNotFound": "找不到區塊 {{uuid}}。",
+      "noGraphProperties": "Logseq 沒有回傳圖譜的屬性。",
+      "noPages": "Logseq 沒有回傳頁面。",
+      "noProperties": "Logseq 沒有回傳屬性。",
+      "noTags": "Logseq 沒有回傳標籤。",
+      "scheduledTask": "不支援已排程的待辦事項。",
+      "unsupportedMarker": "DB 圖譜不支援標記 {{marker}}。"
+    },
+    "sync": {
+      "clipGone": "該剪存已從 Logseq 中刪除，因此評論未同步。",
+      "graphMismatch": "這則醒目標示剪存到了圖譜「{{clipped}}」，但 Logseq 目前開啟的是「{{open}}」。請開啟「{{clipped}}」以同步評論。"
     }
   },
   "content": {
@@ -16,6 +44,32 @@
     }
   },
   "options": {
+    "errors": {
+      "addProvider": "新增供應商失敗",
+      "addRecallRule": "新增相關筆記規則失敗",
+      "addSearchEngine": "新增自訂搜尋引擎失敗",
+      "addTemplate": "新增範本失敗",
+      "deleteProvider": "刪除供應商失敗",
+      "deleteRecallRule": "刪除相關筆記規則失敗",
+      "deleteTemplate": "刪除範本失敗",
+      "loadAiConfig": "載入 AI 設定失敗",
+      "loadRecallRules": "載入相關筆記規則失敗",
+      "loadSearchEngines": "載入搜尋引擎設定失敗",
+      "loadSettings": "載入設定失敗",
+      "loadTemplates": "載入範本失敗",
+      "removeBuiltinSearchEngine": "無法移除內建搜尋引擎",
+      "removeSearchEngine": "移除搜尋引擎失敗",
+      "reorderProviders": "調整供應商順序失敗",
+      "reorderRecallRules": "調整相關筆記規則順序失敗",
+      "reorderTemplates": "調整範本順序失敗",
+      "resetSettings": "重設設定失敗",
+      "updateAiConfig": "更新 AI 設定失敗",
+      "updateProvider": "更新供應商失敗",
+      "updateRecallRule": "更新相關筆記規則失敗",
+      "updateSearchEngine": "更新搜尋引擎失敗",
+      "updateSettings": "更新設定失敗",
+      "updateTemplate": "更新範本失敗"
+    },
     "settings": {
       "description": "管理 Logseq Copilot 擴充功能的各項設定。",
       "language": {
@@ -23,12 +77,31 @@
         "label": "語言"
       },
       "title": "設定"
+    },
+    "templates": {
+      "pattern": {
+        "doubleStarEnd": "** 只能放在結尾",
+        "empty": "模式為空",
+        "invalidHost": "主機無效",
+        "invalidPath": "路徑無效",
+        "invalidPort": "連接埠無效",
+        "missingHost": "缺少主機",
+        "noSpaces": "不能包含空格",
+        "wildcardFirstLabel": "* 只能放在第一段，寫作「*.」",
+        "wildcardWholeSegment": "* 必須單獨佔一段"
+      }
     }
   },
   "sidebar": {
     "empty": {
       "nothingYet": "這個頁面還沒有內容",
       "unavailable": "無法在這個頁面使用"
+    },
+    "errors": {
+      "deleteHighlight": "無法刪除醒目標示",
+      "recallFailed": "無法搜尋 Logseq",
+      "saveNote": "無法儲存備註",
+      "searchFailed": "搜尋失敗"
     }
   }
 }

@@ -6,6 +6,7 @@ import {
   storageItems,
 } from '@/utils/storage';
 import { log } from '@/utils';
+import { t } from '@/i18n/core';
 
 export interface UseSettingsReturn {
   settings: LogseqCopliotConfig | null;
@@ -49,7 +50,7 @@ export function useSettings(): UseSettingsReturn {
       log.debug('[useSettings] Settings loaded:', config);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load settings';
+        err instanceof Error ? err.message : t('options.errors.loadSettings');
       setError(errorMessage);
       log.error('[useSettings] Failed to load settings:', err);
     } finally {
@@ -74,7 +75,7 @@ export function useSettings(): UseSettingsReturn {
         log.debug('[useSettings] Settings updated:', updates);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update settings';
+          err instanceof Error ? err.message : t('options.errors.updateSettings');
         setError(errorMessage);
         log.error('[useSettings] Failed to update settings:', err);
 
@@ -104,7 +105,7 @@ export function useSettings(): UseSettingsReturn {
       log.info('[useSettings] Settings reset to defaults');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to reset settings';
+        err instanceof Error ? err.message : t('options.errors.resetSettings');
       setError(errorMessage);
       log.error('[useSettings] Failed to reset settings:', err);
     }

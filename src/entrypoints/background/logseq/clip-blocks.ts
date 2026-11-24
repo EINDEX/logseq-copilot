@@ -1,4 +1,5 @@
 import type { ClipBlock } from '@/utils/clip-template';
+import { t } from '@/i18n/core';
 
 /** How a service writes one block of a clip. */
 export interface BlockWriter {
@@ -31,7 +32,7 @@ export const blockUuid = (result: unknown): string => {
     const uuid = (result as any).uuid;
     if (typeof uuid === 'string' && uuid) return uuid;
   }
-  throw new Error('Logseq did not return the block it wrote.');
+  throw new Error(t('background.clip.blockNotReturned'));
 };
 
 /**
@@ -144,7 +145,7 @@ export const writeClipBlocks = async (
     throw new Error(
       written === 0
         ? reason
-        : `Logseq stopped after ${written} blocks of the clip: ${reason}`,
+        : t('background.clip.stoppedAfter', { written, reason }),
       { cause },
     );
   }

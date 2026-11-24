@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { defaultTemplateIdItem, templates, TemplateItemV1 } from '@/utils/storage';
 import { log } from '@/utils';
+import { t } from '@/i18n/core';
 
 export interface UseTemplatesReturn {
   templates: TemplateItemV1[];
@@ -55,7 +56,7 @@ export function useTemplates(): UseTemplatesReturn {
       log.debug('[useTemplates] Templates loaded:', templateData);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load templates';
+        err instanceof Error ? err.message : t('options.errors.loadTemplates');
       setError(errorMessage);
       log.error('[useTemplates] Failed to load templates:', err);
     } finally {
@@ -85,7 +86,7 @@ export function useTemplates(): UseTemplatesReturn {
         log.debug('[useTemplates] Template added:', newTemplate);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to add template';
+          err instanceof Error ? err.message : t('options.errors.addTemplate');
         setError(errorMessage);
         log.error('[useTemplates] Failed to add template:', err);
       }
@@ -111,7 +112,7 @@ export function useTemplates(): UseTemplatesReturn {
         log.debug('[useTemplates] Template updated:', { id, updates });
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update template';
+          err instanceof Error ? err.message : t('options.errors.updateTemplate');
         setError(errorMessage);
         log.error('[useTemplates] Failed to update template:', err);
       }
@@ -143,7 +144,7 @@ export function useTemplates(): UseTemplatesReturn {
       log.debug('[useTemplates] Template deleted:', id);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to delete template';
+        err instanceof Error ? err.message : t('options.errors.deleteTemplate');
       setError(errorMessage);
       log.error('[useTemplates] Failed to delete template:', err);
     }
@@ -171,7 +172,7 @@ export function useTemplates(): UseTemplatesReturn {
       log.debug('[useTemplates] Templates reordered');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to reorder templates';
+        err instanceof Error ? err.message : t('options.errors.reorderTemplates');
       setError(errorMessage);
       log.error('[useTemplates] Failed to reorder templates:', err);
     }

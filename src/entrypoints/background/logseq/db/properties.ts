@@ -19,6 +19,7 @@
 import log from '@/utils/logger';
 import { isUrl, type TemplateProperty } from '@/utils/block-meta';
 import type LogseqClient from './client';
+import { t } from '@/i18n/core';
 
 /** A property of the user, as getAllProperties lists it. */
 export interface UserProperty {
@@ -38,7 +39,7 @@ export const userProperties = async (
     throw new Error(
       all && typeof all === 'object' && 'error' in all
         ? String((all as any).error)
-        : 'Logseq did not return its properties.',
+        : t('background.logseq.noProperties'),
     );
   }
   return all.flatMap((property: any) => {
