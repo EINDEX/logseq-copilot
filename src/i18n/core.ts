@@ -17,8 +17,42 @@ export const resources = {
 /** The one i18next instance of this JS context. */
 export const i18n = createInstance();
 
-/** `i18n.t`, for code outside React components. Call it when the text is shown, not at module load. */
-export const t: typeof i18n.t = i18n.t.bind(i18n);
+// Initialized at load, in English, so the instance is never uninitialized: a
+// t() before initI18n() (a module-level call, say) returns English, not ''.
+// Resources are bundled: init finishes synchronously.
+void i18n.init({
+  resources,
+  lng: 'en',
+  fallbackLng: 'en',
+  initAsync: false,
+  returnNull: false,
+  returnEmptyString: false,
+  // Every sink of t() is plain text: React text, menu titles, attributes.
+  // Never put t() output into innerHTML (src/locales/README.md).
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+});
+
+// True once initI18n() was called.
+let started = false;
+const warned = new Set<string>();
+const rawT = i18n.t.bind(i18n);
+
+/**
+ * `i18n.t`, for code outside React components. Call it when the text is shown,
+ * not at module load. Before initI18n() it returns English; development
+ * builds warn about it.
+ */
+export const t: typeof i18n.t = ((...args: Parameters<typeof rawT>) => {
+  if (import.meta.env.DEV && !started) {
+    const key = String(args[0]);
+    if (!warned.has(key)) {
+      warned.add(key);
+      log.warn('[i18n] t() called before initI18n():', key);
+    }
+  }
+  return (rawT as unknown as (...a: unknown[]) => unknown)(...args);
+}) as typeof i18n.t;
 
 /** The language the UI is shown in now. */
 export const currentLanguage = (): Language => i18n.language as Language;
@@ -70,19 +104,11 @@ export const initI18n = (
   options: { language?: Language } = {},
 ): Promise<void> => {
   if (ready) return ready;
-  void i18n.init({
-    resources,
-    lng: options.language ?? resolveUiLanguage('auto', browserLanguageTag()),
-    fallbackLng: 'en',
-    // Resources are bundled: init (and changeLanguage) finish synchronously.
-    initAsync: false,
-    returnNull: false,
-    returnEmptyString: false,
-    // Every sink of t() is plain text: React text, menu titles, attributes.
-    // Never put t() output into innerHTML (src/locales/README.md).
-    interpolation: { escapeValue: false },
-    react: { useSuspense: false },
-  });
+  started = true;
+  // Resources are inlined: this finishes synchronously.
+  void i18n.changeLanguage(
+    options.language ?? resolveUiLanguage('auto', browserLanguageTag()),
+  );
   ready = options.language
     ? Promise.resolve()
     : uiLanguageItem

@@ -27,7 +27,8 @@ watchUiLanguage(); // follows the setting (local:uiLanguage)
 ```
 
 `initI18n()` starts in the browser's UI language, then reads the stored
-setting and switches if it differs. UI never waits for it. In the background,
+setting and switches if it differs. UI never waits for it. Before
+`initI18n()`, `t()` returns English (development builds warn). In the background,
 `watchUiLanguage(onChange)` is registered synchronously at startup;
 `onChange` rebuilds the context menu. Extension pages also call
 `followDocumentLanguage()` for `<html lang>`.

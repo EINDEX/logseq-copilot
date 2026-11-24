@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
+import en from '@/locales/en.json';
+import zhCN from '@/locales/zh-CN.json';
 
 // A fresh module for each test: the one the test setup started is in English
 // for good.
@@ -113,5 +115,43 @@ describe('i18n core', () => {
     release();
     await ready;
     expect(currentLanguage()).toBe('zh-TW');
+  });
+});
+
+describe('i18n before initI18n', () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+    vi.restoreAllMocks();
+  });
+
+  it('returns English, not an empty string, and warns in development', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = await loadCore();
+    expect(t('options.settings.title')).toBe(en.options.settings.title);
+    expect(warn).toHaveBeenCalledWith(
+      expect.anything(),
+      '[i18n] t() called before initI18n():',
+      'options.settings.title',
+    );
+  });
+
+  it('stops warning after initI18n and speaks the language', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t, initI18n } = await loadCore();
+    await initI18n({ language: 'zh-CN' });
+    expect(t('options.settings.title')).toBe(zhCN.options.settings.title);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('shows English in a React component before initI18n', async () => {
+    vi.resetModules();
+    const { useTranslation } = await import('./react');
+    const Probe = () => <h1>{useTranslation().t('options.settings.title')}</h1>;
+    const { render, screen, cleanup } = await import('@testing-library/react');
+    render(<Probe />);
+    expect(screen.getByRole('heading').textContent).toBe(
+      en.options.settings.title,
+    );
+    cleanup();
   });
 });
