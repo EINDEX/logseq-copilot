@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { i18n } from '@/i18n/core';
 import { buildClipMenus, parseClipMenuId } from './context-menus';
 
 const t = (id: string, name: string) => ({ id, name, content: '' });
@@ -35,6 +36,27 @@ describe('buildClipMenus', () => {
   it('names a template without a name Untitled', () => {
     const menus = buildClipMenus([t('a', ''), t('b', 'B')]);
     expect(menus[1].title).toBe('Untitled');
+  });
+
+  describe('in Chinese', () => {
+    afterEach(() => i18n.changeLanguage('en'));
+
+    it('titles the items in the UI language, and keeps the template names', async () => {
+      await i18n.changeLanguage('zh-TW');
+      const menus = buildClipMenus([t('a', ''), t('task', 'Task')]);
+      expect(menus.map((m) => m.title)).toEqual([
+        '剪存「%s」',
+        '未命名',
+        'Task',
+        '剪存頁面連結',
+        '未命名',
+        'Task',
+        '剪存圖片',
+        '未命名',
+        'Task',
+        '開啟側邊欄',
+      ]);
+    });
   });
 });
 

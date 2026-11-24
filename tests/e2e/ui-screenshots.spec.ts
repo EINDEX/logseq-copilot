@@ -223,6 +223,37 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('settings and the search card in each UI language', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    const languages = [
+      { language: 'en', title: 'Settings' },
+      { language: 'zh-CN', title: '设置' },
+      { language: 'zh-TW', title: '設定' },
+    ];
+    for (const { language, title } of languages) {
+      await ext.setStorage({ uiLanguage: language });
+      for (const scheme of SCHEMES) {
+        await setScheme(page, scheme);
+        await page.goto(ext.url('options.html#/settings'));
+        await expect(page.getByRole('heading', { name: title })).toBeVisible();
+        await expect(page.locator('#ui-language-label')).toBeVisible();
+        await shoot(page, `options-settings-language-${language}`, scheme);
+      }
+    }
+
+    // The search card, no result, in Traditional Chinese.
+    const google = ENGINES[0];
+    const host = page.locator(google.host);
+    await page.goto(google.url('zzqxnomatch'));
+    await expect(host.getByText('Logseq 中沒有相關筆記')).toBeVisible();
+    for (const scheme of SCHEMES) {
+      await setPageTheme(page, scheme);
+      await expectTheme(host, scheme);
+      await shoot(host, 'search-card-empty-zh-TW', scheme);
+    }
+  });
+
   test('template editor: outline, autocomplete and text mode, and the new template presets', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();

@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import { storage } from '#imports';
 import { sendMessage } from '@/types/messaging';
-import { templates } from '@/utils/storage';
+import { templates, uiLanguageItem } from '@/utils/storage';
+import { i18n } from '@/i18n/core';
 import log from '@/utils/logger';
 
 vi.mock('@/types/messaging', () => ({
@@ -276,6 +277,63 @@ describe('background context menus', () => {
       await fakeBrowser.runtime.onStartup.trigger();
       await vi.waitFor(() => expect(warn).toHaveBeenCalled());
       delete (fakeBrowser as any).runtime.lastError;
+    });
+
+    describe('in the UI language', () => {
+      afterEach(() => i18n.changeLanguage('en'));
+
+      // The title an item was last created with.
+      const titleOf = (id: string) =>
+        create.mock.calls.map(([o]) => o).findLast((o) => o.id === id)?.title;
+
+      it('rebuilds in the new language when the setting changes', async () => {
+        background.main();
+        await install();
+        expect(titleOf('clip-page')).toBe('Clip page link');
+        const templateTitle = titleOf('clip-page:task');
+
+        await uiLanguageItem.setValue('zh-CN');
+        await vi.waitFor(() => expect(titleOf('clip-page')).toBe('剪藏页面链接'));
+        expect(titleOf('clip-with-selection')).toBe('剪藏“%s”');
+        expect(titleOf('clip-image')).toBe('剪藏图片');
+        expect(titleOf('open-highlights-sidebar')).toBe('打开侧边栏');
+        // Template names are the user's: never translated.
+        expect(titleOf('clip-page:task')).toBe(templateTitle);
+      });
+
+      it('leaves one set of menus, in the last language, after quick switches', async () => {
+        removeAll.mockImplementation(async () => {
+          await new Promise((r) => setTimeout(r, 5));
+          menuIds.clear();
+        });
+        background.main();
+        await install();
+        await vi.waitFor(() => expect(menuIds.has('open-highlights-sidebar')).toBe(true));
+        const ids = [...menuIds].sort();
+        expect(ids).toContain('clip-page:task');
+
+        await uiLanguageItem.setValue('zh-CN');
+        await uiLanguageItem.setValue('zh-TW');
+        await vi.waitFor(() =>
+          expect(titleOf('open-highlights-sidebar')).toBe('開啟側邊欄'),
+        );
+        await new Promise((r) => setTimeout(r, 30));
+
+        expect(duplicates).toEqual([]);
+        expect([...menuIds].sort()).toEqual(ids);
+        expect(titleOf('clip-with-selection')).toBe('剪存「%s」');
+        expect(titleOf('clip-page')).toBe('剪存頁面連結');
+      });
+
+      it('does not rebuild when the language stays the same', async () => {
+        background.main();
+        await install();
+        removeAll.mockClear();
+        // Auto in an English browser: English, as before.
+        await uiLanguageItem.setValue('en');
+        await new Promise((r) => setTimeout(r, 30));
+        expect(removeAll).not.toHaveBeenCalled();
+      });
     });
   });
 
