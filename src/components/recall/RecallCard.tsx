@@ -113,6 +113,7 @@ const PageGroup = ({
   locale,
   now,
 }: Shared & { page: RecallPage; locale?: string; now: number }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const { nodes, hidden } = buildPageTree(page, expanded);
   const Icon = page.kind === 'journal' ? IconCalendar : IconFile;
@@ -140,7 +141,7 @@ const PageGroup = ({
         <button
           type="button"
           className="lc-plus"
-          aria-label={`Show ${hidden} more`}
+          aria-label={t('content.recall.showMore', { hidden })}
           onClick={() => setExpanded(true)}
         >
           +{hidden}
@@ -150,7 +151,9 @@ const PageGroup = ({
   );
 };
 
-const Header = ({ graph, onOpenOptions }: { graph?: string; onOpenOptions: () => void }) => (
+const Header = ({ graph, onOpenOptions }: { graph?: string; onOpenOptions: () => void }) => {
+  const { t } = useTranslation();
+  return (
   <div className="lc-head">
     {graph ? (
       <a className="lc-graph" href={graphUrl(graph)}>
@@ -166,16 +169,18 @@ const Header = ({ graph, onOpenOptions }: { graph?: string; onOpenOptions: () =>
     <button
       type="button"
       className="lc-gear"
-      title="Logseq Copilot settings"
-      aria-label="Logseq Copilot settings"
+      title={t('content.recall.settings')}
+      aria-label={t('content.recall.settings')}
       onClick={onOpenOptions}
     >
       <IconSettings aria-hidden />
     </button>
   </div>
-);
+  );
+};
 
 const Skeleton = () => {
+  const { t } = useTranslation();
   const group = (title: string, first: string, second: string) => (
     <div className="lc-sk-group">
       <div className="lc-sk-row">
@@ -192,7 +197,7 @@ const Skeleton = () => {
     </div>
   );
   return (
-    <div className="lc-card" aria-busy="true" aria-label="Searching Logseq">
+    <div className="lc-card" aria-busy="true" aria-label={t('content.recall.searching')}>
       <div className="lc-head">
         <span className="lc-graph">
           <img className="lc-logo lc-logo-dim" src={logo} alt="" />
@@ -283,7 +288,7 @@ export const RecallCard = ({
         <button
           type="button"
           className="lc-chev"
-          aria-label={`Show ${pages.length - VISIBLE_PAGES} more pages`}
+          aria-label={t('content.recall.showMorePages', { hidden: pages.length - VISIBLE_PAGES })}
           onClick={() => setAllPages(true)}
         >
           <IconChevronDown aria-hidden />

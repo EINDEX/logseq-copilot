@@ -32,7 +32,7 @@ export function HighlightCommentPopup({
     onUpdate,
     onDelete
 }: HighlightCommentPopupProps) {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [comment, setComment] = useState(highlightData.note || '');
     const [isSaving, setIsSaving] = useState(false);
@@ -144,7 +144,7 @@ export function HighlightCommentPopup({
     };
 
     const handleDeleteHighlight = async () => {
-        if (!confirm('Are you sure you want to delete this highlight?')) {
+        if (!confirm(t('content.highlight.confirmDelete'))) {
             return;
         }
 
@@ -241,7 +241,7 @@ export function HighlightCommentPopup({
                 <CardHeader className="px-4 pt-4 pb-3">
                     <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-sm font-medium">
-                            Highlight Comment
+                            {t('content.highlight.title')}
                         </CardTitle>
                         <Button
                             variant="ghost"
@@ -281,7 +281,7 @@ export function HighlightCommentPopup({
                         {removedFromLogseq && (
                             <span className="inline-flex items-center gap-1" data-removed-from-logseq>
                                 <IconLinkOff className="h-3 w-3" aria-hidden />
-                                Removed from Logseq
+                                {t('common.removedFromLogseq')}
                             </span>
                         )}
                     </div>
@@ -291,7 +291,7 @@ export function HighlightCommentPopup({
                     {/* Comment section */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Comment</span>
+                            <span className="text-sm font-medium">{t('content.highlight.comment')}</span>
                             {!isEditing && (
                                 <Button
                                     variant="ghost"
@@ -304,7 +304,7 @@ export function HighlightCommentPopup({
                                     className="h-6 px-2"
                                 >
                                     <IconEdit className="h-3 w-3 mr-1" />
-                                    Edit
+                                    {t('common.edit')}
                                 </Button>
                             )}
                         </div>
@@ -315,7 +315,7 @@ export function HighlightCommentPopup({
                                     ref={textareaRef}
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    placeholder="Add a comment to this highlight..."
+                                    placeholder={t('content.highlight.placeholder')}
                                     className="min-h-[80px] text-sm"
                                 />
                                 <div className="flex gap-2">
@@ -326,7 +326,7 @@ export function HighlightCommentPopup({
                                         className="h-7 px-3"
                                     >
                                         <IconCheck className="h-3 w-3 mr-1" />
-                                        {isSaving ? 'Saving...' : 'Save'}
+                                        {isSaving ? t('common.saving') : t('common.save')}
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -337,7 +337,7 @@ export function HighlightCommentPopup({
                                         }}
                                         className="h-7 px-3"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </Button>
                                 </div>
                             </div>
@@ -346,7 +346,7 @@ export function HighlightCommentPopup({
                                 {highlightData.note ? (
                                     <div className="whitespace-pre-wrap">{highlightData.note}</div>
                                 ) : (
-                                    <div className="italic">No comment added yet. Click Edit to add one.</div>
+                                    <div className="italic">{t('content.highlight.empty')}</div>
                                 )}
                             </div>
                         )}
@@ -371,7 +371,7 @@ export function HighlightCommentPopup({
                             className="h-7 px-2 text-muted-foreground hover:text-destructive"
                         >
                             <IconTrash className="h-3 w-3 mr-1" />
-                            Delete
+                            {t('common.delete')}
                         </Button>
                     </div>
                 </CardContent>

@@ -38,7 +38,7 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   const [generation, setGeneration] = React.useState(0);
   const terms = React.useMemo(() => normalizeQuery(query).terms, [query]);
   // The UI language, for relative times.
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
 
   React.useEffect(() => {
@@ -63,7 +63,7 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
       } catch (err) {
         if (!active || lastSearchedUrl !== currentUrl) return;
         setResult(undefined);
-        setErrorMessage(err instanceof Error ? err.message : 'Search failed');
+        setErrorMessage(err instanceof Error ? err.message : t('sidebar.errors.searchFailed'));
         setState('error');
       }
     };
@@ -104,7 +104,7 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   return (
     <section
       className="lc-sidebar"
-      aria-label="Notes from Logseq"
+      aria-label={t('content.recall.sectionLabel')}
       style={hostFont ? ({ '--lc-font': hostFont } as React.CSSProperties) : undefined}
     >
       <RecallCard

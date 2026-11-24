@@ -36,11 +36,53 @@
       "graphMismatch": "这条高亮剪藏到了图谱“{{clipped}}”，但 Logseq 中打开的是“{{open}}”。请打开“{{clipped}}”以同步评论。"
     }
   },
+  "common": {
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "image": "图片",
+    "note": "备注",
+    "openBlock": "在 Logseq 中打开块",
+    "removedFromLogseq": "已从 Logseq 删除",
+    "results": {
+      "showAll": "显示全部 {{total}} 条结果",
+      "showFewer": "显示更少",
+      "showMoreBlocks": "再显示 {{hidden}} 个块"
+    },
+    "save": "保存",
+    "saving": "正在保存…",
+    "showLess": "收起",
+    "showMore": "展开",
+    "task": {
+      "changeFailed": "无法更改任务状态。",
+      "markAs": "标记为 {{marker}}",
+      "switchTitle": "将 {{from}} 改为 {{to}}"
+    }
+  },
   "content": {
+    "floatButton": {
+      "alt": "剪藏按钮",
+      "title": "剪藏到 Logseq"
+    },
+    "highlight": {
+      "comment": "评论",
+      "confirmDelete": "确定要删除这条高亮吗？",
+      "empty": "还没有评论。点击“编辑”添加。",
+      "placeholder": "为这条高亮添加评论…",
+      "title": "高亮评论"
+    },
+    "picker": {
+      "templateLabel": "模板"
+    },
     "recall": {
       "checkConnection": "检查连接",
       "connectionFailed": "无法连接到 Logseq。",
-      "noNotes": "Logseq 中没有相关笔记"
+      "noNotes": "Logseq 中没有相关笔记",
+      "searching": "正在搜索 Logseq",
+      "sectionLabel": "来自 Logseq 的笔记",
+      "settings": "Logseq Copilot 设置",
+      "showMore": "再显示 {{hidden}} 项",
+      "showMorePages": "再显示 {{hidden}} 个页面"
     }
   },
   "options": {
@@ -99,9 +141,20 @@
     },
     "errors": {
       "deleteHighlight": "无法删除高亮",
+      "highlightNotFound": "在页面上找不到这条高亮",
+      "noTab": "没有可剪藏的标签页。",
       "recallFailed": "无法搜索 Logseq",
+      "reloadPage": "刷新页面后才能跳转到高亮",
       "saveNote": "无法保存备注",
       "searchFailed": "搜索失败"
+    },
+    "highlights": {
+      "daysAgo": "{{days}} 天前",
+      "delete": "删除高亮",
+      "editNote": "编辑备注",
+      "hoursAgo": "{{hours}} 小时前",
+      "justNow": "刚刚",
+      "notePlaceholder": "为这条高亮添加备注…"
     }
   }
 }

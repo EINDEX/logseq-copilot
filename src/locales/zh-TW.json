@@ -36,11 +36,53 @@
       "graphMismatch": "這則醒目標示剪存到了圖譜「{{clipped}}」，但 Logseq 目前開啟的是「{{open}}」。請開啟「{{clipped}}」以同步評論。"
     }
   },
+  "common": {
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "image": "圖片",
+    "note": "備註",
+    "openBlock": "在 Logseq 中開啟區塊",
+    "removedFromLogseq": "已從 Logseq 刪除",
+    "results": {
+      "showAll": "顯示全部 {{total}} 筆結果",
+      "showFewer": "顯示較少",
+      "showMoreBlocks": "再顯示 {{hidden}} 個區塊"
+    },
+    "save": "儲存",
+    "saving": "儲存中…",
+    "showLess": "收合",
+    "showMore": "展開",
+    "task": {
+      "changeFailed": "無法變更待辦事項狀態。",
+      "markAs": "標記為 {{marker}}",
+      "switchTitle": "將 {{from}} 改為 {{to}}"
+    }
+  },
   "content": {
+    "floatButton": {
+      "alt": "剪存按鈕",
+      "title": "剪存到 Logseq"
+    },
+    "highlight": {
+      "comment": "評論",
+      "confirmDelete": "確定要刪除這則醒目標示嗎？",
+      "empty": "尚未新增評論。點選「編輯」即可新增。",
+      "placeholder": "為這則醒目標示新增評論…",
+      "title": "醒目標示評論"
+    },
+    "picker": {
+      "templateLabel": "範本"
+    },
     "recall": {
       "checkConnection": "檢查連線",
       "connectionFailed": "無法連線到 Logseq。",
-      "noNotes": "Logseq 中沒有相關筆記"
+      "noNotes": "Logseq 中沒有相關筆記",
+      "searching": "正在搜尋 Logseq",
+      "sectionLabel": "來自 Logseq 的筆記",
+      "settings": "Logseq Copilot 設定",
+      "showMore": "再顯示 {{hidden}} 項",
+      "showMorePages": "再顯示 {{hidden}} 個頁面"
     }
   },
   "options": {
@@ -99,9 +141,20 @@
     },
     "errors": {
       "deleteHighlight": "無法刪除醒目標示",
+      "highlightNotFound": "在頁面上找不到這則醒目標示",
+      "noTab": "沒有可剪存的分頁。",
       "recallFailed": "無法搜尋 Logseq",
+      "reloadPage": "重新整理頁面後才能跳到醒目標示",
       "saveNote": "無法儲存備註",
       "searchFailed": "搜尋失敗"
+    },
+    "highlights": {
+      "daysAgo": "{{days}} 天前",
+      "delete": "刪除醒目標示",
+      "editNote": "編輯備註",
+      "hoursAgo": "{{hours}} 小時前",
+      "justNow": "剛剛",
+      "notePlaceholder": "為這則醒目標示新增備註…"
     }
   }
 }

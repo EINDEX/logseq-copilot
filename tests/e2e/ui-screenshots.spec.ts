@@ -830,6 +830,80 @@ test.describe('UI screenshots', () => {
     await sidebar.close();
   });
 
+  test('in-page UI and browser sidebar in each UI language', async ({ page, ext, articles, logseq }) => {
+    fileGraphOnly();
+    const id = nonce('shotlang');
+    const url = `https://example.com/e2e/${id}`;
+    const paragraph =
+      'Capture what resonates, organize by project, distill to the essence and express it in your own words.';
+    articles.set(url, { title: 'Notes on building a second brain', paragraph });
+    await logseq.callApi('logseq.Editor.appendBlockInPage', [
+      'Reading List',
+      `TODO Try the layers on the next long article ${url}`,
+    ]);
+
+    await ext.connect({ enableClipNoteFloatButton: true });
+    await ext.setStorage({
+      templates: SHOT_TEMPLATES.map((t) => (t.id === 'task' ? { ...t, pinned: true } : t)),
+    });
+    await page.goto(url);
+    await expect(page.locator('logseq-copilot-popup')).toBeAttached();
+    await selectParagraph(page);
+    await ext.sendToTab(page, 'content:quickCapture');
+    const stored = async () =>
+      ((await ext.getStorage('highlights')) ?? []).filter((h: any) => h.url === url);
+    await expect.poll(async () => (await stored()).length).toBe(1);
+    const [highlight] = await stored();
+    await ext.setStorage({
+      highlights: [{ ...highlight, note: 'Good summary of the CODE method.', tags: ['pkm'] }],
+    });
+
+    const sidebar = await page.context().newPage();
+    await sidebar.setViewportSize({ width: 400, height: 720 });
+    const area = { x: VIEWPORT.width - 520, y: VIEWPORT.height - 320, width: 520, height: 320 };
+
+    for (const language of ['en', 'zh-CN', 'zh-TW']) {
+      await ext.setStorage({ uiLanguage: language });
+      await page.reload();
+      await expect.poll(() => page.evaluate(() => CSS.highlights.size)).toBeGreaterThan(0);
+      const popupHost = page.locator('logseq-copilot-popup');
+      const panel = popupHost.locator('[data-clip-picker]');
+      for (const scheme of SCHEMES) {
+        await setPageTheme(page, scheme);
+        await expectTheme(popupHost, scheme);
+
+        // The comment popup with the note, the edit form and the delete action.
+        const box = await page.locator('#target').boundingBox();
+        await page.mouse.click(box!.x + 20, box!.y + box!.height / 2);
+        const popup = popupHost.locator('[data-highlight-popup]');
+        await expect(popup).toContainText('Good summary of the CODE method.');
+        await shoot(popup, `lang-highlight-popup-${language}`, scheme);
+        await popup.locator('button').nth(1).click();
+        await expect(popup.locator('textarea')).toBeVisible();
+        await shoot(popup, `lang-highlight-popup-edit-${language}`, scheme);
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        await expect(popup).toHaveCount(0);
+
+        // The clip picker panel, and the float button's tooltip.
+        await ext.sendToTab(page, 'content:quickCapture');
+        await expect(panel).toBeVisible({ timeout: 30_000 });
+        await page.waitForTimeout(500);
+        await page.screenshot({ path: file(`lang-clip-panel-${language}`, scheme), caret: 'hide', clip: area });
+        await page.keyboard.press('Escape');
+        await expect(panel).toHaveCount(0);
+
+        // The browser sidebar: highlights, notes from Logseq.
+        await setScheme(sidebar, scheme);
+        await sidebar.goto(ext.url('sidepanel.html'));
+        await ext.activate(page);
+        await expect(sidebar.getByText('Good summary of the CODE method.')).toBeVisible();
+        await shoot(sidebar.locator('#app > *').first(), `lang-sidepanel-${language}`, scheme);
+      }
+    }
+    await sidebar.close();
+  });
+
   test('browser sidebar page', async ({ page, ext, articles, logseq }) => {
     fileGraphOnly();
     const id = nonce('sidepanel');

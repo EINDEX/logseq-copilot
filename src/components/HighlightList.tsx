@@ -9,6 +9,7 @@ import { HighlightImage } from './HighlightImage';
 import log from '@/utils/logger';
 import { intlLocale } from '@/i18n/language';
 import { useTranslation } from '@/i18n/react';
+import type { TFunction } from 'i18next';
 
 /**
  * The list of highlights shown in the browser sidebar. It only renders what it
@@ -28,16 +29,16 @@ interface HighlightListProps {
   empty?: ReactNode;
 }
 
-const formatDate = (timestamp: number, locale: string) => {
+const formatDate = (timestamp: number, locale: string, t: TFunction) => {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffHours < 1) return t('sidebar.highlights.justNow');
+  if (diffHours < 24) return t('sidebar.highlights.hoursAgo', { hours: diffHours });
+  if (diffDays < 7) return t('sidebar.highlights.daysAgo', { days: diffDays });
 
   return date.toLocaleDateString(locale, {
     month: 'short',
@@ -70,6 +71,7 @@ interface NoteEditorProps {
 
 /** Edits one note in place. Cmd/Ctrl+Enter saves, Escape cancels. */
 function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(note);
   const [saving, setSaving] = useState(false);
 
@@ -108,14 +110,14 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
             save();
           }
         }}
-        placeholder="Add a note to this highlight..."
-        aria-label="Note"
+        placeholder={t('sidebar.highlights.notePlaceholder')}
+        aria-label={t('common.note')}
         className="min-h-[60px] text-sm"
       />
       <div className="flex gap-2">
         <Button size="sm" onClick={save} disabled={saving} className="h-7 px-3">
           <IconCheck className="h-3 w-3 mr-1" />
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
         <Button
           variant="outline"
@@ -124,7 +126,7 @@ function NoteEditor({ note, onSave, onCancel }: NoteEditorProps) {
           disabled={saving}
           className="h-7 px-3"
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
       </div>
     </div>
@@ -139,7 +141,7 @@ export function HighlightList({
   onUpdateNote,
   empty,
 }: HighlightListProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -196,11 +198,11 @@ export function HighlightList({
             {/* Metadata, tags and actions */}
             <div className="mt-1.5 flex items-center justify-between gap-2 pl-[15px] text-xs text-muted-foreground">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span>{formatDate(highlight.createdAt, locale)}</span>
+                <span>{formatDate(highlight.createdAt, locale, t)}</span>
                 {removedFromLogseq?.has(highlight.id) && !highlight.logseq && (
                   <span className="inline-flex items-center gap-1" data-removed-from-logseq>
                     <IconLinkOff className="h-3 w-3" aria-hidden />
-                    Removed from Logseq
+                    {t('common.removedFromLogseq')}
                   </span>
                 )}
                 {highlight.tags?.slice(0, 3).map((tag) => (
@@ -227,7 +229,7 @@ export function HighlightList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label="Edit note"
+                    aria-label={t('sidebar.highlights.editNote')}
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingId(highlight.id);
@@ -240,7 +242,7 @@ export function HighlightList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label="Delete highlight"
+                  aria-label={t('sidebar.highlights.delete')}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(highlight.id);

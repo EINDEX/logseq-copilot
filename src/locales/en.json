@@ -36,11 +36,53 @@
       "graphMismatch": "This highlight was clipped to the graph \"{{clipped}}\", but \"{{open}}\" is open in Logseq. Open \"{{clipped}}\" to sync the comment."
     }
   },
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "image": "Image",
+    "note": "Note",
+    "openBlock": "Open block in Logseq",
+    "removedFromLogseq": "Removed from Logseq",
+    "results": {
+      "showAll": "Show all {{total}} results",
+      "showFewer": "Show fewer",
+      "showMoreBlocks": "Show {{hidden}} more blocks"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "showLess": "Show less",
+    "showMore": "Show more",
+    "task": {
+      "changeFailed": "Failed to change the task status.",
+      "markAs": "Mark as {{marker}}",
+      "switchTitle": "Change from {{from}} to {{to}}"
+    }
+  },
   "content": {
+    "floatButton": {
+      "alt": "clip-button",
+      "title": "Clip to Logseq"
+    },
+    "highlight": {
+      "comment": "Comment",
+      "confirmDelete": "Are you sure you want to delete this highlight?",
+      "empty": "No comment added yet. Click Edit to add one.",
+      "placeholder": "Add a comment to this highlight...",
+      "title": "Highlight Comment"
+    },
+    "picker": {
+      "templateLabel": "Template"
+    },
     "recall": {
       "checkConnection": "Check the connection",
       "connectionFailed": "Unable to connect to Logseq.",
-      "noNotes": "No related notes in Logseq"
+      "noNotes": "No related notes in Logseq",
+      "searching": "Searching Logseq",
+      "sectionLabel": "Notes from Logseq",
+      "settings": "Logseq Copilot settings",
+      "showMore": "Show {{hidden}} more",
+      "showMorePages": "Show {{hidden}} more pages"
     }
   },
   "options": {
@@ -99,9 +141,20 @@
     },
     "errors": {
       "deleteHighlight": "Couldn't delete the highlight",
+      "highlightNotFound": "Couldn't find this highlight on the page",
+      "noTab": "No tab to clip.",
       "recallFailed": "Couldn't search Logseq",
+      "reloadPage": "Reload the page to jump to highlights",
       "saveNote": "Couldn't save the note",
       "searchFailed": "Search failed"
+    },
+    "highlights": {
+      "daysAgo": "{{days}}d ago",
+      "delete": "Delete highlight",
+      "editNote": "Edit note",
+      "hoursAgo": "{{hours}}h ago",
+      "justNow": "Just now",
+      "notePlaceholder": "Add a note to this highlight..."
     }
   }
 }

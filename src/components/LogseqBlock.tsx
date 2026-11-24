@@ -12,6 +12,7 @@ import LogseqPageLink from './LogseqPage';
 import { sendMessage } from '@/types/messaging';
 import { blockUrl, pageUrl } from '@/utils/logseq-url';
 import { sanitizeHtml } from '@/utils/sanitize-html';
+import { useTranslation } from '@/i18n/react';
 import './logseq-results.css';
 
 type LogseqBlockProps = {
@@ -45,6 +46,7 @@ const SHOWN_MARKERS = ['DOING', 'NOW'];
 
 /** A task's marker and its changes, sent through the background. */
 const useTaskMarker = (uuid: string, marker: string) => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState(marker);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -66,13 +68,13 @@ const useTaskMarker = (uuid: string, marker: string) => {
       if (result.status === 'success') {
         setStatus(result.marker);
       } else {
-        setError(result.msg || 'Failed to change the task status.');
+        setError(result.msg || t('common.task.changeFailed'));
       }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'Failed to change the task status.',
+          : t('common.task.changeFailed'),
       );
     } finally {
       setPending(false);
@@ -90,23 +92,27 @@ const MarkerSwitch = ({
   status: string;
   pending: boolean;
   onSwitch: () => void;
-}) => (
-  <button
-    type="button"
-    className="lc-marker"
-    disabled={pending}
-    title={`Change from ${status} to ${NEXT_MARKER[status]}`}
-    onClick={onSwitch}
-  >
-    {status}
-  </button>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      className="lc-marker"
+      disabled={pending}
+      title={t('common.task.switchTitle', { from: status, to: NEXT_MARKER[status] })}
+      onClick={onSwitch}
+    >
+      {status}
+    </button>
+  );
+};
 
 /**
  * Folds content taller than seven lines behind "Show more". The height is
  * measured, so short blocks get no toggle; images re-measure when they load.
  */
 const Foldable = ({ children }: { children: React.ReactNode }) => {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
   const [open, setOpen] = useState(false);
@@ -145,7 +151,7 @@ const Foldable = ({ children }: { children: React.ReactNode }) => {
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
-          {open ? 'Show less' : 'Show more'}
+          {open ? t('common.showLess') : t('common.showMore')}
         </button>
       )}
     </>
@@ -166,6 +172,7 @@ export const LogseqBlockRow = ({
   block: LogseqBlockType;
   children?: React.ReactNode;
 }) => {
+  const { t } = useTranslation();
   const { status, pending, error, update } = useTaskMarker(
     block.uuid,
     block.marker ?? '',
@@ -196,7 +203,7 @@ export const LogseqBlockRow = ({
                   className="lc-checkbox"
                   checked={isChecked}
                   disabled={pending}
-                  aria-label={isChecked ? `Mark as TODO` : `Mark as DONE`}
+                  aria-label={t('common.task.markAs', { marker: isChecked ? 'TODO' : 'DONE' })}
                   onCheckedChange={(checked) =>
                     update(checked === true ? 'DONE' : 'TODO')
                   }
@@ -251,8 +258,8 @@ export const LogseqBlockRow = ({
             <a
               className="lc-button lc-icon-button"
               href={blockUrl(graph, block.uuid)}
-              title="Open block in Logseq"
-              aria-label="Open block in Logseq"
+              title={t('common.openBlock')}
+              aria-label={t('common.openBlock')}
             >
               <IconArrowUpRight />
             </a>
