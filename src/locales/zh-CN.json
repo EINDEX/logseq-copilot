@@ -246,6 +246,49 @@
       "title": "设置"
     },
     "templates": {
+      "edit": {
+        "liquidSyntax": "Liquid 语法 ↗",
+        "loading": "正在加载模板…",
+        "location": {
+          "currentPage": "当前页面",
+          "customPage": "指定页面…",
+          "journal": "日志"
+        },
+        "name": "名称",
+        "namePlaceholder": "模板名称",
+        "pageName": "页面名称",
+        "rulesTitle": "网页规则",
+        "saveTo": "保存到",
+        "title": "编辑模板",
+        "variables": {
+          "content": "选中的内容",
+          "date": "当前日期",
+          "dt": "日期时间对象",
+          "note": "保存前输入的备注",
+          "time": "当前时间",
+          "title": "网页标题",
+          "url": "网页地址"
+        }
+      },
+      "editor": {
+        "addProperty": "+ 属性",
+        "addPropertyLabel": "添加属性",
+        "content": "内容",
+        "modeLabel": "编辑器模式",
+        "newProperty": "新建 {{name}}",
+        "newTag": "新建 #{{name}}",
+        "notPlainOutline": "不是纯大纲",
+        "oneTopLevelBlock": "只能有一个顶层块",
+        "outline": "大纲",
+        "text": "文本",
+        "typeBraces": "输入 {{braces}} 添加变量"
+      },
+      "index": {
+        "create": "创建模板",
+        "empty": "你还没有剪藏模板。创建一个就能开始剪藏。",
+        "loading": "正在加载模板…",
+        "title": "模板"
+      },
       "pattern": {
         "doubleStarEnd": "** 只能放在末尾",
         "empty": "模式为空",
@@ -256,6 +299,19 @@
         "noSpaces": "不能包含空格",
         "wildcardFirstLabel": "* 只能放在第一段，写作“*.”",
         "wildcardWholeSegment": "* 必须单独占一段"
+      },
+      "preview": {
+        "noBlocks": "没有块",
+        "pageOnly": "仅网页",
+        "sampleClip": "示例剪藏",
+        "title": "预览",
+        "withSelection": "有选中内容"
+      },
+      "rules": {
+        "add": "添加",
+        "addLabel": "添加网址模式",
+        "patterns": "网址模式",
+        "remove": "移除 {{rule}}"
       }
     }
   },

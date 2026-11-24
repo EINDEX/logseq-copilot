@@ -45,6 +45,7 @@ import {
   type CompletionResult,
 } from '@codemirror/autocomplete';
 import { format } from 'date-fns';
+import { t } from '@/i18n/core';
 import { logseqTimeFormat } from '@/utils/logseq-format';
 import type { GraphKind, GraphProperty, GraphTag } from '@/utils/storage';
 import {
@@ -242,7 +243,9 @@ class PlaceholderWidget extends WidgetType {
     const hint = document.createElement('span');
     hint.className = 'cm-tpl-placeholder';
     hint.setAttribute('aria-hidden', 'true');
-    hint.textContent = 'Type {{ to add a variable';
+    hint.textContent = t('options.templates.editor.typeBraces', {
+      braces: '{{',
+    });
     return hint;
   }
 }
@@ -275,8 +278,11 @@ class AddPropertyWidget extends WidgetType {
     const button = document.createElement('span');
     button.className = 'cm-tpl-add-prop';
     button.setAttribute('role', 'button');
-    button.setAttribute('aria-label', 'Add property');
-    button.textContent = '+ Property';
+    button.setAttribute(
+      'aria-label',
+      t('options.templates.editor.addPropertyLabel'),
+    );
+    button.textContent = t('options.templates.editor.addProperty');
     // Keeps the focus and the caret where they are until the click.
     button.addEventListener('mousedown', (event) => event.preventDefault());
     button.addEventListener('click', (event) => {
@@ -958,7 +964,11 @@ const propertySource = (
     apply: apply(property.title),
   }));
   if (before && !found.some((p) => p.title.toLowerCase() === lower)) {
-    options.push({ label: `New ${before}`, type: 'new', apply: apply(before) });
+    options.push({
+      label: t('options.templates.editor.newProperty', { name: before }),
+      type: 'new',
+      apply: apply(before),
+    });
   }
   if (options.length === 0) return null;
   return { from: start, filter: false, options };
@@ -1000,7 +1010,11 @@ const tagSource = (context: CompletionContext): CompletionResult | null => {
   }));
   const lower = typed.toLowerCase();
   if (typed && !found.some((tag) => tag.name.toLowerCase() === lower)) {
-    options.push({ label: `New #${typed}`, type: 'new', apply: apply(typed) });
+    options.push({
+      label: t('options.templates.editor.newTag', { name: typed }),
+      type: 'new',
+      apply: apply(typed),
+    });
   }
   if (options.length === 0) return null;
   return { from: match.from, filter: false, options };
