@@ -508,3 +508,40 @@ describe('HighlightList', () => {
     });
   });
 });
+
+describe('HighlightList age in hours', () => {
+  afterEach(cleanup);
+
+  it('shows hours for a highlight of the last day', () => {
+    render(
+      <HighlightList
+        highlights={[highlight('a', { createdAt: Date.now() - 3 * 60 * 60 * 1000 - 1000 })]}
+        onSelect={noop}
+        onDelete={noop}
+      />,
+    );
+    expect(screen.getByText('3h ago')).not.toBeNull();
+  });
+
+  it('shows the date for a highlight of a week ago or more', () => {
+    render(
+      <HighlightList
+        highlights={[highlight('a', { createdAt: Date.now() - 10 * 24 * 60 * 60 * 1000 })]}
+        onSelect={noop}
+        onDelete={noop}
+      />,
+    );
+    expect(screen.queryByText(/ago$/)).toBeNull();
+    expect(screen.queryByText('Just now')).toBeNull();
+  });
+
+  it('names an image without alt text "Image"', () => {
+    const { range: _range, ...rest } = highlight('img');
+    const noAlt: HighlightData = {
+      ...rest,
+      image: { xpath: '/html/body[1]/img[1]', src: 'cat.png', alt: '' },
+    } as HighlightData;
+    render(<HighlightList highlights={[noAlt]} onSelect={noop} onDelete={noop} />);
+    expect(screen.getByRole('img', { name: 'Image' })).not.toBeNull();
+  });
+});

@@ -164,3 +164,45 @@ describe('HighlightCommentPopup clip deleted in Logseq', () => {
     expect(removed()?.textContent).toBe('Removed from Logseq');
   });
 });
+
+describe('HighlightCommentPopup deleting', () => {
+  const renderWith = async (onDelete: (id: string) => void, onClose: () => void) => {
+    await highlights.setValue([base]);
+    await act(async () => {
+      root.render(
+        <HighlightCommentPopup
+          highlightData={base}
+          position={{ x: 0, y: 0 }}
+          onClose={onClose}
+          onUpdate={() => {}}
+          onDelete={onDelete}
+        />,
+      );
+    });
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('asks first, and keeps the highlight when the user declines', async () => {
+    const confirmSpy = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmSpy);
+    const onDelete = vi.fn();
+    const onClose = vi.fn();
+    await renderWith(onDelete, onClose);
+    await act(async () => button('Delete').click());
+    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this highlight?');
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(await highlights.getValue()).toHaveLength(1);
+  });
+
+  it('deletes the highlight and closes when the user agrees', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const onDelete = vi.fn();
+    const onClose = vi.fn();
+    await renderWith(onDelete, onClose);
+    await act(async () => button('Delete').click());
+    expect(onDelete).toHaveBeenCalledWith('h1');
+    expect(onClose).toHaveBeenCalled();
+  });
+});

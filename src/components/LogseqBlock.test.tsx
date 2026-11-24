@@ -213,3 +213,22 @@ describe('LogseqBlock HTML', () => {
     expect(el.querySelector('.lc-content')!.innerHTML).toBe(html);
   });
 });
+
+describe('LogseqBlock fallback messages', () => {
+  test('a failed change without a reason says so', async () => {
+    handler.mockImplementation(({ uuid, marker }) => ({
+      type: 'change-block-marker-result',
+      uuid,
+      status: 'failed',
+      marker,
+    }));
+    const el = await render([makeBlock('f1', 'TODO')]);
+    await act(async () =>
+      (el.querySelector('button[role="checkbox"]') as HTMLElement).click(),
+    );
+    await flush();
+    expect(el.querySelector('[role="alert"]')?.textContent).toBe(
+      'Failed to change the task status.',
+    );
+  });
+});
