@@ -19,6 +19,7 @@ import {
 } from '@/utils/clip-shortcut';
 
 const FIREFOX = import.meta.env.FIREFOX;
+const SAFARI = import.meta.env.SAFARI;
 const EDGE = /\bEdg\//.test(navigator.userAgent);
 const SHORTCUTS_URL = EDGE
   ? 'edge://extensions/shortcuts'
@@ -58,7 +59,7 @@ const keysOfBrowserShortcut = (text: string, mac: boolean): string[] => {
 /**
  * The clip shortcut row. Firefox changes the real command from here. Chrome,
  * Edge and Brave cannot, so the row shows the browser's shortcut and opens the
- * browser's own shortcuts page.
+ * browser's own shortcuts page. Safari has no such page, so the row only says so.
  */
 export const ShortcutRecorder = () => (FIREFOX ? <FirefoxRecorder /> : <BrowserShortcut />);
 
@@ -90,14 +91,20 @@ const BrowserShortcut = () => {
           <span className="text-sm text-muted-foreground">Not set</span>
         )}
       </span>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => void browser.tabs.create({ url: SHORTCUTS_URL })}
-      >
-        Change
-      </Button>
+      {SAFARI ? (
+        <span className="text-sm text-muted-foreground">
+          Safari doesn’t let you change shortcuts.
+        </span>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void browser.tabs.create({ url: SHORTCUTS_URL })}
+        >
+          Change
+        </Button>
+      )}
     </div>
   );
 };

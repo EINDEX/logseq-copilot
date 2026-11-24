@@ -8,10 +8,19 @@ const commandList = (clip: string) => [
 ];
 
 /** The component reads FIREFOX and the user agent when the module loads. */
-const load = async ({ firefox, edge = false }: { firefox: boolean; edge?: boolean }) => {
+const load = async ({
+  firefox,
+  edge = false,
+  safari = false,
+}: {
+  firefox: boolean;
+  edge?: boolean;
+  safari?: boolean;
+}) => {
   vi.resetModules();
   // Env values are strings: an empty one is falsy, as in the Chromium build.
   vi.stubEnv('FIREFOX', firefox ? '1' : '');
+  vi.stubEnv('SAFARI', safari ? '1' : '');
   vi.stubGlobal('navigator', {
     ...navigator,
     platform: 'Win32',
@@ -95,6 +104,7 @@ describe('ShortcutRecorder on Chromium', () => {
     render(<ShortcutRecorder />);
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(create).toHaveBeenCalledWith({ url: 'chrome://extensions/shortcuts' });
+    expect(screen.queryByText(/Safari/)).toBeNull();
   });
 
   it('Change opens the Edge shortcuts page in Edge', async () => {
@@ -102,6 +112,29 @@ describe('ShortcutRecorder on Chromium', () => {
     render(<ShortcutRecorder />);
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(create).toHaveBeenCalledWith({ url: 'edge://extensions/shortcuts' });
+  });
+});
+
+describe('ShortcutRecorder on Safari', () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+    (fakeBrowser as any).commands = {
+      getAll: vi.fn(async () => commandList('Ctrl+Shift+U')),
+    };
+  });
+
+  it('shows the shortcut and a note, without a Change button', async () => {
+    const ShortcutRecorder = await load({ firefox: false, safari: true });
+    const { container } = render(<ShortcutRecorder />);
+    await waitFor(() =>
+      expect([...container.querySelectorAll('kbd')].map((k) => k.textContent)).toEqual([
+        'Ctrl',
+        'Shift',
+        'U',
+      ]),
+    );
+    expect(screen.queryByRole('button', { name: 'Change' })).toBeNull();
+    expect(screen.getByText('Safari doesn’t let you change shortcuts.')).toBeTruthy();
   });
 });
 
