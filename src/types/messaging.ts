@@ -122,6 +122,13 @@ export interface MessagingProtocol {
     data: ClipCommandOptions & { srcUrl: string; subframe?: boolean },
   ) => void;
 
+  /**
+   * Whether the tab's content script is there to draw the sidebar on pages.
+   * The background asks before it flips the sidebar state; a failed send
+   * means the page is out of reach (the browser's PDF viewer, ...).
+   */
+  'content:ping': () => true;
+
   /** Whether the page has a selection that `quickCaptureWithSelection` would clip. */
   'content:hasSelection': () => boolean;
 

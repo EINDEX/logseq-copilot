@@ -50,6 +50,12 @@ vi.mock('./logseq/tool', () => ({
 }));
 
 import background from './index';
+import {
+  clearClipErrorBadges,
+  hasClipErrorBadge,
+  showClipErrorBadge,
+  showSidebarHint,
+} from './clip-error-badge';
 
 beforeAll(() => {
   fakeBrowser.reset();
@@ -466,5 +472,51 @@ describe('"Save images to Logseq" asks the tab the clip came from', () => {
     // The background's own download: no cookies.
     expect(downloads).toEqual([[frameImage, 'omit']]);
     expect(service.client.appendBlock.mock.calls.at(-1)![1]).toBe('![](../assets/pic.png)');
+  });
+});
+
+describe('a tab that navigates', () => {
+  const action = {
+    setBadgeText: vi.fn(),
+    setBadgeBackgroundColor: vi.fn(),
+    setTitle: vi.fn(),
+  };
+
+  beforeEach(() => {
+    for (const fn of Object.values(action)) fn.mockResolvedValue(undefined);
+    (fakeBrowser as any).action = action;
+    vi.spyOn(fakeBrowser.runtime, 'getManifest').mockReturnValue({
+      name: 'Logseq Copilot',
+      action: { default_title: 'Logseq Copilot' },
+    } as any);
+  });
+
+  afterEach(async () => {
+    await clearClipErrorBadges();
+  });
+
+  const navigate = async (tabId: number) => {
+    await fakeBrowser.tabs.onUpdated.trigger(
+      tabId,
+      { url: 'https://example.com/next' },
+      { id: tabId, active: false } as Browser.tabs.Tab,
+    );
+  };
+
+  test('loses the "sidebar cannot open here" hint', async () => {
+    await showSidebarHint(41, "Logseq Copilot can't open on this page");
+
+    await navigate(41);
+
+    await vi.waitFor(() => expect(hasClipErrorBadge(41)).toBe(false));
+  });
+
+  test('keeps a clip error badge until the next successful clip', async () => {
+    await showClipErrorBadge(42, 'Cannot connect to Logseq');
+
+    await navigate(42);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(hasClipErrorBadge(42)).toBe(true);
   });
 });

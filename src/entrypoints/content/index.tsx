@@ -72,6 +72,9 @@ export default defineContentScript({
     trackContextMenu();
     onMessage('content:quickCaptureImage', onQuickCaptureImage);
 
+    // From the background: the sidebar on pages can open here.
+    onMessage('content:ping', () => true);
+
     // From the browser sidebar: it offers "Clip selection" only when there is
     // one.
     onMessage('content:hasSelection', () => hasClippableSelection());

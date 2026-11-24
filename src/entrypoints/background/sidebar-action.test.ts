@@ -7,7 +7,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing';
 import log from '@/utils/logger';
+import { sendMessage } from '@/types/messaging';
 import { startSidebarAction } from './sidebar-action';
+
+vi.mock('@/types/messaging', () => ({ sendMessage: vi.fn() }));
 
 const tab = { id: 7, windowId: 3 } as Browser.tabs.Tab;
 
@@ -32,6 +35,8 @@ beforeEach(() => {
   sidebarActionToggle.mockReset().mockResolvedValue(undefined);
   vi.spyOn(log, 'error').mockImplementation(() => {});
   vi.spyOn(log, 'warn').mockImplementation(() => {});
+  // Every tab has a content script, unless a case says otherwise.
+  vi.mocked(sendMessage).mockReset().mockResolvedValue(true as never);
 });
 
 afterEach(() => {

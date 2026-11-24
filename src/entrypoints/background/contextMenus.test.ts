@@ -17,6 +17,8 @@ vi.mock('./clip', async (importOriginal) => ({
 vi.mock('./clip-error-badge', () => ({
   showClipErrorBadge: vi.fn(),
   clearClipErrorBadges: vi.fn(),
+  clearSidebarHint: vi.fn(),
+  showSidebarHint: vi.fn(),
   hasClipErrorBadge: vi.fn(() => false),
 }));
 
@@ -382,7 +384,11 @@ describe('background context menus', () => {
       await vi.waitFor(async () => expect(await isOpen()).toBe(true));
 
       expect(warn).not.toHaveBeenCalled();
-      expect(sendMessage).not.toHaveBeenCalled();
+      // Only the check that the page can show it, never a clip.
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenCalledWith('content:ping', undefined, {
+        tabId: 7,
+      });
     });
 
     it('leaves the clip menu items and the clip command alone', () => {

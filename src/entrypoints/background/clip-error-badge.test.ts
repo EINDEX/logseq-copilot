@@ -3,8 +3,10 @@ import { fakeBrowser } from 'wxt/testing';
 import log from '@/utils/logger';
 import {
   clearClipErrorBadges,
+  clearSidebarHint,
   hasClipErrorBadge,
   showClipErrorBadge,
+  showSidebarHint,
 } from './clip-error-badge';
 
 describe('clip error badge', () => {
@@ -112,5 +114,39 @@ describe('clip error badge', () => {
 
     await expect(showClipErrorBadge(5, 'message')).resolves.toBeUndefined();
     await expect(clearClipErrorBadges()).resolves.toBeUndefined();
+  });
+
+  describe('the sidebar hint', () => {
+    it('is cleared on its own tab, and the result count leaves it alone meanwhile', async () => {
+      await showSidebarHint(5, "can't open");
+      expect(hasClipErrorBadge(5)).toBe(true);
+      expect(action.setTitle).toHaveBeenCalledWith({ title: "can't open", tabId: 5 });
+
+      await clearSidebarHint(5);
+
+      expect(action.setBadgeText).toHaveBeenLastCalledWith({ text: '', tabId: 5 });
+      expect(hasClipErrorBadge(5)).toBe(false);
+    });
+
+    it('never clears a clip error (a navigation keeps it until the next clip)', async () => {
+      await showClipErrorBadge(5, 'Cannot connect to Logseq');
+      action.setBadgeText.mockClear();
+
+      await clearSidebarHint(5);
+
+      expect(action.setBadgeText).not.toHaveBeenCalled();
+      expect(hasClipErrorBadge(5)).toBe(true);
+    });
+
+    it('becomes a clip error when a clip fails on the tab, and is cleared by a clip', async () => {
+      await showSidebarHint(5, "can't open");
+      await showClipErrorBadge(5, 'Cannot connect to Logseq');
+      await clearSidebarHint(5);
+      expect(hasClipErrorBadge(5)).toBe(true);
+
+      await showSidebarHint(6, "can't open");
+      await clearClipErrorBadges();
+      expect(hasClipErrorBadge(6)).toBe(false);
+    });
   });
 });

@@ -1,5 +1,7 @@
 import { browser } from 'wxt/browser';
 import log from '@/utils/logger';
+import { sendMessage } from '@/types/messaging';
+import { clearSidebarHint, showSidebarHint } from './clip-error-badge';
 import {
   hasNativeSidebar,
   openInPageSidebar,
@@ -21,6 +23,37 @@ export interface SidebarAction {
   open(tab: Tab): void;
   /** The toolbar button: open the sidebar, or close it. */
   toggle(tab: Tab): void;
+}
+
+const CANNOT_OPEN_SIDEBAR = "Logseq Copilot can't open on this page";
+const PING_TIMEOUT_MS = 1500;
+
+/**
+ * Whether the sidebar on pages can show on the tab: its content script runs
+ * there. Web pages only (a cheap check first), then the content script
+ * itself answers. A tab we know nothing about is let through.
+ */
+async function canShowInPage(tab: Tab): Promise<boolean> {
+  if (tab?.id === undefined) return true;
+  if (tab.url && !/^https?:/i.test(tab.url)) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      sendMessage('content:ping', undefined, { tabId: tab.id }),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('ping timed out')),
+          PING_TIMEOUT_MS,
+        );
+      }),
+    ]);
+    return true;
+  } catch (err) {
+    log.debug('[background] Content script unreachable', err);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -74,8 +107,19 @@ export function startSidebarAction(): SidebarAction {
     openNative: (windowId: number | undefined) => Promise<void>,
     openOnPages: () => Promise<void>,
   ) => {
+    // The sidebar on pages is one stored state for every tab. On a tab it
+    // cannot show on, flipping it would only change the other tabs: hint on
+    // this tab instead. Only here, never before the browser's own opens.
+    const openOnPagesOf = async () => {
+      if (!(await canShowInPage(tab))) {
+        await showSidebarHint(tab?.id, CANNOT_OPEN_SIDEBAR);
+        return;
+      }
+      if (tab?.id !== undefined) await clearSidebarHint(tab.id);
+      await openOnPages();
+    };
     if (inPage === true) {
-      openOnPages().catch(logFailure);
+      openOnPagesOf().catch(logFailure);
       return;
     }
     if (tab?.windowId === undefined) {
@@ -85,7 +129,7 @@ export function startSidebarAction(): SidebarAction {
     openNative(tab?.windowId).catch(logFailure);
     if (inPage === undefined) {
       usesInPageSidebar()
-        .then((value) => (value ? openOnPages() : undefined))
+        .then((value) => (value ? openOnPagesOf() : undefined))
         .catch(logFailure);
     }
   };
