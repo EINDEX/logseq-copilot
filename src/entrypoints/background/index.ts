@@ -26,6 +26,7 @@ import {
 } from './logseq/recall/recent-requests';
 import { backgroundClipFallback, clipToLogseq, type ClipSource } from './clip';
 import {
+  clearSidebarHint,
   clearClipErrorBadges,
   hasClipErrorBadge,
   showClipErrorBadge,
@@ -254,6 +255,9 @@ export default defineBackground({
     });
 
     browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      // A new page: the error badge of the old one (a clip error, "the
+      // sidebar cannot open here") no longer applies.
+      if (changeInfo.url) void clearSidebarHint(tabId);
       if (tab.active && changeInfo.status === 'complete') {
         const promise = new Promise(async () => {
           await debounceBadgeSearch(tab.url, tabId);
