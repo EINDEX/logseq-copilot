@@ -165,6 +165,171 @@
       "searchEngine": "Search Engine",
       "settings": "Settings"
     },
+    "recallRules": {
+      "add": {
+        "description": "Create a rule for the pages it should match.",
+        "title": "Add recall rule"
+      },
+      "addRule": "Add rule",
+      "badge": {
+        "builtIn": "Built-in",
+        "modified": "Modified"
+      },
+      "confirm": {
+        "delete": "Delete the recall rule \"{{name}}\"?",
+        "reset": "Reset \"{{name}}\" to its built-in version?"
+      },
+      "createRule": "Create a rule",
+      "description": "Adjust how Logseq Copilot searches your graph on specific websites.",
+      "disabledRules": "Disabled rules",
+      "edit": {
+        "description": "Change how this rule matches pages and searches your graph.",
+        "title": "Edit recall rule"
+      },
+      "enabledRules": "Enabled rules",
+      "flags": {
+        "ignoreHash": "Ignore hash",
+        "ignoreQuery": "Ignore query",
+        "journals": "Journals: last {{days}} days",
+        "keep": "Keep: {{params}}",
+        "recentFirst": "Recent first",
+        "scope_one": "Scope: {{count}} level",
+        "scope_other": "Scope: {{count}} levels"
+      },
+      "form": {
+        "add": "Add",
+        "basics": "Basics",
+        "description": {
+          "label": "Description",
+          "placeholder": "What this rule is for"
+        },
+        "enabled": {
+          "help": "When on, the rule applies on matching websites.",
+          "label": "Enabled"
+        },
+        "excludeKeywords": {
+          "help": "Results that contain these keywords are filtered out.",
+          "label": "Exclude keywords",
+          "placeholder": "Keyword to exclude"
+        },
+        "excludePages": {
+          "help": "Never searches in these pages.",
+          "label": "Exclude these pages"
+        },
+        "help": "Help",
+        "ignoreHash": {
+          "help": "Removes everything after # in the URL.",
+          "helpSpa": "Useful for single-page apps with hash routing.",
+          "label": "Ignore hash fragment"
+        },
+        "ignorePath": {
+          "help": "Ignores these segments of the URL path.",
+          "helpExample": "e.g. ignore \"files\" on GitHub.",
+          "label": "Ignore path segments",
+          "placeholder": "Path segment to ignore"
+        },
+        "ignoreQuery": {
+          "help": "Removes everything after ? in the URL.",
+          "label": "Ignore query parameters"
+        },
+        "keepParams": {
+          "help": "Pages that differ in other parameters count as the same page.",
+          "helpExample": "e.g. keep \"v\" on YouTube.",
+          "label": "Keep only these query parameters",
+          "placeholder": "Parameter name"
+        },
+        "limitJournal": {
+          "days": "Days to search",
+          "help": "Only searches journal pages from the last N days.",
+          "label": "Limit journal dates"
+        },
+        "maxResults": {
+          "label": "Max results",
+          "placeholder": "No limit"
+        },
+        "minScore": {
+          "label": "Minimum relevance score",
+          "placeholder": "0.0 - 1.0"
+        },
+        "name": {
+          "label": "Rule name *",
+          "placeholder": "e.g. GitHub project pages"
+        },
+        "pageName": "Page name",
+        "preferKeywords": {
+          "help": "Results that contain these keywords are shown first.",
+          "label": "Prefer keywords",
+          "placeholder": "Keyword to prefer"
+        },
+        "prioritizeRecent": {
+          "help": "Newer content is ranked higher.",
+          "label": "Show recent results first"
+        },
+        "queryProcessing": {
+          "description": "How the page URL is turned into a search.",
+          "title": "Query processing"
+        },
+        "remove": "Remove {{item}}",
+        "restrictPages": {
+          "help": "Searches only in these pages.",
+          "label": "Only search these pages"
+        },
+        "resultFiltering": {
+          "title": "Result filtering"
+        },
+        "sameUrlUnder": "Same page under",
+        "save": "Save rule",
+        "scope": {
+          "help": "Also recalls notes about parent paths of the page.",
+          "helpExample": "e.g. 2 levels on GitHub: the whole repository.",
+          "label": "Recall scope",
+          "levels_one": "{{count}} level",
+          "levels_other": "{{count}} levels",
+          "page": "This page"
+        },
+        "searchScope": {
+          "description": "Where in your graph to search.",
+          "title": "Search scope"
+        },
+        "testUrl": {
+          "label": "Test the URL pattern",
+          "matches": "✓ Matches",
+          "matchesPrefix": "✓ Matches · {{prefix}}",
+          "noMatch": "✗ No match"
+        },
+        "urlPattern": {
+          "example": "e.g. {{example}}",
+          "help": "A regular expression matched against the page URL.",
+          "label": "URL pattern *",
+          "placeholder": "e.g. {{example}}"
+        }
+      },
+      "help": {
+        "queryProcessing": "<label>Query processing:</label> drop the URL hash or query parameters before searching, and exclude or prefer keywords.",
+        "resultFiltering": "<label>Result filtering:</label> limit the number of results, show recent ones first, or set a minimum relevance score.",
+        "searchScope": "<label>Search scope:</label> search only some pages, skip pages, or limit journals to recent days.",
+        "title": "How recall rules work",
+        "urlPattern": "<label>URL pattern:</label> a regular expression matched against the page URL, e.g. <code>{{example1}}</code> or <code>{{example2}}</code>."
+      },
+      "keywords": {
+        "exclude": "Exclude",
+        "prefer": "Prefer"
+      },
+      "loading": "Loading recall rules...",
+      "meta": "{{enabled}} enabled · {{disabled}} disabled",
+      "noneEnabled": "No recall rule is enabled.",
+      "refresh": "Refresh",
+      "rule": {
+        "delete": "Delete {{name}}",
+        "edit": "Edit {{name}}",
+        "enable": "Enable {{name}}",
+        "reset": "Reset {{name}}"
+      },
+      "testUrl": {
+        "placeholder": "Enter a URL to test...",
+        "summary": "Test URL pattern"
+      }
+    },
     "searchEngines": {
       "builtIn": {
         "description": "Pre-configured search engines with built-in integration.",

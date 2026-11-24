@@ -165,6 +165,169 @@
       "searchEngine": "搜尋引擎",
       "settings": "設定"
     },
+    "recallRules": {
+      "add": {
+        "description": "建立一條規則，指定它要比對的頁面。",
+        "title": "新增相關筆記規則"
+      },
+      "addRule": "新增規則",
+      "badge": {
+        "builtIn": "內建",
+        "modified": "已修改"
+      },
+      "confirm": {
+        "delete": "刪除相關筆記規則「{{name}}」？",
+        "reset": "將「{{name}}」還原為內建版本？"
+      },
+      "createRule": "建立規則",
+      "description": "調整 Logseq Copilot 在特定網站上如何搜尋你的圖譜。",
+      "disabledRules": "已停用的規則",
+      "edit": {
+        "description": "變更這條規則如何比對頁面並搜尋你的圖譜。",
+        "title": "編輯相關筆記規則"
+      },
+      "enabledRules": "已啟用的規則",
+      "flags": {
+        "ignoreHash": "忽略雜湊",
+        "ignoreQuery": "忽略查詢",
+        "journals": "日誌：最近 {{days}} 天",
+        "keep": "保留：{{params}}",
+        "recentFirst": "最近優先",
+        "scope_other": "範圍：{{count}} 層"
+      },
+      "form": {
+        "add": "新增",
+        "basics": "基本資料",
+        "description": {
+          "label": "描述",
+          "placeholder": "這條規則的用途"
+        },
+        "enabled": {
+          "help": "開啟後，規則會在符合的網站上生效。",
+          "label": "啟用"
+        },
+        "excludeKeywords": {
+          "help": "包含這些關鍵字的結果會被過濾掉。",
+          "label": "排除關鍵字",
+          "placeholder": "要排除的關鍵字"
+        },
+        "excludePages": {
+          "help": "不會在這些頁面中搜尋。",
+          "label": "排除這些頁面"
+        },
+        "help": "說明",
+        "ignoreHash": {
+          "help": "移除網址中 # 之後的所有內容。",
+          "helpSpa": "適用於使用雜湊路由的單頁應用程式。",
+          "label": "忽略雜湊片段"
+        },
+        "ignorePath": {
+          "help": "忽略網址路徑中的這些區段。",
+          "helpExample": "例如在 GitHub 上忽略「files」。",
+          "label": "忽略路徑區段",
+          "placeholder": "要忽略的路徑區段"
+        },
+        "ignoreQuery": {
+          "help": "移除網址中 ? 之後的所有內容。",
+          "label": "忽略查詢參數"
+        },
+        "keepParams": {
+          "help": "其他參數不同的頁面視為同一頁面。",
+          "helpExample": "例如在 YouTube 上保留「v」。",
+          "label": "只保留這些查詢參數",
+          "placeholder": "參數名稱"
+        },
+        "limitJournal": {
+          "days": "搜尋天數",
+          "help": "只搜尋最近 N 天的日誌頁面。",
+          "label": "限定日誌日期"
+        },
+        "maxResults": {
+          "label": "最大結果數",
+          "placeholder": "不限制"
+        },
+        "minScore": {
+          "label": "最低相關度分數",
+          "placeholder": "0.0 - 1.0"
+        },
+        "name": {
+          "label": "規則名稱 *",
+          "placeholder": "例如 GitHub 專案頁面"
+        },
+        "pageName": "頁面名稱",
+        "preferKeywords": {
+          "help": "包含這些關鍵字的結果會排在前面。",
+          "label": "優先關鍵字",
+          "placeholder": "要優先的關鍵字"
+        },
+        "prioritizeRecent": {
+          "help": "較新的內容排名較前。",
+          "label": "優先顯示較新的結果"
+        },
+        "queryProcessing": {
+          "description": "如何把頁面網址轉成搜尋。",
+          "title": "查詢處理"
+        },
+        "remove": "移除 {{item}}",
+        "restrictPages": {
+          "help": "只在這些頁面中搜尋。",
+          "label": "只搜尋這些頁面"
+        },
+        "resultFiltering": {
+          "title": "結果篩選"
+        },
+        "sameUrlUnder": "同一頁面的網址形式：",
+        "save": "儲存規則",
+        "scope": {
+          "help": "同時顯示該頁面上層路徑的相關筆記。",
+          "helpExample": "例如在 GitHub 上選 2 層：整個儲存庫。",
+          "label": "相關筆記範圍",
+          "levels_other": "{{count}} 層",
+          "page": "此頁面"
+        },
+        "searchScope": {
+          "description": "在圖譜的哪些部分搜尋。",
+          "title": "搜尋範圍"
+        },
+        "testUrl": {
+          "label": "測試網址模式",
+          "matches": "✓ 符合",
+          "matchesPrefix": "✓ 符合 · {{prefix}}",
+          "noMatch": "✗ 不符合"
+        },
+        "urlPattern": {
+          "example": "例如 {{example}}",
+          "help": "與頁面網址比對的規則運算式。",
+          "label": "網址模式 *",
+          "placeholder": "例如 {{example}}"
+        }
+      },
+      "help": {
+        "queryProcessing": "<label>查詢處理：</label>搜尋前移除網址中的雜湊片段或查詢參數，並排除或優先某些關鍵字。",
+        "resultFiltering": "<label>結果篩選：</label>限制結果數量、優先顯示較新的結果，或設定最低相關度分數。",
+        "searchScope": "<label>搜尋範圍：</label>只搜尋部分頁面、略過某些頁面，或把日誌限制在最近幾天。",
+        "title": "運作方式",
+        "urlPattern": "<label>網址模式：</label>與頁面網址比對的規則運算式，例如 <code>{{example1}}</code> 或 <code>{{example2}}</code>。"
+      },
+      "keywords": {
+        "exclude": "排除",
+        "prefer": "優先"
+      },
+      "loading": "正在載入相關筆記規則…",
+      "meta": "已啟用 {{enabled}} 條 · 已停用 {{disabled}} 條",
+      "noneEnabled": "沒有已啟用的相關筆記規則。",
+      "refresh": "重新整理",
+      "rule": {
+        "delete": "刪除 {{name}}",
+        "edit": "編輯 {{name}}",
+        "enable": "啟用 {{name}}",
+        "reset": "還原 {{name}}"
+      },
+      "testUrl": {
+        "placeholder": "輸入網址進行測試…",
+        "summary": "測試網址模式"
+      }
+    },
     "searchEngines": {
       "builtIn": {
         "description": "已預先設定、內建支援的搜尋引擎。",
