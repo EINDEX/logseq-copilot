@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import istanbul from 'vite-plugin-istanbul';
 import { stripRegisteredProperties } from './src/utils/content-css';
+import { dropUnsupportedSafariKeys } from './src/utils/safari-manifest';
 
 // CI preview builds only (preview.yml, pr-preview.yml; see RELEASING.md), so
 // they stand apart from the store version in the browser's extension list.
@@ -98,17 +99,17 @@ export default defineConfig({
       },
     },
   }),
-  // WXT takes the Firefox sidebar title from the <title> of the sidepanel
-  // page, after the manifest option above is applied.
-  ...(previewLabel && {
-    hooks: {
-      'build:manifestGenerated': (_, manifest) => {
-        if (manifest.sidebar_action?.default_title) {
-          manifest.sidebar_action.default_title = name;
-        }
-      },
+  hooks: {
+    'build:manifestGenerated': (wxt, manifest) => {
+      // Safari warns about keys it does not support.
+      if (wxt.config.browser === 'safari') dropUnsupportedSafariKeys(manifest);
+      // WXT takes the Firefox sidebar title from the <title> of the sidepanel
+      // page, after the manifest option above is applied.
+      if (previewLabel && manifest.sidebar_action?.default_title) {
+        manifest.sidebar_action.default_title = name;
+      }
     },
-  }),
+  },
   modules: ['@wxt-dev/module-react'],
   alias: {
     '@/*': path.resolve(__dirname, './src/*'),
