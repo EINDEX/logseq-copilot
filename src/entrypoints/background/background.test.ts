@@ -468,3 +468,26 @@ describe('"Save images to Logseq" asks the tab the clip came from', () => {
     expect(service.client.appendBlock.mock.calls.at(-1)![1]).toBe('![](../assets/pic.png)');
   });
 });
+
+describe('the in-page sidebar when the browser starts', () => {
+  const isOpen = async () =>
+    (await fakeBrowser.storage.local.get('inPageSidebarOpen')).inPageSidebarOpen;
+
+  test('closes, as it always has, when not pinned', async () => {
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true, inPageSidebarPinned: false });
+
+    await fakeBrowser.runtime.onStartup.trigger();
+
+    await vi.waitFor(async () => expect(await isOpen()).toBe(false));
+  });
+
+  test('stays open when pinned', async () => {
+    await fakeBrowser.storage.local.set({ inPageSidebarOpen: true, inPageSidebarPinned: true });
+
+    await fakeBrowser.runtime.onStartup.trigger();
+    // The event does not wait for what the listener starts.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(await isOpen()).toBe(true);
+  });
+});

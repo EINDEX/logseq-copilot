@@ -3,6 +3,7 @@ import {
   arcDetectedItem,
   inPageSidebarItem,
   inPageSidebarOpenItem,
+  inPageSidebarPinnedItem,
 } from './storage';
 
 /**
@@ -104,4 +105,13 @@ export function openInPageSidebar(): Promise<void> {
 export async function toggleInPageSidebar(): Promise<void> {
   const open = await inPageSidebarOpenItem.getValue();
   await inPageSidebarOpenItem.setValue(!open);
+}
+
+/**
+ * When the browser starts: the sidebar drawn on pages starts closed, like the
+ * browser's own, unless it is pinned. Pinned, only the user closes it.
+ */
+export async function closeInPageSidebarOnStartup(): Promise<void> {
+  if (await inPageSidebarPinnedItem.getValue()) return;
+  await inPageSidebarOpenItem.setValue(false);
 }

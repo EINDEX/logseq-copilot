@@ -407,6 +407,36 @@ describe('InPageSidebar', () => {
     );
   });
 
+  it('pins and unpins, in every tab, with the pin button', async () => {
+    render(<InPageSidebar url={PAGE} />);
+    const pin = screen.getByRole('button', { name: 'Pin' });
+    expect(pin.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(pin);
+
+    await waitFor(async () =>
+      expect((await fakeBrowser.storage.local.get('inPageSidebarPinned')).inPageSidebarPinned).toBe(true),
+    );
+    await waitFor(() => expect(pin.getAttribute('aria-pressed')).toBe('true'));
+
+    fireEvent.click(pin);
+
+    await waitFor(async () =>
+      expect((await fakeBrowser.storage.local.get('inPageSidebarPinned')).inPageSidebarPinned).toBe(false),
+    );
+  });
+
+  it('has the site menu only while pinned', async () => {
+    render(<InPageSidebar url={PAGE} />);
+    expect(screen.queryByRole('button', { name: 'Pin on one.example' })).toBeNull();
+
+    await act(async () => {
+      await fakeBrowser.storage.local.set({ inPageSidebarPinned: true });
+    });
+
+    expect(await screen.findByRole('button', { name: 'Pin on one.example' })).not.toBeNull();
+  });
+
   it('closes, in every tab, with the close button', async () => {
     await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
     render(<InPageSidebar url={PAGE} />);
@@ -423,6 +453,8 @@ describe('startInPageSidebar', () => {
   let locationChanged: ((event: { newUrl: URL }) => void) | undefined;
   let invalidated: AbortController;
   const ctx = {
+    onInvalidated: (handler: () => void) =>
+      invalidated.signal.addEventListener('abort', handler),
     addEventListener: vi.fn(
       (
         target: EventTarget,
@@ -467,6 +499,96 @@ describe('startInPageSidebar', () => {
 
     expect(createShadowRootUi).not.toHaveBeenCalled();
     expect(host()).toBeNull();
+  });
+
+  describe('pinned', () => {
+    const dockStyle = () => document.getElementById('logseq-copilot-sidebar-dock');
+    const setStored = (items: Record<string, unknown>) =>
+      act(async () => {
+        await fakeBrowser.storage.local.set(items);
+      });
+
+    beforeEach(() => {
+      // Wide enough for the page and the sidebar.
+      vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1400);
+    });
+
+    it('has the page make room while open and pinned', async () => {
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true, inPageSidebarPinned: true });
+
+      await start();
+
+      await waitFor(() => expect(dockStyle()?.textContent).toContain('html{margin-right'));
+    });
+
+    it('gives the page back when unpinned or closed', async () => {
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true, inPageSidebarPinned: true });
+      await start();
+      await waitFor(() => expect(dockStyle()).not.toBeNull());
+
+      await setStored({ inPageSidebarPinned: false });
+      await waitFor(() => expect(dockStyle()).toBeNull());
+
+      await setStored({ inPageSidebarPinned: true });
+      await waitFor(() => expect(dockStyle()).not.toBeNull());
+
+      await setOpen(false);
+      await waitFor(() => expect(dockStyle()).toBeNull());
+    });
+
+    it('leaves the page alone when not pinned', async () => {
+      const observer = new MutationObserver(() => {});
+      observer.observe(document.head, { subtree: true, childList: true, attributes: true });
+      await fakeBrowser.storage.local.set({ inPageSidebarOpen: true });
+
+      await start();
+      await settle();
+
+      expect(host()).not.toBeNull();
+      expect(dockStyle()).toBeNull();
+      expect(document.documentElement.getAttribute('style')).toBeNull();
+      expect(observer.takeRecords()).toEqual([]);
+      observer.disconnect();
+    });
+
+    it('covers the pages of a site taken out', async () => {
+      await fakeBrowser.storage.local.set({
+        inPageSidebarOpen: true,
+        inPageSidebarPinned: true,
+        inPageSidebarOverlayHosts: [location.hostname],
+      });
+
+      await start();
+      await settle();
+      expect(host()).not.toBeNull();
+      expect(dockStyle()).toBeNull();
+
+      // Put back, from the menu in any tab.
+      await setStored({ inPageSidebarOverlayHosts: [] });
+      await waitFor(() => expect(dockStyle()).not.toBeNull());
+    });
+
+    it('takes the site out from the pin menu', async () => {
+      await fakeBrowser.storage.local.set({
+        inPageSidebarOpen: true,
+        inPageSidebarPinned: true,
+        inPageSidebarOverlayHosts: ['other.example'],
+      });
+      await start();
+      await waitFor(() => expect(dockStyle()).not.toBeNull());
+
+      const menu = await screen.findByRole('button', { name: `Pin on ${location.hostname}` });
+      fireEvent.pointerDown(menu, { button: 0, pointerType: 'mouse' });
+      const item = await screen.findByRole('menuitemcheckbox', { name: location.hostname });
+      expect(item.getAttribute('aria-checked')).toBe('true');
+      fireEvent.click(item);
+
+      await waitFor(() => expect(dockStyle()).toBeNull());
+      expect(
+        (await fakeBrowser.storage.local.get('inPageSidebarOverlayHosts')).inPageSidebarOverlayHosts,
+      ).toEqual(['other.example', location.hostname]);
+      expect(host()).not.toBeNull();
+    });
   });
 
   it('is on the page when it starts open', async () => {

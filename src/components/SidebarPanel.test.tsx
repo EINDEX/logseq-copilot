@@ -291,6 +291,28 @@ describe('SidebarPanel', () => {
       expect(closeButton()).toBeNull();
     });
 
+    it('has no pin button without pin (the browser sidebar)', () => {
+      renderPanel();
+
+      expect(screen.queryByRole('button', { name: 'Pin' })).toBeNull();
+    });
+
+    it('has a pin button with pin, pressed while pinned', () => {
+      const onPinnedChange = vi.fn();
+      const { unmount } = renderPanel({ pin: { pinned: false, onPinnedChange } });
+      const pin = screen.getByRole('button', { name: 'Pin' });
+      expect(pin.getAttribute('aria-pressed')).toBe('false');
+
+      fireEvent.click(pin);
+      expect(onPinnedChange).toHaveBeenCalledWith(true);
+
+      unmount();
+      renderPanel({ pin: { pinned: true, onPinnedChange } });
+      expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('aria-pressed')).toBe('true');
+      fireEvent.click(screen.getByRole('button', { name: 'Pin' }));
+      expect(onPinnedChange).toHaveBeenLastCalledWith(false);
+    });
+
     it('has a close button with onClose, and calls it on click', () => {
       const onClose = vi.fn();
       renderPanel({ onClose });
