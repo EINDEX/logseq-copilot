@@ -3,6 +3,7 @@ import { useParams, Navigate } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useTemplate } from '@/hooks/use-templates';
+import { useTranslation } from '@/i18n/react';
 import { sendMessage } from '@/types/messaging';
 import { TemplateItemV1 } from '@/utils/storage';
 import { PageLayout, PageLoading, PageSection } from '../components/page-layout';
@@ -16,19 +17,19 @@ import type { EditorGraph } from '../components/template-editor-extensions';
 import { segmentClass, segmentedGroupClass } from '../components/segmented';
 
 const VARIABLES = [
-    ['{{title}}', 'Page title'],
-    ['{{url}}', 'Page URL'],
-    ['{{content}}', 'Selected content'],
-    ['{{note}}', 'Note typed before saving'],
-    ['{{date}}', 'Current date'],
-    ['{{time}}', 'Current time'],
-    ['{{dt}}', 'Date/time object'],
+    ['{{title}}', 'options.templates.edit.variables.title'],
+    ['{{url}}', 'options.templates.edit.variables.url'],
+    ['{{content}}', 'options.templates.edit.variables.content'],
+    ['{{note}}', 'options.templates.edit.variables.note'],
+    ['{{date}}', 'options.templates.edit.variables.date'],
+    ['{{time}}', 'options.templates.edit.variables.time'],
+    ['{{dt}}', 'options.templates.edit.variables.dt'],
 ] as const;
 
 const LOCATIONS = [
-    ['journal', 'Journal'],
-    ['currentPage', 'Current page'],
-    ['customPage', 'Page…'],
+    ['journal', 'options.templates.edit.location.journal'],
+    ['currentPage', 'options.templates.edit.location.currentPage'],
+    ['customPage', 'options.templates.edit.location.customPage'],
 ] as const;
 
 type TextField = 'name' | 'content' | 'clipNoteCustomPage';
@@ -73,6 +74,7 @@ const useEditorGraph = (): EditorGraph | undefined => {
 };
 
 const TemplateEditPage: React.FC = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const { template, updateTemplate, loading } = useTemplate(id!);
     const [draft, setDraft] = useState<Draft>({ fields: {} });
@@ -80,7 +82,9 @@ const TemplateEditPage: React.FC = () => {
     const graph = useEditorGraph();
 
     if (loading) {
-        return <PageLoading title="Edit Template">Loading template...</PageLoading>;
+        return <PageLoading title={t('options.templates.edit.title')}>
+                {t('options.templates.edit.loading')}
+            </PageLoading>;
     }
 
     if (!template) {
@@ -118,20 +122,20 @@ const TemplateEditPage: React.FC = () => {
     };
 
     return (
-        <PageLayout title="Edit Template">
+        <PageLayout title={t('options.templates.edit.title')}>
             <PageSection>
                 <div className="space-y-2">
-                    <Label htmlFor="template-name">Name</Label>
+                    <Label htmlFor="template-name">{t('options.templates.edit.name')}</Label>
                     <Input
                         id="template-name"
                         value={textValue('name')}
                         onChange={handleNameChange}
-                        placeholder="Template name"
+                        placeholder={t('options.templates.edit.namePlaceholder')}
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label id="save-to-label">Save to</Label>
+                    <Label id="save-to-label">{t('options.templates.edit.saveTo')}</Label>
                     <div className="flex flex-wrap items-center gap-2">
                         <div role="group" aria-labelledby="save-to-label" className={segmentedGroupClass}>
                             {LOCATIONS.map(([value, label]) => (
@@ -142,16 +146,16 @@ const TemplateEditPage: React.FC = () => {
                                     onClick={() => handleFieldUpdate('clipNoteLocation', value)}
                                     className={segmentClass(location === value)}
                                 >
-                                    {label}
+                                    {t(label)}
                                 </button>
                             ))}
                         </div>
                         {location === 'customPage' && (
                             <Input
-                                aria-label="Page name"
+                                aria-label={t('options.templates.edit.pageName')}
                                 value={textValue('clipNoteCustomPage')}
                                 onChange={handleCustomPageChange}
-                                placeholder="Page name"
+                                placeholder={t('options.templates.edit.pageName')}
                                 className="h-8 w-56"
                             />
                         )}
@@ -159,7 +163,7 @@ const TemplateEditPage: React.FC = () => {
                 </div>
             </PageSection>
 
-            <PageSection title="Page rules">
+            <PageSection title={t('options.templates.edit.rulesTitle')}>
                 <RulesField
                     id="template-rules"
                     value={template.rules}
@@ -181,7 +185,7 @@ const TemplateEditPage: React.FC = () => {
                         <button
                             key={name}
                             type="button"
-                            title={description}
+                            title={t(description)}
                             onClick={() => insertVariable(name)}
                             className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
                         >
@@ -194,7 +198,7 @@ const TemplateEditPage: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        Liquid syntax ↗
+                        {t('options.templates.edit.liquidSyntax')}
                     </a>
                 </div>
 

@@ -15,6 +15,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTranslation } from '@/i18n/react';
 import { cn } from '@/lib/utils';
 import { countRoots } from '@/utils/clip-template';
 import { isLossless, toCanonical, toStored } from '@/utils/outline-doc';
@@ -60,6 +61,7 @@ export const TemplateEditor = forwardRef<
   TemplateEditorHandle,
   TemplateEditorProps
 >(({ value, onChange, graph = NO_GRAPH }, ref) => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>(() =>
     isLossless(value) ? 'outline' : 'text',
   );
@@ -196,7 +198,7 @@ export const TemplateEditor = forwardRef<
             {button}
           </span>
         </TooltipTrigger>
-        <TooltipContent>Not a plain outline</TooltipContent>
+        <TooltipContent>{t('options.templates.editor.notPlainOutline')}</TooltipContent>
       </Tooltip>
     );
   };
@@ -204,18 +206,20 @@ export const TemplateEditor = forwardRef<
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <Label id="template-content-label">Content</Label>
+        <Label id="template-content-label">
+          {t('options.templates.editor.content')}
+        </Label>
         <div
           role="group"
-          aria-label="Editor mode"
+          aria-label={t('options.templates.editor.modeLabel')}
           className={segmentedGroupClass}
         >
           {segment(
             'outline',
-            'Outline',
+            t('options.templates.editor.outline'),
             (!canOutline || tooManyRoots) && mode !== 'outline',
           )}
-          {segment('text', 'Text')}
+          {segment('text', t('options.templates.editor.text'))}
         </div>
       </div>
       <div
@@ -230,7 +234,7 @@ export const TemplateEditor = forwardRef<
       />
       {tooManyRoots && (
         <p role="alert" className="text-sm text-destructive">
-          One top-level block only
+          {t('options.templates.editor.oneTopLevelBlock')}
         </p>
       )}
     </div>

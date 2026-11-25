@@ -284,6 +284,54 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('options template pages in each UI language', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    const nested = {
+      id: 'nested',
+      name: 'Task',
+      content: '- TODO [{{title}}]({{url}})\n  - {{content}}',
+      clipNoteLocation: 'journal',
+      clipNoteCustomPage: '',
+      rules: ['github.com', '*.example.com'],
+    };
+    const languages = [
+      { language: 'en', none: 'Create template', edit: 'Edit Template', content: 'Content' },
+      { language: 'zh-CN', none: '创建模板', edit: '编辑模板', content: '内容' },
+      { language: 'zh-TW', none: '建立範本', edit: '編輯範本', content: '內容' },
+    ];
+    for (const { language, none, edit, content } of languages) {
+      await ext.setStorage({ uiLanguage: language });
+      for (const scheme of SCHEMES) {
+        await setScheme(page, scheme);
+
+        await ext.setStorage({ templates: [] });
+        await page.goto('about:blank');
+        await page.goto(ext.url('options.html#/templates'));
+        await expect(page.getByRole('button', { name: none })).toBeVisible();
+        await shoot(page, `options-templates-empty-${language}`, scheme);
+
+        await ext.setStorage({ templates: [nested] });
+        await page.goto('about:blank');
+        await page.goto(ext.url('options.html#/template/nested'));
+        await expect(page.getByRole('heading', { name: edit })).toBeVisible();
+        await expect(page.getByText(content, { exact: true })).toBeVisible();
+        const editor = page.locator('#template-content');
+        await expect(editor.locator('.cm-tpl-chip[data-variable="content"][data-split="true"]')).toBeVisible();
+        await shoot(page, `options-template-edit-${language}`, scheme);
+
+        // A new block, and the variable list open.
+        await editor.click();
+        await page.keyboard.press('Enter');
+        await page.keyboard.type('{{');
+        await expect(page.locator('.cm-tooltip-autocomplete')).toBeVisible();
+        await page.waitForTimeout(200);
+        await page.screenshot({ path: file(`options-template-edit-autocomplete-${language}`, scheme), caret: 'hide' });
+        await page.keyboard.press('Escape');
+      }
+    }
+  });
+
   test('template editor: outline, autocomplete and text mode, and the new template presets', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();

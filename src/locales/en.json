@@ -246,6 +246,49 @@
       "title": "Settings"
     },
     "templates": {
+      "edit": {
+        "liquidSyntax": "Liquid syntax ↗",
+        "loading": "Loading template...",
+        "location": {
+          "currentPage": "Current page",
+          "customPage": "Page…",
+          "journal": "Journal"
+        },
+        "name": "Name",
+        "namePlaceholder": "Template name",
+        "pageName": "Page name",
+        "rulesTitle": "Page rules",
+        "saveTo": "Save to",
+        "title": "Edit Template",
+        "variables": {
+          "content": "Selected content",
+          "date": "Current date",
+          "dt": "Date/time object",
+          "note": "Note typed before saving",
+          "time": "Current time",
+          "title": "Page title",
+          "url": "Page URL"
+        }
+      },
+      "editor": {
+        "addProperty": "+ Property",
+        "addPropertyLabel": "Add property",
+        "content": "Content",
+        "modeLabel": "Editor mode",
+        "newProperty": "New {{name}}",
+        "newTag": "New #{{name}}",
+        "notPlainOutline": "Not a plain outline",
+        "oneTopLevelBlock": "One top-level block only",
+        "outline": "Outline",
+        "text": "Text",
+        "typeBraces": "Type {{braces}} to add a variable"
+      },
+      "index": {
+        "create": "Create template",
+        "empty": "You have no clip templates yet. Create one to start clipping.",
+        "loading": "Loading templates...",
+        "title": "Templates"
+      },
       "pattern": {
         "doubleStarEnd": "** only at the end",
         "empty": "Empty pattern",
@@ -256,6 +299,19 @@
         "noSpaces": "No spaces",
         "wildcardFirstLabel": "* only as the first label, as *.",
         "wildcardWholeSegment": "* must be a whole segment"
+      },
+      "preview": {
+        "noBlocks": "No blocks",
+        "pageOnly": "Page only",
+        "sampleClip": "Sample clip",
+        "title": "Preview",
+        "withSelection": "With selection"
+      },
+      "rules": {
+        "add": "Add",
+        "addLabel": "Add pattern",
+        "patterns": "Patterns",
+        "remove": "Remove {{rule}}"
       }
     }
   },

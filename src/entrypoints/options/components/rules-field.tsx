@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from '@/i18n/react';
 import { checkTemplatePattern } from '@/utils/template-rules';
 
 interface RulesFieldProps {
@@ -11,6 +12,7 @@ interface RulesFieldProps {
   onChange: (rules: string[] | undefined) => void;
 }
 
+// Examples of URL patterns: values, not words.
 const PLACEHOLDER = 'github.com, *.example.com, github.com/*/issues/*';
 
 /**
@@ -18,6 +20,7 @@ const PLACEHOLDER = 'github.com, *.example.com, github.com/*/issues/*';
  * and a field that adds one once it is valid (checked as it is typed).
  */
 export const RulesField: React.FC<RulesFieldProps> = ({ id, value = [], onChange }) => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const typed = text.trim();
   const check = typed ? checkTemplatePattern(typed) : null;
@@ -37,7 +40,7 @@ export const RulesField: React.FC<RulesFieldProps> = ({ id, value = [], onChange
   return (
     <div className="space-y-2">
       {value.length > 0 && (
-        <ul className="space-y-1.5" aria-label="Patterns">
+        <ul className="space-y-1.5" aria-label={t('options.templates.rules.patterns')}>
           {value.map((rule) => (
             <li
               key={rule}
@@ -46,7 +49,7 @@ export const RulesField: React.FC<RulesFieldProps> = ({ id, value = [], onChange
               <span className="truncate">{rule}</span>
               <button
                 type="button"
-                aria-label={`Remove ${rule}`}
+                aria-label={t('options.templates.rules.remove', { rule })}
                 onClick={() => remove(rule)}
                 className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
               >
@@ -76,10 +79,10 @@ export const RulesField: React.FC<RulesFieldProps> = ({ id, value = [], onChange
           variant="outline"
           onClick={add}
           disabled={!typed || !!error}
-          aria-label="Add pattern"
+          aria-label={t('options.templates.rules.addLabel')}
         >
           <Plus className="size-4" />
-          Add
+          {t('options.templates.rules.add')}
         </Button>
       </div>
       {error && (

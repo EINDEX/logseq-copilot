@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/i18n/react';
 import { renderClip, usesNote, type ClipBlock } from '@/utils/clip-template';
 
 /** What a selection looks like after turndown: two paragraphs and a nested list. */
@@ -48,6 +49,7 @@ const Blocks: React.FC<{ blocks: ClipBlock[] }> = ({ blocks }) => (
  * template Liquid cannot render shows its error instead.
  */
 export const ClipPreview: React.FC<{ template: string }> = ({ template }) => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('selection');
   const [time] = useState(() => new Date());
 
@@ -73,12 +75,12 @@ export const ClipPreview: React.FC<{ template: string }> = ({ template }) => {
   return (
     <div className="space-y-2" data-testid="clip-preview">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">Preview</h3>
-        <div className="flex gap-1" role="group" aria-label="Sample clip">
+        <h3 className="text-sm font-medium">{t('options.templates.preview.title')}</h3>
+        <div className="flex gap-1" role="group" aria-label={t('options.templates.preview.sampleClip')}>
           {(
             [
-              ['selection', 'With selection'],
-              ['page', 'Page only'],
+              ['selection', 'options.templates.preview.withSelection'],
+              ['page', 'options.templates.preview.pageOnly'],
             ] as const
           ).map(([value, label]) => (
             <Button
@@ -89,7 +91,7 @@ export const ClipPreview: React.FC<{ template: string }> = ({ template }) => {
               aria-pressed={mode === value}
               onClick={() => setMode(value)}
             >
-              {label}
+              {t(label)}
             </Button>
           ))}
         </div>
@@ -100,7 +102,7 @@ export const ClipPreview: React.FC<{ template: string }> = ({ template }) => {
             {result.error.split('\n')[0]}
           </p>
         ) : result.blocks.length === 0 ? (
-          <p className="text-muted-foreground">No blocks</p>
+          <p className="text-muted-foreground">{t('options.templates.preview.noBlocks')}</p>
         ) : (
           <Blocks blocks={result.blocks} />
         )}

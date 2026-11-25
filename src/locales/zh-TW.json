@@ -246,6 +246,49 @@
       "title": "設定"
     },
     "templates": {
+      "edit": {
+        "liquidSyntax": "Liquid 語法 ↗",
+        "loading": "正在載入範本…",
+        "location": {
+          "currentPage": "目前頁面",
+          "customPage": "指定頁面…",
+          "journal": "日誌"
+        },
+        "name": "名稱",
+        "namePlaceholder": "範本名稱",
+        "pageName": "頁面名稱",
+        "rulesTitle": "網頁規則",
+        "saveTo": "儲存到",
+        "title": "編輯範本",
+        "variables": {
+          "content": "選取的內容",
+          "date": "目前日期",
+          "dt": "日期時間物件",
+          "note": "儲存前輸入的備註",
+          "time": "目前時間",
+          "title": "網頁標題",
+          "url": "網頁網址"
+        }
+      },
+      "editor": {
+        "addProperty": "+ 屬性",
+        "addPropertyLabel": "新增屬性",
+        "content": "內容",
+        "modeLabel": "編輯器模式",
+        "newProperty": "新增 {{name}}",
+        "newTag": "新增 #{{name}}",
+        "notPlainOutline": "不是純大綱",
+        "oneTopLevelBlock": "只能有一個頂層區塊",
+        "outline": "大綱",
+        "text": "文字",
+        "typeBraces": "輸入 {{braces}} 新增變數"
+      },
+      "index": {
+        "create": "建立範本",
+        "empty": "你還沒有剪存範本。建立一個就能開始剪存。",
+        "loading": "正在載入範本…",
+        "title": "範本"
+      },
       "pattern": {
         "doubleStarEnd": "** 只能放在結尾",
         "empty": "模式為空",
@@ -256,6 +299,19 @@
         "noSpaces": "不能包含空格",
         "wildcardFirstLabel": "* 只能放在第一段，寫作「*.」",
         "wildcardWholeSegment": "* 必須單獨佔一段"
+      },
+      "preview": {
+        "noBlocks": "沒有區塊",
+        "pageOnly": "僅網頁",
+        "sampleClip": "範例剪存",
+        "title": "預覽",
+        "withSelection": "有選取內容"
+      },
+      "rules": {
+        "add": "新增",
+        "addLabel": "新增網址模式",
+        "patterns": "網址模式",
+        "remove": "移除 {{rule}}"
       }
     }
   },

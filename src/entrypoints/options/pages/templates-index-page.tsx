@@ -3,16 +3,20 @@ import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_TEMPLATE_CONTENT } from '@/utils/default-templates';
 import { useTemplates } from '@/hooks/use-templates';
+import { useTranslation } from '@/i18n/react';
 import { PageLayout, PageLoading } from '../components/page-layout';
 
 // `/templates` has no page or sidebar entry of its own: a template link that
 // no longer resolves lands here. It sends the user to the first template's
 // editor, or offers to create one when there are none.
 const TemplatesIndexPage: React.FC = () => {
+    const { t } = useTranslation();
     const { templates, loading, addTemplate } = useTemplates();
 
     if (loading) {
-        return <PageLoading title="Templates">Loading templates...</PageLoading>;
+        return <PageLoading title={t('options.templates.index.title')}>
+                {t('options.templates.index.loading')}
+            </PageLoading>;
     }
 
     if (templates.length > 0) {
@@ -30,11 +34,11 @@ const TemplatesIndexPage: React.FC = () => {
 
     return (
         <PageLayout
-            title="Templates"
-            description="You have no clip templates yet. Create one to start clipping."
+            title={t('options.templates.index.title')}
+            description={t('options.templates.index.empty')}
         >
             <div>
-                <Button onClick={handleCreate}>Create template</Button>
+                <Button onClick={handleCreate}>{t('options.templates.index.create')}</Button>
             </div>
         </PageLayout>
     );
