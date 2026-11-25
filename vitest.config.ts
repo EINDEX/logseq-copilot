@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [WxtVitest()],
   test: {
     environment: 'happy-dom',
+    // English UI strings in every test (src/test/setup-i18n.ts).
+    setupFiles: ['src/test/setup-i18n.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'tests/pipeline/**/*.test.mjs'],
     exclude: [
       'tests/integration/**',

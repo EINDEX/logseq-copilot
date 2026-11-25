@@ -1,0 +1,34 @@
+{
+  "background": {
+    "contextMenu": {
+      "clipImage": "Clip image",
+      "clipPage": "Clip page link",
+      "clipSelection": "Clip \"%s\"",
+      "openSidebar": "Open sidebar",
+      "untitledTemplate": "Untitled"
+    }
+  },
+  "content": {
+    "recall": {
+      "checkConnection": "Check the connection",
+      "connectionFailed": "Unable to connect to Logseq.",
+      "noNotes": "No related notes in Logseq"
+    }
+  },
+  "options": {
+    "settings": {
+      "description": "Configure your Logseq Copilot extension settings.",
+      "language": {
+        "auto": "Auto",
+        "label": "Language"
+      },
+      "title": "Settings"
+    }
+  },
+  "sidebar": {
+    "empty": {
+      "nothingYet": "Nothing for this page yet",
+      "unavailable": "Not available on this page"
+    }
+  }
+}

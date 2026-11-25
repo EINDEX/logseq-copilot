@@ -222,6 +222,9 @@ async function launchChromium(extensionPath: string, userDataDir: string, record
     args: [
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
+      // The extension UI follows the browser's language (uiLanguage: auto),
+      // and the specs read the English copy.
+      '--lang=en-US',
     ],
   });
 }
@@ -251,6 +254,8 @@ async function launchFirefox(userDataDir: string) {
       // Keep the event page alive for the whole test: ext.evaluate() talks
       // to it (default idle timeout is 30 s).
       'extensions.background.idle.timeout': 3_600_000,
+      // English UI, as in Chromium above.
+      'intl.locale.requested': 'en-US',
     },
   });
   return { context, port };

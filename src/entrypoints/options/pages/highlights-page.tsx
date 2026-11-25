@@ -13,8 +13,11 @@ import { HighlightService } from '@/utils/highlight-service';
 import { highlightText, type HighlightData, type HighlightQueryOptions } from '@/types/highlight';
 import { HighlightImage } from '@/components/HighlightImage';
 import log from '@/utils/logger';
+import { intlLocale } from '@/i18n/language';
+import { useTranslation } from '@/i18n/react';
 
 export function HighlightsPage() {
+    const { i18n } = useTranslation();
     const [highlights, setHighlights] = useState<HighlightData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -141,7 +144,7 @@ export function HighlightsPage() {
     };
 
     const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString('en-US', {
+        return new Date(timestamp).toLocaleDateString(intlLocale(i18n.language), {
             year: 'numeric',
             month: 'short',
             day: 'numeric',

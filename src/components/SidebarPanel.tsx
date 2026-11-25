@@ -18,6 +18,7 @@ import type { PageRecallState } from '@/hooks/use-page-recall';
 import type { HighlightData } from '@/types/highlight';
 import type { LogseqSearchResult } from '@/types/logseqBlock';
 import { graphUrl } from '@/utils/logseq-url';
+import { useTranslation } from '@/i18n/react';
 
 /** Whether the list of a recall or search result would show anything. */
 const hasResults = (result: LogseqSearchResult | null): result is LogseqSearchResult =>
@@ -277,6 +278,7 @@ export function SidebarPanel({
   onOpenSettings,
   onClose,
 }: SidebarPanelProps) {
+  const { t } = useTranslation();
   // State, not a ref: the menus need the element once it is there.
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const splitClips = templates.length >= 2;
@@ -501,7 +503,7 @@ export function SidebarPanel({
 
         {!showHighlights && !showRecall && settled && (
           <EmptyState>
-            {unavailable ? 'Not available on this page' : 'Nothing for this page yet'}
+            {unavailable ? t('sidebar.empty.unavailable') : t('sidebar.empty.nothingYet')}
           </EmptyState>
         )}
       </main>

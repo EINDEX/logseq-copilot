@@ -1,0 +1,18 @@
+{
+  "commandClip": {
+    "message": "Make Clip note",
+    "description": "Keyboard shortcut command: clip the selection, or the page link, into Logseq."
+  },
+  "commandClipTask": {
+    "message": "Save page as task",
+    "description": "Keyboard shortcut command: clip the page, or the selection, with the Task template."
+  },
+  "commandOpenSidebar": {
+    "message": "Open sidebar",
+    "description": "Keyboard shortcut command: open the sidebar."
+  },
+  "extDescription": {
+    "message": "Your Logseq notes next to search results and in a sidebar for the page you are on. Clip text and links into your graph.",
+    "description": "Extension description in the store and the browser's extension list. At most 132 characters."
+  }
+}

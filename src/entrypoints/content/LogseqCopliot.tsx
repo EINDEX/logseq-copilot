@@ -1,5 +1,4 @@
 import React from 'react';
-import { browser } from 'wxt/browser';
 import { RecallCard } from '@/components/recall/RecallCard';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { sendMessage } from '@/types/messaging';
@@ -7,6 +6,8 @@ import type { RecallResult } from '@/types/recall';
 import { requestRecall } from '@/utils/recall-client';
 import { normalizeQuery } from '@/utils/recall-query';
 import log from '@/utils/logger';
+import { intlLocale } from '@/i18n/language';
+import { useTranslation } from '@/i18n/react';
 import '@/assets/globals.css';
 import './sidebar.css';
 
@@ -29,15 +30,6 @@ type LoadingState = 'loading' | 'success' | 'error';
 // Minimum delay between URL-change re-searches.
 const RESEARCH_DEBOUNCE_MS = 500;
 
-/** Language of the browser UI, for relative times. */
-const uiLocale = (): string | undefined => {
-  try {
-    return browser.i18n.getUILanguage() || navigator.language;
-  } catch {
-    return navigator.language;
-  }
-};
-
 const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   const [state, setState] = React.useState<LoadingState>('loading');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
@@ -45,7 +37,9 @@ const LogseqCopliotContent = ({ query, hostFont }: LogseqCopliotProps) => {
   // Bumped on every search, so a new answer starts collapsed.
   const [generation, setGeneration] = React.useState(0);
   const terms = React.useMemo(() => normalizeQuery(query).terms, [query]);
-  const locale = React.useMemo(uiLocale, []);
+  // The UI language, for relative times.
+  const { i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
 
   React.useEffect(() => {
     let lastSearchedUrl = '';

@@ -1,0 +1,14 @@
+{
+  "commandClip": {
+    "message": "创建剪藏笔记"
+  },
+  "commandClipTask": {
+    "message": "将页面保存为任务"
+  },
+  "commandOpenSidebar": {
+    "message": "打开侧边栏"
+  },
+  "extDescription": {
+    "message": "在搜索结果旁和当前页面的侧边栏中显示你的 Logseq 笔记。把文字和链接剪藏到你的图谱。"
+  }
+}

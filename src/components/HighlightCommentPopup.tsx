@@ -14,6 +14,8 @@ import { zIndex } from '@/utils/z-index';
 import log from '@/utils/logger';
 import { sendMessage } from '@/types/messaging';
 import { clipErrorMessage } from '@/utils/clip-feedback';
+import { intlLocale } from '@/i18n/language';
+import { useTranslation } from '@/i18n/react';
 
 interface HighlightCommentPopupProps {
     highlightData: HighlightData;
@@ -30,6 +32,7 @@ export function HighlightCommentPopup({
     onUpdate,
     onDelete
 }: HighlightCommentPopupProps) {
+    const { i18n } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [comment, setComment] = useState(highlightData.note || '');
     const [isSaving, setIsSaving] = useState(false);
@@ -159,7 +162,7 @@ export function HighlightCommentPopup({
     };
 
     const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString('en-US', {
+        return new Date(timestamp).toLocaleDateString(intlLocale(i18n.language), {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',

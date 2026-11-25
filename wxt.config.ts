@@ -34,8 +34,10 @@ export default defineConfig({
     version: version,
     ...(previewVersionName && { version_name: previewVersionName }),
     name,
-    description:
-      'Your Logseq notes next to search results and in a sidebar for the page you are on. Clip text and links into your graph.',
+    // public/_locales: the browser picks the language of its own UI, not the
+    // UI language setting of the extension (src/locales/README.md).
+    default_locale: 'en',
+    description: '__MSG_extDescription__',
     // Firefox requires a string here; Chromium browsers take { email }.
     author:
       browser === 'firefox'
@@ -55,18 +57,18 @@ export default defineConfig({
         suggested_key: {
           default: 'Ctrl+Shift+U',
         },
-        description: 'Make Clip note',
+        description: '__MSG_commandClip__',
       },
       // No default shortcut: any combination can clash with the browser's own
       // or another extension's. Users bind their own in the browser's shortcut
       // settings.
       'open-sidebar': {
-        description: 'Open sidebar',
+        description: '__MSG_commandOpenSidebar__',
       },
       // No default shortcut, for the same reason. Saves the page, or the
       // selection, as a task (the Task template).
       'clip-task': {
-        description: 'Save page as task',
+        description: '__MSG_commandClipTask__',
       },
     },
     // The toolbar button opens the sidebar (src/entrypoints/background). WXT

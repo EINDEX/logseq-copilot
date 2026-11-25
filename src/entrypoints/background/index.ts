@@ -12,10 +12,12 @@ import { SearchEngineConfigMigration } from '@/utils/migration';
 import { inPageSidebarOpenItem, templates } from '@/utils/storage';
 import { TASK_TEMPLATE_ID } from '@/utils/default-templates';
 import {
+  followUiLanguage,
   OPEN_SIDEBAR_MENU_ID,
   parseClipMenuId,
   rebuildContextMenus,
 } from './context-menus';
+import { initI18n } from '@/i18n/core';
 import { onMessage, sendMessage } from '@/types/messaging';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import type { RecallResult } from '@/types/recall';
@@ -51,6 +53,9 @@ export default defineBackground({
 
   main() {
     // Executed when background is loaded, CANNOT BE ASYNC
+
+    // UI strings (context menu titles), in the stored UI language once read.
+    void initI18n();
 
     // Register message handlers using @webext-core/messaging
     onMessage('logseq:search', async ({ data }) => {
@@ -297,6 +302,8 @@ export default defineBackground({
     // removes them all first, so no id is created twice (#78). Never at every
     // service worker start: it is no event of the menus.
     templates.watch(() => void rebuildContextMenus());
+    // The menu titles are in the UI language, and follow it.
+    followUiLanguage();
 
     // Call sidebar.open / sidebar.toggle first in the handler of a click, menu
     // item or command: the browser opens its sidebar only while the user

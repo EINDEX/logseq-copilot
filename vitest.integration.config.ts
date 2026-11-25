@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     include: ['tests/integration/**/*.test.ts'],
     globalSetup: ['tests/integration/global-setup.ts'],
+    // In English, like the unit tests: assertions read the English copy.
+    setupFiles: ['src/test/setup-i18n.ts'],
     testTimeout: 60_000,
     hookTimeout: 300_000,
     // One Logseq instance is shared, keep tests sequential.

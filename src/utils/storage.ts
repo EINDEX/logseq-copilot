@@ -632,3 +632,7 @@ export const storageItems = {
   clipNoteCustomPage: clipNoteCustomPageItem,
   clipNoteTemplate: clipNoteTemplateItem,
 } as const;
+
+// The UI language setting, in a module of its own: i18n starts in every
+// context without loading (and migrating) the items above.
+export { uiLanguageItem } from '@/i18n/setting';

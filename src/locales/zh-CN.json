@@ -1,0 +1,34 @@
+{
+  "background": {
+    "contextMenu": {
+      "clipImage": "剪藏图片",
+      "clipPage": "剪藏页面链接",
+      "clipSelection": "剪藏“%s”",
+      "openSidebar": "打开侧边栏",
+      "untitledTemplate": "未命名"
+    }
+  },
+  "content": {
+    "recall": {
+      "checkConnection": "检查连接",
+      "connectionFailed": "无法连接到 Logseq。",
+      "noNotes": "Logseq 中没有相关笔记"
+    }
+  },
+  "options": {
+    "settings": {
+      "description": "管理 Logseq Copilot 扩展的各项设置。",
+      "language": {
+        "auto": "自动",
+        "label": "语言"
+      },
+      "title": "设置"
+    }
+  },
+  "sidebar": {
+    "empty": {
+      "nothingYet": "这个页面还没有内容",
+      "unavailable": "无法在此页面使用"
+    }
+  }
+}
