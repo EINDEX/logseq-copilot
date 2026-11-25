@@ -12,13 +12,14 @@ import { RecallRuleConfig } from '@/utils/storage';
 import { RecallRuleProcessor } from '@/utils/recall-rule-processor';
 import { broadestScopePrefix } from '@/utils/recall-scope';
 import { PageSection } from './page-layout';
+import { useTranslation } from '@/i18n/react';
 
 // "This page" saves no depth.
 const SCOPE_OPTIONS = [
-    { value: 'page', label: 'This page' },
-    { value: '1', label: '1 level' },
-    { value: '2', label: '2 levels' },
-    { value: '3', label: '3 levels' },
+    { value: 'page', depth: 0 },
+    { value: '1', depth: 1 },
+    { value: '2', depth: 2 },
+    { value: '3', depth: 3 },
 ];
 
 interface RecallRuleFormProps {
@@ -32,6 +33,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
     onSave,
     onCancel
 }) => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState<Omit<RecallRuleConfig, 'id'>>({
         name: '',
         enabled: true,
@@ -173,7 +175,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
 
     const help = (...lines: string[]) => (
         <Tooltip>
-            <TooltipTrigger type="button" aria-label="Help">
+            <TooltipTrigger type="button" aria-label={t('options.recallRules.form.help')}>
                 <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
             </TooltipTrigger>
             <TooltipContent>
@@ -195,7 +197,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             onClick={() => handleArrayRemove(parent, field, index)}
                             disabled={disabled}
                             className="rounded-full p-0.5 hover:bg-foreground/10 disabled:pointer-events-none"
-                            aria-label={`Remove ${item}`}
+                            aria-label={t('options.recallRules.form.remove', { item })}
                         >
                             <X className="h-3 w-3" />
                         </button>
@@ -230,7 +232,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         }
                     }}
                 />
-                <Button type="button" variant="outline" size="sm" className="h-9 w-9 shrink-0 p-0" onClick={add} disabled={disabled} aria-label="Add">
+                <Button type="button" variant="outline" size="sm" className="h-9 w-9 shrink-0 p-0" onClick={add} disabled={disabled} aria-label={t('options.recallRules.form.add')}>
                     <Plus className="h-4 w-4" />
                 </Button>
             </div>
@@ -239,22 +241,22 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            <PageSection title="Basics">
+            <PageSection title={t('options.recallRules.form.basics')}>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                        <Label htmlFor="name">Rule name *</Label>
+                        <Label htmlFor="name">{t('options.recallRules.form.name.label')}</Label>
                         <Input
                             id="name"
                             value={formData.name}
                             onChange={(e) => handleInputChange('name', e.target.value)}
-                            placeholder="e.g. GitHub project pages"
+                            placeholder={t('options.recallRules.form.name.placeholder')}
                             required
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="enabled" className="flex items-center gap-2">
-                            Enabled
-                            {help('When on, the rule applies on matching websites.')}
+                            {t('options.recallRules.form.enabled.label')}
+                            {help(t('options.recallRules.form.enabled.help'))}
                         </Label>
                         <Switch
                             id="enabled"
@@ -265,12 +267,12 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">{t('options.recallRules.form.description.label')}</Label>
                     <Textarea
                         id="description"
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
-                        placeholder="What this rule is for"
+                        placeholder={t('options.recallRules.form.description.placeholder')}
                         rows={2}
                     />
                 </div>
@@ -278,25 +280,28 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                         <Label htmlFor="urlPattern" className="flex items-center gap-2">
-                            URL pattern *
-                            {help('A regular expression matched against the page URL.', 'e.g. github\\.com.*\\/[^\\/]+\\/[^\\/]+$')}
+                            {t('options.recallRules.form.urlPattern.label')}
+                            {help(
+                                t('options.recallRules.form.urlPattern.help'),
+                                t('options.recallRules.form.urlPattern.example', { example: 'github\\.com.*\\/[^\\/]+\\/[^\\/]+$' }),
+                            )}
                         </Label>
                         <Input
                             id="urlPattern"
                             value={formData.urlPattern}
                             onChange={(e) => handleInputChange('urlPattern', e.target.value)}
-                            placeholder="e.g. github\.com"
+                            placeholder={t('options.recallRules.form.urlPattern.placeholder', { example: 'github\.com' })}
                             required
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="testUrl" className="text-muted-foreground">Test the URL pattern</Label>
+                        <Label htmlFor="testUrl" className="text-muted-foreground">{t('options.recallRules.form.testUrl.label')}</Label>
                         <Input
                             id="testUrl"
                             value={testUrl}
                             onChange={(e) => setTestUrl(e.target.value)}
-                            placeholder="Enter a URL to test..."
+                            placeholder={t('options.recallRules.testUrl.placeholder')}
                             className={
                                 testUrl && formData.urlPattern
                                     ? urlPatternResult === true
@@ -310,15 +315,17 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         {testUrl && formData.urlPattern && (
                             <p className={`text-sm ${urlPatternResult ? 'text-primary' : 'text-destructive'}`}>
                                 {urlPatternResult
-                                    ? `✓ Matches${recallPrefix ? ` · ${recallPrefix}` : ''}`
-                                    : '✗ No match'}
+                                    ? recallPrefix
+                                        ? t('options.recallRules.form.testUrl.matchesPrefix', { prefix: recallPrefix })
+                                        : t('options.recallRules.form.testUrl.matches')
+                                    : t('options.recallRules.form.testUrl.noMatch')}
                             </p>
                         )}
                     </div>
                 </div>
             </PageSection>
 
-            <PageSection title="Query processing" description="How the page URL is turned into a search.">
+            <PageSection title={t('options.recallRules.form.queryProcessing.title')} description={t('options.recallRules.form.queryProcessing.description')}>
                 <div className="flex flex-wrap gap-x-8 gap-y-3">
                     <div className="flex items-center gap-2">
                         <Switch
@@ -329,8 +336,8 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             }
                         />
                         <Label htmlFor="ignoreHashFragments" className="flex items-center gap-2">
-                            Ignore hash fragment
-                            {help('Removes everything after # in the URL.', 'Useful for single-page apps with hash routing.')}
+                            {t('options.recallRules.form.ignoreHash.label')}
+                            {help(t('options.recallRules.form.ignoreHash.help'), t('options.recallRules.form.ignoreHash.helpSpa'))}
                         </Label>
                     </div>
                     <div className="flex items-center gap-2">
@@ -342,19 +349,19 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             }
                         />
                         <Label htmlFor="ignoreQueryParams" className="flex items-center gap-2">
-                            Ignore query parameters
-                            {help('Removes everything after ? in the URL.')}
+                            {t('options.recallRules.form.ignoreQuery.label')}
+                            {help(t('options.recallRules.form.ignoreQuery.help'))}
                         </Label>
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                        Recall scope
-                        {help('Also recalls notes about parent paths of the page.', 'e.g. 2 levels on GitHub: the whole repository.')}
+                        {t('options.recallRules.form.scope.label')}
+                        {help(t('options.recallRules.form.scope.help'), t('options.recallRules.form.scope.helpExample'))}
                     </Label>
                     <RadioGroup
-                        aria-label="Recall scope"
+                        aria-label={t('options.recallRules.form.scope.label')}
                         value={formData.queryProcessing.scopeDepth ? String(formData.queryProcessing.scopeDepth) : 'page'}
                         onValueChange={(value) =>
                             handleNestedChange('queryProcessing', 'scopeDepth', value === 'page' ? undefined : Number(value))
@@ -364,7 +371,11 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         {SCOPE_OPTIONS.map((option) => (
                             <div key={option.value} className="flex items-center gap-2">
                                 <RadioGroupItem value={option.value} id={`scope-${option.value}`} />
-                                <Label htmlFor={`scope-${option.value}`}>{option.label}</Label>
+                                <Label htmlFor={`scope-${option.value}`}>
+                                    {option.depth
+                                        ? t('options.recallRules.form.scope.levels', { count: option.depth })
+                                        : t('options.recallRules.form.scope.page')}
+                                </Label>
                             </div>
                         ))}
                     </RadioGroup>
@@ -373,40 +384,40 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                         <Label className={`flex items-center gap-2${ignoreQuery ? ' text-muted-foreground' : ''}`}>
-                            Keep only these query parameters
-                            {help('Pages that differ in other parameters count as the same page.', 'e.g. keep "v" on YouTube.')}
+                            {t('options.recallRules.form.keepParams.label')}
+                            {help(t('options.recallRules.form.keepParams.help'), t('options.recallRules.form.keepParams.helpExample'))}
                         </Label>
-                        {listInput(newKeepParam, setNewKeepParam, 'queryProcessing', 'keepQueryParams', 'Parameter name', ignoreQuery)}
+                        {listInput(newKeepParam, setNewKeepParam, 'queryProcessing', 'keepQueryParams', t('options.recallRules.form.keepParams.placeholder'), ignoreQuery)}
                         {chips(formData.queryProcessing.keepQueryParams || [], 'queryProcessing', 'keepQueryParams', ignoreQuery)}
                     </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
-                            Exclude keywords
-                            {help('Results that contain these keywords are filtered out.')}
+                            {t('options.recallRules.form.excludeKeywords.label')}
+                            {help(t('options.recallRules.form.excludeKeywords.help'))}
                         </Label>
-                        {listInput(newExcludeKeyword, setNewExcludeKeyword, 'queryProcessing', 'excludeKeywords', 'Keyword to exclude')}
+                        {listInput(newExcludeKeyword, setNewExcludeKeyword, 'queryProcessing', 'excludeKeywords', t('options.recallRules.form.excludeKeywords.placeholder'))}
                         {chips(formData.queryProcessing.excludeKeywords, 'queryProcessing', 'excludeKeywords')}
                     </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
-                            Prefer keywords
-                            {help('Results that contain these keywords are shown first.')}
+                            {t('options.recallRules.form.preferKeywords.label')}
+                            {help(t('options.recallRules.form.preferKeywords.help'))}
                         </Label>
-                        {listInput(newIncludeKeyword, setNewIncludeKeyword, 'queryProcessing', 'includeKeywords', 'Keyword to prefer')}
+                        {listInput(newIncludeKeyword, setNewIncludeKeyword, 'queryProcessing', 'includeKeywords', t('options.recallRules.form.preferKeywords.placeholder'))}
                         {chips(formData.queryProcessing.includeKeywords, 'queryProcessing', 'includeKeywords')}
                     </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
-                            Ignore path segments
-                            {help('Ignores these segments of the URL path.', 'e.g. ignore "files" on GitHub.')}
+                            {t('options.recallRules.form.ignorePath.label')}
+                            {help(t('options.recallRules.form.ignorePath.help'), t('options.recallRules.form.ignorePath.helpExample'))}
                         </Label>
-                        {listInput(newPathSegment, setNewPathSegment, 'queryProcessing', 'ignorePathSegments', 'Path segment to ignore')}
+                        {listInput(newPathSegment, setNewPathSegment, 'queryProcessing', 'ignorePathSegments', t('options.recallRules.form.ignorePath.placeholder'))}
                         {chips(formData.queryProcessing.ignorePathSegments, 'queryProcessing', 'ignorePathSegments')}
                     </div>
                 </div>
                 {urlForms.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <Label className="mr-1 text-muted-foreground">Same page under</Label>
+                        <Label className="mr-1 text-muted-foreground">{t('options.recallRules.form.sameUrlUnder')}</Label>
                         {urlForms.map((form) => (
                             <code key={form} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
                                 {form}
@@ -416,7 +427,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                 )}
             </PageSection>
 
-            <PageSection title="Search scope" description="Where in your graph to search.">
+            <PageSection title={t('options.recallRules.form.searchScope.title')} description={t('options.recallRules.form.searchScope.description')}>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                     <div className="flex items-center gap-2">
                         <Switch
@@ -430,13 +441,13 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                             }
                         />
                         <Label htmlFor="journalDateRangeEnabled" className="flex items-center gap-2">
-                            Limit journal dates
-                            {help('Only searches journal pages from the last N days.')}
+                            {t('options.recallRules.form.limitJournal.label')}
+                            {help(t('options.recallRules.form.limitJournal.help'))}
                         </Label>
                     </div>
                     {formData.searchScope.journalDateRange?.enabled && (
                         <div className="flex items-center gap-2">
-                            <Label htmlFor="journalDays" className="text-muted-foreground">Days to search</Label>
+                            <Label htmlFor="journalDays" className="text-muted-foreground">{t('options.recallRules.form.limitJournal.days')}</Label>
                             <Input
                                 id="journalDays"
                                 type="number"
@@ -458,27 +469,27 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
-                            Only search these pages
-                            {help('Searches only in these pages.')}
+                            {t('options.recallRules.form.restrictPages.label')}
+                            {help(t('options.recallRules.form.restrictPages.help'))}
                         </Label>
-                        {listInput(newRestrictPage, setNewRestrictPage, 'searchScope', 'restrictToPages', 'Page name')}
+                        {listInput(newRestrictPage, setNewRestrictPage, 'searchScope', 'restrictToPages', t('options.recallRules.form.pageName'))}
                         {chips(formData.searchScope.restrictToPages || [], 'searchScope', 'restrictToPages')}
                     </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2">
-                            Exclude these pages
-                            {help('Never searches in these pages.')}
+                            {t('options.recallRules.form.excludePages.label')}
+                            {help(t('options.recallRules.form.excludePages.help'))}
                         </Label>
-                        {listInput(newExcludePage, setNewExcludePage, 'searchScope', 'excludePages', 'Page name')}
+                        {listInput(newExcludePage, setNewExcludePage, 'searchScope', 'excludePages', t('options.recallRules.form.pageName'))}
                         {chips(formData.searchScope.excludePages || [], 'searchScope', 'excludePages')}
                     </div>
                 </div>
             </PageSection>
 
-            <PageSection title="Result filtering">
+            <PageSection title={t('options.recallRules.form.resultFiltering.title')}>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                        <Label htmlFor="maxResults">Max results</Label>
+                        <Label htmlFor="maxResults">{t('options.recallRules.form.maxResults.label')}</Label>
                         <Input
                             id="maxResults"
                             type="number"
@@ -490,11 +501,11 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                                     e.target.value ? parseInt(e.target.value) : undefined
                                 )
                             }
-                            placeholder="No limit"
+                            placeholder={t('options.recallRules.form.maxResults.placeholder')}
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="minRelevanceScore">Minimum relevance score</Label>
+                        <Label htmlFor="minRelevanceScore">{t('options.recallRules.form.minScore.label')}</Label>
                         <Input
                             id="minRelevanceScore"
                             type="number"
@@ -507,7 +518,7 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                                     e.target.value ? parseFloat(e.target.value) : undefined
                                 )
                             }
-                            placeholder="0.0 - 1.0"
+                            placeholder={t('options.recallRules.form.minScore.placeholder')}
                         />
                     </div>
                 </div>
@@ -521,19 +532,19 @@ const RecallRuleForm: React.FC<RecallRuleFormProps> = ({
                         }
                     />
                     <Label htmlFor="prioritizeRecent" className="flex items-center gap-2">
-                        Show recent results first
-                        {help('Newer content is ranked higher.')}
+                        {t('options.recallRules.form.prioritizeRecent.label')}
+                        {help(t('options.recallRules.form.prioritizeRecent.help'))}
                     </Label>
                 </div>
             </PageSection>
 
             <div className="flex justify-end gap-3 border-t pt-6">
                 <Button type="button" variant="outline" onClick={onCancel}>
-                    Cancel
+                    {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="gap-2">
                     <Save className="h-4 w-4" />
-                    Save rule
+                    {t('options.recallRules.form.save')}
                 </Button>
             </div>
         </form>

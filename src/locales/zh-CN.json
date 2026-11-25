@@ -165,6 +165,169 @@
       "searchEngine": "搜索引擎",
       "settings": "设置"
     },
+    "recallRules": {
+      "add": {
+        "description": "创建一条规则，指定它要匹配的页面。",
+        "title": "添加相关笔记规则"
+      },
+      "addRule": "添加规则",
+      "badge": {
+        "builtIn": "内置",
+        "modified": "已修改"
+      },
+      "confirm": {
+        "delete": "删除相关笔记规则“{{name}}”？",
+        "reset": "将“{{name}}”恢复为内置版本？"
+      },
+      "createRule": "创建规则",
+      "description": "调整 Logseq Copilot 在特定网站上如何搜索你的图谱。",
+      "disabledRules": "已停用的规则",
+      "edit": {
+        "description": "更改这条规则如何匹配页面并搜索你的图谱。",
+        "title": "编辑相关笔记规则"
+      },
+      "enabledRules": "已启用的规则",
+      "flags": {
+        "ignoreHash": "忽略哈希",
+        "ignoreQuery": "忽略查询",
+        "journals": "日志：最近 {{days}} 天",
+        "keep": "保留：{{params}}",
+        "recentFirst": "最近优先",
+        "scope_other": "范围：{{count}} 级"
+      },
+      "form": {
+        "add": "添加",
+        "basics": "基本信息",
+        "description": {
+          "label": "描述",
+          "placeholder": "这条规则的用途"
+        },
+        "enabled": {
+          "help": "开启后，规则会在匹配的网站上生效。",
+          "label": "启用"
+        },
+        "excludeKeywords": {
+          "help": "包含这些关键词的结果会被过滤掉。",
+          "label": "排除关键词",
+          "placeholder": "要排除的关键词"
+        },
+        "excludePages": {
+          "help": "不会在这些页面中搜索。",
+          "label": "排除这些页面"
+        },
+        "help": "帮助",
+        "ignoreHash": {
+          "help": "去掉网址中 # 之后的全部内容。",
+          "helpSpa": "适用于使用哈希路由的单页应用。",
+          "label": "忽略哈希片段"
+        },
+        "ignorePath": {
+          "help": "忽略网址路径中的这些段。",
+          "helpExample": "例如在 GitHub 上忽略“files”。",
+          "label": "忽略路径段",
+          "placeholder": "要忽略的路径段"
+        },
+        "ignoreQuery": {
+          "help": "去掉网址中 ? 之后的全部内容。",
+          "label": "忽略查询参数"
+        },
+        "keepParams": {
+          "help": "其他参数不同的页面视为同一页面。",
+          "helpExample": "例如在 YouTube 上保留“v”。",
+          "label": "只保留这些查询参数",
+          "placeholder": "参数名"
+        },
+        "limitJournal": {
+          "days": "搜索天数",
+          "help": "只搜索最近 N 天的日志页面。",
+          "label": "限定日志日期"
+        },
+        "maxResults": {
+          "label": "最大结果数",
+          "placeholder": "不限制"
+        },
+        "minScore": {
+          "label": "最低相关度分数",
+          "placeholder": "0.0 - 1.0"
+        },
+        "name": {
+          "label": "规则名称 *",
+          "placeholder": "例如 GitHub 项目页面"
+        },
+        "pageName": "页面名称",
+        "preferKeywords": {
+          "help": "包含这些关键词的结果会排在前面。",
+          "label": "优先关键词",
+          "placeholder": "要优先的关键词"
+        },
+        "prioritizeRecent": {
+          "help": "较新的内容排名更靠前。",
+          "label": "优先显示较新的结果"
+        },
+        "queryProcessing": {
+          "description": "如何把页面网址变成搜索。",
+          "title": "查询处理"
+        },
+        "remove": "移除 {{item}}",
+        "restrictPages": {
+          "help": "只在这些页面中搜索。",
+          "label": "只搜索这些页面"
+        },
+        "resultFiltering": {
+          "title": "结果筛选"
+        },
+        "sameUrlUnder": "同一页面的网址形式：",
+        "save": "保存规则",
+        "scope": {
+          "help": "同时显示该页面上级路径的相关笔记。",
+          "helpExample": "例如在 GitHub 上选 2 级：整个仓库。",
+          "label": "相关笔记范围",
+          "levels_other": "{{count}} 级",
+          "page": "此页面"
+        },
+        "searchScope": {
+          "description": "在图谱的哪些部分搜索。",
+          "title": "搜索范围"
+        },
+        "testUrl": {
+          "label": "测试网址模式",
+          "matches": "✓ 匹配",
+          "matchesPrefix": "✓ 匹配 · {{prefix}}",
+          "noMatch": "✗ 不匹配"
+        },
+        "urlPattern": {
+          "example": "例如 {{example}}",
+          "help": "与页面网址匹配的正则表达式。",
+          "label": "网址模式 *",
+          "placeholder": "例如 {{example}}"
+        }
+      },
+      "help": {
+        "queryProcessing": "<label>查询处理：</label>搜索前去掉网址中的哈希片段或查询参数，并排除或优先某些关键词。",
+        "resultFiltering": "<label>结果筛选：</label>限制结果数量、优先显示较新的结果，或设置最低相关度分数。",
+        "searchScope": "<label>搜索范围：</label>只搜索部分页面、跳过某些页面，或把日志限制在最近几天。",
+        "title": "工作原理",
+        "urlPattern": "<label>网址模式：</label>与页面网址匹配的正则表达式，例如 <code>{{example1}}</code> 或 <code>{{example2}}</code>。"
+      },
+      "keywords": {
+        "exclude": "排除",
+        "prefer": "优先"
+      },
+      "loading": "正在加载相关笔记规则…",
+      "meta": "已启用 {{enabled}} 条 · 已停用 {{disabled}} 条",
+      "noneEnabled": "没有已启用的相关笔记规则。",
+      "refresh": "刷新",
+      "rule": {
+        "delete": "删除 {{name}}",
+        "edit": "编辑 {{name}}",
+        "enable": "启用 {{name}}",
+        "reset": "恢复 {{name}}"
+      },
+      "testUrl": {
+        "placeholder": "输入网址进行测试…",
+        "summary": "测试网址模式"
+      }
+    },
     "searchEngines": {
       "builtIn": {
         "description": "已预置、内置支持的搜索引擎。",

@@ -332,6 +332,39 @@ test.describe('UI screenshots', () => {
     }
   });
 
+  test('options recall rules in each UI language', async ({ page, ext }) => {
+    fileGraphOnly();
+    await ext.connect();
+    // Built-in rule names and descriptions stay English.
+    const languages = [
+      { language: 'en', title: 'Recall Rules', edit: 'Edit GitHub Pull Request', youtube: 'Edit YouTube videos', cancel: 'Cancel', remove: 'Remove v' },
+      { language: 'zh-CN', title: '相关笔记规则', edit: '编辑 GitHub Pull Request', youtube: '编辑 YouTube videos', cancel: '取消', remove: '移除 v' },
+      { language: 'zh-TW', title: '相關筆記規則', edit: '編輯 GitHub Pull Request', youtube: '編輯 YouTube videos', cancel: '取消', remove: '移除 v' },
+    ];
+    for (const { language, title, edit, youtube, cancel, remove } of languages) {
+      await ext.setStorage({ uiLanguage: language });
+      for (const scheme of SCHEMES) {
+        await setScheme(page, scheme);
+
+        await page.goto('about:blank');
+        await page.goto(ext.url('options.html#/recall-rules'));
+        await expect(page.getByRole('heading', { name: title })).toBeVisible();
+        await expect(page.getByRole('button', { name: edit })).toBeVisible();
+        await shoot(page, `options-recall-rules-${language}`, scheme);
+
+        await page.getByRole('button', { name: edit }).click();
+        await expect(page.locator('#urlPattern')).toHaveValue('github\\.com.*/(pull|issues)/');
+        await shoot(page, `options-recall-rule-form-${language}`, scheme);
+
+        // A built-in rule: the query parameter allowlist and the URL forms.
+        await page.getByRole('button', { name: cancel }).first().click();
+        await page.getByRole('button', { name: youtube }).click();
+        await expect(page.getByRole('button', { name: remove })).toBeVisible();
+        await shoot(page, `options-recall-rule-form-builtin-${language}`, scheme);
+      }
+    }
+  });
+
   test('template editor: outline, autocomplete and text mode, and the new template presets', async ({ page, ext }) => {
     fileGraphOnly();
     await ext.connect();

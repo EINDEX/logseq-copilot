@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Trans, useTranslation } from '@/i18n/react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,10 @@ import {
 } from '../components/page-layout';
 import log from '@/utils/logger';
 
+const labelText = <span className="font-medium text-foreground" />;
+
 const RecallRulesPage: React.FC = () => {
+    const { t } = useTranslation();
     const {
         recallRules,
         loading,
@@ -35,7 +39,7 @@ const RecallRulesPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
 
     if (loading) {
-        return <PageLoading title="Recall Rules">Loading recall rules...</PageLoading>;
+        return <PageLoading title={t('options.nav.recallRules')}>{t('options.recallRules.loading')}</PageLoading>;
     }
 
     const enabledRules = recallRules.filter(rule => rule.enabled);
@@ -60,13 +64,13 @@ const RecallRulesPage: React.FC = () => {
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (confirm(`Delete the recall rule "${name}"?`)) {
+        if (confirm(t('options.recallRules.confirm.delete', { name }))) {
             await deleteRecallRule(id);
         }
     };
 
     const handleReset = async (id: string, name: string) => {
-        if (confirm(`Reset "${name}" to its built-in version?`)) {
+        if (confirm(t('options.recallRules.confirm.reset', { name }))) {
             await resetToBuiltin(id);
         }
     };
@@ -101,16 +105,20 @@ const RecallRulesPage: React.FC = () => {
 
     const flags = (rule: RecallRuleConfig) =>
         [
-            rule.queryProcessing.ignoreHashFragments && 'Ignore hash',
-            rule.queryProcessing.ignoreQueryParams && 'Ignore query',
+            rule.queryProcessing.ignoreHashFragments && t('options.recallRules.flags.ignoreHash'),
+            rule.queryProcessing.ignoreQueryParams && t('options.recallRules.flags.ignoreQuery'),
             !rule.queryProcessing.ignoreQueryParams &&
                 rule.queryProcessing.keepQueryParams?.length &&
-                `Keep: ${rule.queryProcessing.keepQueryParams.join(', ')}`,
+                t('options.recallRules.flags.keep', {
+                    params: rule.queryProcessing.keepQueryParams.join(', '),
+                }),
             rule.queryProcessing.scopeDepth &&
-                `Scope: ${rule.queryProcessing.scopeDepth} ${rule.queryProcessing.scopeDepth === 1 ? 'level' : 'levels'}`,
+                t('options.recallRules.flags.scope', { count: rule.queryProcessing.scopeDepth }),
             rule.searchScope.journalDateRange?.enabled &&
-                `Journals: last ${rule.searchScope.journalDateRange.days} days`,
-            rule.resultFiltering.prioritizeRecent && 'Recent first',
+                t('options.recallRules.flags.journals', {
+                    days: rule.searchScope.journalDateRange.days,
+                }),
+            rule.resultFiltering.prioritizeRecent && t('options.recallRules.flags.recentFirst'),
         ].filter((flag): flag is string => Boolean(flag));
 
     const keywordLine = (label: string, keywords: string[]) =>
@@ -133,12 +141,12 @@ const RecallRulesPage: React.FC = () => {
                         {rule.name}
                         {isBuiltin(rule.id) && (
                             <Badge variant="secondary" className="font-normal">
-                                Built-in
+                                {t('options.recallRules.badge.builtIn')}
                             </Badge>
                         )}
                         {isOverridden(rule.id) && (
                             <Badge variant="outline" className="font-normal text-muted-foreground">
-                                Modified
+                                {t('options.recallRules.badge.modified')}
                             </Badge>
                         )}
                     </div>
@@ -150,14 +158,14 @@ const RecallRulesPage: React.FC = () => {
                     <Switch
                         checked={rule.enabled}
                         onCheckedChange={() => handleToggle(rule.id)}
-                        aria-label={`Enable ${rule.name}`}
+                        aria-label={t('options.recallRules.rule.enable', { name: rule.name })}
                         className="mr-2"
                     />
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(rule)}
-                        aria-label={`Edit ${rule.name}`}
+                        aria-label={t('options.recallRules.rule.edit', { name: rule.name })}
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                     >
                         <Edit className="h-4 w-4" />
@@ -168,7 +176,7 @@ const RecallRulesPage: React.FC = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleReset(rule.id, rule.name)}
-                                aria-label={`Reset ${rule.name}`}
+                                aria-label={t('options.recallRules.rule.reset', { name: rule.name })}
                                 className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                             >
                                 <RotateCcw className="h-4 w-4" />
@@ -181,7 +189,7 @@ const RecallRulesPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(rule.id, rule.name)}
-                            aria-label={`Delete ${rule.name}`}
+                            aria-label={t('options.recallRules.rule.delete', { name: rule.name })}
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                         >
                             <Trash2 className="h-4 w-4" />
@@ -199,16 +207,16 @@ const RecallRulesPage: React.FC = () => {
                 ))}
             </div>
 
-            {keywordLine('Exclude', rule.queryProcessing.excludeKeywords)}
-            {keywordLine('Prefer', rule.queryProcessing.includeKeywords)}
+            {keywordLine(t('options.recallRules.keywords.exclude'), rule.queryProcessing.excludeKeywords)}
+            {keywordLine(t('options.recallRules.keywords.prefer'), rule.queryProcessing.includeKeywords)}
 
             <details className="text-xs">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                    Test URL pattern
+                    {t('options.recallRules.testUrl.summary')}
                 </summary>
                 <input
                     type="text"
-                    placeholder="Enter a URL to test..."
+                    placeholder={t('options.recallRules.testUrl.placeholder')}
                     className="mt-2 w-full max-w-xl rounded-md border border-input bg-transparent px-2 py-1 text-xs"
                     onInput={(e) => {
                         const input = e.target as HTMLInputElement;
@@ -224,11 +232,11 @@ const RecallRulesPage: React.FC = () => {
     if (showForm) {
         return (
             <PageLayout
-                title={editingRule ? 'Edit recall rule' : 'Add recall rule'}
-                description={editingRule ? 'Change how this rule matches pages and searches your graph.' : 'Create a rule for the pages it should match.'}
+                title={editingRule ? t('options.recallRules.edit.title') : t('options.recallRules.add.title')}
+                description={editingRule ? t('options.recallRules.edit.description') : t('options.recallRules.add.description')}
                 actions={
                     <Button variant="outline" onClick={handleCancel}>
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                 }
             >
@@ -243,18 +251,21 @@ const RecallRulesPage: React.FC = () => {
 
     return (
         <PageLayout
-            title="Recall Rules"
-            description="Adjust how Logseq Copilot searches your graph on specific websites."
-            meta={`${enabledRules.length} enabled · ${disabledRules.length} disabled`}
+            title={t('options.nav.recallRules')}
+            description={t('options.recallRules.description')}
+            meta={t('options.recallRules.meta', {
+                enabled: enabledRules.length,
+                disabled: disabledRules.length,
+            })}
             actions={
                 <>
                     <Button variant="outline" size="sm" onClick={handleRefresh}>
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Refresh
+                        {t('options.recallRules.refresh')}
                     </Button>
                     <Button size="sm" onClick={handleAdd}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Add rule
+                        {t('options.recallRules.addRule')}
                     </Button>
                 </>
             }
@@ -265,13 +276,13 @@ const RecallRulesPage: React.FC = () => {
                 </div>
             )}
 
-            <PageSection title="Enabled rules">
+            <PageSection title={t('options.recallRules.enabledRules')}>
                 {enabledRules.length === 0 ? (
                     <div className="flex flex-col items-start gap-3 rounded-md border border-dashed px-4 py-6">
-                        <p className="text-sm text-muted-foreground">No recall rule is enabled.</p>
+                        <p className="text-sm text-muted-foreground">{t('options.recallRules.noneEnabled')}</p>
                         <Button onClick={handleAdd} variant="outline" size="sm">
                             <Plus className="h-4 w-4 mr-2" />
-                            Create a rule
+                            {t('options.recallRules.createRule')}
                         </Button>
                     </div>
                 ) : (
@@ -280,28 +291,36 @@ const RecallRulesPage: React.FC = () => {
             </PageSection>
 
             {disabledRules.length > 0 && (
-                <PageSection title="Disabled rules">
+                <PageSection title={t('options.recallRules.disabledRules')}>
                     <PageList>{disabledRules.map(renderRule)}</PageList>
                 </PageSection>
             )}
 
-            <PageHelp title="How recall rules work">
+            <PageHelp title={t('options.recallRules.help.title')}>
                 <p>
-                    <span className="font-medium text-foreground">URL pattern:</span> a regular
-                    expression matched against the page URL, e.g. <code>github\.com</code> or{' '}
-                    <code>.*reddit\.com.*</code>.
+                    <Trans
+                        i18nKey="options.recallRules.help.urlPattern"
+                        values={{ example1: 'github\\.com', example2: '.*reddit\\.com.*' }}
+                        components={{ label: labelText, code: <code /> }}
+                    />
                 </p>
                 <p>
-                    <span className="font-medium text-foreground">Query processing:</span> drop the
-                    URL hash or query parameters before searching, and exclude or prefer keywords.
+                    <Trans
+                        i18nKey="options.recallRules.help.queryProcessing"
+                        components={{ label: labelText }}
+                    />
                 </p>
                 <p>
-                    <span className="font-medium text-foreground">Search scope:</span> search only
-                    some pages, skip pages, or limit journals to recent days.
+                    <Trans
+                        i18nKey="options.recallRules.help.searchScope"
+                        components={{ label: labelText }}
+                    />
                 </p>
                 <p>
-                    <span className="font-medium text-foreground">Result filtering:</span> limit the
-                    number of results, show recent ones first, or set a minimum relevance score.
+                    <Trans
+                        i18nKey="options.recallRules.help.resultFiltering"
+                        components={{ label: labelText }}
+                    />
                 </p>
             </PageHelp>
         </PageLayout>
