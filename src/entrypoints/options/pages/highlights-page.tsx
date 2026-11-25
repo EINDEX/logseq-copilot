@@ -17,7 +17,7 @@ import { intlLocale } from '@/i18n/language';
 import { useTranslation } from '@/i18n/react';
 
 export function HighlightsPage() {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [highlights, setHighlights] = useState<HighlightData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -120,7 +120,7 @@ export function HighlightsPage() {
     };
 
     const handleClearAll = async () => {
-        if (!confirm('Are you sure you want to delete ALL highlights? This action cannot be undone.')) {
+        if (!confirm(t('options.highlights.confirmClearAll'))) {
             return;
         }
 
@@ -173,9 +173,13 @@ export function HighlightsPage() {
 
     return (
         <PageLayout
-            title="Highlight Management"
-            description="Manage all your saved highlights across different websites"
-            meta={`${stats.total} highlights · ${stats.websites} websites · ${stats.thisWeek} this week`}
+            title={t('options.highlights.title')}
+            description={t('options.highlights.description')}
+            meta={t('options.highlights.meta', {
+                total: stats.total,
+                websites: stats.websites,
+                thisWeek: stats.thisWeek,
+            })}
             actions={
                 <>
                     <Button
@@ -185,7 +189,7 @@ export function HighlightsPage() {
                         disabled={highlights.length === 0}
                     >
                         <IconDownload className="h-4 w-4 mr-2" />
-                        Export All
+                        {t('options.highlights.exportAll')}
                     </Button>
                     <Button
                         onClick={handleClearAll}
@@ -195,39 +199,42 @@ export function HighlightsPage() {
                         className="text-destructive hover:text-destructive"
                     >
                         <IconTrash className="h-4 w-4 mr-2" />
-                        Clear All
+                        {t('options.highlights.clearAll')}
                     </Button>
                 </>
             }
         >
             <PageSection
-                title="All Highlights"
-                description={`${filteredHighlights.length} of ${highlights.length} highlights`}
+                title={t('options.highlights.all')}
+                description={t('options.highlights.count', {
+                    shown: filteredHighlights.length,
+                    total: highlights.length,
+                })}
             >
                 <div className="flex flex-wrap gap-2">
                     <div className="relative min-w-60 flex-1">
                         <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search highlights..."
+                            placeholder={t('options.highlights.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10"
                         />
                     </div>
                     <Input
-                        placeholder="Filter by website..."
+                        placeholder={t('options.highlights.filterPlaceholder')}
                         value={filterHostname}
                         onChange={(e) => setFilterHostname(e.target.value)}
                         className="w-60"
                     />
                     <Button onClick={handleSearch} variant="outline">
-                        Apply Filters
+                        {t('options.highlights.applyFilters')}
                     </Button>
                 </div>
 
                 {allTags.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="mr-1 text-sm text-muted-foreground">Tags</span>
+                        <span className="mr-1 text-sm text-muted-foreground">{t('options.highlights.tags')}</span>
                         {allTags.map(tag => (
                             <Badge
                                 key={tag}
@@ -242,17 +249,19 @@ export function HighlightsPage() {
                 )}
 
                 {loading ? (
-                    <p className="py-12 text-center text-sm text-muted-foreground">Loading highlights...</p>
+                    <p className="py-12 text-center text-sm text-muted-foreground">{t('options.highlights.loading')}</p>
                 ) : filteredHighlights.length === 0 ? (
                     <div className="py-12 text-center">
                         <IconHighlight className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
                         <div className="text-sm text-muted-foreground mb-1">
-                            {highlights.length === 0 ? 'No highlights found' : 'No highlights match your search'}
+                            {highlights.length === 0
+                                ? t('options.highlights.empty.none')
+                                : t('options.highlights.empty.noMatch')}
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {highlights.length === 0
-                                ? 'Start highlighting text on websites to see them here'
-                                : 'Try adjusting your search or filters'
+                                ? t('options.highlights.empty.noneHint')
+                                : t('options.highlights.empty.noMatchHint')
                             }
                         </div>
                     </div>
@@ -300,7 +309,7 @@ export function HighlightsPage() {
                                     size="sm"
                                     onClick={() => handleDeleteHighlight(highlight.id)}
                                     className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
-                                    aria-label="Delete highlight"
+                                    aria-label={t('options.highlights.delete')}
                                 >
                                     <IconTrash className="h-4 w-4" />
                                 </Button>
