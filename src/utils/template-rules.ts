@@ -14,6 +14,7 @@
  * host, then more literal path segments beat fewer, then the earlier template
  * in the list wins.
  */
+import { t } from '@/i18n/core';
 
 interface ParsedPattern {
   host: string;
@@ -37,8 +38,8 @@ const invalid = (error: string): PatternCheck => ({ ok: false, error });
 
 const parse = (input: string): PatternCheck => {
   let text = input.trim();
-  if (!text) return invalid('Empty pattern');
-  if (/\s/.test(text)) return invalid('No spaces');
+  if (!text) return invalid(t('options.templates.pattern.empty'));
+  if (/\s/.test(text)) return invalid(t('options.templates.pattern.noSpaces'));
   text = text.replace(/^https?:\/\//i, '').replace(/[?#].*$/, '');
   const slash = text.indexOf('/');
   const hostPart = (slash < 0 ? text : text.slice(0, slash)).toLowerCase();
@@ -50,13 +51,17 @@ const parse = (input: string): PatternCheck => {
   if (colon >= 0) {
     port = host.slice(colon + 1);
     host = host.slice(0, colon);
-    if (!/^\d{1,5}$/.test(port)) return invalid('Invalid port');
+    if (!/^\d{1,5}$/.test(port)) return invalid(t('options.templates.pattern.invalidPort'));
   }
   const subdomains = host.startsWith('*.');
   if (subdomains) host = host.slice(2);
-  if (!host) return invalid('Missing host');
+  if (!host) return invalid(t('options.templates.pattern.missingHost'));
   if (!host.split('.').every((label) => HOST_LABEL.test(label))) {
-    return invalid(host.includes('*') ? '* only as the first label, as *.' : 'Invalid host');
+    return invalid(
+      host.includes('*')
+        ? t('options.templates.pattern.wildcardFirstLabel')
+        : t('options.templates.pattern.invalidHost'),
+    );
   }
 
   const parts = pathPart.split('/').filter(Boolean);
@@ -66,14 +71,14 @@ const parse = (input: string): PatternCheck => {
   for (const [index, part] of parts.entries()) {
     const last = index === parts.length - 1;
     if (part === '**' || (part === '*' && last)) {
-      if (!last) return invalid('** only at the end');
+      if (!last) return invalid(t('options.templates.pattern.doubleStarEnd'));
       rest = true;
     } else if (part === '*') {
       segments.push('*');
     } else if (part.includes('*')) {
-      return invalid('* must be a whole segment');
+      return invalid(t('options.templates.pattern.wildcardWholeSegment'));
     } else if (!SEGMENT.test(part)) {
-      return invalid('Invalid path');
+      return invalid(t('options.templates.pattern.invalidPath'));
     } else {
       segments.push(part);
     }

@@ -37,6 +37,7 @@ import {
   searchTermsFor,
   type UrlMatchOptions,
 } from '@/utils/recall-url-match';
+import { t } from '@/i18n/core';
 
 export { getBlockMarker };
 
@@ -467,7 +468,7 @@ export default class LogseqDBService implements LogseqServiceInterface {
       throw new Error(
         tags && typeof tags === 'object' && 'error' in tags
           ? String((tags as any).error)
-          : 'Logseq did not return its tags.',
+          : t('background.logseq.noTags'),
       );
     }
     return tags;
@@ -511,11 +512,11 @@ export default class LogseqDBService implements LogseqServiceInterface {
 
     const status = STATUS_TITLE_BY_MARKER[marker.toUpperCase()];
     if (!status) {
-      return failed(`Not support marker ${marker} on a DB graph.`);
+      return failed(t('background.logseq.unsupportedMarker', { marker }));
     }
     const block = await this.client.getBlockViaUuid(uuid);
     if (!block) {
-      return failed(`Block ${uuid} not found.`);
+      return failed(t('background.logseq.blockNotFound', { uuid }));
     }
 
     const result = await this.client.setBlockStatus(uuid, status);

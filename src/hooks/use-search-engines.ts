@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SearchEngineConfig, searchEngineConfig } from '@/utils/storage';
 import { log } from '@/utils';
+import { t } from '@/i18n/core';
 
 export interface UseSearchEnginesReturn {
   searchEngines: SearchEngineConfig[];
@@ -57,7 +58,7 @@ export function useSearchEngines(): UseSearchEnginesReturn {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : 'Failed to load search engine config';
+          : t('options.errors.loadSearchEngines');
       setError(errorMessage);
       log.error('[useSearchEngines] Failed to load search engine config:', err);
     } finally {
@@ -83,7 +84,7 @@ export function useSearchEngines(): UseSearchEnginesReturn {
         log.debug('[useSearchEngines] Search engine updated:', { id, updates });
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update search engine';
+          err instanceof Error ? err.message : t('options.errors.updateSearchEngine');
         setError(errorMessage);
         log.error('[useSearchEngines] Failed to update search engine:', err);
       }
@@ -151,7 +152,7 @@ export function useSearchEngines(): UseSearchEnginesReturn {
         const errorMessage =
           err instanceof Error
             ? err.message
-            : 'Failed to add custom search engine';
+            : t('options.errors.addSearchEngine');
         setError(errorMessage);
         log.error(
           '[useSearchEngines] Failed to add custom search engine:',
@@ -172,7 +173,7 @@ export function useSearchEngines(): UseSearchEnginesReturn {
       const engineToRemove = currentConfig.find((e) => e.id === id);
 
       if (!engineToRemove?.isCustom) {
-        throw new Error('Cannot remove built-in search engines');
+        throw new Error(t('options.errors.removeBuiltinSearchEngine'));
       }
 
       const updatedConfig = currentConfig.filter((engine) => engine.id !== id);
@@ -182,7 +183,7 @@ export function useSearchEngines(): UseSearchEnginesReturn {
       log.debug('[useSearchEngines] Search engine removed:', id);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to remove search engine';
+        err instanceof Error ? err.message : t('options.errors.removeSearchEngine');
       setError(errorMessage);
       log.error('[useSearchEngines] Failed to remove search engine:', err);
     }

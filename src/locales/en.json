@@ -1,11 +1,39 @@
 {
   "background": {
+    "clip": {
+      "blockNotReturned": "Logseq did not return the block it wrote.",
+      "emptyTemplate": "The template made no block to clip. Check it in the extension settings.",
+      "noTemplate": "No clip template found. Add one in the extension settings.",
+      "stoppedAfter": "Logseq stopped after {{written}} blocks of the clip: {{reason}}"
+    },
     "contextMenu": {
       "clipImage": "Clip image",
       "clipPage": "Clip page link",
       "clipSelection": "Clip \"%s\"",
       "openSidebar": "Open sidebar",
       "untitledTemplate": "Untitled"
+    },
+    "error": {
+      "cannotConnect": "Cannot connect to Logseq. Check that Logseq is running and its HTTP API server is started.",
+      "cannotConnectAt": "Cannot connect to Logseq at {{address}}. Check that Logseq is running and its HTTP API server is started on this address.",
+      "httpStatus": "Logseq returned HTTP {{status}}.",
+      "notFound": "Not found.",
+      "tokenRejected": "The authorization token is wrong (Logseq returned HTTP {{status}}). Check it in Logseq's API server settings.",
+      "unknown": "Unexpected error while talking to Logseq.",
+      "versionTooLow": "Logseq version is lower, Please upgrade your Logseq version.\nhttps://logseq.com/downloads"
+    },
+    "logseq": {
+      "blockNotFound": "Block {{uuid}} not found.",
+      "noGraphProperties": "Logseq did not return the properties of the graph.",
+      "noPages": "Logseq did not return its pages.",
+      "noProperties": "Logseq did not return its properties.",
+      "noTags": "Logseq did not return its tags.",
+      "scheduledTask": "Not support scheduled task.",
+      "unsupportedMarker": "Not support marker {{marker}} on a DB graph."
+    },
+    "sync": {
+      "clipGone": "The clip is gone from Logseq, so the comment was not synced.",
+      "graphMismatch": "This highlight was clipped to the graph \"{{clipped}}\", but \"{{open}}\" is open in Logseq. Open \"{{clipped}}\" to sync the comment."
     }
   },
   "content": {
@@ -16,6 +44,32 @@
     }
   },
   "options": {
+    "errors": {
+      "addProvider": "Failed to add provider",
+      "addRecallRule": "Failed to add recall rule",
+      "addSearchEngine": "Failed to add custom search engine",
+      "addTemplate": "Failed to add template",
+      "deleteProvider": "Failed to delete provider",
+      "deleteRecallRule": "Failed to delete recall rule",
+      "deleteTemplate": "Failed to delete template",
+      "loadAiConfig": "Failed to load AI config",
+      "loadRecallRules": "Failed to load recall rules",
+      "loadSearchEngines": "Failed to load search engine config",
+      "loadSettings": "Failed to load settings",
+      "loadTemplates": "Failed to load templates",
+      "removeBuiltinSearchEngine": "Cannot remove built-in search engines",
+      "removeSearchEngine": "Failed to remove search engine",
+      "reorderProviders": "Failed to reorder providers",
+      "reorderRecallRules": "Failed to reorder recall rules",
+      "reorderTemplates": "Failed to reorder templates",
+      "resetSettings": "Failed to reset settings",
+      "updateAiConfig": "Failed to update AI config",
+      "updateProvider": "Failed to update provider",
+      "updateRecallRule": "Failed to update recall rule",
+      "updateSearchEngine": "Failed to update search engine",
+      "updateSettings": "Failed to update settings",
+      "updateTemplate": "Failed to update template"
+    },
     "settings": {
       "description": "Configure your Logseq Copilot extension settings.",
       "language": {
@@ -23,12 +77,31 @@
         "label": "Language"
       },
       "title": "Settings"
+    },
+    "templates": {
+      "pattern": {
+        "doubleStarEnd": "** only at the end",
+        "empty": "Empty pattern",
+        "invalidHost": "Invalid host",
+        "invalidPath": "Invalid path",
+        "invalidPort": "Invalid port",
+        "missingHost": "Missing host",
+        "noSpaces": "No spaces",
+        "wildcardFirstLabel": "* only as the first label, as *.",
+        "wildcardWholeSegment": "* must be a whole segment"
+      }
     }
   },
   "sidebar": {
     "empty": {
       "nothingYet": "Nothing for this page yet",
       "unavailable": "Not available on this page"
+    },
+    "errors": {
+      "deleteHighlight": "Couldn't delete the highlight",
+      "recallFailed": "Couldn't search Logseq",
+      "saveNote": "Couldn't save the note",
+      "searchFailed": "Search failed"
     }
   }
 }

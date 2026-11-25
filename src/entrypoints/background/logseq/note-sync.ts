@@ -1,6 +1,7 @@
 import type { Annotation, LogseqLink } from '@/types/annotation';
 import { neutraliseNote } from '@/utils/clip-template';
 import type { NoteBlockApi } from './note-blocks';
+import { t } from '@/i18n/core';
 
 /**
  * Syncs the note of an annotation to the clip it was made with in Logseq.
@@ -32,7 +33,7 @@ export class NoteSyncError extends Error {
  */
 export class NodeGoneError extends NoteSyncError {
   constructor() {
-    super('The clip is gone from Logseq, so the comment was not synced.');
+    super(t('background.sync.clipGone'));
     this.name = 'NodeGoneError';
   }
 }
@@ -71,7 +72,7 @@ export const syncAnnotationNote = async (
   const graph = await api.getGraph();
   if (graph !== link.graph) {
     throw new NoteSyncError(
-      `This highlight was clipped to the graph "${link.graph}", but "${graph}" is open in Logseq. Open "${link.graph}" to sync the comment.`,
+      t('background.sync.graphMismatch', { clipped: link.graph, open: graph }),
     );
   }
 

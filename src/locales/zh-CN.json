@@ -1,11 +1,39 @@
 {
   "background": {
+    "clip": {
+      "blockNotReturned": "Logseq 没有返回它写入的块。",
+      "emptyTemplate": "模板没有生成可剪藏的块。请在扩展设置中检查模板。",
+      "noTemplate": "没有找到剪藏模板。请在扩展设置中添加一个。",
+      "stoppedAfter": "Logseq 在写入剪藏的 {{written}} 个块后停止：{{reason}}"
+    },
     "contextMenu": {
       "clipImage": "剪藏图片",
       "clipPage": "剪藏页面链接",
       "clipSelection": "剪藏“%s”",
       "openSidebar": "打开侧边栏",
       "untitledTemplate": "未命名"
+    },
+    "error": {
+      "cannotConnect": "无法连接到 Logseq。请检查 Logseq 是否正在运行，并且 HTTP API 服务器已启动。",
+      "cannotConnectAt": "无法连接到 {{address}} 上的 Logseq。请检查 Logseq 是否正在运行，并且 HTTP API 服务器已在该地址启动。",
+      "httpStatus": "Logseq 返回 HTTP {{status}}。",
+      "notFound": "未找到。",
+      "tokenRejected": "授权 token 不正确（Logseq 返回 HTTP {{status}}）。请在 Logseq 的 API 服务器设置中检查。",
+      "unknown": "与 Logseq 通信时出现意外错误。",
+      "versionTooLow": "Logseq 版本过低，请升级你的 Logseq 版本。\nhttps://logseq.com/downloads"
+    },
+    "logseq": {
+      "blockNotFound": "未找到块 {{uuid}}。",
+      "noGraphProperties": "Logseq 没有返回图谱的属性。",
+      "noPages": "Logseq 没有返回页面。",
+      "noProperties": "Logseq 没有返回属性。",
+      "noTags": "Logseq 没有返回标签。",
+      "scheduledTask": "不支持已排期的任务。",
+      "unsupportedMarker": "DB 图谱不支持标记 {{marker}}。"
+    },
+    "sync": {
+      "clipGone": "该剪藏已从 Logseq 中删除，因此评论没有同步。",
+      "graphMismatch": "这条高亮剪藏到了图谱“{{clipped}}”，但 Logseq 中打开的是“{{open}}”。请打开“{{clipped}}”以同步评论。"
     }
   },
   "content": {
@@ -16,6 +44,32 @@
     }
   },
   "options": {
+    "errors": {
+      "addProvider": "添加服务商失败",
+      "addRecallRule": "添加相关笔记规则失败",
+      "addSearchEngine": "添加自定义搜索引擎失败",
+      "addTemplate": "添加模板失败",
+      "deleteProvider": "删除服务商失败",
+      "deleteRecallRule": "删除相关笔记规则失败",
+      "deleteTemplate": "删除模板失败",
+      "loadAiConfig": "加载 AI 设置失败",
+      "loadRecallRules": "加载相关笔记规则失败",
+      "loadSearchEngines": "加载搜索引擎设置失败",
+      "loadSettings": "加载设置失败",
+      "loadTemplates": "加载模板失败",
+      "removeBuiltinSearchEngine": "无法移除内置搜索引擎",
+      "removeSearchEngine": "移除搜索引擎失败",
+      "reorderProviders": "调整服务商顺序失败",
+      "reorderRecallRules": "调整相关笔记规则顺序失败",
+      "reorderTemplates": "调整模板顺序失败",
+      "resetSettings": "重置设置失败",
+      "updateAiConfig": "更新 AI 设置失败",
+      "updateProvider": "更新服务商失败",
+      "updateRecallRule": "更新相关笔记规则失败",
+      "updateSearchEngine": "更新搜索引擎失败",
+      "updateSettings": "更新设置失败",
+      "updateTemplate": "更新模板失败"
+    },
     "settings": {
       "description": "管理 Logseq Copilot 扩展的各项设置。",
       "language": {
@@ -23,12 +77,31 @@
         "label": "语言"
       },
       "title": "设置"
+    },
+    "templates": {
+      "pattern": {
+        "doubleStarEnd": "** 只能放在末尾",
+        "empty": "模式为空",
+        "invalidHost": "主机无效",
+        "invalidPath": "路径无效",
+        "invalidPort": "端口无效",
+        "missingHost": "缺少主机",
+        "noSpaces": "不能包含空格",
+        "wildcardFirstLabel": "* 只能放在第一段，写作“*.”",
+        "wildcardWholeSegment": "* 必须单独占一段"
+      }
     }
   },
   "sidebar": {
     "empty": {
       "nothingYet": "这个页面还没有内容",
       "unavailable": "无法在此页面使用"
+    },
+    "errors": {
+      "deleteHighlight": "无法删除高亮",
+      "recallFailed": "无法搜索 Logseq",
+      "saveNote": "无法保存备注",
+      "searchFailed": "搜索失败"
     }
   }
 }

@@ -1,3 +1,4 @@
+import { t } from '@/i18n/core';
 import type { LogseqResponseType } from './client';
 
 export type LogseqClientError = LogseqResponseType<null>;
@@ -6,23 +7,31 @@ export type LogseqClientError = LogseqResponseType<null>;
 // from real API data of the same shape.
 const clientErrors = new WeakSet<object>();
 
-const clientError = (msg: string, status: number): LogseqClientError => {
-  const info: LogseqClientError = { msg, status, response: null };
+// `msg` is translated when it is read, not when the error object is made: the
+// constants below are made at module load, before the UI language is known.
+const clientError = (
+  message: () => string,
+  status: number,
+): LogseqClientError => {
+  const info: LogseqClientError = {
+    get msg() {
+      return message();
+    },
+    status,
+    response: null,
+  };
   clientErrors.add(info);
   return info;
 };
 
 /** Logseq answered 401 or 403: the token was rejected. */
 export const tokenRejected = (status: number): LogseqClientError =>
-  clientError(
-    `The authorization token is wrong (Logseq returned HTTP ${status}). Check it in Logseq's API server settings.`,
-    status,
-  );
+  clientError(() => t('background.error.tokenRejected', { status }), status);
 
 export const TokenNotCurrect: LogseqClientError = tokenRejected(401);
 
 export const LogseqVersionIsLower: LogseqClientError = clientError(
-  'Logseq version is lower, Please upgrade your Logseq version.\nhttps://logseq.com/downloads',
+  () => t('background.error.versionTooLow'),
   500,
 );
 
@@ -31,25 +40,22 @@ export const LogseqVersionIsLower: LogseqClientError = clientError(
  * not started" from "wrong host or port", so name the address that was tried.
  */
 export const cannotConnectWithLogseq = (address: string): LogseqClientError =>
-  clientError(
-    `Cannot connect to Logseq at ${address}. Check that Logseq is running and its HTTP API server is started on this address.`,
-    500,
-  );
+  clientError(() => t('background.error.cannotConnectAt', { address }), 500);
 
 /** Same as cannotConnectWithLogseq, for when the address is not known. */
 export const CannotConnectWithLogseq: LogseqClientError = clientError(
-  'Cannot connect to Logseq. Check that Logseq is running and its HTTP API server is started.',
+  () => t('background.error.cannotConnect'),
   500,
 );
 
-export const NoSearchingResult: LogseqClientError = clientError('Not found.', 404);
+export const NoSearchingResult: LogseqClientError = clientError(() => t('background.error.notFound'), 404);
 
 /** Any other non-200 answer. */
 export const httpStatusError = (status: number): LogseqClientError =>
-  clientError(`Logseq returned HTTP ${status}.`, status);
+  clientError(() => t('background.error.httpStatus', { status }), status);
 
 export const UnknownIssues: LogseqClientError = clientError(
-  'Unexpected error while talking to Logseq.',
+  () => t('background.error.unknown'),
   500,
 );
 
