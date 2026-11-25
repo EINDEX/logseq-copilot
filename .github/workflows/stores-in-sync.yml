@@ -1,0 +1,103 @@
+name: Stores in sync
+
+# The `stores-in-sync` commit status: a release-please PR passes only when the
+# Chrome Web Store, Edge Add-ons and Firefox AMO all list the version of the
+# latest GitHub release, so the next release waits until the previous one is
+# live everywhere. Every other PR to main passes. The `skip-store-gate` label
+# on a release PR lets it pass (emergency fixes); the status says so.
+# Rules: RELEASING.md ("Store gate"). Code: pipeline/stores-in-sync.mjs.
+#
+# Why a commit status and not this job's own check run:
+# - The release PR branch is pushed with GITHUB_TOKEN, so `pull_request` never
+#   runs on it, and a scheduled run belongs to main's commit, not the PR's.
+#   A status can be written to the PR's head commit from any run, so the
+#   6-hourly run turns the PR green by itself once the stores catch up.
+# - Every run here is on main (schedule, dispatch, pull_request_target), the
+#   only branch the `publish` environment (Chrome credentials) allows. A run
+#   started on the release branch could not read Chrome.
+# - The newest status of a context wins, so a later run replaces a failure.
+#
+# pull_request_target runs this file and the script from main, never the
+# PR's code; PR fields reach the script only as a validated number.
+
+on:
+  schedule:
+    # Every 6 hours, off the full hour.
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR number to check (empty: every open PR to main)'
+        type: string
+        default: ''
+  # release-please.yml also dispatches this when it updates the release PR.
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: stores-in-sync-${{ github.event.pull_request.number || inputs.pr || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  # Marks PRs that are not release PRs as passing and finds the release PRs.
+  # No secrets, reads no store.
+  route:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    outputs:
+      release_prs: ${{ steps.route.outputs.release_prs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.x
+
+      - name: Route
+        id: route
+        run: node pipeline/stores-in-sync.mjs route ${PR:+--pr "$PR"}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+
+  # Reads the stores and posts the result on the release PRs. Read-only store
+  # calls; the Chrome credentials are the publish ones.
+  check:
+    needs: route
+    if: needs.route.outputs.release_prs != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: publish
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.x
+
+      - name: Check the stores
+        run: node pipeline/stores-in-sync.mjs check --pr "$PRS"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PRS: ${{ needs.route.outputs.release_prs }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}

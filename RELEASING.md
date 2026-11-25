@@ -16,6 +16,36 @@ from [Conventional Commits](https://www.conventionalcommits.org/) on `main`.
 
 The extension version and zip file names come from `package.json`.
 
+## Store gate
+
+A release PR can only be merged when the previous release is live in every
+store: the `stores-in-sync` status on the PR passes only when the Chrome Web
+Store, Edge Add-ons and Firefox AMO all list the version of the latest GitHub
+release. Store reviews take days, and a new upload would queue behind (or
+replace) the one still in review.
+
+- `.github/workflows/stores-in-sync.yml` runs every 6 hours, when
+  release-please updates the release PR, and on PR events. It posts the
+  status on the PR's head commit, so the PR turns green by itself after the
+  stores approve the release. To check now: Actions > Stores in sync > Run
+  workflow (or `gh workflow run stores-in-sync.yml`).
+- A failure says which store lists which version, the expected version, and
+  whether a Chrome submission is in review (AMO and Edge only show their
+  public version). An `error` status means the check itself failed (a store
+  API or the Edge page changed or is down), not that a store is behind.
+- Versions: Chrome from the Chrome Web Store API `fetchStatus` (the publish
+  credentials, read only), Firefox from the public AMO API, Edge from the
+  data its public store page loads (`getproductdetailsbycrxid`). The store
+  ids come from `docs/src/components/stores.ts`.
+- Emergency fix: add the `skip-store-gate` label to the release PR. The
+  status passes and says it was skipped and what it would have been.
+- Every other PR to `main` gets a passing `stores-in-sync` status ("Not a
+  release PR"), because the required check applies to all of them.
+
+To make it required: Settings > Rules > Rulesets > `main` > Require status
+checks to pass > Add checks > `stores-in-sync`. Leave the source as "Any
+source" (it is a commit status, not a GitHub Actions check run).
+
 ## Changes that do not release
 
 Every store release waits for review again, so changes that are not in the

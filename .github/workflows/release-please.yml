@@ -59,6 +59,9 @@ jobs:
           BRANCH=$(jq -r .headBranchName <<<"$PR")
           gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run integration.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          # The store gate runs on main (it posts a commit status on the PR's
+          # new head), not on the release branch: see stores-in-sync.yml.
+          gh workflow run stores-in-sync.yml --repo "$GITHUB_REPOSITORY" -f pr="$(jq -r .number <<<"$PR")"
 
   publish:
     needs: release-please

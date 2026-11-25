@@ -1,0 +1,16 @@
+{
+  "name": "publishers/publisher-id/items/hihgfcgbmnbomabfdbajlbpnacndeihl",
+  "itemId": "hihgfcgbmnbomabfdbajlbpnacndeihl",
+  "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA",
+  "publishedItemRevisionStatus": {
+    "state": "PUBLISHED",
+    "distributionChannels": [{ "deployPercentage": 100, "crxVersion": "2.1.0" }]
+  },
+  "submittedItemRevisionStatus": {
+    "state": "PENDING_REVIEW",
+    "distributionChannels": [{ "deployPercentage": 100, "crxVersion": "2.2.0" }]
+  },
+  "lastAsyncUploadState": "SUCCEEDED",
+  "takenDown": false,
+  "warned": false
+}
