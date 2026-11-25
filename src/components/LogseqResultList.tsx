@@ -5,6 +5,7 @@ import { LogseqBlockType, LogseqPageIdenity } from '@/types/logseqBlock';
 import LogseqPageLink from './LogseqPage';
 import { LogseqBlockRow } from './LogseqBlock';
 import { isClip, viewClip, type ClipNode } from '@/utils/clip-tree';
+import { useTranslation } from '@/i18n/react';
 import './logseq-results.css';
 
 /** Results shown before "Show all". */
@@ -74,6 +75,7 @@ const ClipTree = ({
   graph: string;
   block: LogseqBlockType;
 }) => {
+  const { t } = useTranslation();
   const [all, setAll] = useState(false);
   const { root, hidden } = useMemo(() => viewClip(block, all), [block, all]);
   return (
@@ -87,7 +89,7 @@ const ClipTree = ({
             <button
               type="button"
               className="lc-button lc-clip-more-button"
-              aria-label={`Show ${hidden} more blocks`}
+              aria-label={t('common.results.showMoreBlocks', { hidden })}
               onClick={() => setAll(true)}
             >
               +{hidden}
@@ -145,6 +147,7 @@ export const LogseqResultList = ({
   initialCount = DEFAULT_VISIBLE_RESULTS,
   variant = 'default',
 }: LogseqResultListProps) => {
+  const { t } = useTranslation();
   const [showAll, setShowAll] = useState(false);
   const withHtml = useMemo(() => blocks.filter(isShown), [blocks]);
   const visible = showAll ? withHtml : withHtml.slice(0, initialCount);
@@ -160,8 +163,8 @@ export const LogseqResultList = ({
   const hidden = withHtml.length - visible.length;
   const sidebar = variant === 'sidebar';
   const moreLabel = showAll
-    ? 'Show fewer'
-    : `Show all ${withHtml.length} results`;
+    ? t('common.results.showFewer')
+    : t('common.results.showAll', { total: withHtml.length });
 
   return (
     <div className={cn('lc-results', sidebar && 'lc-results--sidebar')}>

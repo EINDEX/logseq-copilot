@@ -1,5 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore, type CSSProperties } from 'react';
 import { zIndex } from '@/utils/z-index';
+import { useTranslation } from '@/i18n/react';
 import {
   PICKER_MS,
   getActivePicker,
@@ -35,6 +36,7 @@ const card: CSSProperties = {
 };
 
 const Panel = ({ picker }: { picker: ClipPickerState }) => {
+  const { t } = useTranslation();
   const view = useSyncExternalStore(picker.subscribe, picker.getView);
   const cardRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -77,7 +79,7 @@ const Panel = ({ picker }: { picker: ClipPickerState }) => {
         ref={listRef}
         role="listbox"
         tabIndex={0}
-        aria-label="Template"
+        aria-label={t('content.picker.templateLabel')}
         aria-activedescendant={`logseq-copilot-picker-${view.highlighted}`}
         style={{ outline: 'none' }}
       >
@@ -109,7 +111,7 @@ const Panel = ({ picker }: { picker: ClipPickerState }) => {
               <span
                 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               >
-                {template.name || 'Untitled'}
+                {template.name || t('background.contextMenu.untitledTemplate')}
               </span>
             </div>
           );
@@ -117,8 +119,8 @@ const Panel = ({ picker }: { picker: ClipPickerState }) => {
       </div>
       <textarea
         ref={noteRef}
-        aria-label="Note"
-        placeholder="Note"
+        aria-label={t('common.note')}
+        placeholder={t('common.note')}
         rows={2}
         value={view.note}
         onFocus={() => picker.focusNote()}

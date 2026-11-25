@@ -156,3 +156,22 @@ describe('ClipPicker', () => {
     });
   });
 });
+
+describe('ClipPicker untitled template', () => {
+  afterEach(() => {
+    act(() => getActivePicker()?.destroy());
+    cleanup();
+  });
+
+  it('names a template without a name "Untitled"', () => {
+    render(<ClipPicker />);
+    act(() => {
+      openClipPicker({
+        templates: [{ id: 'blank', name: '' }, ...TEMPLATES],
+        onDecide: vi.fn(),
+        onCancel: vi.fn(),
+      });
+    });
+    expect(screen.getByText('Untitled')).toBeTruthy();
+  });
+});

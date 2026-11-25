@@ -10,6 +10,7 @@ import { usePageRecall } from '@/hooks/use-page-recall';
 import { sendMessage } from '@/types/messaging';
 import log from '@/utils/logger';
 import { openLogseqLinksFromBackground } from '@/utils/logseq-links';
+import { useTranslation } from '@/i18n/react';
 
 /**
  * This page has no tab of its own, so `logseq:openLink` (which opens the link
@@ -32,6 +33,7 @@ const openSettings = () => {
  * storage: Edge reloads the side panel when the tab changes.
  */
 export default function App() {
+  const { t } = useTranslation();
   const { tab, loading: tabLoading } = useActiveTab();
   const url = tab?.url ?? null;
   const { highlights, removedFromLogseq, notice, setNotice, deleteHighlight, updateNote } =
@@ -90,7 +92,7 @@ export default function App() {
       },
       clipSelection: async (picked) => {
         const templateId = picked ?? mainTemplateId;
-        if (tabId === undefined) throw new Error('No tab to clip.');
+        if (tabId === undefined) throw new Error(t('sidebar.errors.noTab'));
         // The same command as the "Clip selection" context menu item; a
         // failure is shown here, not in the page.
         await sendMessage(
@@ -124,12 +126,12 @@ export default function App() {
         { id },
         tab.id,
       );
-      if (!found) setNotice("Couldn't find this highlight on the page");
+      if (!found) setNotice(t('sidebar.errors.highlightNotFound'));
     } catch (error) {
       // There is no content script in the tab: a restricted page, or a tab
       // that was already open when the extension was installed or updated.
       log.warn('Failed to scroll to the highlight:', error);
-      setNotice('Reload the page to jump to highlights');
+      setNotice(t('sidebar.errors.reloadPage'));
     }
   };
 

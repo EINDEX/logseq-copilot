@@ -55,3 +55,38 @@ describe('LogseqCopliot re-search on URL changes', () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('LogseqCopliot search failure', () => {
+  let root: Root;
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    sendMessage.mockReset();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  const mount = async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<LogseqCopliot query="q" />);
+    });
+  };
+
+  it('shows the message of the error', async () => {
+    sendMessage.mockRejectedValue(new Error('Cannot connect to Logseq.'));
+    await mount();
+    expect(container.textContent).toContain('Cannot connect to Logseq.');
+  });
+
+  it('shows "Search failed" when the rejection is not an error', async () => {
+    sendMessage.mockRejectedValue('boom');
+    await mount();
+    expect(container.textContent).toContain('Search failed');
+  });
+});

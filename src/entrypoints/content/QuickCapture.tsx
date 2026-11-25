@@ -28,6 +28,7 @@ import { ClipPicker } from './ClipPicker';
 import { confirmActivePicker, openClipPicker } from './clip-picker';
 import { defaultTemplateIdItem, enableClipNoteFloatButtonItem, templates } from '@/utils/storage';
 import { pickerCandidates, skipPicker } from '@/utils/template-choice';
+import { useTranslation } from '@/i18n/react';
 
 
 const logseqCopilotPopupId = 'logseq-copilot-popup';
@@ -318,6 +319,7 @@ const floatButtonPosition = (selection: Selection, event: MouseEvent) => {
  * page's rem size. Without them the logo showed at its intrinsic 192px.
  */
 const FloatButton = () => {
+  const { t } = useTranslation();
   const [position, setPostion] = useState({
     x: 0,
     y: 0,
@@ -385,7 +387,7 @@ const FloatButton = () => {
     <div
       ref={buttonRef}
       style={styles()}
-      title="Clip to Logseq"
+      title={t('content.floatButton.title')}
       // Firefox clears the page's selection when the mouse goes down on an
       // element that is not draggable, before the click clips it (#143).
       onMouseDown={(event) => event.preventDefault()}
@@ -394,7 +396,7 @@ const FloatButton = () => {
         className="quickCapture"
         src={logo}
         onClick={() => void runPickedClip()}
-        alt={'clip-button'}
+        alt={t('content.floatButton.alt')}
         width={FLOAT_BUTTON_ICON}
         height={FLOAT_BUTTON_ICON}
         draggable={false}

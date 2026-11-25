@@ -3,6 +3,7 @@ import { IconPhoto } from '@tabler/icons-react';
 import type { SerializableImage } from '@/types/highlight';
 import { isPrivateHost } from '@/utils/private-host';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n/react';
 
 /**
  * The image's own URL, when an extension page may load it: http(s) only, and
@@ -32,6 +33,7 @@ export function HighlightImage({
   image: SerializableImage;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
   const src = displayableSrc(image.src);
 
@@ -39,7 +41,7 @@ export function HighlightImage({
     return (
       <span
         role="img"
-        aria-label={image.alt || 'Image'}
+        aria-label={image.alt || t('common.image')}
         className={cn(
           'flex h-12 w-16 items-center justify-center rounded-sm bg-muted text-muted-foreground',
           className,
