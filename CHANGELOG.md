@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.2.1](https://github.com/EINDEX/logseq-copilot/compare/v2.2.0...v2.2.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **badge:** skip setBadgeTextColor where it is missing ([5cc4463](https://github.com/EINDEX/logseq-copilot/commit/5cc4463adb6dd5d3e5b5917aff77323289f667b4))
+* **options:** keep template names readable in the sidebar list ([3f1b277](https://github.com/EINDEX/logseq-copilot/commit/3f1b2773aed4813411f6dbeda98a103d2b0b08a7))
+* **options:** no shortcut Change button in Safari ([98bd8ab](https://github.com/EINDEX/logseq-copilot/commit/98bd8abcc003d2d6b091e6d9a908021012f179ce))
+* **sidebar:** leave the sidebar state alone on pages it cannot open on ([7e522ac](https://github.com/EINDEX/logseq-copilot/commit/7e522acae7b368acfdd3608aa6a23acad474f1e1))
+* **theme:** follow GitHub's color mode instead of its dark theme name ([71015c5](https://github.com/EINDEX/logseq-copilot/commit/71015c55f13f2fbbd28d32580d0c8633777cb2c9))
+
 ## [2.2.0](https://github.com/EINDEX/logseq-copilot/compare/v2.1.0...v2.2.0) (2026-11-23)
 
 
