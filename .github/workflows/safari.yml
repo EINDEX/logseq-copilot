@@ -1,0 +1,70 @@
+name: Safari app
+
+# Compiles the Safari app (safari/) without signing it. Signing and uploading
+# happen only on the maintainer's Mac (scripts/safari-release.sh); this
+# workflow uses no Apple credentials.
+on:
+  pull_request:
+    paths:
+      - 'safari/**'
+      - 'src/**'
+      - 'public/**'
+      - 'wxt.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/safari.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'safari/**'
+      - 'src/**'
+      - 'public/**'
+      - 'wxt.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/safari.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The team ID belongs in the git-ignored Signing.local.xcconfig only.
+      - name: Check that no team ID is committed
+        run: |
+          if grep -nE 'DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*"?[A-Z0-9]{10}' \
+            safari/LogseqCopilot.xcodeproj/project.pbxproj safari/Config/Base.xcconfig; then
+            echo "::error::Remove DEVELOPMENT_TEAM from the committed Xcode files; set it in safari/Config/Signing.local.xcconfig."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        name: Install pnpm
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        name: Use Node.js
+        with:
+          node-version: 26.x
+          cache: 'pnpm'
+
+      - run: pnpm install
+      - run: pnpm build:safari
+
+      - name: Build the app without signing
+        run: |
+          xcodebuild build \
+            -project safari/LogseqCopilot.xcodeproj \
+            -scheme "Logseq Copilot" \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO
