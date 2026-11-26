@@ -1,0 +1,538 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		07BEDBC07575E00AAE958804 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 80C66D12ECE0B183BEC824CE /* Script.js */; };
+		07E62A0A205E666C5D2E7518 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = E25D14E9EE6B8B607D7214B2 /* Style.css */; };
+		199EA7EB0F41E4C865CD5D7F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 8210A0CBCF86D330148CBCB5 /* Main.html */; };
+		2433BAC5F3D858B06FEC1BAA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CA6876735E7B3B6D2617D145 /* Main.storyboard */; };
+		2A45673A61C2869F903CD1E6 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD855C1123C55CFA2FECF9E0 /* SafariWebExtensionHandler.swift */; };
+		7ACA979E659B9EB97A4781A9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15508C748BE03FE24CE29D73 /* ViewController.swift */; };
+		9E19A7C6974E7B4C4350A5F6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F4B6EB1A3441F5AC7EFC4FD /* Assets.xcassets */; };
+		C575C3AC14907680FDBFB1F2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B09D364E9AAF2B040413F2B /* AppDelegate.swift */; };
+		E9E50111572F2E6AB30AB0C0 /* Logseq Copilot Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 62535A29B8805A9A3D2A2334 /* Logseq Copilot Extension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		ED7F42A20FF6273F34C96A4C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = E48E067BBD8916F70DED30F3 /* Icon.png */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		366EC3EE0B5E4317C8B188E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 980D145EB2EF19B7CF8A68AA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 02F4701F22FC50559F41139B;
+			remoteInfo = "Logseq Copilot Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6093CB81012ABD74BD9260E8 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E9E50111572F2E6AB30AB0C0 /* Logseq Copilot Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0B09D364E9AAF2B040413F2B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		15508C748BE03FE24CE29D73 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		250FD60AD5060EE5EBAB4804 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5865E11BB0C12E085C004F96 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		5884896BFC3F14232E5BA5E9 /* Logseq Copilot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Logseq Copilot.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		62535A29B8805A9A3D2A2334 /* Logseq Copilot Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Logseq Copilot Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F4B6EB1A3441F5AC7EFC4FD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		80C66D12ECE0B183BEC824CE /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		D9597E955BE6B1ACF585F766 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		E25D14E9EE6B8B607D7214B2 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		E48E067BBD8916F70DED30F3 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		E8ABD5D20E20900D0F45140D /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		FD855C1123C55CFA2FECF9E0 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		04766EE0DA239B1BD747E2BE = {
+			isa = PBXGroup;
+			children = (
+				BBA239E23E5CAE45122B9165 /* App */,
+				B9BF9C966D81F4CA4C57D30B /* Config */,
+				7A3ED02F1C046D30F1C57D36 /* Extension */,
+				3F6773545DC1874DCF9F87A8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3F6773545DC1874DCF9F87A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				62535A29B8805A9A3D2A2334 /* Logseq Copilot Extension.appex */,
+				5884896BFC3F14232E5BA5E9 /* Logseq Copilot.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7A3ED02F1C046D30F1C57D36 /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				250FD60AD5060EE5EBAB4804 /* Info.plist */,
+				FD855C1123C55CFA2FECF9E0 /* SafariWebExtensionHandler.swift */,
+			);
+			path = Extension;
+			sourceTree = "<group>";
+		};
+		B9BF9C966D81F4CA4C57D30B /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				E8ABD5D20E20900D0F45140D /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		BBA239E23E5CAE45122B9165 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0B09D364E9AAF2B040413F2B /* AppDelegate.swift */,
+				6F4B6EB1A3441F5AC7EFC4FD /* Assets.xcassets */,
+				15508C748BE03FE24CE29D73 /* ViewController.swift */,
+				CA6876735E7B3B6D2617D145 /* Main.storyboard */,
+				EC8F47EF78CB7F1A98AB25E0 /* Resources */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		EC8F47EF78CB7F1A98AB25E0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E48E067BBD8916F70DED30F3 /* Icon.png */,
+				80C66D12ECE0B183BEC824CE /* Script.js */,
+				E25D14E9EE6B8B607D7214B2 /* Style.css */,
+				8210A0CBCF86D330148CBCB5 /* Main.html */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		02F4701F22FC50559F41139B /* Logseq Copilot Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA063D4D9C3F1667D26767B5 /* Build configuration list for PBXNativeTarget "Logseq Copilot Extension" */;
+			buildPhases = (
+				4B9F6AAB06C3A257000B356A /* Copy web extension */,
+				3506432E256535FDECC888B3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Logseq Copilot Extension";
+			packageProductDependencies = (
+			);
+			productName = "Logseq Copilot Extension";
+			productReference = 62535A29B8805A9A3D2A2334 /* Logseq Copilot Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		49D8D31930478091DCFAAEE5 /* Logseq Copilot */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 785F4577F6BDCAF1F2F54706 /* Build configuration list for PBXNativeTarget "Logseq Copilot" */;
+			buildPhases = (
+				7418643A560B4124771F13B4 /* Sources */,
+				0DEB6D1ABA1236053ECF9F61 /* Resources */,
+				6093CB81012ABD74BD9260E8 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B8F71F7DA62599FC029E96AE /* PBXTargetDependency */,
+			);
+			name = "Logseq Copilot";
+			packageProductDependencies = (
+			);
+			productName = "Logseq Copilot";
+			productReference = 5884896BFC3F14232E5BA5E9 /* Logseq Copilot.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		980D145EB2EF19B7CF8A68AA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					02F4701F22FC50559F41139B = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					49D8D31930478091DCFAAEE5 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 593199A85680502919A30DE0 /* Build configuration list for PBXProject "LogseqCopilot" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 04766EE0DA239B1BD747E2BE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3F6773545DC1874DCF9F87A8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				49D8D31930478091DCFAAEE5 /* Logseq Copilot */,
+				02F4701F22FC50559F41139B /* Logseq Copilot Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0DEB6D1ABA1236053ECF9F61 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9E19A7C6974E7B4C4350A5F6 /* Assets.xcassets in Resources */,
+				ED7F42A20FF6273F34C96A4C /* Icon.png in Resources */,
+				199EA7EB0F41E4C865CD5D7F /* Main.html in Resources */,
+				2433BAC5F3D858B06FEC1BAA /* Main.storyboard in Resources */,
+				07BEDBC07575E00AAE958804 /* Script.js in Resources */,
+				07E62A0A205E666C5D2E7518 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		4B9F6AAB06C3A257000B356A /* Copy web extension */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy web extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Scripts/copy-web-extension.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3506432E256535FDECC888B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A45673A61C2869F903CD1E6 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7418643A560B4124771F13B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C575C3AC14907680FDBFB1F2 /* AppDelegate.swift in Sources */,
+				7ACA979E659B9EB97A4781A9 /* ViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B8F71F7DA62599FC029E96AE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 02F4701F22FC50559F41139B /* Logseq Copilot Extension */;
+			targetProxy = 366EC3EE0B5E4317C8B188E4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		8210A0CBCF86D330148CBCB5 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				5865E11BB0C12E085C004F96 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		CA6876735E7B3B6D2617D145 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D9597E955BE6B1ACF585F766 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		764FACDFA530554E2A84E669 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Logseq Copilot Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
+				OTHER_LDFLAGS = "-framework SafariServices";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.eindex.logseq-copilot.extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		84518832D1C529B2E5CE980E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E8ABD5D20E20900D0F45140D /* Base.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9E1228E8E833A5F19C3B66EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Logseq Copilot";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_LDFLAGS = "-framework SafariServices -framework WebKit";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.eindex.logseq-copilot";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+			};
+			name = Debug;
+		};
+		B6116A2F17ADA9B8C9FD3DE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Logseq Copilot";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_LDFLAGS = "-framework SafariServices -framework WebKit";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.eindex.logseq-copilot";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+			};
+			name = Release;
+		};
+		C265505910B4B741B5C25357 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E8ABD5D20E20900D0F45140D /* Base.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F52F34A58D86D720B89D87EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Logseq Copilot Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
+				OTHER_LDFLAGS = "-framework SafariServices";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.eindex.logseq-copilot.extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		593199A85680502919A30DE0 /* Build configuration list for PBXProject "LogseqCopilot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84518832D1C529B2E5CE980E /* Debug */,
+				C265505910B4B741B5C25357 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		785F4577F6BDCAF1F2F54706 /* Build configuration list for PBXNativeTarget "Logseq Copilot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9E1228E8E833A5F19C3B66EA /* Debug */,
+				B6116A2F17ADA9B8C9FD3DE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BA063D4D9C3F1667D26767B5 /* Build configuration list for PBXNativeTarget "Logseq Copilot Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F52F34A58D86D720B89D87EA /* Debug */,
+				764FACDFA530554E2A84E669 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 980D145EB2EF19B7CF8A68AA /* Project object */;
+}

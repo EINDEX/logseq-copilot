@@ -1,0 +1,14 @@
+// Shared by every target and configuration of LogseqCopilot.xcodeproj.
+
+// Placeholders for builds from Xcode. scripts/safari-release.sh passes the
+// real values: MARKETING_VERSION from package.json, CURRENT_PROJECT_VERSION
+// from the current UTC time (see safari/README.md).
+MARKETING_VERSION = 0.0.0
+CURRENT_PROJECT_VERSION = 1
+
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+
+// Signing.local.xcconfig is git-ignored and sets DEVELOPMENT_TEAM on this
+// machine. Copy Signing.local.xcconfig.example to create it.
+#include? "Signing.local.xcconfig"
