@@ -4,7 +4,7 @@
     ".": {
       "release-type": "node",
       "include-component-in-tag": false,
-      "exclude-paths": [".github", "docs", "pipeline", "scripts", "store", "tests"],
+      "exclude-paths": [".github", "docs", "pipeline", "safari", "scripts", "store", "tests"],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },

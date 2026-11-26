@@ -56,3 +56,23 @@ out(
     .png({ compressionLevel: 9 })
     .toBuffer(),
 );
+
+// macOS app icon for the Safari app (safari/): the artwork is 824 of 1024 px,
+// centred on a transparent canvas, as on Apple's macOS icon grid.
+const macIcon = async (size) => {
+  const art = Math.round((size * 824) / 1024);
+  const pad = Math.floor((size - art) / 2);
+  return sharp({ create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: await render(art), left: pad, top: pad }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+};
+for (const size of [16, 32, 128, 256, 512]) {
+  for (const scale of [1, 2]) {
+    out(
+      `safari/App/Assets.xcassets/AppIcon.appiconset/mac-icon-${size}@${scale}x.png`,
+      await macIcon(size * scale),
+    );
+  }
+}
+out('safari/App/Resources/Icon.png', await render(256));

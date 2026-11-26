@@ -28,6 +28,7 @@ files are under these folders, whatever its type (even `feat:`):
 | `docs/` | The website (`docs.yml` deploys it on its own) |
 | `store/` | Store listing text and screenshots |
 | `.github/`, `pipeline/`, `scripts/` | CI, store upload and dev tooling |
+| `safari/` | The Safari app (Mac App Store), released by hand (below) |
 | `tests/` | Tests |
 
 A commit that also changes anything else (`src/`, `public/`, `wxt.config.ts`,
@@ -101,6 +102,13 @@ entry will be 2.0.0; earlier release notes stay on the GitHub releases page.
 | `CHROME_PUBLISHER_ID` | Chrome Web Store publisher id (Dashboard > Publisher > Settings) |
 | `EDGE_PRODUCT_ID`, `EDGE_CLIENT_ID`, `EDGE_API_KEY` | Edge Add-ons API v1.1 (Partner Center > Publish API) |
 | `FIREFOX_WEB_EXT_API_KEY`, `FIREFOX_WEB_EXT_API_SECRET` | AMO API credentials (JWT issuer / secret) |
+
+## Safari (Mac App Store)
+
+The Safari app is not part of the automated release. The maintainer builds,
+signs and uploads it from their Mac with `pnpm release:safari --upload`, then
+submits it for review in App Store Connect. Nothing about signing is in the
+repository or in GitHub. Setup and steps: [`safari/README.md`](safari/README.md).
 
 ## Dev build numbers
 

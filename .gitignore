@@ -42,3 +42,14 @@ logseq-setup-failure.png
 # E2E
 /test-results
 /playwright-report
+
+# Safari app (safari/): signing stays on the maintainer's machine
+Signing.local.xcconfig
+*.p8
+*.p12
+*.mobileprovision
+*.provisionprofile
+safari/build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
