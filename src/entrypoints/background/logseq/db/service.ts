@@ -32,6 +32,11 @@ import {
   scopePrefixes,
   storedHostPath,
 } from '@/utils/recall-scope';
+import {
+  blockMatchesPage,
+  searchTermsFor,
+  type UrlMatchOptions,
+} from '@/utils/recall-url-match';
 
 export { getBlockMarker };
 
@@ -277,7 +282,10 @@ export default class LogseqDBService implements LogseqServiceInterface {
     return block;
   }
 
-  public async urlSearch(url: URL, opt: { scopeDepth?: number } = {}) {
+  public async urlSearch(
+    url: URL,
+    opt: { scopeDepth?: number } & UrlMatchOptions = {},
+  ) {
     const graph = await this.getGraph();
     const blockUuidSet = new Set();
     const blocks: LogseqBlockType[] = [];
@@ -298,6 +306,12 @@ export default class LogseqDBService implements LogseqServiceInterface {
       results.blocks.filter(keep).forEach(blockAdd);
     };
 
+    // The page's own query first: the path alone finds every page of the site
+    // with that path, and the search returns only so many blocks.
+    if (url.search) {
+      await find(url.host + url.pathname + url.search);
+    }
+
     if (url.pathname) {
       await find(url.host + url.pathname);
     }
@@ -308,6 +322,18 @@ export default class LogseqDBService implements LogseqServiceInterface {
       await find(stored);
     }
 
+    // Other forms of the same page (youtu.be/ID for youtube.com/watch?v=ID).
+    for (const term of searchTermsFor(url, opt.urlForms)) {
+      await find(term);
+    }
+
+    // The path search finds every block that mentions the path: keep the ones
+    // about this page (#59).
+    const own = blocks.filter((block) =>
+      blockMatchesPage(block.content, url, opt),
+    );
+    blocks.length = 0;
+    blocks.push(...own);
     const count = blocks.length;
 
     // Parent paths, narrowest first. Search matches substrings, so keep only

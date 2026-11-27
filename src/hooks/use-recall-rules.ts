@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RecallRuleConfig, recallRulesConfig } from '@/utils/storage';
 import { log } from '@/utils';
+import {
+  isBuiltinRuleId,
+  mergeBuiltinRules,
+  rulesToStore,
+} from '@/utils/recall-builtin-rules';
 
 export interface UseRecallRulesReturn {
+  /** The effective rules: stored ones, then the built-ins that are not stored. */
   recallRules: RecallRuleConfig[];
   loading: boolean;
   error: string | null;
@@ -18,10 +24,22 @@ export interface UseRecallRulesReturn {
   getActiveRules: () => RecallRuleConfig[];
   refreshRules: () => Promise<void>;
   reorderRules: (newOrder: RecallRuleConfig[]) => Promise<void>;
+  /** Whether the rule is one the extension ships (`builtin:` ids). */
+  isBuiltin: (id: string) => boolean;
+  /** Whether the user changed a built-in rule (a copy of it is stored). */
+  isOverridden: (id: string) => boolean;
+  /** Drop the user's changes to a built-in rule: its shipped version applies again. */
+  resetToBuiltin: (id: string) => Promise<void>;
 }
 
 /**
  * Custom hook for managing recall rules using WXT storage
+ *
+ * Built-in rules (src/utils/recall-builtin-rules.ts) are part of the list
+ * without being stored. Saving an edited built-in (updateRecallRule,
+ * toggleRecallRule) stores an override with the same id; resetToBuiltin (or
+ * deleteRecallRule, which means the same for a built-in) removes it. An
+ * override equal to the shipped rule is not stored.
  *
  * @returns {UseRecallRulesReturn} Object containing recall rules, loading state, and utility functions
  *
@@ -52,7 +70,9 @@ export interface UseRecallRulesReturn {
  * ```
  */
 export function useRecallRules(): UseRecallRulesReturn {
-  const [rules, setRules] = useState<RecallRuleConfig[]>([]);
+  // What is stored; the built-ins are merged in at read time.
+  const [stored, setStored] = useState<RecallRuleConfig[]>([]);
+  const rules = useMemo(() => mergeBuiltinRules(stored), [stored]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +84,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       setLoading(true);
       setError(null);
       const rulesData = await recallRulesConfig.getValue();
-      setRules(rulesData);
+      setStored(rulesData);
       log.debug('[useRecallRules] Recall rules loaded:', rulesData);
     } catch (err) {
       const errorMessage =
@@ -76,6 +96,13 @@ export function useRecallRules(): UseRecallRulesReturn {
     }
   }, []);
 
+  /** Store a list of effective rules (unchanged built-ins stay code). */
+  const saveRules = useCallback(async (effective: RecallRuleConfig[]) => {
+    const toStore = rulesToStore(effective);
+    await recallRulesConfig.setValue(toStore);
+    setStored(toStore);
+  }, []);
+
   /**
    * Add a new recall rule
    */
@@ -83,15 +110,13 @@ export function useRecallRules(): UseRecallRulesReturn {
     async (rule: Omit<RecallRuleConfig, 'id'>) => {
       try {
         setError(null);
-        const currentRules = await recallRulesConfig.getValue();
+        const currentRules = mergeBuiltinRules(await recallRulesConfig.getValue());
         const newRule: RecallRuleConfig = {
           ...rule,
           id: `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         };
 
-        const updatedRules = [newRule, ...currentRules];
-        await recallRulesConfig.setValue(updatedRules);
-        setRules(updatedRules);
+        await saveRules([newRule, ...currentRules]);
 
         log.debug('[useRecallRules] Recall rule added:', newRule);
       } catch (err) {
@@ -101,7 +126,7 @@ export function useRecallRules(): UseRecallRulesReturn {
         log.error('[useRecallRules] Failed to add recall rule:', err);
       }
     },
-    [],
+    [saveRules],
   );
 
   /**
@@ -111,13 +136,12 @@ export function useRecallRules(): UseRecallRulesReturn {
     async (id: string, updates: Partial<RecallRuleConfig>) => {
       try {
         setError(null);
-        const currentRules = await recallRulesConfig.getValue();
-        const updatedRules = currentRules.map((rule) =>
-          rule.id === id ? { ...rule, ...updates } : rule,
+        const currentRules = mergeBuiltinRules(await recallRulesConfig.getValue());
+        await saveRules(
+          currentRules.map((rule) =>
+            rule.id === id ? { ...rule, ...updates } : rule,
+          ),
         );
-
-        await recallRulesConfig.setValue(updatedRules);
-        setRules(updatedRules);
 
         log.debug('[useRecallRules] Recall rule updated:', { id, updates });
       } catch (err) {
@@ -127,11 +151,11 @@ export function useRecallRules(): UseRecallRulesReturn {
         log.error('[useRecallRules] Failed to update recall rule:', err);
       }
     },
-    [],
+    [saveRules],
   );
 
   /**
-   * Delete a recall rule
+   * Delete a recall rule. A built-in cannot be deleted: this resets it.
    */
   const deleteRecallRule = useCallback(async (id: string) => {
     try {
@@ -140,7 +164,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       const updatedRules = currentRules.filter((rule) => rule.id !== id);
 
       await recallRulesConfig.setValue(updatedRules);
-      setRules(updatedRules);
+      setStored(updatedRules);
 
       log.debug('[useRecallRules] Recall rule deleted:', id);
     } catch (err) {
@@ -150,6 +174,18 @@ export function useRecallRules(): UseRecallRulesReturn {
       log.error('[useRecallRules] Failed to delete recall rule:', err);
     }
   }, []);
+
+  /**
+   * Drop the user's changes to a built-in rule
+   */
+  const resetToBuiltin = deleteRecallRule;
+
+  const isBuiltin = useCallback((id: string) => isBuiltinRuleId(id), []);
+
+  const isOverridden = useCallback(
+    (id: string) => isBuiltinRuleId(id) && stored.some((rule) => rule.id === id),
+    [stored],
+  );
 
   /**
    * Toggle a recall rule's enabled state
@@ -222,8 +258,7 @@ export function useRecallRules(): UseRecallRulesReturn {
   const reorderRules = useCallback(async (newOrder: RecallRuleConfig[]) => {
     try {
       setError(null);
-      await recallRulesConfig.setValue(newOrder);
-      setRules(newOrder);
+      await saveRules(newOrder);
       log.debug('[useRecallRules] Recall rules reordered');
     } catch (err) {
       const errorMessage =
@@ -231,7 +266,7 @@ export function useRecallRules(): UseRecallRulesReturn {
       setError(errorMessage);
       log.error('[useRecallRules] Failed to reorder recall rules:', err);
     }
-  }, []);
+  }, [saveRules]);
 
   // Load rules on mount
   useEffect(() => {
@@ -242,7 +277,7 @@ export function useRecallRules(): UseRecallRulesReturn {
   useEffect(() => {
     const unsubscribe = recallRulesConfig.watch((newRules) => {
       log.debug('[useRecallRules] Recall rules changed:', newRules);
-      setRules(newRules);
+      setStored(newRules);
     });
 
     return unsubscribe;
@@ -261,6 +296,9 @@ export function useRecallRules(): UseRecallRulesReturn {
     getActiveRules,
     refreshRules,
     reorderRules,
+    isBuiltin,
+    isOverridden,
+    resetToBuiltin,
   };
 }
 

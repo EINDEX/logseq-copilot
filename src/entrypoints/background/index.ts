@@ -93,7 +93,7 @@ export default defineBackground({
       // Use processed URL for search
       const searchRes = await logseqService.urlSearch(
         searchContext.processedUrl,
-        { scopeDepth: searchContext.scopeDepth },
+        { scopeDepth: searchContext.scopeDepth, ...searchContext.urlMatch },
       );
 
       // Filter results based on recall rules
@@ -277,6 +277,7 @@ export default defineBackground({
       const logseqService = await getLogseqService();
       const searchRes = await logseqService.urlSearch(
         searchContext.processedUrl,
+        searchContext.urlMatch,
       );
 
       // Count the results left after the recall rules filter

@@ -2,6 +2,7 @@ import { ChangeBlockMarkerResult, LogseqBlockType } from '@/types/logseqBlock';
 import type { RecallResult } from '@/types/recall';
 import type { ClipBlock } from '@/utils/clip-template';
 import type { GraphProperty, GraphTag } from '@/utils/storage';
+import type { UrlMatchOptions } from '@/utils/recall-url-match';
 import type { RecallOptions } from './recall/recall';
 import type { WrittenClip } from './clip-blocks';
 import type { GroupRequest } from './clip-group';
@@ -42,7 +43,10 @@ export interface LogseqServiceInterface extends NoteBlockApi, ImageAssetStore {
    * (`children`, `matched`), see clip-recall.ts. `count` is the number of
    * entries for the page itself.
    */
-  urlSearch(url: URL, opt?: { scopeDepth?: number }): any;
+  urlSearch(
+    url: URL,
+    opt?: { scopeDepth?: number } & UrlMatchOptions,
+  ): any;
   showMsg(message: string): any;
   getVersion(): any;
   /**

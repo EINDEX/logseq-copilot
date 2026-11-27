@@ -1,11 +1,20 @@
 import { RecallRuleConfig, recallRulesConfig } from '@/utils/storage';
 import { log } from '@/utils';
+import { mergeBuiltinRules } from '@/utils/recall-builtin-rules';
+import {
+  canonicalUrl,
+  type UrlMatchOptions,
+} from '@/utils/recall-url-match';
 
 export interface ProcessedSearchContext {
   originalUrl: URL;
   processedUrl: URL;
   // From the highest-priority rule that sets one (see recall-scope.ts).
   scopeDepth?: number;
+  // How blocks found for the page's path are compared with its query. From the
+  // highest-priority rule that sets each field; unset when a rule ignores the
+  // query altogether.
+  urlMatch: UrlMatchOptions;
   excludeKeywords: string[];
   includeKeywords: string[];
   searchScope: {
@@ -97,7 +106,7 @@ export class RecallRuleProcessor {
    */
   public async initialize(): Promise<void> {
     try {
-      this.rules = await recallRulesConfig.getValue();
+      this.rules = mergeBuiltinRules(await recallRulesConfig.getValue());
       log.debug('[RecallRuleProcessor] Loaded rules:', this.rules);
     } catch (error) {
       log.error('[RecallRuleProcessor] Failed to load rules:', error);
@@ -161,7 +170,38 @@ export class RecallRuleProcessor {
       }
     }
 
+    // Query parameters: the most specific rule that lists some decides.
+    // ignoreQueryParams (above) removed them all and wins.
+    const match = this.urlMatchOptions(rules);
+    if (match.keepQueryParams) {
+      const keep = new Set(match.keepQueryParams);
+      for (const key of [...new Set(processedUrl.searchParams.keys())]) {
+        if (!keep.has(key)) processedUrl.searchParams.delete(key);
+      }
+    }
+    // Equivalent URLs (youtu.be/ID) become the canonical one.
+    if (match.urlForms) return canonicalUrl(processedUrl, match) ?? processedUrl;
+
     return processedUrl;
+  }
+
+  /**
+   * The query matching options of the rules (most specific first): the first
+   * rule that sets `keepQueryParams` / `urlForms` decides each. None when a
+   * rule ignores the query: there is nothing to compare.
+   */
+  public urlMatchOptions(rules: RecallRuleConfig[]): UrlMatchOptions {
+    if (rules.some((rule) => rule.queryProcessing.ignoreQueryParams)) return {};
+    const keepQueryParams = rules.find(
+      (rule) => rule.queryProcessing.keepQueryParams?.length,
+    )?.queryProcessing.keepQueryParams;
+    const urlForms = rules.find(
+      (rule) => rule.queryProcessing.urlForms?.length,
+    )?.queryProcessing.urlForms;
+    return {
+      ...(keepQueryParams && { keepQueryParams }),
+      ...(urlForms && { urlForms }),
+    };
   }
 
   /**
@@ -290,6 +330,7 @@ export class RecallRuleProcessor {
       originalUrl,
       processedUrl,
       scopeDepth,
+      urlMatch: this.urlMatchOptions(matchingRules),
       excludeKeywords,
       includeKeywords,
       searchScope,

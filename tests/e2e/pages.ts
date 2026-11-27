@@ -557,6 +557,16 @@ export async function routeFixtureSites(
       body: articleHtml(article.title, article.paragraph, article.image),
     });
   });
+  // Video pages (#59): any video is a generic page, so a test can visit
+  // several of them.
+  for (const pattern of ['https://www.youtube.com/watch*', 'https://youtu.be/**']) {
+    await context.route(pattern, (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: articleHtml(`Fixture video ${new URL(route.request().url()).search}`, 'Fixture video page.'),
+      }),
+    );
+  }
   // After example.com/**: Playwright tries the route added last first.
   // The same image on another origin, without CORS headers: it shows, but
   // could not be loaded in CORS mode.

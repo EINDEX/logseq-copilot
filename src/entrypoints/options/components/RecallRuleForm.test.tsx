@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import RecallRuleForm from './RecallRuleForm';
 import { recallRulesConfig } from '@/utils/storage';
+import { BUILTIN_RECALL_RULES } from '@/utils/recall-builtin-rules';
 
 const input = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLInputElement;
 const type = (placeholder: string, value: string) =>
@@ -76,5 +77,57 @@ describe('RecallRuleForm recall scope', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'This page' }));
     fireEvent.submit(document.querySelector('form')!);
     expect(onSave.mock.calls[0][0].queryProcessing.scopeDepth).toBeUndefined();
+  });
+});
+
+describe('RecallRuleForm query parameter allowlist', () => {
+  afterEach(cleanup);
+
+  const youtube = BUILTIN_RECALL_RULES.find((rule) => rule.id === 'builtin:youtube-video')!;
+  const github = recallRulesConfig.fallback.find((rule) => rule.id === 'github-pr')!;
+  const submit = () => fireEvent.submit(document.querySelector('form')!);
+
+  it('shows the allowlist and the URL forms of a built-in rule and saves them back', () => {
+    const onSave = vi.fn();
+    render(<RecallRuleForm initialRule={youtube} onSave={onSave} onCancel={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Remove v' })).toBeTruthy();
+    expect(screen.getByText('youtu.be/{id}')).toBeTruthy();
+
+    type('Parameter name', 'list');
+    add('Parameter name');
+    submit();
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.queryProcessing.keepQueryParams).toEqual(['v', 'list']);
+    expect(saved.queryProcessing.urlForms).toEqual(youtube.queryProcessing.urlForms);
+  });
+
+  it('turns the allowlist off by emptying it', () => {
+    const onSave = vi.fn();
+    render(<RecallRuleForm initialRule={youtube} onSave={onSave} onCancel={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove v' }));
+    submit();
+    expect('keepQueryParams' in onSave.mock.calls[0][0].queryProcessing).toBe(false);
+  });
+
+  it('disables the field while query parameters are ignored', () => {
+    render(<RecallRuleForm initialRule={youtube} onSave={() => {}} onCancel={() => {}} />);
+    expect(input('Parameter name').disabled).toBe(false);
+
+    fireEvent.click(screen.getByRole('switch', { name: /Ignore query parameters/ }));
+    expect(input('Parameter name').disabled).toBe(true);
+  });
+
+  it('saves an old rule without the field without gaining new fields', () => {
+    const onSave = vi.fn();
+    render(<RecallRuleForm initialRule={github} onSave={onSave} onCancel={() => {}} />);
+
+    expect(input('Parameter name').value).toBe('');
+    expect(screen.queryByText('Same page under')).toBeNull();
+    submit();
+    const { queryProcessing } = onSave.mock.calls[0][0];
+    expect('keepQueryParams' in queryProcessing).toBe(false);
+    expect('urlForms' in queryProcessing).toBe(false);
   });
 });
