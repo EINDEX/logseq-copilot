@@ -83,16 +83,6 @@ Recommended repository settings, because this job holds the store secrets:
 - Settings > Rules > Rulesets: protect `v*` tags (restrict creation, updates
   and deletion to maintainers).
 
-## First release: 2.0.0
-
-`release-please-config.json` has `"release-as": "2.0.0"` so the next release is
-2.0.0 regardless of the commits (the manifest baseline is 1.15.2).
-
-release-please does not clear this setting. **After the 2.0.0 release PR is
-merged, delete the `"release-as"` line** from `release-please-config.json`;
-otherwise every later release PR keeps proposing 2.0.0. The first CHANGELOG
-entry will be 2.0.0; earlier release notes stay on the GitHub releases page.
-
 ## Required secrets (environment `publish`)
 
 | Secret | Used for |
